@@ -1,0 +1,3 @@
+[submodule "swords-and-ravens"]
+	path = swords-and-ravens
+	url = https://github.com/Longwelwind/swords-and-ravens.git

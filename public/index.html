@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Raven Harness</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">SWORDS &amp; RAVENS</p>
+        <h1>Raven Harness</h1>
+        <p class="subtitle">Seat model-driven players at the same table as humans.</p>
+      </div>
+      <div id="api-status" class="api-status">Checking model configuration…</div>
+    </header>
+
+    <main>
+      <section class="toolbar">
+        <div>
+          <h2>Agents</h2>
+          <p>Create a player, connect it to a game, then let the model take one legal action.</p>
+        </div>
+        <button id="new-agent" class="button primary">New agent</button>
+      </section>
+
+      <section id="empty-state" class="empty-state hidden">
+        <span class="raven">◆</span>
+        <h3>No agents at the table</h3>
+        <p>Create your first agent and give it a Swords &amp; Ravens player identity.</p>
+      </section>
+      <section id="agent-grid" class="agent-grid" aria-live="polite"></section>
+    </main>
+
+    <dialog id="agent-dialog">
+      <form id="agent-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">NEW PLAYER</p>
+            <h2>Create an agent</h2>
+          </div>
+          <button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            <span>Name</span>
+            <input name="name" required placeholder="The Northern Strategist">
+          </label>
+          <label>
+            <span>Model</span>
+            <select name="model" required>
+              <option value="z-ai/glm-5.3-flash">Z.ai: GLM 5.3 Flash</option>
+            </select>
+          </label>
+          <label class="wide">
+            <span>Game server WebSocket</span>
+            <input name="gameServerUrl" required value="ws://localhost:5001" placeholder="ws://localhost:5001">
+          </label>
+          <label>
+            <span>Game / room ID</span>
+            <input name="gameId" required value="1" placeholder="1">
+          </label>
+          <label>
+            <span>Player user ID</span>
+            <input name="userId" required placeholder="2">
+          </label>
+          <label>
+            <span>Player auth token</span>
+            <input name="authToken" type="password" required autocomplete="new-password">
+          </label>
+          <label>
+            <span>Game password <em>optional</em></span>
+            <input name="gamePassword" type="password" autocomplete="new-password">
+          </label>
+          <label class="wide">
+            <span>System prompt</span>
+            <textarea name="systemPrompt" rows="6" placeholder="Optional; a safe default is provided."></textarea>
+          </label>
+        </div>
+        <p id="form-error" class="error hidden"></p>
+        <div class="dialog-actions">
+          <button type="button" class="button quiet" id="cancel-dialog">Cancel</button>
+          <button type="submit" class="button primary">Create agent</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="details-dialog" class="details-dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">PLAYER VIEW</p>
+          <h2 id="details-title">Agent details</h2>
+        </div>
+        <button type="button" class="icon-button" id="close-details" aria-label="Close">×</button>
+      </div>
+      <div class="detail-tabs">
+        <button class="tab active" data-tab="observation">Observation</button>
+        <button class="tab" data-tab="tools">Available tools</button>
+        <button class="tab" data-tab="events">Events</button>
+      </div>
+      <pre id="details-content">Loading…</pre>
+    </dialog>
+
+    <template id="agent-template">
+      <article class="agent-card">
+        <div class="card-topline">
+          <span class="status"><i></i><span class="status-label"></span></span>
+          <button class="menu-button delete" title="Delete agent">Delete</button>
+        </div>
+        <div class="sigil">R</div>
+        <h3 class="agent-name"></h3>
+        <p class="model-name"></p>
+        <dl>
+          <div><dt>Game</dt><dd class="game-id"></dd></div>
+          <div><dt>Seat</dt><dd class="seat"></dd></div>
+          <div><dt>Phase</dt><dd class="phase"></dd></div>
+        </dl>
+        <p class="card-error hidden"></p>
+        <div class="card-actions">
+          <button class="button connect">Connect</button>
+          <button class="button primary run" disabled>Take one action</button>
+          <button class="button autoplay" disabled>Autoplay</button>
+          <button class="button quiet setup" disabled title="Owner only">3-player setup</button>
+          <button class="button quiet launch" disabled title="Owner only">Launch game</button>
+          <button class="button quiet inspect">Inspect</button>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

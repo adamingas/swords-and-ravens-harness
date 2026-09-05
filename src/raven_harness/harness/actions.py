@@ -1,0 +1,698 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field, replace
+from enum import Enum
+from typing import Annotated, Any, Protocol
+
+from agents import FunctionTool, RunContextWrapper, function_tool
+from pydantic import BaseModel, ConfigDict, Field
+
+from .observation import HarnessContext, build_context
+
+Message = dict[str, Any]
+
+
+class PlanningOrder(str, Enum):
+    MARCH_MINUS_ONE = "march_minus_one"
+    MARCH = "march"
+    MARCH_PLUS_ONE = "march_plus_one"
+    DEFENSE = "defense"
+    DEFENSE_PLUS_TWO = "defense_plus_two"
+    SUPPORT = "support"
+    SUPPORT_PLUS_ONE = "support_plus_one"
+    CONSOLIDATE_POWER = "consolidate_power"
+    CONSOLIDATE_POWER_STARRED = "consolidate_power_starred"
+    RAID = "raid"
+    RAID_STARRED = "raid_starred"
+
+
+ORDER_TOKENS = {
+    PlanningOrder.MARCH_MINUS_ONE: [1],
+    PlanningOrder.MARCH: [2],
+    PlanningOrder.MARCH_PLUS_ONE: [3],
+    PlanningOrder.DEFENSE: [4, 5],
+    PlanningOrder.DEFENSE_PLUS_TWO: [6],
+    PlanningOrder.SUPPORT: [7, 8],
+    PlanningOrder.SUPPORT_PLUS_ONE: [9],
+    PlanningOrder.CONSOLIDATE_POWER: [10, 11],
+    PlanningOrder.CONSOLIDATE_POWER_STARRED: [12],
+    PlanningOrder.RAID: [13, 14],
+    PlanningOrder.RAID_STARRED: [15],
+}
+STARRED_PLANNING_ORDERS = {
+    PlanningOrder.MARCH_PLUS_ONE,
+    PlanningOrder.DEFENSE_PLUS_TWO,
+    PlanningOrder.SUPPORT_PLUS_ONE,
+    PlanningOrder.CONSOLIDATE_POWER_STARRED,
+    PlanningOrder.RAID_STARRED,
+}
+PLANNING_RESTRICTED_ORDERS = {
+    "no-march-plus-one-order": {PlanningOrder.MARCH_PLUS_ONE},
+    "no-defense-order": {PlanningOrder.DEFENSE, PlanningOrder.DEFENSE_PLUS_TWO},
+    "no-support-order": {PlanningOrder.SUPPORT, PlanningOrder.SUPPORT_PLUS_ONE},
+    "no-consolidate-power-order": {
+        PlanningOrder.CONSOLIDATE_POWER,
+        PlanningOrder.CONSOLIDATE_POWER_STARRED,
+    },
+    "no-raid-order": {PlanningOrder.RAID, PlanningOrder.RAID_STARRED},
+}
+
+
+class GameClient(Protocol):
+    snapshot: dict[str, Any] | None
+    recent_events: Any
+
+    async def send(self, message: Message, *, require_auth: bool = True) -> None: ...
+
+
+class OrderAssignment(BaseModel):
+    """One semantic order choice assigned to one board region."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    region_id: str = Field(
+        min_length=1, description="ID of a region containing your units."
+    )
+    order: PlanningOrder = Field(
+        description=(
+            "Semantic order. The harness allocates a matching physical token and "
+            "translates it to the upstream server protocol."
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class ActionSpec:
+    name: str
+    description: str
+    legal_values: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ActionTaken:
+    name: str
+    arguments: dict[str, Any]
+    messages: list[Message]
+
+
+@dataclass
+class HarnessRunContext:
+    """Private runtime state available to tools, but never shown to the model."""
+
+    client: GameClient
+    user_id: str
+    game_password: str = ""
+    action_taken: ActionTaken | None = None
+
+    def current_game_context(self) -> HarnessContext:
+        if self.client.snapshot is None:
+            raise RuntimeError("The game connection no longer has a snapshot")
+        return build_context(
+            self.client.snapshot,
+            self.user_id,
+            list(self.client.recent_events),
+        )
+
+    async def perform(
+        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+    ) -> str:
+        _require_action(self.current_game_context(), name)
+        return await self._send_messages(name, arguments, messages)
+
+    async def perform_protocol(
+        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+    ) -> str:
+        """Send a typed gameplay action and let the game server enforce detailed rules."""
+
+        if self.action_taken is not None:
+            raise RuntimeError("This model run has already taken an action")
+        if self.current_game_context().ingame is None:
+            raise RuntimeError(f"Tool {name!r} is only available after the game starts")
+        return await self._send_messages(name, arguments, messages)
+
+    async def _send_messages(
+        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+    ) -> str:
+        if self.action_taken is not None:
+            raise RuntimeError("This model run has already taken an action")
+        outgoing = messages if isinstance(messages, list) else [messages]
+        for message in outgoing:
+            await self.client.send(message)
+        self.action_taken = ActionTaken(
+            name=name, arguments=arguments, messages=outgoing
+        )
+        return json.dumps({"ok": True, "action": name})
+
+
+def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
+    """Return only actions that make sense for this player in the current state."""
+
+    snapshot = context.snapshot
+    leaf = context.leaf
+    user_id = context.user_id
+    house_id = context.house_id
+    actions: list[ActionSpec] = []
+
+    child = snapshot.get("childGameState", {})
+    if child.get("type") == "lobby":
+        current_seat = next(
+            (pair for pair in child.get("players", []) if str(pair[1]) == user_id), None
+        )
+        occupied = {pair[0] for pair in child.get("players", [])}
+        houses = [
+            house["id"]
+            for house in child.get("lobbyHouses", [])
+            if house["id"] not in occupied
+            or (current_seat and current_seat[0] == house["id"])
+        ]
+        if houses and child.get("readyUsers") is None:
+            actions.append(
+                ActionSpec(
+                    "choose_house",
+                    f"Join or change house. Legal house_id values: {_choices(houses)}.",
+                    {"house_ids": houses},
+                )
+            )
+        settings = snapshot.get("gameSettings", {})
+        required_players = settings.get("playerCount")
+        seated_houses = {pair[0] for pair in child.get("players", [])}
+        minimum_players = (
+            4 if isinstance(required_players, int) and required_players >= 8 else 3
+        )
+        enough_players = isinstance(required_players, int) and (
+            len(child.get("players", [])) >= required_players
+            or (
+                settings.get("vassals", False)
+                and len(child.get("players", [])) >= minimum_players
+            )
+        )
+        targaryen_requirement_met = not (
+            isinstance(required_players, int)
+            and required_players >= 8
+            and not settings.get("randomHouses", False)
+            and "targaryen" not in seated_houses
+        )
+        if (
+            str(snapshot.get("ownerUserId")) == user_id
+            and child.get("readyUsers") is None
+            and enough_players
+            and targaryen_requirement_met
+        ):
+            actions.append(
+                ActionSpec(
+                    "start_game",
+                    "Launch the game. Live games begin a ready check; correspondence games start immediately.",
+                )
+            )
+        if child.get("readyUsers") is not None and current_seat:
+            is_ready = user_id in {str(value) for value in child["readyUsers"]}
+            actions.append(
+                ActionSpec(
+                    "withdraw_ready" if is_ready else "confirm_ready",
+                    "Withdraw your ready confirmation."
+                    if is_ready
+                    else "Confirm that you are ready to start the game.",
+                )
+            )
+        return actions
+
+    if not leaf or not house_id:
+        return actions
+
+    simple_choice_state = _state(context, "simple-choice")
+    if simple_choice_state and simple_choice_state.get("houseId") == house_id:
+        choices = simple_choice_state.get("choices", [])
+        indexed_choices = {index: choice for index, choice in enumerate(choices)}
+        actions.append(
+            ActionSpec(
+                "choose_option",
+                "Choose one option by index. Legal choices: "
+                + "; ".join(
+                    f"{index}: {choice}" for index, choice in indexed_choices.items()
+                ),
+                {"choice_indexes": list(indexed_choices)},
+            )
+        )
+
+    select_house_card_state = _state(context, "select-house-card")
+    choose_house_card_state = _state(context, "choose-house-card")
+    if select_house_card_state and select_house_card_state.get("house") == house_id:
+        cards = select_house_card_state.get("houseCards", [])
+        if cards:
+            actions.append(
+                ActionSpec(
+                    "select_house_card",
+                    f"Select an offered house card. Legal house_card_id values: {_choices(cards)}.",
+                    {"house_card_ids": cards},
+                )
+            )
+    elif choose_house_card_state:
+        cards = next(
+            (
+                pair[1]
+                for pair in choose_house_card_state.get("choosableHouseCards", [])
+                if pair[0] == house_id
+            ),
+            [],
+        )
+        chosen = next(
+            (
+                pair[1]
+                for pair in choose_house_card_state.get("houseCards", [])
+                if pair[0] == house_id
+            ),
+            None,
+        )
+        if cards and not chosen:
+            actions.append(
+                ActionSpec(
+                    "choose_combat_house_card",
+                    f"Choose a combat house card. Legal house_card_id values: {_choices(cards)}.",
+                    {"house_card_ids": cards},
+                )
+            )
+
+    bidding_state = _state(context, "bidding")
+    if bidding_state and house_id in bidding_state.get("participatingHouses", []):
+        existing = next(
+            (pair for pair in bidding_state.get("bids", []) if pair[0] == house_id),
+            None,
+        )
+        if existing is None:
+            maximum = max(0, int((context.house or {}).get("powerTokens", 0)))
+            actions.append(
+                ActionSpec(
+                    "submit_bid",
+                    f"Submit a secret bid from 0 through {maximum} power tokens.",
+                    {"minimum": 0, "maximum": maximum},
+                )
+            )
+
+    select_orders_state = _state(context, "select-orders")
+    if select_orders_state and select_orders_state.get("house") == house_id:
+        count = int(select_orders_state["count"])
+        regions = select_orders_state.get("possibleRegions", [])
+        actions.append(
+            ActionSpec(
+                "select_orders",
+                f"Select exactly {count} distinct regions from: {_choices(regions)}.",
+                {"count": count, "region_ids": regions},
+            )
+        )
+
+    support_state = _state(context, "support")
+    if support_state and support_state.get("houseId") == house_id and context.combat:
+        choices = [context.combat["attackerId"], context.combat["defenderId"], "none"]
+        actions.append(
+            ActionSpec(
+                "declare_support",
+                "Support the attacker, support the defender, or refuse support. "
+                f"Legal house_id values: {_choices(choices)}.",
+                {"house_ids": choices},
+            )
+        )
+
+    place_orders_state = _state(context, "place-orders")
+    if (
+        place_orders_state
+        and house_id not in place_orders_state.get("readyHouses", [])
+        and context.game
+        and context.planning
+    ):
+        regions = [
+            region["id"]
+            for region in context.game.get("world", {}).get("regions", [])
+            if any(
+                unit.get("allegiance") == house_id for unit in region.get("units", [])
+            )
+        ]
+        if regions:
+            kings_court = context.game.get("kingsCourtTrack", [])
+            starred_restrictions = context.game.get("starredOrderRestrictions", [])
+            track_position = (
+                kings_court.index(house_id) if house_id in kings_court else -1
+            )
+            max_starred = (
+                int(starred_restrictions[track_position])
+                if 0 <= track_position < len(starred_restrictions)
+                else 0
+            )
+            active_restrictions = context.planning.get("planningRestrictions", [])
+            restricted_orders = sorted(
+                {
+                    order
+                    for restriction in active_restrictions
+                    for order in PLANNING_RESTRICTED_ORDERS.get(restriction, set())
+                },
+                key=lambda order: order.value,
+            )
+            restriction_description = (
+                " Active Westeros restrictions prohibit order values "
+                f"{_choices([order.value for order in restricted_orders])}."
+                if restricted_orders
+                else ""
+            )
+            actions.append(
+                ActionSpec(
+                    "submit_orders",
+                    "Replace your complete draft with one semantic order for every "
+                    f"required region, then mark yourself ready. Required region_id values: {_choices(regions)}. "
+                    f"You may use at most {max_starred} starred orders. Capacities: "
+                    "march_minus_one 1; march 1; march_plus_one 1 starred; "
+                    "defense 2; defense_plus_two 1 starred; support 2; "
+                    "support_plus_one 1 starred; consolidate_power 2; "
+                    "consolidate_power_starred 1 starred; raid 2; raid_starred 1 starred."
+                    + restriction_description,
+                    {
+                        "region_ids": regions,
+                        "max_starred": max_starred,
+                        "restricted_orders": restricted_orders,
+                    },
+                )
+            )
+
+    return actions
+
+
+def available_tools(context: HarnessContext) -> list[FunctionTool]:
+    """Build the Agents SDK tool list for a particular player observation."""
+
+    tools = [
+        replace(_TOOL_CATALOG[action.name], description=action.description)
+        for action in available_action_specs(context)
+    ]
+    if context.ingame is not None:
+        from .protocol_tools import gameplay_tools_for_state
+
+        existing_names = {tool.name for tool in tools}
+        state_types = [state["type"] for state in context.path if state.get("type")]
+        tools.extend(
+            tool
+            for tool in gameplay_tools_for_state(
+                state_types, has_specific_tools=bool(tools)
+            )
+            if tool.name not in existing_names
+        )
+    return tools
+
+
+def describe_tools(tools: list[FunctionTool]) -> list[dict[str, Any]]:
+    """Return the same model-facing definitions for the dashboard."""
+
+    return [
+        {
+            "type": "function",
+            "name": tool.name,
+            "description": tool.description,
+            "parameters": tool.params_json_schema,
+            "strict": tool.strict_json_schema,
+        }
+        for tool in tools
+    ]
+
+
+@function_tool
+async def choose_house(ctx: RunContextWrapper[HarnessRunContext], house_id: str) -> str:
+    """Join or change to an available house.
+
+    Args:
+        house_id: The exact ID of the house to join.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "choose_house")
+    _require_member("house_id", house_id, spec.legal_values["house_ids"])
+    return await ctx.context.perform(
+        "choose_house",
+        {"house_id": house_id},
+        {
+            "type": "choose-house",
+            "house": house_id,
+            "password": ctx.context.game_password,
+        },
+    )
+
+
+@function_tool
+async def start_game(ctx: RunContextWrapper[HarnessRunContext]) -> str:
+    """Launch the game, or its ready check when the lobby is in live mode."""
+    return await ctx.context.perform("start_game", {}, {"type": "launch-game"})
+
+
+@function_tool
+async def confirm_ready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
+    """Confirm that you are ready to start the game."""
+    return await ctx.context.perform("confirm_ready", {}, {"type": "ready"})
+
+
+@function_tool
+async def withdraw_ready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
+    """Withdraw your ready confirmation."""
+    return await ctx.context.perform("withdraw_ready", {}, {"type": "unready"})
+
+
+@function_tool
+async def choose_option(
+    ctx: RunContextWrapper[HarnessRunContext],
+    choice_index: Annotated[int, Field(ge=0)],
+) -> str:
+    """Choose one of the currently offered options.
+
+    Args:
+        choice_index: The zero-based index of the chosen option.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "choose_option")
+    _require_member("choice_index", choice_index, spec.legal_values["choice_indexes"])
+    return await ctx.context.perform(
+        "choose_option",
+        {"choice_index": choice_index},
+        {"type": "choose-choice", "choice": choice_index},
+    )
+
+
+@function_tool
+async def select_house_card(
+    ctx: RunContextWrapper[HarnessRunContext], house_card_id: str
+) -> str:
+    """Select one of the currently offered house cards.
+
+    Args:
+        house_card_id: The exact ID of the card to select.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "select_house_card")
+    _require_member("house_card_id", house_card_id, spec.legal_values["house_card_ids"])
+    return await ctx.context.perform(
+        "select_house_card",
+        {"house_card_id": house_card_id},
+        {"type": "select-house-card", "houseCard": house_card_id},
+    )
+
+
+@function_tool
+async def choose_combat_house_card(
+    ctx: RunContextWrapper[HarnessRunContext], house_card_id: str
+) -> str:
+    """Choose a house card for the current combat.
+
+    Args:
+        house_card_id: The exact ID of the card to play.
+    """
+    spec = _require_action(
+        ctx.context.current_game_context(), "choose_combat_house_card"
+    )
+    _require_member("house_card_id", house_card_id, spec.legal_values["house_card_ids"])
+    return await ctx.context.perform(
+        "choose_combat_house_card",
+        {"house_card_id": house_card_id},
+        {
+            "type": "choose-house-card",
+            "houseCardId": house_card_id,
+            "dontSkipVsbQuestion": False,
+        },
+    )
+
+
+@function_tool
+async def submit_bid(
+    ctx: RunContextWrapper[HarnessRunContext],
+    amount: Annotated[int, Field(ge=0)],
+) -> str:
+    """Submit a secret power-token bid.
+
+    Args:
+        amount: Number of power tokens to bid.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "submit_bid")
+    if not spec.legal_values["minimum"] <= amount <= spec.legal_values["maximum"]:
+        raise ValueError(
+            f"amount must be between {spec.legal_values['minimum']} and "
+            f"{spec.legal_values['maximum']}"
+        )
+    return await ctx.context.perform(
+        "submit_bid", {"amount": amount}, {"type": "bid", "powerTokens": amount}
+    )
+
+
+@function_tool
+async def select_orders(
+    ctx: RunContextWrapper[HarnessRunContext], region_ids: list[str]
+) -> str:
+    """Select a required number of regions from the offered set.
+
+    Args:
+        region_ids: Exact IDs of the distinct regions to select.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "select_orders")
+    allowed = spec.legal_values["region_ids"]
+    count = spec.legal_values["count"]
+    if len(region_ids) != count:
+        raise ValueError(f"region_ids must contain exactly {count} items")
+    if len(set(region_ids)) != len(region_ids):
+        raise ValueError("region_ids must be distinct")
+    invalid = [region_id for region_id in region_ids if region_id not in allowed]
+    if invalid:
+        raise ValueError(f"Illegal region_ids: {_choices(invalid)}")
+    return await ctx.context.perform(
+        "select_orders",
+        {"region_ids": region_ids},
+        {"type": "select-orders", "regions": region_ids},
+    )
+
+
+@function_tool
+async def declare_support(
+    ctx: RunContextWrapper[HarnessRunContext], house_id: str
+) -> str:
+    """Support one side in combat or refuse support.
+
+    Args:
+        house_id: Attacker or defender house ID, or the string 'none'.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "declare_support")
+    _require_member("house_id", house_id, spec.legal_values["house_ids"])
+    message = (
+        {"type": "refuse-support"}
+        if house_id == "none"
+        else {"type": "declare-support", "supportedHouseId": house_id}
+    )
+    return await ctx.context.perform("declare_support", {"house_id": house_id}, message)
+
+
+@function_tool
+async def submit_orders(
+    ctx: RunContextWrapper[HarnessRunContext], assignments: list[OrderAssignment]
+) -> str:
+    """Place all planning orders and mark the house ready.
+
+    Args:
+        assignments: One region/order-token assignment for every required region.
+    """
+    spec = _require_action(ctx.context.current_game_context(), "submit_orders")
+    expected_regions = spec.legal_values["region_ids"]
+    supplied_regions = [assignment.region_id for assignment in assignments]
+    if len(set(supplied_regions)) != len(supplied_regions) or set(
+        supplied_regions
+    ) != set(expected_regions):
+        raise ValueError("region_id must contain every required region exactly once")
+    order_counts = {
+        order: sum(assignment.order == order for assignment in assignments)
+        for order in PlanningOrder
+    }
+    overused = [
+        order
+        for order, count in order_counts.items()
+        if count > len(ORDER_TOKENS[order])
+    ]
+    if overused:
+        order = overused[0]
+        raise ValueError(
+            f"order {order.value} may be used at most {len(ORDER_TOKENS[order])} times"
+        )
+    starred_count = sum(
+        assignment.order in STARRED_PLANNING_ORDERS for assignment in assignments
+    )
+    if starred_count > spec.legal_values["max_starred"]:
+        raise ValueError(
+            f"assignments may contain at most {spec.legal_values['max_starred']} "
+            "starred orders"
+        )
+    restricted_orders = set(spec.legal_values["restricted_orders"])
+    used_restricted_orders = sorted(
+        {assignment.order for assignment in assignments} & restricted_orders,
+        key=lambda order: order.value,
+    )
+    if used_restricted_orders:
+        raise ValueError(
+            "active Westeros restrictions prohibit order values "
+            f"{_choices([order.value for order in used_restricted_orders])}"
+        )
+    arguments = {
+        "assignments": [
+            assignment.model_dump(mode="json") for assignment in assignments
+        ]
+    }
+    messages = [
+        {"type": "place-order", "regionId": region_id, "orderId": None}
+        for region_id in expected_regions
+    ]
+    allocated_counts = {order: 0 for order in PlanningOrder}
+    allocated_assignments = []
+    for assignment in assignments:
+        physical_tokens = ORDER_TOKENS[assignment.order]
+        token_index = allocated_counts[assignment.order]
+        allocated_counts[assignment.order] += 1
+        allocated_assignments.append((assignment, physical_tokens[token_index]))
+    messages.extend(
+        [
+            {
+                "type": "place-order",
+                "regionId": assignment.region_id,
+                "orderId": order_id,
+            }
+            for assignment, order_id in allocated_assignments
+        ]
+    )
+    messages.append({"type": "ready"})
+    return await ctx.context.perform("submit_orders", arguments, messages)
+
+
+_TOOL_CATALOG: dict[str, FunctionTool] = {
+    tool.name: tool
+    for tool in [
+        choose_house,
+        start_game,
+        confirm_ready,
+        withdraw_ready,
+        choose_option,
+        select_house_card,
+        choose_combat_house_card,
+        submit_bid,
+        select_orders,
+        declare_support,
+        submit_orders,
+    ]
+}
+
+
+def _require_action(context: HarnessContext, name: str) -> ActionSpec:
+    action = next(
+        (item for item in available_action_specs(context) if item.name == name), None
+    )
+    if action is None:
+        raise ValueError(f"Tool {name!r} is not legal in the current game state")
+    return action
+
+
+def _require_member(field_name: str, value: Any, choices: list[Any]) -> None:
+    if value not in choices:
+        raise ValueError(f"{field_name} must be one of: {_choices(choices)}")
+
+
+def _choices(values: list[Any]) -> str:
+    return ", ".join(str(value) for value in values)
+
+
+def _state(context: HarnessContext, state_type: str) -> dict[str, Any] | None:
+    return next(
+        (state for state in reversed(context.path) if state.get("type") == state_type),
+        None,
+    )
