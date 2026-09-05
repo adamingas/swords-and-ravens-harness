@@ -7,13 +7,29 @@ from typing import Any
 import httpx
 
 
-FEATURED_MODEL = "z-ai/glm-5.3-flash"
+FEATURED_MODELS = [
+    "z-ai/glm-5.3-flash",
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-terra",
+]
 FALLBACK_MODELS = [
     {
-        "id": FEATURED_MODEL,
+        "id": FEATURED_MODELS[0],
         "name": "Z.ai: GLM 5.3 Flash",
         "promptPricePerMillion": 0.075,
         "completionPricePerMillion": 0.25,
+    },
+    {
+        "id": FEATURED_MODELS[1],
+        "name": "OpenAI: GPT-5.6 Luna",
+        "promptPricePerMillion": 0.2,
+        "completionPricePerMillion": 1.2,
+    },
+    {
+        "id": FEATURED_MODELS[2],
+        "name": "OpenAI: GPT-5.6 Terra",
+        "promptPricePerMillion": 2.0,
+        "completionPricePerMillion": 12.0,
     },
     {
         "id": "qwen/qwen3.7-flash",
@@ -86,7 +102,7 @@ class OpenRouterModelCatalog:
             pricing = model.get("pricing") or {}
             prompt = _price_per_million(pricing.get("prompt"))
             completion = _price_per_million(pricing.get("completion"))
-            if prompt <= 0 or completion <= 0 or prompt > 0.25 or completion > 1:
+            if prompt <= 0 or completion <= 0:
                 continue
             candidates.append(
                 {
@@ -97,19 +113,27 @@ class OpenRouterModelCatalog:
                     "contextLength": model.get("context_length"),
                 }
             )
-        candidates.sort(
+        cheap_candidates = [
+            item
+            for item in candidates
+            if item["promptPricePerMillion"] <= 0.25
+            and item["completionPricePerMillion"] <= 1
+        ]
+        cheap_candidates.sort(
             key=lambda item: item["promptPricePerMillion"]
             + item["completionPricePerMillion"]
         )
-        selected = candidates[:24]
-        featured = next(
-            (item for item in candidates if item["id"] == FEATURED_MODEL), None
-        )
-        if featured:
-            selected = [
-                featured,
-                *[item for item in selected if item["id"] != FEATURED_MODEL],
-            ]
+        featured = [
+            item
+            for model_id in FEATURED_MODELS
+            for item in candidates
+            if item["id"] == model_id
+        ]
+        featured_ids = {item["id"] for item in featured}
+        selected = [
+            *featured,
+            *[item for item in cheap_candidates if item["id"] not in featured_ids][:24],
+        ]
         return selected or FALLBACK_MODELS
 
 

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
     model_request_timeout_seconds: float = Field(default=90, gt=0, le=600)
+    model_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
+    strategic_conversation_item_limit: int = Field(default=30, ge=6, le=200)
 
     @property
     def resolved_database_path(self) -> Path:

@@ -9,5 +9,6 @@ def test_map_reference_contains_rules_data_missing_from_wire_snapshot() -> None:
 
     assert winterfell["castleLevel"] == 2
     assert winterfell["supplyIcons"] == 1
+    assert winterfell["homeController"] == "stark"
     assert "white-harbor" in winterfell["neighbours"]
     assert "the-shivering-sea" in winterfell["neighbours"]

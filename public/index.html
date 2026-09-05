@@ -54,6 +54,12 @@
               <option value="z-ai/glm-5.3-flash">Z.ai: GLM 5.3 Flash</option>
             </select>
           </label>
+          <label>
+            <span>Harness</span>
+            <select name="harnessId" required>
+              <option value="legacy">Legacy stateless</option>
+            </select>
+          </label>
           <label class="wide">
             <span>Game server WebSocket</span>
             <input name="gameServerUrl" required value="ws://localhost:5001" placeholder="ws://localhost:5001">
@@ -98,6 +104,11 @@
       <div class="detail-tabs">
         <button class="tab active" data-tab="observation">Observation</button>
         <button class="tab" data-tab="tools">Available tools</button>
+        <button class="tab" data-tab="memory">Memory</button>
+        <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="conversation">Conversation</button>
+        <button class="tab" data-tab="metrics">Metrics</button>
+        <button class="tab" data-tab="runs">Runs</button>
         <button class="tab" data-tab="events">Events</button>
       </div>
       <pre id="details-content">Loading…</pre>
@@ -113,6 +124,7 @@
         <h3 class="agent-name"></h3>
         <p class="model-name"></p>
         <dl>
+          <div><dt>Harness</dt><dd class="harness-name"></dd></div>
           <div><dt>Game</dt><dd class="game-id"></dd></div>
           <div><dt>Seat</dt><dd class="seat"></dd></div>
           <div><dt>Phase</dt><dd class="phase"></dd></div>

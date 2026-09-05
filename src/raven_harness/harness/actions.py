@@ -66,6 +66,18 @@ class GameClient(Protocol):
     async def send(self, message: Message, *, require_auth: bool = True) -> None: ...
 
 
+class HarnessMemory(Protocol):
+    """Durable private memory exposed only through deliberate model tools."""
+
+    def recall_state(self, turns_ago: int) -> dict[str, Any] | None: ...
+
+    def list_history(self, limit: int) -> list[dict[str, Any]]: ...
+
+    def get_notes(self) -> dict[str, Any]: ...
+
+    def set_notes(self, notes: dict[str, Any]) -> dict[str, Any]: ...
+
+
 class OrderAssignment(BaseModel):
     """One semantic order choice assigned to one board region."""
 
@@ -103,6 +115,7 @@ class HarnessRunContext:
     client: GameClient
     user_id: str
     game_password: str = ""
+    memory: HarnessMemory | None = None
     action_taken: ActionTaken | None = None
 
     def current_game_context(self) -> HarnessContext:
@@ -375,11 +388,17 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
     return actions
 
 
-def available_tools(context: HarnessContext) -> list[FunctionTool]:
+def available_tools(
+    context: HarnessContext, *, dynamic_descriptions: bool = True
+) -> list[FunctionTool]:
     """Build the Agents SDK tool list for a particular player observation."""
 
     tools = [
-        replace(_TOOL_CATALOG[action.name], description=action.description)
+        (
+            replace(_TOOL_CATALOG[action.name], description=action.description)
+            if dynamic_descriptions
+            else _TOOL_CATALOG[action.name]
+        )
         for action in available_action_specs(context)
     ]
     if context.ingame is not None:

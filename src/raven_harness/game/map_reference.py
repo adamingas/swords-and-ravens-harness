@@ -55,6 +55,7 @@ def load_map_reference(
                 "castleLevel": properties.get("castleLevel", 0),
                 "supplyIcons": properties.get("supplyIcons", 0),
                 "crownIcons": properties.get("crownIcons", 0),
+                "homeController": properties.get("superController"),
                 "neighbours": sorted(neighbours.get(properties["id"], set())),
             }
             for region in regions_layer["objects"]

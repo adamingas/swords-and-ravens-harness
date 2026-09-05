@@ -21,6 +21,7 @@ class CamelModel(BaseModel):
 class AgentCreate(CamelModel):
     name: str = Field(min_length=1, max_length=100)
     model: str = Field(default="z-ai/glm-5.3-flash", min_length=1, max_length=100)
+    harness_id: str = Field(default="legacy", pattern=r"^[a-z0-9][a-z0-9-]{0,49}$")
     system_prompt: str = Field(default=DEFAULT_PROMPT, max_length=20_000)
     game_server_url: str = "ws://localhost:5001"
     game_id: str = Field(default="1", min_length=1, max_length=200)
@@ -54,6 +55,7 @@ class AgentRecord(CamelModel):
     id: str
     name: str
     model: str
+    harness_id: str
     system_prompt: str
     game_server_url: str
     game_id: str
@@ -98,6 +100,7 @@ class AgentPublic(CamelModel):
     id: str
     name: str
     model: str
+    harness_id: str
     system_prompt: str
     game_server_url: str
     game_id: str

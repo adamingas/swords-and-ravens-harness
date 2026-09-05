@@ -14,6 +14,8 @@ from .agent_store import AgentStore
 from .config import Settings
 from .database import Database
 from .game.client import ConnectionFactory
+from .harness.legacy import LegacyHarness
+from .harness.strategic import StrategicHarness
 from .manager import AgentManager, AgentRunner
 from .models.openai_agent import OpenAIAgentRunner
 from .models.catalog import OpenRouterModelCatalog
@@ -32,14 +34,24 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(settings.resolved_database_path)
         store = AgentStore(database)
+        model_runner = runner or OpenAIAgentRunner(
+            api_key=settings.model_api_key,
+            base_url=settings.model_base_url,
+            request_timeout_seconds=settings.model_request_timeout_seconds,
+            max_output_tokens=settings.model_max_output_tokens,
+        )
+        harnesses = {
+            "legacy": LegacyHarness(model_runner),
+            "strategic-v1": StrategicHarness(
+                model_runner,
+                store,
+                str(settings.resolved_database_path),
+                conversation_item_limit=settings.strategic_conversation_item_limit,
+            ),
+        }
         manager = AgentManager(
             store=store,
-            runner=runner
-            or OpenAIAgentRunner(
-                api_key=settings.model_api_key,
-                base_url=settings.model_base_url,
-                request_timeout_seconds=settings.model_request_timeout_seconds,
-            ),
+            harnesses=harnesses,
             connection_factory=connection_factory,
         )
         app.state.database = database
@@ -104,8 +116,14 @@ def create_app(
             "models": await request.app.state.model_catalog.list_cheap_tool_models(),
         }
 
+    @app.get("/api/harnesses")
+    async def list_harnesses(request: Request) -> dict[str, Any]:
+        return {"harnesses": _manager(request).list_harnesses()}
+
     @app.post("/api/agents", status_code=201)
     async def create_agent(value: AgentCreate, request: Request) -> dict[str, Any]:
+        if value.harness_id not in _manager(request).harnesses:
+            raise RuntimeError(f"Unknown harness {value.harness_id!r}")
         record = _store(request).create_agent(value)
         agent = AgentPublic.from_record(
             record, _manager(request).get_runtime(record.id)
@@ -180,6 +198,45 @@ def create_app(
                 for event in _store(request).list_events(agent_id)
             ]
         }
+
+    @app.get("/api/agents/{agent_id}/runs")
+    async def runs(agent_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"runs": _store(request).list_runs(agent_id)}
+
+    @app.get("/api/agents/{agent_id}/runs/{run_id}")
+    async def run_trace(agent_id: str, run_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        run = _store(request).get_run(agent_id, run_id)
+        if run is None:
+            raise KeyError("Run not found")
+        return {"run": run}
+
+    @app.get("/api/agents/{agent_id}/metrics")
+    async def metrics(agent_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"metrics": _store(request).get_run_metrics(agent_id)}
+
+    @app.get("/api/agents/{agent_id}/memory")
+    async def memory(agent_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"memory": _store(request).get_strategic_memory(agent_id)}
+
+    @app.get("/api/agents/{agent_id}/history")
+    async def history(agent_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"history": _store(request).list_state_history(agent_id, 80)}
+
+    @app.get("/api/agents/{agent_id}/conversation")
+    async def conversation(agent_id: str, request: Request) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"conversation": _store(request).list_conversation_items(agent_id)}
 
     public_directory = Path(__file__).resolve().parents[2] / "public"
     app.mount("/", StaticFiles(directory=public_directory, html=True), name="dashboard")

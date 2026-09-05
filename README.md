@@ -15,6 +15,9 @@ The working vertical slice includes:
 - authoritative turn ownership supplied by the patched game server;
 - manual single actions and continuous autoplay;
 - owner controls for a three-player base-game lobby.
+- interchangeable `legacy` and `strategic-v1` harness implementations;
+- persistent per-seat conversations, strategic notebooks, exact historical-state
+  recall, cache routing, and replayable local traces for strategic agents.
 
 ## Run the harness
 
@@ -46,6 +49,8 @@ DATABASE_PATH=./data/harness.db
 OPENROUTER_TOKEN=
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 MODEL_REQUEST_TIMEOUT_SECONDS=90
+MODEL_MAX_OUTPUT_TOKENS=8192
+STRATEGIC_CONVERSATION_ITEM_LIMIT=30
 OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
@@ -113,6 +118,22 @@ Agents can choose their houses with `Take one action`; humans can instead choose
 seats in the original game UI. Once all seats are occupied, use `Launch game`
 on the owner and enable `Autoplay` for model-controlled seats.
 
+Each player selects a harness independently:
+
+- `legacy` preserves the original behavior: one stateless model call for each
+  required game action.
+- `strategic-v1` retains a bounded Agents SDK conversation in SQLite, injects a
+  durable structured strategy notebook, provides exact `recall_game_state` and
+  indexed-history tools, and asks the model to finish memory work with a real
+  game action in the same run. Current authoritative state is always appended;
+  older conversation items are bounded while their exact observations remain
+  available in `game_state_history`.
+
+Strategic prompts and static tool descriptions receive a stable
+`prompt_cache_key`. The key is scoped to the model, instructions, and active
+tool bundle, so repeated phases can reuse provider prompt caching without
+mixing different agent configurations.
+
 For each action the harness:
 
 1. receives the game server's player-specific snapshot;
@@ -135,6 +156,27 @@ The model never receives credentials, the raw WebSocket, or a generic protocol
 escape hatch. Unknown game states temporarily receive the complete typed
 gameplay tool catalog so uncommon expansion paths fail open during development
 rather than stopping the match.
+
+## Experiments and traces
+
+The dashboard exposes each agent's runs, aggregate token/cost metrics,
+conversation, strategy memory, state history, and protocol events. `agent_runs`
+stores the exact model, harness,
+instructions, observation, tool definitions, function-call response items,
+standard and provider-native usage, response ID, timing, action, and error for
+each attempt. OpenRouter's provider-native usage includes cost, cache, and
+reasoning details when supplied by the selected provider.
+
+`GET /api/agents/{agent_id}/metrics` summarizes request counts, input/output,
+cached and reasoning tokens, provider cost, latency, conversation size, and
+historical-state count. `GET /api/agents/{agent_id}/runs/{run_id}` returns the
+complete replayable trace for a single attempt.
+
+The Agents SDK conversation items live in `agent_sessions` and
+`agent_messages`. Strategy summaries live in `strategic_memories`, while exact
+player-scoped historical positions and the actions selected from them live in
+`game_state_history`. This separation keeps short-horizon conversation useful
+without discarding long-horizon evidence needed for evaluation or replay.
 
 ## Verification
 
