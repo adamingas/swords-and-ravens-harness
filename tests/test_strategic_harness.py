@@ -252,5 +252,8 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
     assert recalled["found"] is True
     assert recalled["stateId"] == "prior-state"
     assert recalled["observation"]["game"]["round"] == 2
+    automatic_memory = store.get_strategic_memory(record.id)
+    assert automatic_memory["roundNumber"] == 0
+    assert "used choose_house" in automatic_memory["commitments"][-1]
     await harness.shutdown()
     database.close()

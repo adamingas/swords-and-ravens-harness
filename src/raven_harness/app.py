@@ -38,7 +38,18 @@ def create_app(
             api_key=settings.model_api_key,
             base_url=settings.model_base_url,
             request_timeout_seconds=settings.model_request_timeout_seconds,
+            run_timeout_seconds=settings.model_run_timeout_seconds,
+            max_retries=settings.model_api_max_retries,
             max_output_tokens=settings.model_max_output_tokens,
+            provider_routing=(
+                {
+                    "sort": settings.openrouter_provider_sort,
+                    "allow_fallbacks": settings.openrouter_allow_fallbacks,
+                    "require_parameters": settings.openrouter_require_parameters,
+                }
+                if settings.model_provider == "OpenRouter"
+                else None
+            ),
         )
         harnesses = {
             "legacy": LegacyHarness(model_runner),
@@ -46,7 +57,6 @@ def create_app(
                 model_runner,
                 store,
                 str(settings.resolved_database_path),
-                conversation_item_limit=settings.strategic_conversation_item_limit,
             ),
         }
         manager = AgentManager(

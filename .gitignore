@@ -7,6 +7,7 @@ __pycache__/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/*.json
 node_modules/
 *.log
 .DS_Store

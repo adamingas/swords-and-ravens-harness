@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Annotated, Any, Protocol
@@ -394,11 +395,7 @@ def available_tools(
     """Build the Agents SDK tool list for a particular player observation."""
 
     tools = [
-        (
-            replace(_TOOL_CATALOG[action.name], description=action.description)
-            if dynamic_descriptions
-            else _TOOL_CATALOG[action.name]
-        )
+        _tool_for_action(action, dynamic_descriptions=dynamic_descriptions)
         for action in available_action_specs(context)
     ]
     if context.ingame is not None:
@@ -414,6 +411,55 @@ def available_tools(
             if tool.name not in existing_names
         )
     return tools
+
+
+def _tool_for_action(
+    action: ActionSpec, *, dynamic_descriptions: bool
+) -> FunctionTool:
+    """Narrow model-facing schemas to the values legal in this exact state."""
+
+    tool = _TOOL_CATALOG[action.name]
+    schema = deepcopy(tool.params_json_schema)
+    properties = schema.get("properties", {})
+    legal = action.legal_values
+
+    enum_fields = {
+        "choose_house": ("house_id", "house_ids"),
+        "choose_option": ("choice_index", "choice_indexes"),
+        "select_house_card": ("house_card_id", "house_card_ids"),
+        "choose_combat_house_card": ("house_card_id", "house_card_ids"),
+        "declare_support": ("house_id", "house_ids"),
+    }
+    if action.name in enum_fields:
+        field_name, legal_name = enum_fields[action.name]
+        properties[field_name]["enum"] = legal[legal_name]
+    elif action.name == "submit_bid":
+        properties["amount"]["minimum"] = legal["minimum"]
+        properties["amount"]["maximum"] = legal["maximum"]
+    elif action.name == "select_orders":
+        region_ids = legal["region_ids"]
+        properties["region_ids"]["items"]["enum"] = region_ids
+        properties["region_ids"]["minItems"] = legal["count"]
+        properties["region_ids"]["maxItems"] = legal["count"]
+        properties["region_ids"]["uniqueItems"] = True
+    elif action.name == "submit_orders":
+        assignments = properties["assignments"]
+        assignments["minItems"] = len(legal["region_ids"])
+        assignments["maxItems"] = len(legal["region_ids"])
+        assignments["uniqueItems"] = True
+        assignment_properties = schema["$defs"]["OrderAssignment"]["properties"]
+        assignment_properties["region_id"]["enum"] = legal["region_ids"]
+        restricted = set(legal["restricted_orders"])
+        allowed_orders = [
+            order.value for order in PlanningOrder if order not in restricted
+        ]
+        assignment_properties["order"]["enum"] = allowed_orders
+        schema["$defs"]["PlanningOrder"]["enum"] = allowed_orders
+
+    changes: dict[str, Any] = {"params_json_schema": schema}
+    if dynamic_descriptions:
+        changes["description"] = action.description
+    return replace(tool, **changes)
 
 
 def describe_tools(tools: list[FunctionTool]) -> list[dict[str, Any]]:

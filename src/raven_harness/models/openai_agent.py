@@ -13,7 +13,7 @@ from agents import (
     RunConfig,
     Runner,
 )
-from openai import AsyncOpenAI
+from openai import APITimeoutError, AsyncOpenAI
 
 from ..harness.actions import HarnessRunContext, available_tools
 from ..schemas import AgentRecord
@@ -36,17 +36,23 @@ class OpenAIAgentRunner:
         *,
         api_key: str,
         base_url: str,
-        request_timeout_seconds: float = 90,
+        request_timeout_seconds: float = 45,
+        run_timeout_seconds: float = 150,
+        max_retries: int = 2,
         max_output_tokens: int = 8_192,
+        provider_routing: dict[str, Any] | None = None,
     ) -> None:
         self.api_key = api_key
         self.request_timeout_seconds = request_timeout_seconds
+        self.run_timeout_seconds = run_timeout_seconds
+        self.max_retries = max_retries
         self.max_output_tokens = max_output_tokens
+        self.provider_routing = provider_routing
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
             base_url=base_url,
             timeout=request_timeout_seconds,
-            max_retries=1,
+            max_retries=max_retries,
         )
 
     async def run_once(
@@ -90,6 +96,11 @@ class OpenAIAgentRunner:
                 store=False,
                 metadata=trace_metadata,
                 preserve_raw_usage=True,
+                extra_body=(
+                    {"provider": self.provider_routing}
+                    if self.provider_routing
+                    else None
+                ),
                 extra_args=(
                     {
                         "prompt_cache_key": prompt_cache_key,
@@ -106,8 +117,9 @@ class OpenAIAgentRunner:
             ),
             reset_tool_choice=not bool(stop_at_tool_names),
         )
+        session_item_count = await _session_item_count(session)
         try:
-            async with asyncio.timeout(self.request_timeout_seconds):
+            async with asyncio.timeout(self.run_timeout_seconds):
                 result = await Runner.run(
                     agent,
                     input=(
@@ -125,10 +137,19 @@ class OpenAIAgentRunner:
                         trace_metadata=trace_metadata,
                     ),
                 )
-        except TimeoutError as error:
-            raise RuntimeError(
-                f"Model turn exceeded {self.request_timeout_seconds:g} seconds"
-            ) from error
+        except BaseException as error:
+            await _rollback_session(session, session_item_count)
+            if isinstance(error, TimeoutError):
+                raise RuntimeError(
+                    f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
+                ) from error
+            if isinstance(error, APITimeoutError):
+                raise RuntimeError(
+                    "Model API timed out after "
+                    f"{self.request_timeout_seconds:g} seconds per attempt and "
+                    f"{self.max_retries} retries"
+                ) from error
+            raise
 
         usage = {"requests": 0, "inputTokens": 0, "outputTokens": 0, "totalTokens": 0}
         response_items: list[dict[str, Any]] = []
@@ -156,3 +177,19 @@ def _jsonable(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
     return {"value": str(value)}
+
+
+async def _session_item_count(session: Any | None) -> int | None:
+    if session is None or not hasattr(session, "get_items"):
+        return None
+    return len(await session.get_items(limit=-1))
+
+
+async def _rollback_session(session: Any | None, item_count: int | None) -> None:
+    """Make a failed Agents SDK run atomic with respect to conversation memory."""
+
+    if item_count is None or session is None or not hasattr(session, "pop_item"):
+        return
+    while len(await session.get_items(limit=-1)) > item_count:
+        if await session.pop_item() is None:
+            return

@@ -16,8 +16,8 @@ The working vertical slice includes:
 - manual single actions and continuous autoplay;
 - owner controls for a three-player base-game lobby.
 - interchangeable `legacy` and `strategic-v1` harness implementations;
-- persistent per-seat conversations, strategic notebooks, exact historical-state
-  recall, cache routing, and replayable local traces for strategic agents.
+- persistent per-seat strategic notebooks and decision journals, exact
+  historical-state recall, cache routing, and replayable local traces.
 
 ## Run the harness
 
@@ -48,15 +48,26 @@ PORT=8787
 DATABASE_PATH=./data/harness.db
 OPENROUTER_TOKEN=
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-MODEL_REQUEST_TIMEOUT_SECONDS=90
+MODEL_REQUEST_TIMEOUT_SECONDS=45
+MODEL_RUN_TIMEOUT_SECONDS=150
+MODEL_API_MAX_RETRIES=2
 MODEL_MAX_OUTPUT_TOKENS=8192
-STRATEGIC_CONVERSATION_ITEM_LIMIT=30
+OPENROUTER_PROVIDER_SORT=throughput
+OPENROUTER_ALLOW_FALLBACKS=true
+OPENROUTER_REQUIRE_PARAMETERS=false
 OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 `OPENAI_API_KEY` is an optional direct-OpenAI fallback. OpenRouter takes
 precedence when both credentials are present.
+
+OpenRouter requests retry transient HTTP failures up to two times and may
+fail over between providers serving the same selected model. They do not fall
+back to a different model, so every player in a comparison can use the exact
+same model ID. `MODEL_REQUEST_TIMEOUT_SECONDS` applies to each transport
+attempt; `MODEL_RUN_TIMEOUT_SECONDS` bounds the complete Agents SDK run across
+provider retries and any memory-tool calls.
 
 ## Run the local game and human UI
 
@@ -122,12 +133,13 @@ Each player selects a harness independently:
 
 - `legacy` preserves the original behavior: one stateless model call for each
   required game action.
-- `strategic-v1` retains a bounded Agents SDK conversation in SQLite, injects a
-  durable structured strategy notebook, provides exact `recall_game_state` and
-  indexed-history tools, and asks the model to finish memory work with a real
-  game action in the same run. Current authoritative state is always appended;
-  older conversation items are bounded while their exact observations remain
-  available in `game_state_history`.
+- `strategic-v1` injects a durable structured strategy notebook and recent
+  decision journal, provides exact `recall_game_state` and indexed-history
+  tools, and asks the model to finish memory work with a real game action in the
+  same run. Raw Responses API tool objects are scoped to one decision because
+  some routed non-OpenAI providers cannot reliably replay another provider's
+  opaque reasoning/tool-call objects. Cross-turn continuity comes from the
+  notebook and `game_state_history`, not a provider-specific transcript.
 
 Strategic prompts and static tool descriptions receive a stable
 `prompt_cache_key`. The key is scoped to the model, instructions, and active
@@ -168,22 +180,26 @@ each attempt. OpenRouter's provider-native usage includes cost, cache, and
 reasoning details when supplied by the selected provider.
 
 `GET /api/agents/{agent_id}/metrics` summarizes request counts, input/output,
-cached and reasoning tokens, provider cost, latency, conversation size, and
-historical-state count. `GET /api/agents/{agent_id}/runs/{run_id}` returns the
-complete replayable trace for a single attempt.
+cached and reasoning tokens, provider cost, latency, current-decision transcript
+size, and historical-state count. `GET /api/agents/{agent_id}/runs/{run_id}`
+returns the complete replayable trace for a single attempt.
 
-The Agents SDK conversation items live in `agent_sessions` and
+The Agents SDK items for the current decision live in `agent_sessions` and
 `agent_messages`. Strategy summaries live in `strategic_memories`, while exact
 player-scoped historical positions and the actions selected from them live in
-`game_state_history`. This separation keeps short-horizon conversation useful
-without discarding long-horizon evidence needed for evaluation or replay.
+`game_state_history`. Raw provider objects are cleared before the next decision;
+the journal and notebook carry cross-turn context without discarding evidence
+needed for evaluation or replay.
+Failed and cancelled model runs roll back any conversation items they appended,
+so retrying a decision does not duplicate a large observation or corrupt the
+next turn's context.
 
 ## Verification
 
 Run the Python checks with:
 
 ```bash
-uvx ruff check src tests
+uv run ruff check src tests
 uv run pytest
 ```
 

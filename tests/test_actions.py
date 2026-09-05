@@ -161,6 +161,10 @@ async def test_submit_orders_rejects_active_westeros_restriction() -> None:
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
+    assignment_schema = tool.params_json_schema["$defs"]["OrderAssignment"]
+    assert "defense" not in assignment_schema["properties"]["order"]["enum"]
+    assert "defense_plus_two" not in assignment_schema["properties"]["order"]["enum"]
+    assert tool.params_json_schema["properties"]["assignments"]["minItems"] == 2
     arguments = json.dumps(
         {
             "assignments": [

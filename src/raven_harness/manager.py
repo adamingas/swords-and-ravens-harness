@@ -428,61 +428,51 @@ class AgentManager:
             return
         if session.autoplay_task is None or session.autoplay_task.done():
             session.autoplay_task = asyncio.create_task(
-                self._autoplay_when_needed(agent_id, session)
+                self._autoplay_loop(agent_id, session)
             )
 
-    async def _autoplay_when_needed(
+    async def _autoplay_loop(
         self, agent_id: str, expected_session: AgentSession
     ) -> None:
-        await asyncio.sleep(0.75)
-        if self.sessions.get(agent_id) is not expected_session:
-            return
-        if not expected_session.autoplay or expected_session.running:
-            return
-        if (
-            expected_session.status != "connected"
-            or expected_session.client.snapshot is None
+        while (
+            self.sessions.get(agent_id) is expected_session
+            and expected_session.autoplay
         ):
-            return
-        record = self.store.get_agent(agent_id)
-        if record is None:
-            return
-        context = build_context(
-            expected_session.client.snapshot,
-            record.user_id,
-            list(expected_session.client.recent_events),
-        )
-        if context.ingame is None or not is_waiting_for_player(context):
-            return
-        leaf_id = expected_session.client.snapshot.get("leafStateId")
-        if expected_session.last_action_leaf_id == leaf_id:
-            elapsed = monotonic() - (expected_session.last_action_at or 0)
-            if elapsed < 3.0:
-                asyncio.get_running_loop().call_later(
-                    3.0 - elapsed,
-                    self._schedule_autoplay,
-                    agent_id,
-                    expected_session,
-                )
+            await asyncio.sleep(0.75)
+            if expected_session.running or (
+                expected_session.status != "connected"
+                or expected_session.client.snapshot is None
+            ):
+                continue
+            record = self.store.get_agent(agent_id)
+            if record is None:
                 return
-            expected_session.last_action_leaf_id = None
-            expected_session.last_action_at = None
-        try:
-            await self.run_once(agent_id)
-        except Exception:
-            # Retry a bad model/tool call within the same decision, then leave
-            # a stable failure visible in the dashboard for inspection.
-            current_leaf_id = expected_session.client.snapshot.get("leafStateId")
-            if expected_session.failure_leaf_id == current_leaf_id:
-                expected_session.consecutive_failures += 1
-            else:
-                expected_session.failure_leaf_id = current_leaf_id
-                expected_session.consecutive_failures = 1
-            expected_session.autoplay = expected_session.consecutive_failures < 3
-        finally:
-            asyncio.get_running_loop().call_later(
-                1.0, self._schedule_autoplay, agent_id, expected_session
+            context = build_context(
+                expected_session.client.snapshot,
+                record.user_id,
+                list(expected_session.client.recent_events),
             )
+            if context.ingame is None or not is_waiting_for_player(context):
+                continue
+            leaf_id = expected_session.client.snapshot.get("leafStateId")
+            if expected_session.last_action_leaf_id == leaf_id:
+                elapsed = monotonic() - (expected_session.last_action_at or 0)
+                if elapsed < 3.0:
+                    continue
+                expected_session.last_action_leaf_id = None
+                expected_session.last_action_at = None
+            try:
+                await self.run_once(agent_id)
+            except Exception:
+                # Retry a bad model/tool call within the same decision, then leave
+                # a stable failure visible in the dashboard for inspection.
+                current_leaf_id = expected_session.client.snapshot.get("leafStateId")
+                if expected_session.failure_leaf_id == current_leaf_id:
+                    expected_session.consecutive_failures += 1
+                else:
+                    expected_session.failure_leaf_id = current_leaf_id
+                    expected_session.consecutive_failures = 1
+                expected_session.autoplay = expected_session.consecutive_failures < 3
 
     def _require_agent(self, agent_id: str) -> AgentRecord:
         record = self.store.get_agent(agent_id)

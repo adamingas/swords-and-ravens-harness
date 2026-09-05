@@ -9,8 +9,8 @@ import httpx
 
 FEATURED_MODELS = [
     "z-ai/glm-5.3-flash",
-    "openai/gpt-5.6-luna",
-    "openai/gpt-5.6-terra",
+    "qwen/qwen3.7-flash",
+    "inclusionai/ling-3.0-flash",
 ]
 FALLBACK_MODELS = [
     {
@@ -21,30 +21,12 @@ FALLBACK_MODELS = [
     },
     {
         "id": FEATURED_MODELS[1],
-        "name": "OpenAI: GPT-5.6 Luna",
-        "promptPricePerMillion": 0.2,
-        "completionPricePerMillion": 1.2,
-    },
-    {
-        "id": FEATURED_MODELS[2],
-        "name": "OpenAI: GPT-5.6 Terra",
-        "promptPricePerMillion": 2.0,
-        "completionPricePerMillion": 12.0,
-    },
-    {
-        "id": "qwen/qwen3.7-flash",
         "name": "Qwen: Qwen3.7 Flash",
         "promptPricePerMillion": 0.03,
         "completionPricePerMillion": 0.13,
     },
     {
-        "id": "openai/gpt-oss-20b",
-        "name": "OpenAI: gpt-oss-20b",
-        "promptPricePerMillion": 0.03,
-        "completionPricePerMillion": 0.13,
-    },
-    {
-        "id": "inclusionai/ling-3.0-flash",
+        "id": FEATURED_MODELS[2],
         "name": "inclusionAI: Ling 3.0 Flash",
         "promptPricePerMillion": 0.021,
         "completionPricePerMillion": 0.063,

@@ -12,7 +12,12 @@ from pydantic.alias_generators import to_camel
 from ..agent_store import AgentStore
 from ..models.openai_agent import ModelRunResult
 from ..schemas import AgentRecord
-from .actions import HarnessRunContext, available_action_specs, available_tools
+from .actions import (
+    HarnessRunContext,
+    available_action_specs,
+    available_tools,
+    describe_tools,
+)
 from .interface import HarnessInfo, PreparedTurn
 from .observation import HarnessContext, build_observation
 
@@ -20,8 +25,8 @@ from .observation import HarnessContext, build_observation
 STRATEGIC_INSTRUCTIONS = """
 
 You are using the Strategic Raven harness. You remain the same player for the
-entire game. Prior turns in this conversation, your strategic notebook, and
-historical observations are private memory for this house.
+entire game. Your decision journal, strategic notebook, and historical
+observations are private memory for this house.
 
 Your sole objective is to win. Continually maintain a coherent multi-round
 plan, but obey the authoritative CURRENT observation when history conflicts
@@ -165,13 +170,13 @@ MEMORY_TOOLS = [recall_game_state, review_game_history, update_strategic_memory]
 
 
 class StrategicHarness:
-    """Persistent-context harness with bounded conversation and explicit recall."""
+    """Persistent strategic state with a clean per-decision model transcript."""
 
     info = HarnessInfo(
         id="strategic-v1",
         name="Strategic memory v1",
         description=(
-            "Persistent conversation, strategic notebook, exact historical-state "
+            "Persistent strategic notebook, decision journal, exact historical-state "
             "recall, richer position summaries, and cache-stable prompts."
         ),
         persistent_memory=True,
@@ -183,13 +188,10 @@ class StrategicHarness:
         runner: StrategicModelRunner,
         store: AgentStore,
         database_path: str,
-        *,
-        conversation_item_limit: int = 30,
     ) -> None:
         self.runner = runner
         self.store = store
         self.database_path = database_path
-        self.conversation_item_limit = conversation_item_limit
         self._sessions: dict[str, SQLiteSession] = {}
 
     def _memory(self, record: AgentRecord) -> PersistentGameMemory:
@@ -201,7 +203,6 @@ class StrategicHarness:
             session = SQLiteSession(
                 f"strategic:{record.id}",
                 db_path=self.database_path,
-                session_settings={"limit": self.conversation_item_limit},
             )
             self._sessions[record.id] = session
         return session
@@ -214,8 +215,9 @@ class StrategicHarness:
         observation["harness"] = {
             "id": self.info.id,
             "continuity": (
-                f"The latest {self.conversation_item_limit} conversation items are "
-                "automatically retained; older exact states remain retrievable."
+                "Earlier decisions are carried in the journal and notebook; exact "
+                "older states remain retrievable. Raw tool-call objects are isolated "
+                "to the current decision for cross-provider compatibility."
             ),
         }
         observation["strategicOverview"] = _strategic_overview(observation)
@@ -246,7 +248,7 @@ class StrategicHarness:
             {
                 "model": record.model,
                 "instructions": instructions,
-                "tools": [tool.name for tool in tools],
+                "tools": describe_tools(tools),
             },
             sort_keys=True,
         )
@@ -279,13 +281,16 @@ class StrategicHarness:
         run_id: str,
     ) -> ModelRunResult:
         context.memory = self._memory(record)
-        return await self.runner.run_once(
+        session = self._session(record)
+        await session.clear_session()
+        memory_revision = self._memory(record).get_notes()["revision"]
+        result = await self.runner.run_once(
             agent_record=record,
             observation=prepared.observation,
             context=context,
             tools=prepared.tools,
             instructions=prepared.instructions,
-            session=self._session(record),
+            session=session,
             max_turns=4,
             stop_at_tool_names=prepared.metadata["gameToolNames"],
             prompt_cache_key=prepared.metadata["promptCacheKey"],
@@ -296,11 +301,74 @@ class StrategicHarness:
                 "run_id": run_id,
             },
         )
+        current_memory = self._memory(record).get_notes()
+        if current_memory["revision"] == memory_revision:
+            self._memory(record).set_notes(
+                _automatic_notes(record, prepared, context, current_memory)
+            )
+        return result
 
     async def shutdown(self) -> None:
         for session in self._sessions.values():
             session.close()
         self._sessions.clear()
+
+
+def _automatic_notes(
+    record: AgentRecord,
+    prepared: PreparedTurn,
+    context: HarnessRunContext,
+    existing: dict[str, Any],
+) -> dict[str, Any]:
+    """Maintain useful continuity when the model skips the explicit memory tool."""
+
+    observation = prepared.observation
+    game = observation.get("game", {})
+    house_id = observation.get("you", {}).get("houseId") or record.name
+    positions = observation.get("strategicOverview", {}).get("housePositions", [])
+    own = next(
+        (position for position in positions if position.get("houseId") == house_id),
+        {},
+    )
+    situation = (
+        f"Round {game.get('round') or 0}, phase {game.get('phase') or 'unknown'}: "
+        f"{house_id} controls {own.get('castles', 0)} castle regions and "
+        f"{own.get('landAreas', 0)} land areas, with "
+        f"{own.get('powerTokens', 0)} power tokens and supply "
+        f"{own.get('supplyTrack', 0)}."
+    )
+    opponents = [
+        (
+            f"{position.get('houseId')}: {position.get('castles', 0)} castles, "
+            f"{position.get('landAreas', 0)} land areas, "
+            f"{position.get('powerTokens', 0)} power tokens"
+        )
+        for position in positions
+        if position.get("houseId") != house_id
+    ][:8]
+    action = context.action_taken
+    action_summary = (
+        f"Round {game.get('round') or 0} {game.get('phase') or 'unknown'}: "
+        f"used {action.name} {json.dumps(action.arguments, separators=(',', ':'))[:500]}"
+        if action
+        else ""
+    )
+    commitments = [*existing.get("commitments", [])[-7:]]
+    if action_summary:
+        commitments.append(action_summary)
+    objectives = existing.get("objectives") or [
+        "Reach the castle victory threshold before either opponent.",
+        "Protect controlled castles while expanding toward the nearest attainable one.",
+        "Keep armies supply-compatible and preserve decisive house cards.",
+    ]
+    return StrategicNotes(
+        round_number=int(game.get("round") or 0),
+        situation_assessment=situation,
+        objectives=objectives[:8],
+        opponent_models=opponents,
+        commitments=commitments[-8:],
+        lessons=existing.get("lessons", [])[-8:],
+    ).model_dump(by_alias=True)
 
 
 def _strategic_overview(observation: dict[str, Any]) -> dict[str, Any]:

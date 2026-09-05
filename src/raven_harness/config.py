@@ -14,9 +14,15 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
-    model_request_timeout_seconds: float = Field(default=90, gt=0, le=600)
+    model_request_timeout_seconds: float = Field(default=45, gt=0, le=600)
+    model_run_timeout_seconds: float = Field(default=150, gt=0, le=1_800)
+    model_api_max_retries: int = Field(default=2, ge=0, le=10)
     model_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
-    strategic_conversation_item_limit: int = Field(default=30, ge=6, le=200)
+    openrouter_provider_sort: str = Field(
+        default="throughput", pattern="^(price|throughput|latency)$"
+    )
+    openrouter_allow_fallbacks: bool = True
+    openrouter_require_parameters: bool = False
 
     @property
     def resolved_database_path(self) -> Path:
