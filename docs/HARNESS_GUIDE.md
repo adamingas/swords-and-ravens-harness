@@ -38,7 +38,18 @@ Model provider <── Python harness <──WebSocket──> Swords & Ravens se
 
 The Python process serves the harness dashboard and REST API. It also owns one
 WebSocket client for each active model player. SQLite stores agent settings,
-model attempts, usage, game events, state history, and strategic memory.
+model attempts, usage, game events, snapshots, state history, and strategic
+memory.
+
+Terms used in this guide:
+
+- A **snapshot** is the complete game state that the server sends to one
+  authenticated player.
+- A **player-scoped** value contains only information that this player may see.
+- A **leaf state** is the deepest active state in the server's nested state
+  machine. It identifies the current decision.
+- An **SDK item** is one persisted Agents SDK input, model output, tool call, or
+  tool result.
 
 The default SQLite file is ./data/harness.db. Relative data paths resolve from
 the harness repository, even when you start the command elsewhere. Tests use
@@ -127,7 +138,7 @@ dashboard records with these shared fields:
 
 | Agent field | Value |
 | --- | --- |
-| Model | z-ai/glm-5.3-flash for all five agents |
+| Model | The server's configured `MODEL_ID` for all five agents |
 | Game server WebSocket | ws://localhost:5001 |
 | Game / room ID | 1 |
 | User ID and auth token | 2/2, 3/3, 4/4, 5/5, and 6/6 |
@@ -166,46 +177,51 @@ enable autoplay again after a restart.
 
 An agent that owns the game can configure and launch the lobby. Setup sends the
 settings and verifies the setup ID and player count in a fresh snapshot. Launch
-and automatic lobby-ready messages are send-only requests; their dashboard
-events show that the request was sent, not that the whole launch transaction
-completed. Ready confirmation is transport work, not a strategic decision.
+and automatic lobby-ready messages are send-only requests. Their dashboard
+events prove only that the client sent the request. The events do not prove
+that the server completed the launch. Ready confirmation is transport work,
+not a strategic decision.
 
 Autoplay retries a failed model attempt while the same leaf-state ID remains
-active. It stops after three consecutive failures for that ID. Other snapshot
-data can change without resetting this counter. The dashboard keeps the last
-error visible.
+active. It disables autoplay at the configured failure limit. The default is
+five consecutive failures for one leaf-state ID. Other snapshot data can
+change without resetting this counter. The dashboard keeps the last error
+visible.
 
 ## 5. What happens for one decision
 
-The following sequence applies to each required player action.
+The model is not continuously running. The WebSocket client observes changes
+between decisions. The model sees state only when the harness starts a
+`Runner.run` call. The following sequence applies to each required player
+action.
 
 1. The game server sends state changes and authoritative waitedForUserIds.
 2. The harness confirms that the current user must act.
 3. The harness creates a clean observation from the latest snapshot.
 4. The harness selects tools for the active leaf state. It does not fall back
    to a recognized parent when the leaf is unknown.
-5. The harness adds private memory tools and, when available, the rules oracle.
+5. The harness adds the history-recall tool and, when available, the rules oracle.
 6. The harness starts one Agents SDK run with the selected model and the
    player's recent persisted conversation. The SDK can make more than one
    provider request inside that run.
-7. The model can read or update memory and can ask the oracle.
+7. The model can recall an older decision state or ask the oracle.
 8. The model must call exactly one gameplay tool.
 9. Pydantic validates the tool arguments.
 10. The tool checks the latest state again and sends typed server messages.
 11. The harness requests a fresh player-scoped snapshot with sync-game.
 12. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
-13. The harness saves the attempt and links an accepted action to its source
-    state.
+13. The harness updates the compact notebook when the SDK run returns. It then
+    saves the attempt and links an accepted action to its source state.
 
 Each decision is a new `Runner.run` invocation, but it is not a new
 conversation. The Agents SDK stores the player's input messages, function
 calls, function results, and model items in SQLite. The next decision receives
 the latest 32 items by default. It also receives the complete current
-observation, the strategic notebook, and a state-history index. The explicit
-window prevents the provider input from growing without limit. The structured
-notebook and `recall_game_state` preserve information beyond that recent
-window.
+observation, the automatic strategic notebook, and a state-history index. The
+explicit window prevents the provider input from growing without limit. The
+structured notebook and `recall_game_state` preserve information beyond that
+recent window.
 
 This hybrid design gives the model conversational continuity and keeps each
 attempt inspectable from local data. It does not guarantee deterministic replay
@@ -219,7 +235,8 @@ and returns the previous distinct recorded decision state. The recalled base
 observation excludes strategic overview, memory, planning constraints,
 historyIndex, and the prior error. Its action can be null if no action was
 accepted from that state. History is recorded when the harness prepares a model
-run; it does not contain every intermediate state streamed by the game server.
+run. The separate `player_snapshots` table stores every distinct snapshot from
+the game server, including states that do not require a model decision.
 
 Short visible output does not mean that the model received little state. A
 simple choice can need only a short function call while its input includes the
@@ -255,6 +272,40 @@ The map reference is complete, but the board field is sparse. Empty regions
 without a garrison or control token do not appear in board. Use map for
 adjacency and printed board features. Use board for current pieces and control.
 
+This shortened planning observation shows the shape. A real observation
+contains the complete map, all public houses, the full sparse board, the
+automatic notebook, and up to 12 history entries.
+
+~~~json
+{
+  "game": {"id": "1", "stateId": "leaf-2", "phase": "place-orders", "round": 1},
+  "you": {
+    "userId": "2",
+    "houseId": "stark",
+    "powerTokens": 5,
+    "supply": 2,
+    "controlledRegions": ["winterfell", "white-harbor"]
+  },
+  "isYourTurn": true,
+  "pendingDecision": {"type": "place-orders", "readyHouses": []},
+  "statePath": ["ingame", "planning", "place-orders"],
+  "board": [
+    {
+      "id": "winterfell",
+      "units": [{"id": 1, "type": "footman", "allegiance": "stark"}]
+    }
+  ],
+  "actionGuidance": null,
+  "strategicMemory": {
+    "roundNumber": 0,
+    "situationAssessment": "",
+    "objectives": []
+  },
+  "historyIndex": [{"stateId": "leaf-2", "phase": "place-orders"}],
+  "planningConstraints": {"requiredAssignmentCount": 2, "maxStarredOrders": 1}
+}
+~~~
+
 ## 7. How the harness limits illegal actions
 
 The harness uses four checks.
@@ -269,10 +320,10 @@ The harness uses four checks.
 4. **Snapshot inference:** The harness fetches a new authoritative snapshot and
    checks for evidence that the action was processed.
 
-Some optional-expansion protocol details are still validated only by the game
-server. The post-action test is a heuristic, not a dedicated action
-acknowledgement. A model can still make a bad attempt, and a server transition
-can occasionally make acceptance ambiguous.
+The canonical harness supports a six-player base game. It exposes no protocol
+tool for another game mode. The post-action test is a heuristic, not a
+dedicated action acknowledgement. A model can still make a bad attempt. A
+server transition can also make acceptance ambiguous.
 
 submit_orders sends several protocol messages and is not transactional. A
 failure can occur after the server has already applied part of the draft. More
@@ -349,6 +400,21 @@ Example:
 }
 ~~~
 
+For this example, the full path is:
+
+1. The current leaf state is `place-orders`.
+2. The harness builds the observation and offers only `submit_orders` plus the
+   support tools.
+3. The model calls `submit_orders` with the JSON above.
+4. Pydantic checks the object shape. The harness checks region eligibility,
+   order inventory, starred limits, and current turn ownership.
+5. The harness converts semantic orders to physical order tokens. It sends the
+   typed placement messages and the ready message.
+6. The client requests `sync-game`. The returned snapshot confirms or rejects
+   the action.
+7. SQLite stores the input observation, instructions, offered tool schemas,
+   SDK response items, selected arguments, usage, timing, and any error.
+
 ## 9. Core protocol gameplay tools
 
 These tools translate typed model input to one Swords & Ravens message. The
@@ -356,10 +422,10 @@ active state controls when each tool is visible.
 
 | Tool | Exact leaf state | Effect |
 | --- | --- | --- |
-| `resolve_raid(order_region_id, target_region_id)` | `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
+| `resolve_raid(order_region_id, target_region_id)` | `resolve-raid-order`; `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
 | `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. |
 | `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
-| `auto_reconcile_armies()` | `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
+| `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
 | `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
 | `resolve_track_ties(ranked_tie_groups)` | `resolve-ties` | Rank each displayed tied group from highest to lowest. |
@@ -370,6 +436,8 @@ active state controls when each tool is visible.
 | `place_inspected_wildling_card(destination)` | `see-top-wildling-card` | Return the inspected card to top or put it on bottom. |
 | `select_region(region_id)` | `select-region`; `resolve-retreat` | Select one region for the current prompted effect. |
 | `select_westeros_card(deck_id, card_id)` | `select-westeros-card` | Select a displayed card from a Westeros deck. |
+| `resolve_consolidate_power(region_id, choice)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one base-game order. Choose `gain_power_tokens`, or choose `muster_units` for a starred order on a castle. |
+| `call_for_support_against_neutral_force()` | `resolve-single-march`, before a support request | Ask for support during a march against a neutral force. The harness hides the tool after support has been requested. |
 
 `UnitMove` has `destination_region_id` and a non-empty `unit_ids` list.
 `RegionUnits` has `region_id` and a non-empty `unit_ids` list. A recruitment
@@ -379,49 +447,19 @@ engine-compatible Footman internally. `muster_units` requires a non-empty
 `musters` list. Each muster group has `mustering_region_id` and a non-empty
 `recruitments` list.
 
-## 10. Additional protocol gameplay tools
+Mustering guidance includes the current Supply level, the allowed army-size
+slots, each current army, and every single-unit region. Each destination also
+has `supplySafeNewUnitsWhenChosenAlone`. That number applies only when the
+model adds units to that one destination. Combined recruits still pass through
+the full local Supply validator.
 
-The canonical harness also covers these states in the upstream server. Some are
-used by optional expansions.
+## 10. Private support tools
 
-| Tool | Exact leaf state | Effect |
-| --- | --- | --- |
-| `claim_vassals(house_ids)` | `claim-vassal`; `claim-vassals` | Claim the listed vassal houses. |
-| `distribute_power_tokens(allocations)` | `distribute-power-tokens` | Assign token amounts to the listed houses. |
-| `move_loyalty_token(from_region_id, to_region_id)` | `move-loyalty-tokens`; `move-loyalty-token-choice` | Move one loyalty token between regions. |
-| `resolve_consolidate_power(region_id, choice, loan_id)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one order. A base game permits `gain_power_tokens`, plus `muster_units` for a starred order on a castle; use a null `loan_id`. Expansion states can also permit loans or order removal. |
-| `place_sellswords(placements)` | `place-sellswords` | Place listed sellsword unit types in regions. |
-| `resolve_spymaster(top_card_ids, bottom_card_ids)` | `resolve-spymaster`; `spymaster` | Split and order inspected Westeros cards between the top and bottom of the deck. |
-| `select_objectives(objective_ids)` | `select-objectives`; `choose-initial-objectives` | Select the offered secret objectives. |
-| `score_objective(objective_id)` | `score-objectives`; `score-other-objectives` | Score one eligible objective. Use null to pass. |
-| `call_for_support_against_neutral_force()` | `resolve-single-march` | Ask for support during a march against a neutral force. |
-
-A power allocation contains `house_id` and a non-negative `amount`; the
-allocation list is non-empty. A sellsword placement contains `region_id` and a
-non-empty `unit_types` list; the placement list is also non-empty.
-
-## 11. Private support tools
-
-Support tools do not end the required gameplay decision. Both memory tools are
-available in every actual model run. The rules oracle is available only when
-the prepared rules data is loaded.
-
-### update_strategic_memory(notes)
-
-This tool replaces the private notebook. All six `notes` fields are required.
-`roundNumber` must be non-negative, and `situationAssessment` has a 2,000
-character limit. The fields are:
-
-- roundNumber;
-- situationAssessment;
-- up to eight objectives;
-- up to eight opponentModels;
-- up to eight commitments;
-- up to eight lessons.
-
-If the model does not update the notebook, the harness writes a deterministic
-summary after the model run. This summary can survive when the later action
-check reports that the run did not take a gameplay action.
+Support tools do not end the required gameplay decision. The history tool is
+available in every model run. The rules oracle is available only when the
+prepared rules data is loaded. The harness updates `strategicMemory`
+automatically after each model run that returns normally; the model does not
+write it.
 
 ### recall_game_state(turns_ago)
 
@@ -439,15 +477,25 @@ oracle sees a catalog of 14 rulebook and FAQ sections. Its private
 the focused question. The parent player never receives that internal tool. The
 oracle must not choose strategy or a game action.
 
-The parent model receives the answer and must still call one gameplay tool. If
-the parent Agents SDK run returns normally, its trace stores the question,
-answer, section IDs, child response items, tokens, and any provider-reported
-cost. An exception before the parent result returns can lose the collected
-oracle interaction.
+The oracle exists because recorded games showed a repeated rules problem. In
+`data/evaluations/glm-5.3-flash-evaluation-v2/game-01/attempt-01/harness.db`,
+agent-message rows 387 and 388 asked for the Supply 1 army limits. PDF text
+extraction omitted the graphical Supply chart, and the oracle answered with
+the wrong limits. The harness now appends a verified transcription of the
+official page 8 chart to the Supply section. This reasoning error was separate
+from the earlier mustering wire-format bug. That bug concerned which Footman
+unit ID the server accepted for an upgrade; the harness now selects that ID
+internally.
 
-## 12. Persistence and traces
+The parent model receives the answer and must still call one gameplay tool.
+The trace stores each completed oracle question, answer, section read, child
+response item, token count, response ID, and provider-reported cost. The
+harness keeps that oracle trace even if the parent call later fails or is
+cancelled.
 
-The harness schema has five core tables. The Agents SDK adds two conversation
+## 11. Persistence and traces
+
+The harness schema has six core tables. The Agents SDK adds two conversation
 tables when the first session-backed run starts:
 
 | Table | Stored data |
@@ -457,19 +505,20 @@ tables when the first session-backed run starts:
 | agent_runs | One model attempt: observation, instructions, tool definitions, serialized Agents SDK result items, returned usage, action, error, and timing. Nested-oracle records are appended to those items. |
 | game_state_history | One player-scoped base observation per distinct state at which a model run was prepared, plus the accepted action selected from that state. |
 | strategic_memories | Current private notebook and revision number for each agent. |
+| player_snapshots | Each distinct player-scoped WebSocket snapshot. Each row contains the complete serialized snapshot. |
 | agent_sessions | One persisted Agents SDK conversation identity per player. |
 | agent_messages | The input, model, tool-call, and tool-result items used for recent conversational continuity. |
 
 The harness records failed attempts. A failure is evidence about model or tool
-reliability and must remain available for evaluation. When the Agents SDK
-raises before it returns `ModelRunResult`, such as after a timeout, the row can
-lack partial provider response items and usage. The error and elapsed time are
-still stored.
+reliability and must remain available for evaluation. A failed parent call
+keeps each oracle interaction that completed before the failure. A provider
+exception can still prevent the SDK from returning partial parent response
+items or parent usage. The harness always stores the error and elapsed time.
 
-The database uses schema version 1. The server rejects a database with another
-version. Use another `DATABASE_PATH` when the schema is incompatible. Deleting
-an agent permanently removes its events, runs, history, memory, and SDK
-conversation.
+The database uses schema version 2. The server upgrades a version 1 database to
+version 2. It rejects other versions. Use another `DATABASE_PATH` when the
+schema is incompatible. Deleting an agent permanently removes its events,
+runs, snapshots, history, memory, and SDK conversation.
 
 Useful endpoints are:
 
@@ -496,10 +545,14 @@ GET /api/agents/{agent_id}/runs/{run_id}
 GET /api/agents/{agent_id}/metrics
 GET /api/agents/{agent_id}/memory
 GET /api/agents/{agent_id}/history
+GET /api/agents/{agent_id}/snapshots?limit=80
+GET /api/agents/{agent_id}/snapshots/{snapshot_id}
 ~~~
 
-The list endpoints return the latest 80 events and runs. SQLite retains older
-rows; use the run-detail endpoint or query the database for experiment export.
+The list endpoints return the latest 80 events, runs, or snapshot metadata.
+Use the snapshot-detail endpoint for one complete snapshot. This avoids large
+repeated dashboard responses. SQLite retains older rows. Use the run-detail
+endpoint or query the database for experiment export.
 
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
@@ -513,7 +566,7 @@ always mean that the request was free. Git ignores root `data/*.db`,
 Evaluation artifacts stay next to the code but are not committed; back them up
 separately when needed.
 
-## 13. Provider behavior
+## 12. Provider behavior
 
 The default model is z-ai/glm-5.3-flash through OpenRouter. `MODEL_ID` selects
 one server-wide model; new and existing agents cannot run with a different
@@ -537,7 +590,7 @@ AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Cloudflare, Reka, DeepInfra, Io Net, Together, and Wafer.
+defaults to Cloudflare, Reka, DeepInfra, IO.net, Together, and Wafer.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -563,11 +616,10 @@ this filter is enabled.
 | Maximum model output | 16,384 tokens |
 | Recent conversation window | 32 SDK items |
 
-For a controlled harness comparison, assign the same exact model ID to all
-players. For a model tournament, record the model-to-house assignment for each
-game and rotate it between games.
+For a controlled harness comparison, assign the same exact model ID to every
+player. Rotate houses and user IDs between games.
 
-## 14. Optional OpenTelemetry export
+## 13. Optional OpenTelemetry export
 
 SQLite is the authoritative local trace store. The harness can also export one
 coarse span per `run_once` invocation to any OTLP/HTTP trace collector. Every
@@ -598,7 +650,7 @@ and the
 for other deployment and collector options. OTLP export is optional; an empty
 endpoint disables the harness-created exporter.
 
-## 15. Required game-server extensions
+## 14. Required game-server extensions
 
 The submodule contains small extensions for machine clients:
 
@@ -620,12 +672,14 @@ dirty. Do not commit a saved game that contains private state.
 The local saved-game JSON is written only after a game starts and can contain
 private player state. Treat it as sensitive.
 
-## 16. Same-model evaluation
+## 15. Same-model evaluation
 
 `raven-evaluate` runs isolated six-player games. Every player uses the exact
 same model ID. The default is `z-ai/glm-5.3-flash` through OpenRouter. Six plain
 prompt configurations rotate through all six houses twice across 12 games.
 Local user IDs rotate too, so each configuration owns two lobbies.
+Evaluation requires prepared rules data. Run `uv run raven-prepare-rules`
+before the smoke game.
 
 Start with a one-round smoke:
 
@@ -656,7 +710,7 @@ the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
 `summary.json` reports wins, placement, victory points, reliability, cost,
 house effects, and a stated pairwise Elo calculation.
 
-## 17. Verify changes
+## 16. Verify changes
 
 Run the Python checks from the repository root:
 

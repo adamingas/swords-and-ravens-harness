@@ -7,10 +7,10 @@ official-rules oracle.
 
 The project uses one canonical harness. Each model decision receives the
 complete current observation, a bounded persisted Agents SDK conversation,
-and structured long-term memory. SQLite stores every attempt, accepted game
-action, error, and duration.
-It stores provider response items and usage when the SDK returns them; a timeout
-can occur before those partial values are available.
+and automatic structured long-term memory. SQLite stores every distinct
+player snapshot, model attempt, accepted game action, error, and duration. It
+also keeps completed rules-oracle work when the parent model call later fails
+or is cancelled.
 
 See [the system and tool guide](docs/HARNESS_GUIDE.md) for the complete data
 flow, observation format, tool catalog, retry behavior, and API reference.
@@ -31,7 +31,8 @@ repository unless `DATABASE_PATH` selects another
 project-relative or absolute path. OpenRouter retries retryable HTTP and
 connection failures and can try another provider for the same exact model ID.
 
-Prepare the optional rules oracle:
+Prepare the rules oracle. The dashboard can run without it, but evaluation
+requires it:
 
 ~~~bash
 uv run raven-prepare-rules
