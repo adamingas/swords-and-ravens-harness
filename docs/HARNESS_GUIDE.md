@@ -376,6 +376,8 @@ The harness uses four checks.
 1. **Tool selection:** The model sees gameplay tools only for the active state.
 2. **Tool schema:** Pydantic rejects missing fields, wrong types, and extra
    fields. Some tools also receive state-specific enum or range constraints.
+   Nested definitions are expanded inline before sending because some
+   OpenAI-compatible providers otherwise show the model an unconstrained array.
 3. **Runtime check:** Immediately before a send, the tool checks the latest
    state and turn ownership. Base-game raid, march, mustering,
    consolidate-power, Raven replacement, unit selection, region selection, and

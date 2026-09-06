@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..game.client import GameConnectionLost, OrderSubmission
 from .observation import HarnessContext, build_context, is_waiting_for_player
+from .tool_schema import inline_local_definitions
 
 Message = dict[str, Any]
 
@@ -603,7 +604,7 @@ def _tool_for_action(action: ActionSpec) -> FunctionTool:
         )
         schema["$defs"]["OrderCategory"]["enum"] = allowed_orders
 
-    return replace(tool, params_json_schema=schema)
+    return replace(tool, params_json_schema=inline_local_definitions(schema))
 
 
 def describe_tools(tools: list[FunctionTool]) -> list[dict[str, Any]]:

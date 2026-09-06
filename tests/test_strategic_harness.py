@@ -233,7 +233,8 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     submit_schema = next(
         tool.params_json_schema for tool in prepared.tools if tool.name == "submit_orders"
     )
-    assignment = submit_schema["$defs"]["OrderAssignment"]["properties"]
+    assignment = submit_schema["properties"]["assignments"]["items"]["properties"]
+    assert "$defs" not in submit_schema
     assert assignment["region_id"]["enum"] == ["winterfell", "white-harbor"]
     assert "defense=2" in assignment["order"]["description"]
     assert store.recall_state(record.id, 0)["stateId"] == "leaf-2"  # type: ignore[index]

@@ -20,6 +20,7 @@ from .legal import (
     supply_safe_musterings,
     validate_musterings,
 )
+from .tool_schema import inline_local_definitions
 
 
 class ToolInput(BaseModel):
@@ -805,7 +806,7 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
                 for order_id in item["availableOrderIds"]
             }
         )
-    return replace(tool, params_json_schema=schema)
+    return replace(tool, params_json_schema=inline_local_definitions(schema))
 
 
 def _is_base_game(snapshot: dict[str, Any]) -> bool:

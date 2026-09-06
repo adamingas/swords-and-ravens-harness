@@ -337,7 +337,10 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    assignment_schema = tool.params_json_schema["$defs"]["OrderAssignment"]
+    assignment_schema = tool.params_json_schema["properties"]["assignments"]["items"]
+
+    assert "$defs" not in tool.params_json_schema
+    assert "$ref" not in json.dumps(tool.params_json_schema)
 
     assert assignment_schema["properties"]["order"]["enum"] == [
         "march",
@@ -397,7 +400,7 @@ async def test_submit_orders_respects_restriction_on_only_starred_family_member(
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    order_values = tool.params_json_schema["$defs"]["OrderAssignment"][
+    order_values = tool.params_json_schema["properties"]["assignments"]["items"][
         "properties"
     ]["order"]["enum"]
 
@@ -446,7 +449,7 @@ async def test_submit_orders_rejects_active_westeros_restriction() -> None:
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    assignment_schema = tool.params_json_schema["$defs"]["OrderAssignment"]
+    assignment_schema = tool.params_json_schema["properties"]["assignments"]["items"]
     assert "defense" not in assignment_schema["properties"]["order"]["enum"]
     assert tool.params_json_schema["properties"]["assignments"]["minItems"] == 2
     arguments = json.dumps(
@@ -499,7 +502,7 @@ async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() 
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    order_values = tool.params_json_schema["$defs"]["OrderAssignment"][
+    order_values = tool.params_json_schema["properties"]["assignments"]["items"][
         "properties"
     ]["order"]["enum"]
     assert "defense" in order_values
@@ -968,9 +971,9 @@ def test_unattainable_neutral_force_is_not_a_march_destination() -> None:
         for item in available_tools(build_context(snapshot, "2"))
         if item.name == "resolve_march"
     )
-    destinations = tool.params_json_schema["$defs"]["UnitMove"]["properties"][
-        "destination_region_id"
-    ]["enum"]
+    destinations = tool.params_json_schema["properties"]["moves"]["items"][
+        "properties"
+    ]["destination_region_id"]["enum"]
 
     assert "moat-cailin" not in destinations
 
@@ -1001,9 +1004,9 @@ def test_accepted_foreign_support_makes_neutral_force_attainable() -> None:
 
     tools = available_tools(build_context(snapshot, "2"))
     assert [tool.name for tool in tools] == ["resolve_march"]
-    destinations = tools[0].params_json_schema["$defs"]["UnitMove"]["properties"][
-        "destination_region_id"
-    ]["enum"]
+    destinations = tools[0].params_json_schema["properties"]["moves"]["items"][
+        "properties"
+    ]["destination_region_id"]["enum"]
 
     assert "moat-cailin" in destinations
 
@@ -1182,9 +1185,9 @@ async def test_march_rejects_a_weak_neutral_force_attack_before_sending() -> Non
         for item in available_tools(build_context(snapshot, "2"))
         if item.name == "resolve_march"
     )
-    destinations = tool.params_json_schema["$defs"]["UnitMove"]["properties"][
-        "destination_region_id"
-    ]["enum"]
+    destinations = tool.params_json_schema["properties"]["moves"]["items"][
+        "properties"
+    ]["destination_region_id"]["enum"]
     assert "moat-cailin" in destinations
     weak = json.dumps(
         {
@@ -1369,7 +1372,7 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
     )
 
     assert tool.params_json_schema["properties"]["musters"]["maxItems"] == 1
-    assert tool.params_json_schema["$defs"]["MusterGroup"]["properties"][
+    assert tool.params_json_schema["properties"]["musters"]["items"]["properties"][
         "mustering_region_id"
     ]["enum"] == ["winterfell"]
 
@@ -1499,7 +1502,9 @@ async def test_mustering_upgrade_uses_engine_canonical_footman_order() -> None:
     tool = next(
         item for item in available_tools(context) if item.name == "muster_units"
     )
-    recruitment_schema = tool.params_json_schema["$defs"]["Recruitment"]
+    recruitment_schema = tool.params_json_schema["properties"]["musters"]["items"][
+        "properties"
+    ]["recruitments"]["items"]
 
     assert "source_unit_id" not in recruitment_schema["properties"]
     assert "upgrade_from_footman" in recruitment_schema["required"]

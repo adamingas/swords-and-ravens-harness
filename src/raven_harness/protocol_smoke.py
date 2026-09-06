@@ -109,8 +109,9 @@ class ScriptedProtocolRunner:
         tool = _select_safe_tool(gameplay_tools, observation)
         if tool.name == "submit_orders":
             region_ids = (
-                tool.params_json_schema.get("$defs", {})
-                .get("OrderAssignment", {})
+                tool.params_json_schema.get("properties", {})
+                .get("assignments", {})
+                .get("items", {})
                 .get("properties", {})
                 .get("region_id", {})
                 .get("enum", [])
@@ -378,7 +379,9 @@ def _safe_order_arguments(
 ) -> dict[str, Any]:
 
     schema = tool.params_json_schema
-    assignment_schema = schema.get("$defs", {}).get("OrderAssignment", {})
+    assignment_schema = (
+        schema.get("properties", {}).get("assignments", {}).get("items", {})
+    )
     assignment_properties = assignment_schema.get("properties", {})
     region_ids = assignment_properties.get("region_id", {}).get("enum")
     order_ids = assignment_properties.get("order", {}).get("enum")
