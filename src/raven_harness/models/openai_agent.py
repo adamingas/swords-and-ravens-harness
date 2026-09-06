@@ -23,6 +23,7 @@ from agents.memory import Session, SessionSettings, SQLiteSession
 from agents.run_config import CallModelData, ModelInputData
 from openai import APITimeoutError, AsyncOpenAI
 
+from ..config import DEFAULT_MODEL_MAX_OUTPUT_TOKENS
 from ..errors import is_permanent_provider_error, safe_error_text
 from ..game.client import GameConnectionLost
 from ..harness.actions import HarnessRunContext
@@ -374,7 +375,7 @@ class OpenAIAgentRunner:
         run_timeout_seconds: float = 300,
         max_retries: int = 2,
         max_concurrency: int = 1,
-        max_output_tokens: int = 16_384,
+        max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
         session_history_items: int = 32,
         provider_routing: dict[str, Any] | None = None,

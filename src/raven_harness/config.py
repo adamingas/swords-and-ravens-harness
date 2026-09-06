@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_ID = "z-ai/glm-5.3-flash"
+DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 4_096
 
 
 def _source_checkout_root() -> Path | None:
@@ -69,7 +70,9 @@ class Settings(BaseSettings):
     model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_api_max_retries: int = Field(default=2, ge=0, le=10)
     model_max_concurrency: int = Field(default=1, ge=1, le=32)
-    model_max_output_tokens: int = Field(default=16_384, ge=256, le=65_536)
+    model_max_output_tokens: int = Field(
+        default=DEFAULT_MODEL_MAX_OUTPUT_TOKENS, ge=256, le=65_536
+    )
     model_session_history_items: int = Field(default=32, ge=4, le=1_000)
     autoplay_max_consecutive_failures: int = Field(default=5, ge=1, le=20)
     autoplay_retry_base_seconds: float = Field(default=2, gt=0, le=60)
