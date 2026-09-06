@@ -386,26 +386,25 @@ async def resolve_track_ties(
     """Resolve influence-track ties by ordering each tied group from highest to lowest.
 
     Args:
-        ranked_tie_groups: One ordered list of house IDs for each tie group shown in the state.
+        ranked_tie_groups: One ordered list of house IDs for every serialized bid
+            group, including one-house groups. Preserve the displayed group order.
     """
     leaf = ctx.context.current_game_context().leaf or {}
-    expected = [
-        list(houses)
-        for _bid, houses in leaf.get("bidResults", [])
-        if len(houses) > 1
-    ]
+    expected = [list(houses) for _bid, houses in leaf.get("bidResults", [])]
     if len(ranked_tie_groups) != len(expected) or any(
         len(group) != len(set(group)) or set(group) != set(expected[index])
         for index, group in enumerate(ranked_tie_groups)
     ):
         raise ValueError(
-            "ranked_tie_groups must contain each serialized tie group exactly once"
+            "ranked_tie_groups must contain every serialized bid group exactly once, "
+            "including one-house groups"
         )
+    resolved_ties = [group for group in ranked_tie_groups if len(group) > 1]
     return await _send(
         ctx,
         "resolve_track_ties",
         {"ranked_tie_groups": ranked_tie_groups},
-        {"type": "resolve-ties", "resolvedTies": ranked_tie_groups},
+        {"type": "resolve-ties", "resolvedTies": resolved_ties},
     )
 
 
@@ -786,16 +785,22 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
             properties["region_id"]["enum"] = regions
     elif tool.name == "resolve_track_ties":
         groups = [
-            houses
+            list(houses)
             for _bid, houses in (context.leaf or {}).get("bidResults", [])
-            if len(houses) > 1
         ]
         field = properties["ranked_tie_groups"]
         field["minItems"] = len(groups)
         field["maxItems"] = len(groups)
+        field["description"] = (
+            "Return every serialized bid group in this exact outer order, including "
+            f"one-house groups. Reorder only within a group: {groups}."
+        )
         field["items"]["items"]["enum"] = sorted(
             {house for group in groups for house in group}
         )
+        if groups:
+            field["items"]["minItems"] = min(map(len, groups))
+            field["items"]["maxItems"] = max(map(len, groups))
     elif tool.name == "replace_raven_order":
         options = legal_raven_replacements(context)
         properties["region_id"]["enum"] = [item["regionId"] for item in options]

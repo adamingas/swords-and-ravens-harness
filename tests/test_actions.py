@@ -1849,6 +1849,65 @@ async def test_supply_reconciliation_computes_minimal_legal_removals() -> None:
 
 
 @pytest.mark.asyncio
+async def test_track_ties_accepts_serialized_singletons_and_filters_server_message(
+) -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "westeros",
+        "childGameState": {
+            "type": "clash-of-kings",
+            "childGameState": {
+                "type": "resolve-ties",
+                "bidResults": [
+                    [3, ["greyjoy"]],
+                    [2, ["martell", "lannister"]],
+                    [1, ["baratheon", "stark"]],
+                    [0, ["tyrell"]],
+                ],
+            },
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    field = tool.params_json_schema["properties"]["ranked_tie_groups"]
+
+    assert tool.name == "resolve_track_ties"
+    assert field["minItems"] == field["maxItems"] == 4
+    assert "including one-house groups" in field["description"]
+    arguments = json.dumps(
+        {
+            "ranked_tie_groups": [
+                ["greyjoy"],
+                ["lannister", "martell"],
+                ["baratheon", "stark"],
+                ["tyrell"],
+            ]
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-resolve-ties",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {
+            "type": "resolve-ties",
+            "resolvedTies": [
+                ["lannister", "martell"],
+                ["baratheon", "stark"],
+            ],
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_unacknowledged_action_is_not_recorded_as_taken() -> None:
     class RejectingClient(FakeClient):
         async def sync_snapshot(
