@@ -1027,6 +1027,8 @@ metadata later without replaying or reopening the completed game. The
 manifest records source commits, harness prompt and rules hashes, the exact
 model set, model settings, provider routing, the base random seed, and the fixed
 house and user schedule.
+The same-model runner stops before the next sequential game when a completed
+game takes more than 120 seconds. Investigate that latency before resuming.
 The evaluator derives a distinct uint32 seed for each game and reuses it for
 every attempt of that game. The game result records the exact seed, and the
 verifier checks it against the schedule. Client-only hidden-deck shuffles use a

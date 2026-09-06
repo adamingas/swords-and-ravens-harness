@@ -213,6 +213,8 @@ model requests without a harness concurrency limit. Reusing its output directory
 resumes incomplete games from their saved game and agent checkpoints.
 Its summary lists every completed, failed, and cancelled attempt. Request,
 token, and cost totals include partial attempts instead of only finished games.
+If a completed game exceeds two minutes, the command stops before it starts the
+next game so the latency can be investigated.
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
 clients, then completes two rounds with a deterministic policy. It invokes the

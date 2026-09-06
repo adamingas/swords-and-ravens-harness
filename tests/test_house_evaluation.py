@@ -8,7 +8,9 @@ from raven_harness.config import Settings
 from raven_harness.evaluation import HOUSES
 from raven_harness.house_evaluation import (
     HOUSE_TEST_GAMES,
+    HOUSE_TEST_INVESTIGATE_AFTER_SECONDS,
     HOUSE_TEST_MODEL,
+    _require_expected_game_duration,
     build_parser,
     run_house_evaluation,
     summarize_house_results,
@@ -136,6 +138,17 @@ def test_house_summary_includes_failed_attempt_usage_and_error() -> None:
 def test_house_runner_does_not_offer_concurrent_games() -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args(["--concurrent-games", "2"])
+
+
+def test_house_runner_stops_after_an_unexpectedly_slow_game() -> None:
+    with pytest.raises(RuntimeError, match="stopped before starting another game"):
+        _require_expected_game_duration(
+            1,
+            {
+                "status": "completed",
+                "activeElapsedSeconds": HOUSE_TEST_INVESTIGATE_AFTER_SECONDS + 0.001,
+            },
+        )
 
 
 @pytest.mark.asyncio

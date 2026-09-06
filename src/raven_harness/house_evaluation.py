@@ -32,6 +32,7 @@ HOUSE_TEST_MODEL = "openai/gpt-oss-120b"
 HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
+HOUSE_TEST_INVESTIGATE_AFTER_SECONDS = 120
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
@@ -84,7 +85,7 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
             f"Game-server port range ends at {last_port}; choose a lower --game-port"
         )
 
-    async def run_scheduled_game(game_number: int) -> None:
+    async def run_scheduled_game(game_number: int) -> dict[str, Any] | None:
         game_entry = manifest["games"][game_number - 1]
         completed = next(
             (
@@ -96,7 +97,7 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
         )
         if completed is not None:
             print(f"Game {game_number}: already completed")
-            return
+            return None
 
         resumable = _resumable_attempt(output, game_entry)
         if resumable is None:
@@ -193,14 +194,31 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
             )
             _write_json(manifest_path, manifest)
             _write_house_summary(output, manifest)
+        return attempt
 
     for game_number in range(1, HOUSE_TEST_GAMES + 1):
-        await run_scheduled_game(game_number)
+        attempt = await run_scheduled_game(game_number)
+        _require_expected_game_duration(game_number, attempt)
 
     manifest["finishedAt"] = _now()
     _write_json(manifest_path, manifest)
     _write_house_summary(output, manifest)
     return output
+
+
+def _require_expected_game_duration(
+    game_number: int, attempt: dict[str, Any] | None
+) -> None:
+    if attempt is None or attempt.get("status") != "completed":
+        return
+    elapsed = float(attempt["activeElapsedSeconds"])
+    if elapsed <= HOUSE_TEST_INVESTIGATE_AFTER_SECONDS:
+        return
+    raise RuntimeError(
+        f"Game {game_number} took {elapsed:.3f} seconds; stopped before starting "
+        "another game because the expected maximum is "
+        f"{HOUSE_TEST_INVESTIGATE_AFTER_SECONDS} seconds"
+    )
 
 
 def summarize_house_results(
