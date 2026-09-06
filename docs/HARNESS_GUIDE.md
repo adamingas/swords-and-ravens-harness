@@ -528,7 +528,7 @@ active state controls when each tool is visible.
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
 | `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later Supply-unsafe new units are omitted. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
-| `resolve_track_ties(ranked_tie_groups)` | `resolve-ties` | Return every displayed bid group in order, including singleton groups, and rank houses within each actual tie. The harness sends only multi-house groups to the server. |
+| `resolve_track_ties(ranked_house_ids)` | `resolve-ties` | Rank every house that is involved in a tie from highest to lowest. The harness applies that ranking within each tied bid group. |
 | `use_valyrian_steel_blade(use)` | `use-valyrian-steel-blade` | Use or decline the blade in the current combat. |
 | `replace_raven_order(region_id, order_id)` | `replace-order`; `use-raven` | Replace one revealed order with an available physical order token. Base-game region/token pairs are checked locally. |
 | `skip_raven_order_replacement()` | `replace-order`; `use-raven` | Decline Messenger Raven order replacement. |
@@ -900,8 +900,10 @@ uv run raven-evaluate-houses \
 
 The command uses `strategic-v1` for every seat, requests the Cerebras backend,
 and disables backend fallback. It starts five independent games on ports 5121
-through 5125 by default. The command has no round-limit option. Each game ends
-only at the normal victory condition or the normal final round.
+through 5125. It runs one game at a time by default so that concurrent model
+requests from different games do not compete for endpoint capacity. The
+command has no round-limit option. Each game ends only at the normal victory
+condition or the normal final round.
 
 The runner permits six model requests at a time within each game. Thus, agents
 that have simultaneous decisions do not wait for the other agents' requests.

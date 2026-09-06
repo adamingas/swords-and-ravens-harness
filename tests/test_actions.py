@@ -1856,7 +1856,7 @@ async def test_supply_reconciliation_computes_minimal_legal_removals() -> None:
 
 
 @pytest.mark.asyncio
-async def test_track_ties_only_requires_actual_tie_groups() -> None:
+async def test_track_ties_uses_one_flat_ranking_for_all_tied_houses() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
         "type": "westeros",
@@ -1876,17 +1876,14 @@ async def test_track_ties_only_requires_actual_tie_groups() -> None:
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    field = tool.params_json_schema["properties"]["ranked_tie_groups"]
+    field = tool.params_json_schema["properties"]["ranked_house_ids"]
 
     assert tool.name == "resolve_track_ties"
-    assert field["minItems"] == field["maxItems"] == 2
-    assert "each tied bid group" in field["description"]
+    assert field["minItems"] == field["maxItems"] == 4
+    assert "Include each house exactly once" in field["description"]
     arguments = json.dumps(
         {
-            "ranked_tie_groups": [
-                ["lannister", "martell"],
-                ["baratheon", "stark"],
-            ]
+            "ranked_house_ids": ["baratheon", "lannister", "stark", "martell"]
         }
     )
 

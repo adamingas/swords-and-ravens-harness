@@ -8,8 +8,10 @@ from raven_harness.config import Settings
 from raven_harness.evaluation import HOUSES
 from raven_harness.house_evaluation import (
     HOUSE_TEST_AGENT_CONCURRENCY,
+    HOUSE_TEST_CONCURRENT_GAMES,
     HOUSE_TEST_GAMES,
     HOUSE_TEST_MODEL,
+    build_parser,
     run_house_evaluation,
     summarize_house_results,
 )
@@ -80,6 +82,10 @@ def test_house_summary_uses_complete_game_results_and_measured_time() -> None:
         "cachedInput": 90,
     }
     assert summary["costUsd"] == 0.3
+
+
+def test_house_runner_defaults_to_one_game_at_a_time() -> None:
+    assert build_parser().parse_args([]).concurrent_games == HOUSE_TEST_CONCURRENT_GAMES
 
 
 @pytest.mark.asyncio

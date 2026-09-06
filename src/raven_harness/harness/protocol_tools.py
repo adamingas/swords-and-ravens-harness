@@ -381,33 +381,35 @@ async def skip_mustering(ctx: RunContextWrapper[HarnessRunContext]) -> str:
 
 @function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_track_ties(
-    ctx: RunContextWrapper[HarnessRunContext], ranked_tie_groups: list[list[str]]
+    ctx: RunContextWrapper[HarnessRunContext], ranked_house_ids: list[str]
 ) -> str:
-    """Resolve influence-track ties by ordering each tied group from highest to lowest.
+    """Resolve influence-track ties with one highest-to-lowest house ranking.
 
     Args:
-        ranked_tie_groups: One ordered list of house IDs for each tied bid group.
-            Preserve the displayed outer group order.
+        ranked_house_ids: Every house involved in a tie, ordered from highest to
+            lowest. The harness applies this ranking within each tied bid group.
     """
     leaf = ctx.context.current_game_context().leaf or {}
-    expected = [
+    tied_groups = [
         list(houses)
         for _bid, houses in leaf.get("bidResults", [])
         if len(houses) > 1
     ]
-    if len(ranked_tie_groups) != len(expected) or any(
-        len(group) != len(set(group)) or set(group) != set(expected[index])
-        for index, group in enumerate(ranked_tie_groups)
+    expected_house_ids = {house for group in tied_groups for house in group}
+    if (
+        len(ranked_house_ids) != len(set(ranked_house_ids))
+        or set(ranked_house_ids) != expected_house_ids
     ):
         raise ValueError(
-            "ranked_tie_groups must contain each tied bid group exactly once in "
-            "displayed order"
+            "ranked_house_ids must contain every house involved in a tie exactly once"
         )
+    rank = {house: index for index, house in enumerate(ranked_house_ids)}
+    resolved_ties = [sorted(group, key=rank.__getitem__) for group in tied_groups]
     return await _send(
         ctx,
         "resolve_track_ties",
-        {"ranked_tie_groups": ranked_tie_groups},
-        {"type": "resolve-ties", "resolvedTies": ranked_tie_groups},
+        {"ranked_house_ids": ranked_house_ids},
+        {"type": "resolve-ties", "resolvedTies": resolved_ties},
     )
 
 
@@ -792,19 +794,15 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
             for _bid, houses in (context.leaf or {}).get("bidResults", [])
             if len(houses) > 1
         ]
-        field = properties["ranked_tie_groups"]
-        field["minItems"] = len(groups)
-        field["maxItems"] = len(groups)
+        house_ids = [house for group in groups for house in group]
+        field = properties["ranked_house_ids"]
+        field["minItems"] = len(house_ids)
+        field["maxItems"] = len(house_ids)
         field["description"] = (
-            "Return each tied bid group in this exact outer order. Reorder only "
-            f"within a group: {groups}."
+            "Rank every house involved in these tied bid groups from highest to "
+            f"lowest: {groups}. Include each house exactly once."
         )
-        field["items"]["items"]["enum"] = sorted(
-            {house for group in groups for house in group}
-        )
-        if groups:
-            field["items"]["minItems"] = min(map(len, groups))
-            field["items"]["maxItems"] = max(map(len, groups))
+        field["items"]["enum"] = sorted(house_ids)
     elif tool.name == "replace_raven_order":
         options = legal_raven_replacements(context)
         properties["region_id"]["enum"] = [item["regionId"] for item in options]

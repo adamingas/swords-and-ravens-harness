@@ -31,6 +31,7 @@ HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
 HOUSE_TEST_AGENT_CONCURRENCY = len(HOUSES)
+HOUSE_TEST_CONCURRENT_GAMES = 1
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
@@ -434,7 +435,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--concurrent-games",
         type=int,
-        default=HOUSE_TEST_GAMES,
+        default=HOUSE_TEST_CONCURRENT_GAMES,
         choices=range(1, HOUSE_TEST_GAMES + 1),
     )
     parser.add_argument("--poll-seconds", type=float, default=0.25)

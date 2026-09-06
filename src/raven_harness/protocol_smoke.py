@@ -346,12 +346,13 @@ def _safe_tool_arguments(
         }
     if tool.name == "resolve_track_ties":
         return {
-            "ranked_tie_groups": [
-                list(houses)
+            "ranked_house_ids": [
+                house
                 for _bid, houses in observation.get("pendingDecision", {}).get(
                     "bidResults", []
                 )
                 if len(houses) > 1
+                for house in houses
             ]
         }
     if tool.name == "choose_option":
