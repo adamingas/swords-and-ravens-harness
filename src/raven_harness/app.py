@@ -288,7 +288,7 @@ def create_app(
             raise KeyError("Snapshot not found")
         return {"snapshot": stored}
 
-    public_directory = Path(__file__).resolve().parents[2] / "public"
+    public_directory = Path(__file__).resolve().parent / "public"
     app.mount("/", StaticFiles(directory=public_directory, html=True), name="dashboard")
     return app
 

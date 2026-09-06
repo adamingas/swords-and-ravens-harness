@@ -50,9 +50,11 @@ these missing assumptions or weak claims:
 - Lobby launch and automatic ready events prove a send, not server completion.
 - A built wheel did not contain the dashboard assets.
 
-The guide already states the two acknowledgement limits. This review adds an
-automated tool-catalog contract in `tests/test_documentation.py`. Work continues
-on broader real-server protocol coverage and installed-package verification.
+The guide already states the two acknowledgement limits. The review added an
+automated tool-catalog contract in `tests/test_documentation.py`. The dashboard
+assets now live inside the Python package. `tests/test_packaging.py` builds and
+installs a wheel in isolation, then verifies the dashboard and writable data
+paths. Work continues on broader real-server protocol coverage.
 
 ## Reviewer 3: canonical implementation
 

@@ -55,9 +55,12 @@ Terms used in this guide:
   parent input list and instructions. It does not hash the complete provider
   request or repeat the complete current observation.
 
-The default SQLite file is ./data/harness.db. Relative data paths resolve from
-the harness repository, even when you start the command elsewhere. Tests use
-temporary databases so that they do not change this file.
+From a source checkout, the default SQLite file is `./data/harness.db` and
+relative data paths resolve from the harness repository. An installed wheel
+stores default and relative data under the operating system's per-user
+application-data directory. An explicit absolute `DATABASE_PATH` is unchanged
+in both cases. Tests use temporary databases so that they do not change the
+repository file.
 
 The dashboard and REST API have no authentication and use plain HTTP. Keep the
 default 127.0.0.1 host for local use. The SQLite file stores game tokens and

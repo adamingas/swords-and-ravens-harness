@@ -37,6 +37,10 @@ class UnusedRunner:
 
 
 def test_default_relative_data_paths_are_project_local() -> None:
+    defaults = Settings(_env_file=None)
+    assert defaults.resolved_database_path == PROJECT_ROOT / "data/harness.db"
+    assert defaults.resolved_rules_path == PROJECT_ROOT / "data/rules.json"
+
     settings = Settings(
         database_path=Path("data/test.db"),
         rules_path=Path("data/test-rules.json"),

@@ -28,9 +28,10 @@ test -e .env || cp .env.example .env
 ~~~
 
 Add an OpenRouter token to .env. The default model is
-z-ai/glm-5.3-flash. The default database is stored at data/harness.db in this
-repository unless `DATABASE_PATH` selects another
-project-relative or absolute path. OpenRouter retries retryable HTTP and
+z-ai/glm-5.3-flash. From a source checkout, the default database is stored at
+data/harness.db in this repository unless `DATABASE_PATH` selects another
+project-relative or absolute path. An installed wheel uses the operating
+system's per-user application-data directory. OpenRouter retries retryable HTTP and
 connection failures and can try another provider for the same exact model ID.
 Handled tool errors stay inside the current Agents SDK run so the model can
 correct its call. An account or authentication failure stops autoplay for all
