@@ -251,6 +251,15 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     submit_orders = next(tool for tool in later.tools if tool.name == "submit_orders")
     assert "winterfell" not in submit_orders.description.lower()
     assert later.game_tool_names == ["submit_orders"]
+
+    retry = harness.prepare_turn(
+        record,
+        build_context(later_snapshot, "2"),
+        previous_error="The model returned text instead of a game action",
+    )
+    assert retry.observation["previousAttemptError"].startswith("The model returned")
+    assert "actual function-tool mechanism" in retry.observation["retryInstruction"]
+    assert [tool.name for tool in retry.tools] == ["submit_orders"]
     database.close()
 
 

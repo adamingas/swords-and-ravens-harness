@@ -295,7 +295,12 @@ class StrategicHarness:
         observation = self._enrich_observation(record, base_observation, action_specs)
         if previous_error:
             observation["previousAttemptError"] = previous_error
-        tools = self._tools_for_game(game_tools)
+            observation["retryInstruction"] = (
+                "The previous attempt was not accepted. Use the actual function-tool "
+                "mechanism for one offered gameplay tool now. Do not print, quote, or "
+                "describe a tool name or JSON arguments as text."
+            )
+        tools = game_tools if previous_error else self._tools_for_game(game_tools)
         instructions = record.system_prompt.rstrip() + STRATEGIC_INSTRUCTIONS
         cache_material = json.dumps(
             {

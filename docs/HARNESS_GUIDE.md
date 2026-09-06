@@ -310,6 +310,7 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | historyIndex | A compact index of the current recorded decision state and earlier decision states. |
 | planningConstraints | Starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
 | previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
+| retryInstruction | Present with a prior error. It tells the model to use the function-tool mechanism instead of printing a tool-shaped JSON object. |
 
 The map reference is complete, but the board field is sparse. Empty regions
 without a garrison, control token, or revealed order do not appear in board.
@@ -493,6 +494,12 @@ For this example, the full path is:
    state with the returned player-scoped snapshot.
 7. SQLite stores the input observation, instructions, offered tool schemas,
    SDK response items, selected arguments, usage, timing, and any error.
+
+If an attempt does not produce an accepted gameplay action, the harness removes
+only that attempt's SDK transcript before retrying. Earlier accepted gameplay
+history remains available. The retry exposes only the required gameplay tools;
+memory and rules-oracle tools return after the decision succeeds. This prevents
+an invalid textual pseudo-call from teaching the next retry to repeat it.
 
 ## 9. Core protocol gameplay tools
 

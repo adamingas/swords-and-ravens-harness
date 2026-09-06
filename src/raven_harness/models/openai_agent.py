@@ -411,6 +411,9 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(message, _partial_result([], context_filter.manifest()))
 
+        session = self._session(agent_record.id)
+        session_item_count = len(await session.get_items()) if session is not None else 0
+
         oracle_interactions: list[dict[str, Any]] = []
         try:
             model = OpenAIResponsesModel(
@@ -477,14 +480,20 @@ class OpenAIAgentRunner:
                         context=context,
                         max_turns=max_turns,
                         run_config=run_config,
-                        session=self._session(agent_record.id),
+                        session=session,
                         hooks=activity_hooks,
                     )
         except asyncio.CancelledError as error:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             raise ModelRunCancelled(
                 _partial_result(oracle_interactions, context_filter.manifest())
             ) from error
         except TimeoutError:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             message = (
                 f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
             )
@@ -493,6 +502,9 @@ class OpenAIAgentRunner:
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
         except APITimeoutError:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             message = (
                 "Model API timed out after "
                 f"{self.request_timeout_seconds:g} seconds per attempt and "
@@ -503,8 +515,14 @@ class OpenAIAgentRunner:
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
         except GameConnectionLost:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             raise
         except Exception as error:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             connection_error = _caused_by_connection_loss(error)
             if connection_error is not None:
                 raise connection_error from error
@@ -519,16 +537,23 @@ class OpenAIAgentRunner:
             ) from None
 
         try:
-            return _completed_result(
+            completed = _completed_result(
                 result,
                 oracle_interactions,
                 context_filter.manifest(),
             )
         except Exception as error:
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
             raise ModelRunError(
                 safe_error_text(error),
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
+        await _rollback_unaccepted_session(
+            session, session_item_count, context=context
+        )
+        return completed
 
     def _session(self, agent_id: str) -> Session | None:
         if self.session_database_path is None:
@@ -593,6 +618,30 @@ class OpenAIAgentRunner:
                 else None
             ),
         )
+
+
+async def _rollback_unaccepted_session(
+    session: Session | None,
+    original_item_count: int,
+    *,
+    context: HarnessRunContext,
+) -> None:
+    """Remove only the current failed decision from persistent model history."""
+
+    if session is None or context.action_taken is not None:
+        return
+    try:
+        current_item_count = len(await session.get_items())
+        for _ in range(max(0, current_item_count - original_item_count)):
+            if await session.pop_item() is None:
+                break
+    except Exception:
+        # A stale failed transcript is worse than losing optional conversation
+        # history. Authoritative observations and durable strategy remain stored.
+        try:
+            await session.clear_session()
+        except Exception:
+            pass
 
 
 def _observation_input_text(item: dict[str, Any]) -> str | None:

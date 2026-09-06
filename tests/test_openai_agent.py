@@ -692,6 +692,11 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     with pytest.raises(ModelRunError, match="provider failed after note"):
         await runner.run_once(**first_arguments)
 
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM agent_messages").fetchone() == (
+            0,
+        )
+
     successful_model = ToolCallingModel(["choose_house", "remember_strategy"])
     current_model = successful_model
     second_context = HarnessRunContext(
@@ -704,7 +709,8 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     serialized_input = json.dumps(successful_model.inputs[0], separators=(",", ":"))
     assert "Uncommitted northern plan" not in serialized_input
     assert "remember_strategy" not in serialized_input
-    assert result.context_manifest["removedSupportToolItemCount"] == 2
+    assert result.context_manifest["retrievedHistoryItemCount"] == 0
+    assert result.context_manifest["removedSupportToolItemCount"] == 0
     await runner.shutdown()
 
 
