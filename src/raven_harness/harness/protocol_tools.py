@@ -799,8 +799,9 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         field["minItems"] = len(house_ids)
         field["maxItems"] = len(house_ids)
         field["description"] = (
-            "Rank every house involved in these tied bid groups from highest to "
-            f"lowest: {groups}. Include each house exactly once."
+            "Return one flat highest-to-lowest list containing exactly these house "
+            f"IDs: {house_ids}. Do not use nested arrays. The server's tied groups "
+            f"are {groups}; the harness applies the flat ranking within each group."
         )
         field["items"]["enum"] = sorted(house_ids)
     elif tool.name == "replace_raven_order":

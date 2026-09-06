@@ -1932,7 +1932,8 @@ async def test_track_ties_uses_one_flat_ranking_for_all_tied_houses() -> None:
 
     assert tool.name == "resolve_track_ties"
     assert field["minItems"] == field["maxItems"] == 4
-    assert "Include each house exactly once" in field["description"]
+    assert "one flat highest-to-lowest list" in field["description"]
+    assert "Do not use nested arrays" in field["description"]
     arguments = json.dumps(
         {
             "ranked_house_ids": ["baratheon", "lannister", "stark", "martell"]
