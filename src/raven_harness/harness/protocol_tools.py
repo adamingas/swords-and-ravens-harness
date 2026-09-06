@@ -381,13 +381,13 @@ async def skip_mustering(ctx: RunContextWrapper[HarnessRunContext]) -> str:
 
 @function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_track_ties(
-    ctx: RunContextWrapper[HarnessRunContext], ranked_house_ids: list[str]
+    ctx: RunContextWrapper[HarnessRunContext], preferred_house_ids: list[str]
 ) -> str:
-    """Resolve influence-track ties with one highest-to-lowest house ranking.
+    """Resolve influence-track ties from a highest-to-lowest preference list.
 
     Args:
-        ranked_house_ids: Every house involved in a tie, ordered from highest to
-            lowest. The harness applies this ranking within each tied bid group.
+        preferred_house_ids: Tied houses whose relative position matters to you,
+            ordered from highest to lowest. Omitted houses keep displayed order.
     """
     leaf = ctx.context.current_game_context().leaf or {}
     tied_groups = [
@@ -395,20 +395,25 @@ async def resolve_track_ties(
         for _bid, houses in leaf.get("bidResults", [])
         if len(houses) > 1
     ]
-    expected_house_ids = {house for group in tied_groups for house in group}
-    if (
-        len(ranked_house_ids) != len(set(ranked_house_ids))
-        or set(ranked_house_ids) != expected_house_ids
-    ):
-        raise ValueError(
-            "ranked_house_ids must contain every house involved in a tie exactly once"
+    displayed_house_ids = [house for group in tied_groups for house in group]
+    expected_house_ids = set(displayed_house_ids)
+    applied_house_ids = list(
+        dict.fromkeys(
+            house for house in preferred_house_ids if house in expected_house_ids
         )
-    rank = {house: index for index, house in enumerate(ranked_house_ids)}
+    )
+    applied_house_ids.extend(
+        house for house in displayed_house_ids if house not in applied_house_ids
+    )
+    rank = {house: index for index, house in enumerate(applied_house_ids)}
     resolved_ties = [sorted(group, key=rank.__getitem__) for group in tied_groups]
     return await _send(
         ctx,
         "resolve_track_ties",
-        {"ranked_house_ids": ranked_house_ids},
+        {
+            "preferred_house_ids": preferred_house_ids,
+            "applied_house_ids": applied_house_ids,
+        },
         {"type": "resolve-ties", "resolvedTies": resolved_ties},
     )
 
@@ -795,13 +800,14 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
             if len(houses) > 1
         ]
         house_ids = [house for group in groups for house in group]
-        field = properties["ranked_house_ids"]
-        field["minItems"] = len(house_ids)
+        field = properties["preferred_house_ids"]
+        field["minItems"] = 0
         field["maxItems"] = len(house_ids)
         field["description"] = (
-            "Return one flat highest-to-lowest list containing exactly these house "
-            f"IDs: {house_ids}. Do not use nested arrays. The server's tied groups "
-            f"are {groups}; the harness applies the flat ranking within each group."
+            "Return one flat highest-to-lowest preference list using these house "
+            f"IDs: {house_ids}. Do not use nested arrays. You may omit indifferent "
+            "houses; the harness appends them in displayed order. Duplicates and "
+            f"unknown IDs are ignored. The server's tied groups are {groups}."
         )
         field["items"]["enum"] = sorted(house_ids)
     elif tool.name == "replace_raven_order":

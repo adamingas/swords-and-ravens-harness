@@ -1928,15 +1928,21 @@ async def test_track_ties_uses_one_flat_ranking_for_all_tied_houses() -> None:
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
-    field = tool.params_json_schema["properties"]["ranked_house_ids"]
+    field = tool.params_json_schema["properties"]["preferred_house_ids"]
 
     assert tool.name == "resolve_track_ties"
-    assert field["minItems"] == field["maxItems"] == 4
-    assert "one flat highest-to-lowest list" in field["description"]
+    assert field["minItems"] == 0
+    assert field["maxItems"] == 4
+    assert "one flat highest-to-lowest preference list" in field["description"]
     assert "Do not use nested arrays" in field["description"]
     arguments = json.dumps(
         {
-            "ranked_house_ids": ["baratheon", "lannister", "stark", "martell"]
+            "preferred_house_ids": [
+                "baratheon",
+                "lannister",
+                "stark",
+                "martell",
+            ]
         }
     )
 
@@ -1958,6 +1964,64 @@ async def test_track_ties_uses_one_flat_ranking_for_all_tied_houses() -> None:
                 ["baratheon", "stark"],
             ],
         }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_track_ties_completes_a_partial_preference_without_retry() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "westeros",
+        "childGameState": {
+            "type": "clash-of-kings",
+            "childGameState": {
+                "type": "resolve-ties",
+                "bidResults": [
+                    [3, ["greyjoy"]],
+                    [2, ["martell", "lannister"]],
+                    [1, ["baratheon", "stark"]],
+                ],
+            },
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps(
+        {
+            "preferred_house_ids": [
+                "baratheon",
+                "baratheon",
+                "not-a-house",
+            ]
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-partial-ties",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {
+            "type": "resolve-ties",
+            "resolvedTies": [
+                ["martell", "lannister"],
+                ["baratheon", "stark"],
+            ],
+        }
+    ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments["applied_house_ids"] == [
+        "baratheon",
+        "martell",
+        "lannister",
+        "stark",
     ]
 
 

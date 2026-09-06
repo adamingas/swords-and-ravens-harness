@@ -525,7 +525,7 @@ active state controls when each tool is visible.
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
 | `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later Supply-unsafe new units are omitted. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
-| `resolve_track_ties(ranked_house_ids)` | `resolve-ties` | Rank every house that is involved in a tie from highest to lowest. The harness applies that ranking within each tied bid group. |
+| `resolve_track_ties(preferred_house_ids)` | `resolve-ties` | Rank the tied houses whose relative position matters. The harness appends omitted houses in displayed order and applies the result within each tied bid group. |
 | `use_valyrian_steel_blade(use)` | `use-valyrian-steel-blade` | Use or decline the blade in the current combat. |
 | `replace_raven_order(region_id, order_id)` | `replace-order`; `use-raven` | Replace one revealed order with an available physical order token. Base-game region/token pairs are checked locally. |
 | `skip_raven_order_replacement()` | `replace-order`; `use-raven` | Decline Messenger Raven order replacement. |
