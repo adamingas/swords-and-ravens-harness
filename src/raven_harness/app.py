@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -62,11 +62,7 @@ def create_app(
             ),
             rulebook=rulebook,
         )
-        harness = StrategicHarness(
-            model_runner,
-            store,
-            rules_available=rulebook is not None,
-        )
+        harness = StrategicHarness(model_runner, store)
         manager = AgentManager(
             store=store,
             harness=harness,
@@ -81,6 +77,7 @@ def create_app(
         app.state.database = database
         app.state.store = store
         app.state.manager = manager
+        app.state.rules_oracle_available = model_runner.rules_oracle_available
         try:
             yield
         finally:
@@ -115,7 +112,7 @@ def create_app(
         )
 
     @app.get("/api/health")
-    async def health() -> dict[str, Any]:
+    async def health(request: Request) -> dict[str, Any]:
         return {
             "ok": True,
             "modelApiConfigured": bool(settings.model_api_key),
@@ -126,7 +123,9 @@ def create_app(
             "modelSessionHistoryItems": settings.model_session_history_items,
             "databasePath": str(settings.resolved_database_path),
             "rulesPath": str(settings.resolved_rules_path),
-            "rulesOracleAvailable": settings.resolved_rules_path.is_file(),
+            "rulesOracleAvailable": bool(
+                request.app.state.rules_oracle_available
+            ),
             "telemetryExportConfigured": bool(
                 settings.otel_exporter_otlp_traces_endpoint.strip()
             ),
@@ -266,6 +265,27 @@ def create_app(
         if _manager(request).get_agent(agent_id) is None:
             raise KeyError("Agent not found")
         return {"history": _store(request).list_state_history(agent_id, 80)}
+
+    @app.get("/api/agents/{agent_id}/snapshots")
+    async def snapshots(
+        agent_id: str,
+        request: Request,
+        limit: int = Query(default=80, ge=1, le=500),
+    ) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        return {"snapshots": _store(request).list_snapshots(agent_id, limit)}
+
+    @app.get("/api/agents/{agent_id}/snapshots/{snapshot_id}")
+    async def snapshot(
+        agent_id: str, snapshot_id: int, request: Request
+    ) -> dict[str, Any]:
+        if _manager(request).get_agent(agent_id) is None:
+            raise KeyError("Agent not found")
+        stored = _store(request).get_snapshot(agent_id, snapshot_id)
+        if stored is None:
+            raise KeyError("Snapshot not found")
+        return {"snapshot": stored}
 
     public_directory = Path(__file__).resolve().parents[2] / "public"
     app.mount("/", StaticFiles(directory=public_directory, html=True), name="dashboard")

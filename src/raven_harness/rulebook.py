@@ -24,6 +24,28 @@ RULES_ORACLE_DESCRIPTION = (
     "required game action, so you must still call one gameplay tool afterward."
 )
 
+# The Supply track on page 8 is artwork in the official PDF, so PDF text
+# extraction does not capture its army-size values. Keep a transcription beside
+# the extracted text that the rules oracle reads.
+BASE_GAME_SUPPLY_LIMITS: dict[int, tuple[int, ...]] = {
+    0: (2, 2),
+    1: (3, 2),
+    2: (3, 2, 2),
+    3: (3, 2, 2, 2),
+    4: (3, 3, 2, 2),
+    5: (4, 3, 2, 2),
+    6: (4, 3, 2, 2, 2),
+}
+SUPPLY_TRACK_TRANSCRIPTION = (
+    "[Rules of Play, page 8, Supply track chart transcription]\n"
+    "Each list gives the maximum unit count of every army a player may have "
+    "at that Supply level:\n"
+    + "\n".join(
+        f"Supply {level}: {list(army_sizes)}"
+        for level, army_sizes in BASE_GAME_SUPPLY_LIMITS.items()
+    )
+)
+
 
 class RuleSectionId(str, Enum):
     OVERVIEW_SETUP_TERMS = "overview-setup-terms"
@@ -78,16 +100,6 @@ class RulesQuestion(BaseModel):
         min_length=3,
         max_length=1_200,
         description="A focused question about one game rule.",
-    )
-
-
-class RuleSectionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    section_ids: list[RuleSectionId] = Field(
-        min_length=1,
-        max_length=2,
-        description="One or two rulebook section IDs that can answer the question.",
     )
 
 
@@ -241,20 +253,31 @@ class Rulebook:
         ]
 
     def read(self, section_ids: Iterable[RuleSectionId]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": self._sections[section_id].id.value,
-                "title": self._sections[section_id].title,
-                "source": self._sections[section_id].source_id,
-                "pages": self._sections[section_id].pages,
-                "text": self._sections[section_id].text,
-            }
-            for section_id in section_ids
-        ]
+        result = []
+        for section_id in section_ids:
+            section = self._sections[section_id]
+            text = section.text
+            if section_id is RuleSectionId.SUPPLY_AND_MUSTERING:
+                text = f"{text.rstrip()}\n\n{SUPPLY_TRACK_TRANSCRIPTION}"
+            result.append(
+                {
+                    "id": section.id.value,
+                    "title": section.title,
+                    "source": section.source_id,
+                    "pages": section.pages,
+                    "text": text,
+                }
+            )
+        return result
 
     @property
     def cache_fingerprint(self) -> str:
-        material = "|".join(source.sha256 for source in self.data.sources)
+        material = "|".join(
+            [
+                *(source.sha256 for source in self.data.sources),
+                SUPPLY_TRACK_TRANSCRIPTION,
+            ]
+        )
         return hashlib.sha256(material.encode()).hexdigest()[:24]
 
     def build_oracle_tool(
@@ -316,8 +339,19 @@ class Rulebook:
             answer = str(result.final_output or "")
             response_items: list[dict[str, Any]] = []
             raw_usage: list[dict[str, Any]] = []
+            interaction_usage = {
+                "requests": 0,
+                "inputTokens": 0,
+                "outputTokens": 0,
+                "totalTokens": 0,
+            }
             for response in result.raw_responses:
                 response_items.extend(_jsonable(item) for item in response.output)
+                response_usage = response.usage
+                interaction_usage["requests"] += response_usage.requests
+                interaction_usage["inputTokens"] += response_usage.input_tokens
+                interaction_usage["outputTokens"] += response_usage.output_tokens
+                interaction_usage["totalTokens"] += response_usage.total_tokens
                 if response.raw_usage is not None:
                     usage = _jsonable(response.raw_usage)
                 else:
@@ -334,6 +368,7 @@ class Rulebook:
                     ),
                     "responseItems": response_items,
                     "rawUsage": raw_usage,
+                    "usage": interaction_usage,
                 }
             )
             return answer

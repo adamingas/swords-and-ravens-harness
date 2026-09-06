@@ -16,6 +16,7 @@ from raven_harness.evaluation import (
     _build_provenance,
     _collect_openrouter_generations,
     _evaluation_schedule,
+    _persisted_response_rows,
     _progress_signature,
     _require_sqlite_quick_check,
     _terminal_winner,
@@ -203,6 +204,49 @@ def test_sqlite_quick_check_accepts_evaluation_database(tmp_path) -> None:
     database = Database(tmp_path / "harness.db")
     try:
         _require_sqlite_quick_check(database)
+    finally:
+        database.close()
+
+
+def test_provider_attribution_includes_nested_response_from_failed_parent(
+    tmp_path,
+) -> None:
+    database = Database(tmp_path / "harness.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(
+            name="Balanced",
+            model="z-ai/glm-5.3-flash",
+            user_id="1",
+            auth_token="1",
+        )
+    )
+    store.add_run(
+        run_id="failed-parent",
+        agent_id=record.id,
+        status="failed",
+        observation={},
+        response_id=None,
+        raw_usage=[
+            {
+                "scope": "rules-oracle",
+                "response_id": "oracle-generation",
+            }
+        ],
+        error="parent failed",
+        created_at="2026-01-01T00:00:01+00:00",
+    )
+
+    try:
+        assert _persisted_response_rows(database, [record]) == [
+            {
+                "runId": "failed-parent",
+                "agentId": record.id,
+                "configuration": "Balanced",
+                "responseId": "oracle-generation",
+                "responseIndex": 0,
+            }
+        ]
     finally:
         database.close()
 

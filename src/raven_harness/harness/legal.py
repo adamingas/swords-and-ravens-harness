@@ -220,6 +220,12 @@ def legal_mustering_options(context: HarnessContext) -> dict[str, Any]:
                     "regionId": destination_id,
                     "type": destination_static.get("type"),
                     "newUnitTypes": unit_types,
+                    "currentUnitCount": _own_unit_counts(context).get(
+                        destination_id, 0
+                    ),
+                    "supplySafeNewUnitsWhenChosenAlone": (
+                        _maximum_supply_safe_additions(context, destination_id)
+                    ),
                     "upgradeableFootmen": sum(
                         1
                         for unit in target.get("units", [])
@@ -241,6 +247,7 @@ def legal_mustering_options(context: HarnessContext) -> dict[str, Any]:
         "maxOriginGroups": maximum,
         "origins": sorted(origins, key=lambda item: item["regionId"]),
         "availablePieces": _available_pieces(context),
+        "supplyLimit": _supply_guidance(context),
     }
 
 
@@ -406,30 +413,91 @@ def _available_pieces(context: HarnessContext) -> dict[str, int]:
 def _validate_supply_after_recruitment(
     context: HarnessContext, additions: dict[str, int]
 ) -> None:
+    allowed = _allowed_army_sizes(context)
+    if allowed is None:
+        return
+    if not _army_sizes_fit(_army_sizes_after_additions(context, additions), allowed):
+        raise ValueError("recruitments would exceed the house supply limit")
+
+
+def _supply_guidance(context: HarnessContext) -> dict[str, Any]:
+    """Describe the exact army slots used by the mustering validator."""
+
+    supply = int((context.house or {}).get("supplyLevel", 0))
+    allowed = _allowed_army_sizes(context)
+    counts = _own_unit_counts(context)
+    current_armies = sorted(
+        (
+            {"regionId": region_id, "unitCount": count}
+            for region_id, count in counts.items()
+            if count > 1
+        ),
+        key=lambda item: (-item["unitCount"], item["regionId"]),
+    )
+    return {
+        "level": supply,
+        "allowedArmySizes": allowed or [],
+        "currentArmies": current_armies,
+        "singleUnitRegions": sorted(
+            region_id for region_id, count in counts.items() if count == 1
+        ),
+        "rule": (
+            "Only regions with two or more units use an army slot. Sort army "
+            "sizes largest first and compare them with allowedArmySizes."
+        ),
+    }
+
+
+def _allowed_army_sizes(context: HarnessContext) -> list[int] | None:
     restrictions = (context.game or {}).get("supplyRestrictions", [])
     supply = int((context.house or {}).get("supplyLevel", 0))
     if not 0 <= supply < len(restrictions):
-        return
-    army_sizes = []
-    for region in (context.game or {}).get("world", {}).get("regions", []):
-        count = sum(
+        return None
+    return [int(value) for value in restrictions[supply]]
+
+
+def _own_unit_counts(context: HarnessContext) -> dict[str, int]:
+    return {
+        str(region.get("id")): sum(
             unit.get("allegiance") == context.house_id
             for unit in region.get("units", [])
-        ) + additions.get(str(region.get("id")), 0)
-        if count > 1:
-            army_sizes.append(count)
+        )
+        for region in (context.game or {}).get("world", {}).get("regions", [])
+    }
+
+
+def _army_sizes_after_additions(
+    context: HarnessContext, additions: dict[str, int]
+) -> list[int]:
+    counts = _own_unit_counts(context)
     for region_id, count in additions.items():
-        if not any(
-            str(region.get("id")) == region_id
-            for region in (context.game or {}).get("world", {}).get("regions", [])
-        ) and count > 1:
-            army_sizes.append(count)
-    allowed = [int(value) for value in restrictions[supply]]
-    army_sizes.sort(reverse=True)
-    if len(army_sizes) > len(allowed) or any(
-        size > allowed[index] for index, size in enumerate(army_sizes)
-    ):
-        raise ValueError("recruitments would exceed the house supply limit")
+        counts[region_id] = counts.get(region_id, 0) + count
+    return sorted((count for count in counts.values() if count > 1), reverse=True)
+
+
+def _army_sizes_fit(army_sizes: list[int], allowed: list[int]) -> bool:
+    return len(army_sizes) <= len(allowed) and all(
+        size <= allowed[index] for index, size in enumerate(army_sizes)
+    )
+
+
+def _maximum_supply_safe_additions(
+    context: HarnessContext, region_id: str
+) -> int | None:
+    """Return capacity for one destination without implying combined capacity."""
+
+    allowed = _allowed_army_sizes(context)
+    if allowed is None:
+        return None
+    upper_bound = max(allowed, default=1)
+    safe = 0
+    for additions in range(1, upper_bound + 1):
+        if not _army_sizes_fit(
+            _army_sizes_after_additions(context, {region_id: additions}), allowed
+        ):
+            break
+        safe = additions
+    return safe
 
 
 def _controller(

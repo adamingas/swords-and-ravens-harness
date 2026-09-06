@@ -12,11 +12,6 @@ def state_path(serialized_game: JsonObject) -> list[JsonObject]:
     return path
 
 
-def leaf_state(serialized_game: JsonObject) -> JsonObject | None:
-    path = state_path(serialized_game)
-    return path[-1] if path else None
-
-
 def find_state(path: list[JsonObject], state_type: str) -> JsonObject | None:
     return next((state for state in path if state.get("type") == state_type), None)
 

@@ -11,11 +11,7 @@ from raven_harness.harness.actions import (
     available_tools,
 )
 from raven_harness.harness.observation import build_context, build_observation
-from raven_harness.harness.protocol_tools import (
-    distribute_power_tokens,
-    muster_units,
-    place_sellswords,
-)
+from raven_harness.harness.protocol_tools import muster_units
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -39,18 +35,8 @@ class FakeClient:
         return self.snapshot
 
 
-def test_collection_protocol_tools_require_at_least_one_item() -> None:
+def test_mustering_requires_at_least_one_group() -> None:
     assert muster_units.params_json_schema["properties"]["musters"]["minItems"] == 1
-    assert (
-        distribute_power_tokens.params_json_schema["properties"]["allocations"][
-            "minItems"
-        ]
-        == 1
-    )
-    assert (
-        place_sellswords.params_json_schema["properties"]["placements"]["minItems"]
-        == 1
-    )
 
 
 def test_lobby_exposes_only_currently_applicable_tools() -> None:
@@ -684,6 +670,23 @@ def test_deepest_protocol_state_hides_parent_state_tools() -> None:
     assert [tool.name for tool in tools] == ["place_inspected_wildling_card"]
 
 
+def test_non_base_game_snapshot_exposes_no_protocol_tools() -> None:
+    snapshot = planning_snapshot()
+    snapshot["gameSettings"] = {
+        "setupId": "mother-of-dragons",
+        "playerCount": 8,
+    }
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+        },
+    }
+
+    assert available_tools(build_context(snapshot, "2")) == []
+
+
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
@@ -723,6 +726,22 @@ def test_neutral_force_support_call_is_available_during_single_march() -> None:
         "call_for_support_against_neutral_force",
         "resolve_march",
     }
+
+
+def test_neutral_force_support_call_is_hidden_after_support_was_requested() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": [["moat-cailin", ["greyjoy"]]],
+        },
+    }
+
+    tools = available_tools(build_context(snapshot, "2"))
+
+    assert [tool.name for tool in tools] == ["resolve_march"]
 
 
 @pytest.mark.asyncio
@@ -917,6 +936,7 @@ async def test_base_game_consolidate_power_excludes_expansion_choices() -> None:
     assert tool.params_json_schema["properties"]["choice"]["enum"] == [
         "gain_power_tokens"
     ]
+    assert "loan_id" not in tool.params_json_schema["properties"]
     invalid = json.dumps(
         {"region_id": "winterfell", "choice": "purchase_loan", "loan_id": 1}
     )
@@ -929,8 +949,28 @@ async def test_base_game_consolidate_power_excludes_expansion_choices() -> None:
         ),
         invalid,
     )
-    assert "choice must be one of gain_power_tokens" in result
+    assert "Invalid JSON input" in result
     assert client.sent == []
+
+    valid = json.dumps(
+        {"region_id": "winterfell", "choice": "gain_power_tokens"}
+    )
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-valid-cp",
+            tool_name=tool.name,
+            tool_arguments=valid,
+        ),
+        valid,
+    )
+    assert client.sent == [
+        {
+            "type": "resolve-consolidate-power-choice",
+            "region": "winterfell",
+            "gainPowerTokens": True,
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -1103,7 +1143,32 @@ async def test_mustering_upgrade_uses_engine_canonical_footman_order() -> None:
         for origin in build_observation(context)["actionGuidance"]["origins"]
         if origin["regionId"] == "winterfell"
     )
-    assert winterfell_guidance["destinations"][0]["upgradeableFootmen"] == 2
+    observation_guidance = build_observation(context)["actionGuidance"]
+    assert observation_guidance["supplyLimit"] == {
+        "level": 2,
+        "allowedArmySizes": [3, 2, 2],
+        "currentArmies": [{"regionId": "winterfell", "unitCount": 2}],
+        "singleUnitRegions": ["white-harbor"],
+        "rule": (
+            "Only regions with two or more units use an army slot. Sort army "
+            "sizes largest first and compare them with allowedArmySizes."
+        ),
+    }
+    winterfell_destination = next(
+        destination
+        for destination in winterfell_guidance["destinations"]
+        if destination["regionId"] == "winterfell"
+    )
+    assert winterfell_destination["upgradeableFootmen"] == 2
+    assert winterfell_destination["currentUnitCount"] == 2
+    assert winterfell_destination["supplySafeNewUnitsWhenChosenAlone"] == 1
+    bay_destination = next(
+        destination
+        for destination in winterfell_guidance["destinations"]
+        if destination["regionId"] == "bay-of-ice"
+    )
+    assert bay_destination["currentUnitCount"] == 0
+    assert bay_destination["supplySafeNewUnitsWhenChosenAlone"] == 3
 
     arguments = json.dumps(
         {

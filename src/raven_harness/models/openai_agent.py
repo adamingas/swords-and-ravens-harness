@@ -31,6 +31,22 @@ class ModelRunResult:
     raw_usage: list[dict[str, Any]]
 
 
+class ModelRunError(RuntimeError):
+    """A failed parent run that still produced traceable nested model work."""
+
+    def __init__(self, message: str, partial_result: ModelRunResult) -> None:
+        super().__init__(message)
+        self.partial_result = partial_result
+
+
+class ModelRunCancelled(asyncio.CancelledError):
+    """A cancelled parent run that still produced traceable nested model work."""
+
+    def __init__(self, partial_result: ModelRunResult) -> None:
+        super().__init__("Model run cancelled")
+        self.partial_result = partial_result
+
+
 class OpenAIAgentRunner:
     """Runs one Agents SDK turn with the currently legal game tools attached."""
 
@@ -66,6 +82,10 @@ class OpenAIAgentRunner:
             timeout=request_timeout_seconds,
             max_retries=max_retries,
         )
+
+    @property
+    def rules_oracle_available(self) -> bool:
+        return self.rulebook is not None
 
     async def run_once(
         self,
@@ -155,16 +175,38 @@ class OpenAIAgentRunner:
                         run_config=run_config,
                         session=self._session(agent_record.id),
                     )
+        except asyncio.CancelledError as error:
+            if oracle_interactions:
+                raise ModelRunCancelled(
+                    _oracle_only_result(oracle_interactions)
+                ) from error
+            raise
         except TimeoutError as error:
-            raise RuntimeError(
+            failure = RuntimeError(
                 f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
-            ) from error
+            )
+            if oracle_interactions:
+                raise ModelRunError(
+                    str(failure), _oracle_only_result(oracle_interactions)
+                ) from error
+            raise failure from error
         except APITimeoutError as error:
-            raise RuntimeError(
+            failure = RuntimeError(
                 "Model API timed out after "
                 f"{self.request_timeout_seconds:g} seconds per attempt and "
                 f"{self.max_retries} retries"
-            ) from error
+            )
+            if oracle_interactions:
+                raise ModelRunError(
+                    str(failure), _oracle_only_result(oracle_interactions)
+                ) from error
+            raise failure from error
+        except Exception as error:
+            if oracle_interactions:
+                raise ModelRunError(
+                    str(error), _oracle_only_result(oracle_interactions)
+                ) from error
+            raise
 
         total_usage = result.context_wrapper.usage
         usage = {
@@ -184,17 +226,7 @@ class OpenAIAgentRunner:
             native_usage["scope"] = "agent"
             native_usage["response_id"] = response.response_id
             raw_usage.append(native_usage)
-        for interaction in oracle_interactions:
-            response_items.append(
-                {
-                    "type": "rules_oracle",
-                    "question": interaction["question"],
-                    "answer": interaction["answer"],
-                    "sectionIds": interaction["sectionIds"],
-                    "responseItems": interaction["responseItems"],
-                }
-            )
-            raw_usage.extend(interaction["rawUsage"])
+        _append_oracle_traces(response_items, raw_usage, oracle_interactions)
         return ModelRunResult(
             response_id=result.last_response_id,
             output_text=str(result.final_output or ""),
@@ -266,6 +298,47 @@ class OpenAIAgentRunner:
                 else None
             ),
         )
+
+
+def _append_oracle_traces(
+    response_items: list[dict[str, Any]],
+    raw_usage: list[dict[str, Any]],
+    interactions: list[dict[str, Any]],
+) -> None:
+    for interaction in interactions:
+        response_items.append(
+            {
+                "type": "rules_oracle",
+                "question": interaction["question"],
+                "answer": interaction["answer"],
+                "sectionIds": interaction["sectionIds"],
+                "responseItems": interaction["responseItems"],
+            }
+        )
+        raw_usage.extend(interaction["rawUsage"])
+
+
+def _oracle_only_result(interactions: list[dict[str, Any]]) -> ModelRunResult:
+    response_items: list[dict[str, Any]] = []
+    raw_usage: list[dict[str, Any]] = []
+    usage = {
+        "requests": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+    }
+    _append_oracle_traces(response_items, raw_usage, interactions)
+    for interaction in interactions:
+        interaction_usage = interaction["usage"]
+        for key in usage:
+            usage[key] += int(interaction_usage[key])
+    return ModelRunResult(
+        response_id=None,
+        output_text="",
+        usage=usage,
+        response_items=response_items,
+        raw_usage=raw_usage,
+    )
 
 
 def _jsonable(value: Any) -> dict[str, Any]:

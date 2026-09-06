@@ -53,16 +53,6 @@ class MusterGroup(ToolInput):
     recruitments: list[Recruitment] = Field(min_length=1)
 
 
-class PowerAllocation(ToolInput):
-    house_id: str
-    amount: Annotated[int, Field(ge=0)]
-
-
-class SellswordPlacement(ToolInput):
-    region_id: str
-    unit_types: list[str] = Field(min_length=1)
-
-
 @function_tool
 async def resolve_raid(
     ctx: RunContextWrapper[HarnessRunContext],
@@ -76,24 +66,23 @@ async def resolve_raid(
         target_region_id: Adjacent enemy order to raid, or null to remove your raid without a target.
     """
     context = ctx.context.current_game_context()
-    if _is_base_game(context.snapshot):
-        option = next(
-            (
-                item
-                for item in legal_raid_options(context)
-                if item["regionId"] == order_region_id
-            ),
-            None,
+    option = next(
+        (
+            item
+            for item in legal_raid_options(context)
+            if item["regionId"] == order_region_id
+        ),
+        None,
+    )
+    if option is None:
+        raise ValueError("order_region_id must identify one of your Raid orders")
+    legal_targets = {
+        item["regionId"] for item in option.get("raidableTargets", [])
+    }
+    if target_region_id is not None and target_region_id not in legal_targets:
+        raise ValueError(
+            "target_region_id is not raidable from the selected order region"
         )
-        if option is None:
-            raise ValueError("order_region_id must identify one of your Raid orders")
-        legal_targets = {
-            item["regionId"] for item in option.get("raidableTargets", [])
-        }
-        if target_region_id is not None and target_region_id not in legal_targets:
-            raise ValueError(
-                "target_region_id is not raidable from the selected order region"
-            )
     return await _send(
         ctx,
         "resolve_raid",
@@ -121,47 +110,45 @@ async def resolve_march(
         leave_power_token: Whether to leave a control token after vacating the starting land region.
     """
     context = ctx.context.current_game_context()
-    if _is_base_game(context.snapshot):
-        option = next(
-            (
-                item
-                for item in legal_march_options(context)
-                if item["regionId"] == starting_region_id
-            ),
-            None,
+    option = next(
+        (
+            item
+            for item in legal_march_options(context)
+            if item["regionId"] == starting_region_id
+        ),
+        None,
+    )
+    if option is None:
+        raise ValueError("starting_region_id must identify one of your March orders")
+    available_units = set(option.get("unitIds", []))
+    moved_units = [unit_id for move in moves for unit_id in move.unit_ids]
+    if len(moved_units) != len(set(moved_units)):
+        raise ValueError("each unit_id may be moved at most once")
+    invalid_units = sorted(set(moved_units) - available_units)
+    if invalid_units:
+        raise ValueError(f"unit_ids are not movable from this region: {invalid_units}")
+    destinations = [move.destination_region_id for move in moves]
+    if len(destinations) != len(set(destinations)):
+        raise ValueError("each destination_region_id may appear at most once")
+    legal_destinations = {
+        item["regionId"]: item for item in option.get("reachableRegions", [])
+    }
+    invalid_destinations = sorted(set(destinations) - set(legal_destinations))
+    if invalid_destinations:
+        raise ValueError(
+            f"destination_region_id is not reachable: {invalid_destinations}"
         )
-        if option is None:
-            raise ValueError("starting_region_id must identify one of your March orders")
-        available_units = set(option.get("unitIds", []))
-        moved_units = [unit_id for move in moves for unit_id in move.unit_ids]
-        if len(moved_units) != len(set(moved_units)):
-            raise ValueError("each unit_id may be moved at most once")
-        invalid_units = sorted(set(moved_units) - available_units)
-        if invalid_units:
-            raise ValueError(f"unit_ids are not movable from this region: {invalid_units}")
-        destinations = [move.destination_region_id for move in moves]
-        if len(destinations) != len(set(destinations)):
-            raise ValueError("each destination_region_id may appear at most once")
-        legal_destinations = {
-            item["regionId"]: item for item in option.get("reachableRegions", [])
-        }
-        invalid_destinations = sorted(set(destinations) - set(legal_destinations))
-        if invalid_destinations:
-            raise ValueError(
-                f"destination_region_id is not reachable: {invalid_destinations}"
-            )
-        if sum(
-            bool(legal_destinations[destination].get("triggersCombat"))
-            for destination in destinations
-        ) > 1:
-            raise ValueError("at most one destination may trigger combat")
-        if leave_power_token and (
-            not option.get("canLeavePowerToken")
-            or set(moved_units) != available_units
-        ):
-            raise ValueError(
-                "leave_power_token is legal only when every unit leaves an eligible land region"
-            )
+    if sum(
+        bool(legal_destinations[destination].get("triggersCombat"))
+        for destination in destinations
+    ) > 1:
+        raise ValueError("at most one destination may trigger combat")
+    if leave_power_token and (
+        not option.get("canLeavePowerToken") or set(moved_units) != available_units
+    ):
+        raise ValueError(
+            "leave_power_token is legal only when every unit leaves an eligible land region"
+        )
     arguments = {
         "starting_region_id": starting_region_id,
         "moves": [move.model_dump() for move in moves],
@@ -270,8 +257,7 @@ async def muster_units(
         musters: Mustering castles and the recruitments paid for at each castle.
     """
     context = ctx.context.current_game_context()
-    if _is_base_game(context.snapshot):
-        validate_musterings(context, musters)
+    validate_musterings(context, musters)
     arguments = {"musters": [muster.model_dump() for muster in musters]}
     return await _send(
         ctx,
@@ -416,17 +402,16 @@ async def replace_raven_order(
         order_id: Unused physical order token ID to place there.
     """
     context = ctx.context.current_game_context()
-    if _is_base_game(context.snapshot):
-        option = next(
-            (
-                item
-                for item in legal_raven_replacements(context)
-                if item["regionId"] == region_id
-            ),
-            None,
-        )
-        if option is None or order_id not in option["availableOrderIds"]:
-            raise ValueError("region_id and order_id are not a legal Raven replacement")
+    option = next(
+        (
+            item
+            for item in legal_raven_replacements(context)
+            if item["regionId"] == region_id
+        ),
+        None,
+    )
+    if option is None or order_id not in option["availableOrderIds"]:
+        raise ValueError("region_id and order_id are not a legal Raven replacement")
     return await _send(
         ctx,
         "replace_raven_order",
@@ -518,200 +503,44 @@ async def select_westeros_card(
 
 
 @function_tool
-async def claim_vassals(
-    ctx: RunContextWrapper[HarnessRunContext], house_ids: list[str]
-) -> str:
-    """Claim the listed vassal houses after an influence-track resolution.
-
-    Args:
-        house_ids: Exact IDs of all vassal houses being claimed.
-    """
-    return await _send(
-        ctx,
-        "claim_vassals",
-        {"house_ids": house_ids},
-        {"type": "claim-vassal", "houses": house_ids},
-    )
-
-
-@function_tool
-async def distribute_power_tokens(
-    ctx: RunContextWrapper[HarnessRunContext],
-    allocations: Annotated[list[PowerAllocation], Field(min_length=1)],
-) -> str:
-    """Distribute power tokens among houses for the current effect.
-
-    Args:
-        allocations: House IDs and token amounts assigned to them.
-    """
-    arguments = {"allocations": [allocation.model_dump() for allocation in allocations]}
-    return await _send(
-        ctx,
-        "distribute_power_tokens",
-        arguments,
-        {
-            "type": "distribute-power-tokens",
-            "powerTokensForHouses": [
-                [allocation.house_id, allocation.amount] for allocation in allocations
-            ],
-        },
-    )
-
-
-@function_tool
-async def move_loyalty_token(
-    ctx: RunContextWrapper[HarnessRunContext],
-    from_region_id: str,
-    to_region_id: str,
-) -> str:
-    """Move a loyalty token between regions for the current effect.
-
-    Args:
-        from_region_id: Region currently containing the token.
-        to_region_id: Legal destination region.
-    """
-    return await _send(
-        ctx,
-        "move_loyalty_token",
-        {"from_region_id": from_region_id, "to_region_id": to_region_id},
-        {"type": "move-loyalty-token", "from": from_region_id, "to": to_region_id},
-    )
-
-
-@function_tool
 async def resolve_consolidate_power(
     ctx: RunContextWrapper[HarnessRunContext],
     region_id: str,
-    choice: Literal[
-        "gain_power_tokens", "muster_units", "purchase_loan", "ignore_and_remove_order"
-    ],
-    loan_id: int | None,
+    choice: Literal["gain_power_tokens", "muster_units"],
 ) -> str:
-    """Resolve a starred Consolidate Power order using one available option.
+    """Resolve a base-game Consolidate Power order using one available option.
 
     Args:
         region_id: Region containing the order.
         choice: Available resolution shown in the current state.
-        loan_id: Loan-card ID for purchase_loan, otherwise null.
     """
     context = ctx.context.current_game_context()
-    if _is_base_game(context.snapshot):
-        option = next(
-            (
-                item
-                for item in legal_consolidate_power_options(context)
-                if item["regionId"] == region_id
-            ),
-            None,
+    option = next(
+        (
+            item
+            for item in legal_consolidate_power_options(context)
+            if item["regionId"] == region_id
+        ),
+        None,
+    )
+    if option is None:
+        raise ValueError(
+            "region_id must identify one of your Consolidate Power orders"
         )
-        if option is None:
-            raise ValueError(
-                "region_id must identify one of your Consolidate Power orders"
-            )
-        if choice not in option["choices"]:
-            raise ValueError(
-                f"choice must be one of {', '.join(option['choices'])} for this order"
-            )
-        if loan_id is not None:
-            raise ValueError("loan_id must be null in a base game")
-    if choice == "purchase_loan" and loan_id is None:
-        raise ValueError("loan_id is required when choice is purchase_loan")
+    if choice not in option["choices"]:
+        raise ValueError(
+            f"choice must be one of {', '.join(option['choices'])} for this order"
+        )
     message = {"type": "resolve-consolidate-power-choice", "region": region_id}
     if choice == "gain_power_tokens":
         message["gainPowerTokens"] = True
-    elif choice == "muster_units":
-        message["musterUnits"] = True
-    elif choice == "purchase_loan":
-        message["purchaseLoan"] = loan_id
     else:
-        message["ignoreAndRemoveOrder"] = True
+        message["musterUnits"] = True
     return await _send(
         ctx,
         "resolve_consolidate_power",
-        {"region_id": region_id, "choice": choice, "loan_id": loan_id},
+        {"region_id": region_id, "choice": choice},
         message,
-    )
-
-
-@function_tool
-async def place_sellswords(
-    ctx: RunContextWrapper[HarnessRunContext],
-    placements: Annotated[list[SellswordPlacement], Field(min_length=1)],
-) -> str:
-    """Place purchased sellsword unit types into regions.
-
-    Args:
-        placements: Region IDs and unit-type names placed in each region.
-    """
-    arguments = {"placements": [placement.model_dump() for placement in placements]}
-    return await _send(
-        ctx,
-        "place_sellswords",
-        arguments,
-        {
-            "type": "place-sellswords",
-            "units": [
-                [placement.region_id, placement.unit_types] for placement in placements
-            ],
-        },
-    )
-
-
-@function_tool
-async def resolve_spymaster(
-    ctx: RunContextWrapper[HarnessRunContext],
-    top_card_ids: list[int],
-    bottom_card_ids: list[int],
-) -> str:
-    """Reorder inspected Westeros cards between the top and bottom of the deck.
-
-    Args:
-        top_card_ids: Card IDs in the desired top-of-deck order.
-        bottom_card_ids: Card IDs in the desired bottom-of-deck order.
-    """
-    return await _send(
-        ctx,
-        "resolve_spymaster",
-        {"top_card_ids": top_card_ids, "bottom_card_ids": bottom_card_ids},
-        {
-            "type": "resolve-spymaster",
-            "westerosCardIdsForTopOfDeck": top_card_ids,
-            "westerosCardIdsForBottomOfDeck": bottom_card_ids,
-        },
-    )
-
-
-@function_tool
-async def select_objectives(
-    ctx: RunContextWrapper[HarnessRunContext], objective_ids: list[str]
-) -> str:
-    """Select secret objectives from the currently offered objective IDs.
-
-    Args:
-        objective_ids: Exact IDs of all selected objectives.
-    """
-    return await _send(
-        ctx,
-        "select_objectives",
-        {"objective_ids": objective_ids},
-        {"type": "select-objectives", "objectives": objective_ids},
-    )
-
-
-@function_tool
-async def score_objective(
-    ctx: RunContextWrapper[HarnessRunContext], objective_id: str | None
-) -> str:
-    """Score an eligible objective, or pass by supplying null.
-
-    Args:
-        objective_id: Objective ID to score, or null to score none.
-    """
-    return await _send(
-        ctx,
-        "score_objective",
-        {"objective_id": objective_id},
-        {"type": "score-objective", "objective": objective_id},
     )
 
 
@@ -743,14 +572,7 @@ GAMEPLAY_TOOLS: list[FunctionTool] = [
     place_inspected_wildling_card,
     select_region,
     select_westeros_card,
-    claim_vassals,
-    distribute_power_tokens,
-    move_loyalty_token,
     resolve_consolidate_power,
-    place_sellswords,
-    resolve_spymaster,
-    select_objectives,
-    score_objective,
     call_for_support_against_neutral_force,
 ]
 
@@ -793,20 +615,8 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
     },
     "see-top-wildling-card": {"place_inspected_wildling_card"},
     "select-westeros-card": {"select_westeros_card"},
-    "claim-vassal": {"claim_vassals"},
-    "claim-vassals": {"claim_vassals"},
-    "distribute-power-tokens": {"distribute_power_tokens"},
-    "move-loyalty-tokens": {"move_loyalty_token"},
-    "move-loyalty-token-choice": {"move_loyalty_token"},
     "resolve-consolidate-power": {"resolve_consolidate_power"},
     "resolve-single-consolidate-power": {"resolve_consolidate_power"},
-    "place-sellswords": {"place_sellswords"},
-    "resolve-spymaster": {"resolve_spymaster"},
-    "spymaster": {"resolve_spymaster"},
-    "select-objectives": {"select_objectives"},
-    "choose-initial-objectives": {"select_objectives"},
-    "score-objectives": {"score_objective"},
-    "score-other-objectives": {"score_objective"},
 }
 
 
@@ -826,12 +636,18 @@ def gameplay_tools_for_context(
 ) -> list[FunctionTool]:
     """Return protocol tools with model-facing schemas narrowed to this snapshot."""
 
+    if not _is_base_game(context.snapshot):
+        return []
     state_types = [state["type"] for state in context.path if state.get("type")]
     tools = gameplay_tools_for_state(
         state_types, has_specific_tools=has_specific_tools
     )
-    if not _is_base_game(context.snapshot):
-        return tools
+    if (context.leaf or {}).get("supportersAgainstNeutralForce") is not None:
+        tools = [
+            tool
+            for tool in tools
+            if tool.name != "call_for_support_against_neutral_force"
+        ]
     return [_narrow_base_game_tool(tool, context) for tool in tools]
 
 
@@ -949,7 +765,7 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
 
 
 def _is_base_game(snapshot: dict[str, Any]) -> bool:
-    return snapshot.get("gameSettings", {}).get("gameMode", "base-game") == "base-game"
+    return snapshot.get("gameSettings", {}).get("setupId", "base-game") == "base-game"
 
 
 def _unit_regions(game: dict[str, Any]) -> dict[int, str]:

@@ -377,16 +377,3 @@ def _completed_simultaneous_decision(context: HarnessContext) -> bool:
         if state is not None and context.house_id in state.get("readyHouses", []):
             return True
     return False
-
-
-def _redact_secrets(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {
-            key: "[redacted]"
-            if key in {"authToken", "password"}
-            else _redact_secrets(child)
-            for key, child in value.items()
-        }
-    if isinstance(value, list):
-        return [_redact_secrets(item) for item in value]
-    return value

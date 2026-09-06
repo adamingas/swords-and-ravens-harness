@@ -18,7 +18,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict
 
 from .agent_store import AgentStore
-from .config import PROJECT_ROOT, Settings
+from .config import DEFAULT_MODEL_ID, PROJECT_ROOT, Settings
 from .database import Database
 from .harness.strategic import (
     AGENT_SDK_MAX_TURNS,
@@ -32,7 +32,6 @@ from .schemas import AgentCreate, DEFAULT_PROMPT, LobbySetupRequest
 from .telemetry import Telemetry
 
 
-MODEL_ID = "z-ai/glm-5.3-flash"
 HOUSES = ["stark", "greyjoy", "lannister", "tyrell", "martell", "baratheon"]
 GAME_SERVER_DIR = PROJECT_ROOT / "swords-and-ravens" / "agot-bg-game-server"
 
@@ -136,6 +135,10 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
     settings = Settings()
     if not settings.model_api_key:
         raise RuntimeError("Set OPENROUTER_TOKEN before starting an evaluation")
+    if not settings.resolved_rules_path.is_file():
+        raise RuntimeError(
+            "Rules oracle data is required for evaluation; run uv run raven-prepare-rules"
+        )
     output = _resolve_output(args.output)
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / "manifest.json"
@@ -293,7 +296,7 @@ async def run_game(
             ),
             rulebook=rulebook,
         )
-        harness = StrategicHarness(runner, store, rules_available=rulebook is not None)
+        harness = StrategicHarness(runner, store)
         manager = AgentManager(
             store=store,
             harness=harness,
@@ -805,7 +808,8 @@ def _persisted_response_rows(
             """
             SELECT id, agent_id, response_id, raw_usage_json
             FROM agent_runs
-            WHERE response_id IS NOT NULL AND response_id != ''
+            WHERE (response_id IS NOT NULL AND response_id != '')
+               OR (raw_usage_json IS NOT NULL AND raw_usage_json != '[]')
             ORDER BY created_at ASC, id ASC
             """
         ).fetchall()
@@ -817,7 +821,8 @@ def _persisted_response_rows(
             for item in raw_usage
             if isinstance(item, dict) and item.get("response_id")
         ]
-        response_ids.append(str(row["response_id"]))
+        if row["response_id"]:
+            response_ids.append(str(row["response_id"]))
         for response_index, response_id in enumerate(dict.fromkeys(response_ids)):
             result.append(
                 {
@@ -1449,7 +1454,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run resumable same-model Raven Harness evaluation games."
     )
     parser.add_argument("--output", help="Artifact directory under the project root.")
-    parser.add_argument("--model", default=MODEL_ID)
+    parser.add_argument("--model", default=DEFAULT_MODEL_ID)
     parser.add_argument("--games", type=int, default=12, choices=range(1, 13))
     parser.add_argument("--start-game", type=int, default=1, choices=range(1, 13))
     parser.add_argument("--game-port", type=int, default=5101)

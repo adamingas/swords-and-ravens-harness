@@ -6,6 +6,8 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic.alias_generators import to_camel
 
+from .config import DEFAULT_MODEL_ID
+
 
 DEFAULT_PROMPT = """You are playing A Game of Thrones: The Board Game (Second Edition).
 Pursue victory for your assigned house. Use only the tools exposed by the harness.
@@ -22,7 +24,7 @@ class CamelModel(BaseModel):
 
 class AgentCreate(CamelModel):
     name: str = Field(min_length=1, max_length=100)
-    model: str = Field(default="z-ai/glm-5.3-flash", min_length=1, max_length=100)
+    model: str = Field(default=DEFAULT_MODEL_ID, min_length=1, max_length=100)
     system_prompt: str = Field(default=DEFAULT_PROMPT, max_length=20_000)
     game_server_url: str = "ws://localhost:5001"
     game_id: str = Field(default="1", min_length=1, max_length=200)

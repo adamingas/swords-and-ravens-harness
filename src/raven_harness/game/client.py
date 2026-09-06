@@ -37,7 +37,6 @@ class SwordsAndRavensClient:
         self.on_event = on_event or (lambda _kind, _payload: None)
         self.connection: Any | None = None
         self.snapshot: dict[str, Any] | None = None
-        self.authenticated_user_id: str | None = None
         self.status = "stopped"
         self.recent_events: deque[dict[str, Any]] = deque(maxlen=30)
         self._authenticated = asyncio.Event()
@@ -125,7 +124,6 @@ class SwordsAndRavensClient:
     def _on_message(self, message: dict[str, Any]) -> None:
         if message.get("type") == "authenticate-response":
             self.snapshot = message["game"]
-            self.authenticated_user_id = str(message["userId"])
             self._set_status("connected")
             self._authenticated.set()
             self.on_event("snapshot", {})

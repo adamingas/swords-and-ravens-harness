@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_MODEL_ID = "z-ai/glm-5.3-flash"
 
 
 def _project_path(path: Path) -> Path:
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
     port: int = 8787
     database_path: Path = Path("./data/harness.db")
     rules_path: Path = Path("./data/rules.json")
-    model_id: str = Field(default="z-ai/glm-5.3-flash", min_length=1, max_length=100)
+    model_id: str = Field(default=DEFAULT_MODEL_ID, min_length=1, max_length=100)
     openrouter_token: str = Field(default="", repr=False)
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)

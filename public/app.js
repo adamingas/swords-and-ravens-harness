@@ -7,7 +7,11 @@ const form = document.querySelector("#agent-form");
 let monitors = [];
 let detailsAgentId = null;
 let detailsTab = "overview";
-let configuredModel = "z-ai/glm-5.3-flash";
+let detailsRunId = null;
+let detailsLoading = false;
+let detailsReloadRequested = false;
+let refreshPromise = null;
+let configuredModel = "";
 
 document.querySelector("#new-agent").addEventListener("click", () => agentDialog.showModal());
 document.querySelector("#close-dialog").addEventListener("click", () => agentDialog.close());
@@ -16,6 +20,7 @@ document.querySelector("#close-details").addEventListener("click", () => details
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", async () => {
     detailsTab = button.dataset.tab;
+    detailsRunId = null;
     setActiveTab();
     await loadDetails();
   });
@@ -42,6 +47,14 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function refresh() {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = refreshDashboard().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
+async function refreshDashboard() {
   const [{ agents: nextMonitors }, health] = await Promise.all([
     api("/api/dashboard"),
     api("/api/health"),
@@ -52,10 +65,11 @@ async function refresh() {
   const provider = health.modelApiConfigured
     ? health.modelProvider + " ready"
     : health.modelProvider + " key missing";
+  const rules = health.rulesOracleAvailable ? "rules ready" : "rules unavailable";
   const traces = health.telemetryExportConfigured ? "OTLP export on" : "local traces";
-  status.textContent = provider + " · " + traces;
+  status.textContent = provider + " · " + rules + " · " + traces;
   status.className = "api-status " + (health.modelApiConfigured ? "ready" : "missing");
-  if (detailsDialog.open && detailsTab === "overview") renderOverview();
+  if (detailsDialog.open) await loadDetails({ showLoading: false });
 }
 
 async function loadModels() {
@@ -101,21 +115,23 @@ function render() {
 
     const turnFlag = node.querySelector(".turn-flag");
     const decisionName = node.querySelector(".decision-name");
-    const decisionPath = node.querySelector(".decision-path");
+    const decisionPathLabel = node.querySelector(".decision-path-label");
+    const decisionPathValue = node.querySelector(".decision-path-value");
     if (agent.runtime.status === "running") {
       turnFlag.textContent = elapsedLabel(agent.runtime.runStartedAt);
       turnFlag.classList.add("thinking");
       decisionName.textContent = "Model is choosing an action";
-      decisionPath.textContent = (agent.runtime.currentTools || []).join(" · ");
+      decisionPathLabel.textContent = "Available tools: ";
+      decisionPathValue.textContent = (agent.runtime.currentTools || []).join(" · ") || "None";
     } else if (state?.isYourTurn) {
       turnFlag.textContent = "Action required";
       turnFlag.classList.add("active");
       decisionName.textContent = label(state.pendingDecision?.type || state.game.phase);
-      decisionPath.textContent = (state.statePath || []).join(" › ");
+      decisionPathValue.textContent = (state.statePath || []).join(" › ");
     } else if (state) {
       turnFlag.textContent = "Watching game";
       decisionName.textContent = label(state.pendingDecision?.type || state.game.phase);
-      decisionPath.textContent = (state.statePath || []).join(" › ");
+      decisionPathValue.textContent = (state.statePath || []).join(" › ");
     }
 
     node.querySelector(".latest-run").textContent = latest
@@ -215,6 +231,7 @@ async function perform(id, action) {
 async function inspect(agentId) {
   detailsAgentId = agentId;
   detailsTab = "overview";
+  detailsRunId = null;
   setActiveTab();
   const monitor = monitors.find((candidate) => candidate.agent.id === agentId);
   document.querySelector("#details-title").textContent =
@@ -229,21 +246,60 @@ function setActiveTab() {
   });
 }
 
-async function loadDetails() {
-  if (!detailsAgentId) return;
+async function loadDetails({ showLoading = true } = {}) {
+  if (!detailsAgentId || !detailsDialog.open) return;
+  if (detailsLoading) {
+    detailsReloadRequested = true;
+    return;
+  }
+  detailsLoading = true;
+  try {
+    do {
+      detailsReloadRequested = false;
+      await loadDetailsOnce({ showLoading });
+      showLoading = false;
+    } while (detailsReloadRequested && detailsDialog.open);
+  } finally {
+    detailsLoading = false;
+  }
+}
+
+async function loadDetailsOnce({ showLoading }) {
+  const agentId = detailsAgentId;
+  const tab = detailsTab;
+  const runId = detailsRunId;
   const content = document.querySelector("#details-content");
-  content.replaceChildren();
-  content.textContent = "Loading…";
-  if (detailsTab === "overview") {
+  if (showLoading) {
+    content.replaceChildren();
+    content.textContent = "Loading…";
+  }
+  if (tab === "overview") {
     renderOverview();
     return;
   }
   try {
-    const data = await api("/api/agents/" + detailsAgentId + "/" + detailsTab);
-    renderJson(content, data[detailsTab]);
+    if (tab === "runs" && runId) {
+      const { run } = await api("/api/agents/" + agentId + "/runs/" + runId);
+      if (isCurrentDetails(agentId, tab, runId)) renderRunTrace(content, run);
+      return;
+    }
+    const data = await api("/api/agents/" + agentId + "/" + tab);
+    if (!isCurrentDetails(agentId, tab, runId)) return;
+    if (tab === "runs") {
+      renderRuns(content, data.runs);
+    } else {
+      renderJson(content, data[tab]);
+    }
   } catch (error) {
-    content.textContent = error.message;
+    if (isCurrentDetails(agentId, tab, runId)) content.textContent = error.message;
   }
+}
+
+function isCurrentDetails(agentId, tab, runId) {
+  return detailsDialog.open
+    && detailsAgentId === agentId
+    && detailsTab === tab
+    && detailsRunId === runId;
 }
 
 function renderOverview() {
@@ -371,6 +427,97 @@ function runTable(runs) {
   );
 }
 
+function renderRuns(content, runs) {
+  content.className = "details-content overview";
+  content.replaceChildren();
+  if (!runs.length) {
+    content.append(textNode("No model runs recorded.", "muted-line"));
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const head = document.createElement("thead");
+  const heading = document.createElement("tr");
+  ["Status", "Action", "Started", "Latency", "Input", "Output", "Cost", ""].forEach(
+    (name) => heading.append(textNode(name, "table-heading", "th")),
+  );
+  head.append(heading);
+  table.append(head);
+
+  const body = document.createElement("tbody");
+  runs.forEach((run) => {
+    const row = document.createElement("tr");
+    row.classList.add(run.status);
+    [
+      run.status,
+      run.tool || run.error || "No action",
+      formatTimestamp(run.createdAt),
+      formatDuration(run.durationMs),
+      number(run.usage?.inputTokens || 0),
+      number(run.usage?.outputTokens || 0),
+      formatCost(runCost(run)),
+    ].forEach((value) => row.append(textNode(String(value), "", "td")));
+    const actionCell = document.createElement("td");
+    const open = textNode("Open", "button quiet", "button");
+    open.type = "button";
+    open.addEventListener("click", async () => {
+      detailsRunId = run.id;
+      await loadDetails();
+    });
+    actionCell.append(open);
+    row.append(actionCell);
+    body.append(row);
+  });
+  table.append(body);
+  const scroll = document.createElement("div");
+  scroll.className = "table-scroll";
+  scroll.append(table);
+  content.append(
+    textNode("Select a run to inspect the complete stored trace.", "muted-line"),
+    scroll,
+  );
+}
+
+function renderRunTrace(content, run) {
+  content.className = "details-content overview";
+  content.replaceChildren();
+
+  const back = textNode("← Back to runs", "button quiet", "button");
+  back.type = "button";
+  back.addEventListener("click", async () => {
+    detailsRunId = null;
+    await loadDetails();
+  });
+  content.append(back);
+
+  content.append(section("Run summary", jsonBlock({
+    id: run.id,
+    status: run.status,
+    model: run.model,
+    responseId: run.responseId,
+    historyId: run.historyId,
+    createdAt: run.createdAt,
+    finishedAt: run.finishedAt,
+    durationMs: run.durationMs,
+    error: run.error,
+  })));
+  content.append(section("Action", jsonBlock({
+    tool: run.tool,
+    arguments: run.arguments,
+  })));
+  content.append(section("Usage and cost", jsonBlock({
+    usage: run.usage,
+    costUsd: runCost(run),
+    providerUsage: run.rawUsage,
+  })));
+  content.append(section("Model output", textBlock(run.modelOutput)));
+  content.append(section("Instructions", textBlock(run.instructions)));
+  content.append(section("Observation", jsonBlock(run.observation)));
+  content.append(section("Offered tools and schemas", jsonBlock(run.tools)));
+  content.append(section("Response items", jsonBlock(run.response)));
+}
+
 function dataTable(headers, rows, rowClasses = []) {
   const table = document.createElement("table");
   table.className = "data-table";
@@ -410,6 +557,12 @@ function jsonBlock(value) {
   return pre;
 }
 
+function textBlock(value) {
+  const pre = document.createElement("pre");
+  pre.textContent = value == null ? "" : String(value);
+  return pre;
+}
+
 function renderJson(container, value) {
   container.className = "details-content raw";
   container.replaceChildren(jsonBlock(value));
@@ -434,6 +587,12 @@ function formatDuration(value) {
   if (value == null) return "—";
   if (value < 1000) return value + " ms";
   return (value / 1000).toFixed(1) + " s";
+}
+
+function formatTimestamp(value) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 }
 
 function elapsedLabel(startedAt) {

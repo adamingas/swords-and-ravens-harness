@@ -72,15 +72,9 @@ class GameClient(Protocol):
 
 
 class HarnessMemory(Protocol):
-    """Durable private memory exposed only through deliberate model tools."""
+    """Historical state exposed through a deliberate model tool."""
 
     def recall_state(self, turns_ago: int) -> dict[str, Any] | None: ...
-
-    def list_history(self, limit: int) -> list[dict[str, Any]]: ...
-
-    def get_notes(self) -> dict[str, Any]: ...
-
-    def set_notes(self, notes: dict[str, Any]) -> dict[str, Any]: ...
 
 
 class OrderAssignment(BaseModel):
@@ -922,10 +916,3 @@ def _require_member(field_name: str, value: Any, choices: list[Any]) -> None:
 
 def _choices(values: list[Any]) -> str:
     return ", ".join(str(value) for value in values)
-
-
-def _state(context: HarnessContext, state_type: str) -> dict[str, Any] | None:
-    return next(
-        (state for state in reversed(context.path) if state.get("type") == state_type),
-        None,
-    )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -17,6 +18,7 @@ from raven_harness.database import Database
 from raven_harness.harness.actions import HarnessRunContext
 from raven_harness.harness.observation import build_context
 from raven_harness.harness.strategic import StrategicHarness
+from raven_harness.manager import AgentManager, AgentSession
 from raven_harness.models.openai_agent import OpenAIAgentRunner
 from raven_harness.rulebook import (
     RuleSection,
@@ -57,9 +59,13 @@ def sample_rulebook() -> Rulebook:
 
 
 class OracleThenActionModel(Model):
-    def __init__(self) -> None:
+    def __init__(
+        self, *, fail_after_oracle: bool = False, cancel_after_oracle: bool = False
+    ) -> None:
         self.outer_calls = 0
         self.oracle_calls = 0
+        self.fail_after_oracle = fail_after_oracle
+        self.cancel_after_oracle = cancel_after_oracle
 
     async def get_response(self, *args: Any, **kwargs: Any) -> ModelResponse:
         names = {tool.name for tool in kwargs["tools"]}
@@ -99,6 +105,10 @@ class OracleThenActionModel(Model):
                     name="ask_rules_oracle",
                     type="function_call",
                 )
+            elif self.cancel_after_oracle:
+                raise asyncio.CancelledError
+            elif self.fail_after_oracle:
+                raise RuntimeError("parent model failed after oracle")
             else:
                 output = ResponseFunctionToolCall(
                     arguments='{"house_id":"stark"}',
@@ -119,6 +129,7 @@ class OracleThenActionModel(Model):
 
 class FakeClient:
     def __init__(self) -> None:
+        self.status = "connected"
         self.snapshot = lobby_snapshot()
         self.recent_events: list[dict[str, Any]] = []
         self.sent: list[dict[str, Any]] = []
@@ -142,6 +153,13 @@ def test_rulebook_reads_only_named_sections() -> None:
     result = rulebook.read([RuleSectionId.SUPPLY_AND_MUSTERING])
     assert result[0]["pages"] == [8, 9]
     assert "not total units" in result[0]["text"]
+    assert "Supply 0: [2, 2]" in result[0]["text"]
+    assert "Supply 1: [3, 2]" in result[0]["text"]
+    assert "Supply 2: [3, 2, 2]" in result[0]["text"]
+    assert "Supply 3: [3, 2, 2, 2]" in result[0]["text"]
+    assert "Supply 4: [3, 3, 2, 2]" in result[0]["text"]
+    assert "Supply 5: [4, 3, 2, 2]" in result[0]["text"]
+    assert "Supply 6: [4, 3, 2, 2, 2]" in result[0]["text"]
     assert len(rulebook.cache_fingerprint) == 24
 
 
@@ -167,7 +185,6 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
             rulebook=rulebook,
         ),
         store,
-        rules_available=True,
     )
     client = FakeClient()
     prepared = harness.prepare_turn(
@@ -188,3 +205,96 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
     assert "not total units" in oracle_trace["answer"]
     assert result.usage["totalTokens"] == 100
     database.close()
+
+
+@pytest.mark.asyncio
+async def test_completed_oracle_trace_is_persisted_when_parent_run_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
+) -> None:
+    fake_model = OracleThenActionModel(fail_after_oracle=True)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    database = Database(tmp_path / "oracle-failure.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="x")
+    )
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.test/v1",
+        rulebook=sample_rulebook(),
+    )
+    harness = StrategicHarness(runner, store)
+    manager = AgentManager(store=store, harness=harness)
+    manager.sessions[record.id] = AgentSession(
+        status="connected", client=FakeClient()
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="parent model failed after oracle"):
+            await manager.run_once(record.id)
+
+        saved_run = store.list_runs(record.id)[0]
+        trace = store.get_run(record.id, saved_run["id"])
+        assert trace is not None
+        assert trace["status"] == "failed"
+        assert trace["responseId"] is None
+        assert trace["usage"] == {
+            "requests": 2,
+            "inputTokens": 40,
+            "outputTokens": 10,
+            "totalTokens": 50,
+        }
+        oracle_trace = next(
+            item for item in trace["response"] if item.get("type") == "rules_oracle"
+        )
+        assert oracle_trace["sectionIds"] == ["supply-and-mustering"]
+        assert "not total units" in oracle_trace["answer"]
+        assert len(trace["rawUsage"]) == 2
+        assert all(item["scope"] == "rules-oracle" for item in trace["rawUsage"])
+    finally:
+        await harness.shutdown()
+        database.close()
+
+
+@pytest.mark.asyncio
+async def test_completed_oracle_trace_is_persisted_when_parent_run_is_cancelled(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
+) -> None:
+    fake_model = OracleThenActionModel(cancel_after_oracle=True)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    database = Database(tmp_path / "oracle-cancelled.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="x")
+    )
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.test/v1",
+        rulebook=sample_rulebook(),
+    )
+    harness = StrategicHarness(runner, store)
+    manager = AgentManager(store=store, harness=harness)
+    manager.sessions[record.id] = AgentSession(
+        status="connected", client=FakeClient()
+    )
+
+    try:
+        with pytest.raises(asyncio.CancelledError):
+            await manager.run_once(record.id)
+
+        trace = store.get_run(record.id, store.list_runs(record.id)[0]["id"])
+        assert trace is not None
+        assert trace["status"] == "cancelled"
+        assert trace["usage"]["totalTokens"] == 50
+        assert any(
+            item.get("type") == "rules_oracle" for item in trace["response"]
+        )
+    finally:
+        await harness.shutdown()
+        database.close()

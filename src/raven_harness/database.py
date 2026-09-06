@@ -3,7 +3,22 @@ from pathlib import Path
 from threading import RLock
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+PLAYER_SNAPSHOTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS player_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  leaf_state_id TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(agent_id, leaf_state_id, content_sha256)
+);
+
+CREATE INDEX IF NOT EXISTS player_snapshots_agent_id_id
+  ON player_snapshots(agent_id, id DESC);
+"""
 
 SCHEMA = """
 CREATE TABLE agents (
@@ -69,13 +84,19 @@ CREATE TABLE strategic_memories (
   updated_at TEXT NOT NULL
 );
 
+{player_snapshots_schema}
+
 CREATE INDEX IF NOT EXISTS agent_events_agent_id_id
   ON agent_events(agent_id, id DESC);
 CREATE INDEX IF NOT EXISTS agent_runs_agent_id_created_at
   ON agent_runs(agent_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS game_state_history_agent_id_id
   ON game_state_history(agent_id, id DESC);
-"""
+""".format(player_snapshots_schema=PLAYER_SNAPSHOTS_SCHEMA)
+
+MIGRATIONS = {
+    1: PLAYER_SNAPSHOTS_SCHEMA,
+}
 
 
 class Database:
@@ -95,6 +116,18 @@ class Database:
             if version == 0 and has_tables is None:
                 self.connection.executescript(SCHEMA)
                 self.connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            elif version < SCHEMA_VERSION:
+                while version < SCHEMA_VERSION:
+                    migration = MIGRATIONS.get(version)
+                    if migration is None:
+                        self.connection.close()
+                        raise RuntimeError(
+                            f"Database schema version {version} is not supported; "
+                            f"expected {SCHEMA_VERSION}. Use a new DATABASE_PATH."
+                        )
+                    self.connection.executescript(migration)
+                    version += 1
+                    self.connection.execute(f"PRAGMA user_version = {version}")
             elif version != SCHEMA_VERSION:
                 self.connection.close()
                 raise RuntimeError(

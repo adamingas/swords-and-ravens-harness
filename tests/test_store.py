@@ -1,6 +1,11 @@
+import copy
+import sqlite3
+
 from raven_harness.agent_store import AgentStore
-from raven_harness.database import Database
+from raven_harness.database import SCHEMA_VERSION, Database
 from raven_harness.schemas import AgentCreate, AgentPublic
+
+from conftest import lobby_snapshot
 
 
 def test_agent_configuration_persists_without_exposing_credentials(tmp_path) -> None:
@@ -24,6 +29,60 @@ def test_agent_configuration_persists_without_exposing_credentials(tmp_path) -> 
     assert "authToken" not in public
     assert "authTokenConfigured" not in public
     assert "harnessId" not in public
+    database.close()
+
+
+def test_player_snapshots_are_append_only_and_deduplicated(tmp_path) -> None:
+    database = Database(tmp_path / "snapshots.db")
+    store = AgentStore(database)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Snapshot Wolf",
+            model="test-model",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    first = lobby_snapshot()
+
+    first_id = store.record_snapshot(agent.id, first)
+    duplicate_id = store.record_snapshot(agent.id, copy.deepcopy(first))
+    changed = copy.deepcopy(first)
+    changed["childGameState"]["players"].append(["stark", "2"])
+    second_id = store.record_snapshot(agent.id, changed)
+
+    assert first_id is not None
+    assert duplicate_id is None
+    assert second_id is not None
+    assert second_id > first_id
+    newest = store.list_snapshots(agent.id, limit=1, include_snapshot=True)
+    assert len(newest) == 1
+    assert newest[0]["id"] == second_id
+    assert newest[0]["leafStateId"] == "leaf-1"
+    assert len(newest[0]["contentSha256"]) == 64
+    assert newest[0]["snapshot"] == changed
+
+    assert store.delete_agent(agent.id) is True
+    assert store.list_snapshots(agent.id) == []
+    database.close()
+
+
+def test_database_migrates_version_one_for_player_snapshots(tmp_path) -> None:
+    path = tmp_path / "version-one.db"
+    connection = sqlite3.connect(path)
+    connection.execute("CREATE TABLE agents (id TEXT PRIMARY KEY)")
+    connection.execute("PRAGMA user_version = 1")
+    connection.commit()
+    connection.close()
+
+    database = Database(path)
+
+    version = database.connection.execute("PRAGMA user_version").fetchone()[0]
+    table = database.connection.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_snapshots'"
+    ).fetchone()
+    assert version == SCHEMA_VERSION == 2
+    assert table is not None
     database.close()
 
 

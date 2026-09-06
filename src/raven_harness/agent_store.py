@@ -1,3 +1,4 @@
+import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any
@@ -91,6 +92,93 @@ class AgentStore:
             )
             for row in rows
         ]
+
+    def record_snapshot(self, agent_id: str, snapshot: dict[str, Any]) -> int | None:
+        """Append a player-scoped snapshot unless its state and content already exist."""
+
+        serialized = json.dumps(
+            snapshot,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        content_sha256 = hashlib.sha256(serialized.encode()).hexdigest()
+        leaf_state_id = str(snapshot.get("leafStateId") or "unknown")
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self.database.lock, self.database.connection:
+            cursor = self.database.connection.execute(
+                """
+                INSERT OR IGNORE INTO player_snapshots (
+                  agent_id, leaf_state_id, content_sha256, snapshot_json, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    agent_id,
+                    leaf_state_id,
+                    content_sha256,
+                    serialized,
+                    created_at,
+                ),
+            )
+        return int(cursor.lastrowid) if cursor.rowcount else None
+
+    def list_snapshots(
+        self, agent_id: str, limit: int = 80, *, include_snapshot: bool = False
+    ) -> list[dict[str, Any]]:
+        """Return newest snapshot metadata, with bodies only when requested."""
+
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be between 1 and 500")
+        with self.database.lock:
+            rows = self.database.connection.execute(
+                f"""
+                SELECT id, leaf_state_id, content_sha256, created_at
+                       {', snapshot_json' if include_snapshot else ''}
+                FROM player_snapshots
+                WHERE agent_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (agent_id, limit),
+            ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "leafStateId": row["leaf_state_id"],
+                "contentSha256": row["content_sha256"],
+                "createdAt": row["created_at"],
+                **(
+                    {"snapshot": json.loads(row["snapshot_json"])}
+                    if include_snapshot
+                    else {}
+                ),
+            }
+            for row in rows
+        ]
+
+    def get_snapshot(
+        self, agent_id: str, snapshot_id: int
+    ) -> dict[str, Any] | None:
+        """Return one complete player snapshot."""
+
+        with self.database.lock:
+            row = self.database.connection.execute(
+                """
+                SELECT id, leaf_state_id, content_sha256, snapshot_json, created_at
+                FROM player_snapshots
+                WHERE agent_id = ? AND id = ?
+                """,
+                (agent_id, snapshot_id),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "id": int(row["id"]),
+            "leafStateId": row["leaf_state_id"],
+            "contentSha256": row["content_sha256"],
+            "snapshot": json.loads(row["snapshot_json"]),
+            "createdAt": row["created_at"],
+        }
 
     def add_run(
         self,

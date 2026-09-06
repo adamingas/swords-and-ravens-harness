@@ -14,7 +14,7 @@ from .game.client import ConnectionFactory, SwordsAndRavensClient
 from .harness.actions import HarnessRunContext, describe_tools
 from .harness.interface import PlayerHarness, PreparedTurn
 from .harness.observation import build_context, is_waiting_for_player
-from .models.openai_agent import ModelRunResult
+from .models.openai_agent import ModelRunCancelled, ModelRunError, ModelRunResult
 from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
 from .telemetry import Telemetry, provider_cost
 
@@ -122,6 +122,7 @@ class AgentManager:
                     agent_id, "game-message-received", _summarize_message(payload)
                 )
             elif kind == "snapshot" and session.client.snapshot is not None:
+                self.store.record_snapshot(agent_id, session.client.snapshot)
                 context = build_context(
                     session.client.snapshot,
                     record.user_id,
@@ -343,9 +344,11 @@ class AgentManager:
                 },
             )
             return result
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as error:
             status = "cancelled"
             error_text = "Model run cancelled"
+            if isinstance(error, ModelRunCancelled):
+                model_result = error.partial_result
             self.store.add_event(
                 agent_id,
                 "model-run-cancelled",
@@ -355,6 +358,8 @@ class AgentManager:
         except Exception as error:
             status = "failed"
             error_text = str(error)
+            if isinstance(error, ModelRunError):
+                model_result = error.partial_result
             session.last_error = error_text
             self.store.add_event(
                 agent_id,

@@ -51,7 +51,7 @@
           <label>
             <span>Model</span>
             <select name="model" required>
-              <option value="z-ai/glm-5.3-flash">Z.ai: GLM 5.3 Flash</option>
+              <option value="">Loading configured model…</option>
             </select>
           </label>
           <label class="wide">
@@ -101,6 +101,7 @@
         <button class="tab" data-tab="tools">Available tools</button>
         <button class="tab" data-tab="memory">Memory</button>
         <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="snapshots">Snapshots</button>
         <button class="tab" data-tab="metrics">Metrics</button>
         <button class="tab" data-tab="runs">Runs</button>
         <button class="tab" data-tab="events">Events</button>
@@ -131,7 +132,9 @@
         <div class="decision-panel">
           <span class="turn-flag">Waiting for state</span>
           <strong class="decision-name">No current decision</strong>
-          <small class="decision-path"></small>
+          <small class="decision-path">
+            <span class="decision-path-label"></span><span class="decision-path-value"></span>
+          </small>
         </div>
         <div class="run-strip">
           <span class="latest-run">No model runs</span>

@@ -5,8 +5,12 @@ from fastapi.testclient import TestClient
 from raven_harness.app import create_app
 from raven_harness.config import PROJECT_ROOT, Settings
 
+from conftest import lobby_snapshot
+
 
 class UnusedRunner:
+    rules_oracle_available = False
+
     async def run_once(self, **_kwargs):
         raise AssertionError("The model should not run in this test")
 
@@ -83,9 +87,9 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
                 }
             ],
         }
-        assert client.get("/api/health").json()["modelId"] == (
-            "z-ai/glm-5.3-flash"
-        )
+        health = client.get("/api/health").json()
+        assert health["modelId"] == "z-ai/glm-5.3-flash"
+        assert health["rulesOracleAvailable"] is False
         response = client.post(
             "/api/agents",
             json={
@@ -188,6 +192,24 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
         assert client.get(f"/api/agents/{agent['id']}/history").json() == {
             "history": []
         }
+        client.app.state.store.record_snapshot(agent["id"], lobby_snapshot())
+        snapshots = client.get(
+            f"/api/agents/{agent['id']}/snapshots", params={"limit": 1}
+        ).json()["snapshots"]
+        assert len(snapshots) == 1
+        assert snapshots[0]["leafStateId"] == "leaf-1"
+        assert "snapshot" not in snapshots[0]
+        stored_snapshot = client.get(
+            f"/api/agents/{agent['id']}/snapshots/{snapshots[0]['id']}"
+        ).json()["snapshot"]
+        assert stored_snapshot["snapshot"] == lobby_snapshot()
+        assert client.get(
+            f"/api/agents/{agent['id']}/snapshots/999999"
+        ).status_code == 404
+        assert client.get(
+            f"/api/agents/{agent['id']}/snapshots", params={"limit": 0}
+        ).status_code == 422
+        assert client.get("/api/agents/missing/snapshots").status_code == 404
         assert client.get(f"/api/agents/{agent['id']}/metrics").json() == {
             "metrics": {
                 "runCount": 0,
