@@ -890,11 +890,12 @@ games. Local user IDs rotate too, so each model owns two lobbies.
 Evaluation requires prepared rules data. Run `uv run raven-prepare-rules`
 before the smoke game.
 
-The command checks the OpenRouter key and live model catalog once. It does this
-before it creates the output directory and schedules attempts. It stops when
-the key's spending limit is exhausted. It also stops when an exact model ID is
-absent or lacks tool-call support. The manifest records the catalog data and
-the target of an alias. These checks do not write the key to an artifact.
+The command checks the OpenRouter key limit, account credits, and live model
+catalog once. It does this before it creates the output directory and schedules
+attempts. It stops when the key's spending limit or the account credits are
+exhausted. It also stops when an exact model ID is absent or lacks tool-call
+support. The manifest records the catalog data and the target of an alias.
+These checks do not write the key to an artifact.
 
 The tournament requires `OPENROUTER_TOKEN` and ignores `MODEL_ID`. It does not
 use the dashboard's provider allow-list. It uses one routing policy for all

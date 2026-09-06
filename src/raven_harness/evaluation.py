@@ -705,14 +705,16 @@ async def _preflight_openrouter_quota(
     *,
     client: httpx.AsyncClient | None = None,
 ) -> None:
-    """Reject a key whose explicit OpenRouter spending limit is exhausted."""
+    """Reject an exhausted OpenRouter key limit or workspace credit balance."""
 
     if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
         return
-    endpoint = settings.openrouter_base_url.rstrip("/") + "/key"
+    base_url = settings.openrouter_base_url.rstrip("/")
     owns_client = client is None
     active_client = client or httpx.AsyncClient(timeout=10)
-    try:
+
+    async def quota_data(path: str, label: str) -> dict[str, Any]:
+        endpoint = base_url + path
         try:
             response = await active_client.get(
                 endpoint,
@@ -720,37 +722,55 @@ async def _preflight_openrouter_quota(
             )
         except httpx.HTTPError as error:
             raise RuntimeError(
-                "OpenRouter quota preflight request failed "
+                f"OpenRouter {label} preflight request failed "
                 f"({type(error).__name__})"
             ) from error
         if response.status_code != 200:
             raise RuntimeError(
-                f"OpenRouter quota preflight returned HTTP {response.status_code}"
+                f"OpenRouter {label} preflight returned HTTP "
+                f"{response.status_code}"
             )
         try:
             payload = response.json()
         except (TypeError, ValueError) as error:
             raise RuntimeError(
-                "OpenRouter quota preflight returned an invalid response"
+                f"OpenRouter {label} preflight returned an invalid response"
             ) from error
         data = payload.get("data") if isinstance(payload, dict) else None
         if not isinstance(data, dict):
-            raise RuntimeError("OpenRouter quota preflight returned an invalid response")
-
-        limit = _optional_number(data.get("limit"))
-        if limit is None:
-            return
-        remaining = _optional_number(data.get("limit_remaining"))
-        usage = _optional_number(data.get("usage"))
-        exhausted = limit <= 0
-        if remaining is not None:
-            exhausted = exhausted or remaining <= 0
-        elif usage is not None:
-            exhausted = exhausted or usage >= limit
-        if exhausted:
             raise RuntimeError(
-                "OpenRouter API key spending limit is exhausted; increase or reset "
-                "the limit before starting a new evaluation attempt"
+                f"OpenRouter {label} preflight returned an invalid response"
+            )
+        return data
+
+    try:
+        key_data = await quota_data("/key", "key-limit")
+        limit = _optional_number(key_data.get("limit"))
+        if limit is not None:
+            remaining = _optional_number(key_data.get("limit_remaining"))
+            usage = _optional_number(key_data.get("usage"))
+            exhausted = limit <= 0
+            if remaining is not None:
+                exhausted = exhausted or remaining <= 0
+            elif usage is not None:
+                exhausted = exhausted or usage >= limit
+            if exhausted:
+                raise RuntimeError(
+                    "OpenRouter API key spending limit is exhausted; increase or "
+                    "reset the limit before starting a new evaluation attempt"
+                )
+
+        credit_data = await quota_data("/credits", "account-credit")
+        total_credits = _optional_number(credit_data.get("total_credits"))
+        total_usage = _optional_number(credit_data.get("total_usage"))
+        if (
+            total_credits is not None
+            and total_usage is not None
+            and total_usage >= total_credits
+        ):
+            raise RuntimeError(
+                "OpenRouter account credits are exhausted; add credits before "
+                "starting a new evaluation attempt"
             )
     finally:
         if owns_client:

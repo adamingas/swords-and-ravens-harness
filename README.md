@@ -229,9 +229,9 @@ ports 5101 through 5112 and can make up to 12 model calls concurrently. Use a
 smaller `--concurrent-games` value when the machine or provider cannot support
 that load.
 
-The command checks the OpenRouter quota and model catalog once before it
-schedules attempts. It verifies the exact six IDs and tool-call support. The
-tournament ignores `MODEL_ID`. It also replaces the dashboard provider
+The command checks the OpenRouter key limit, account credits, and model catalog
+once before it schedules attempts. It verifies the exact six IDs and tool-call
+support. The tournament ignores `MODEL_ID`. It also replaces the dashboard provider
 allow-list with one common tournament policy: select by throughput, allow
 fallbacks, allow all listed hosts, and prefer hosts that support the tools. The
 shared request uses `tool_choice=auto` on the first attempt so models can use

@@ -395,10 +395,13 @@ async def test_openrouter_quota_preflight_tolerates_available_or_unlimited_keys(
     finally:
         await client.aclose()
 
-    assert len(requests) == 1
-    assert str(requests[0].url) == "https://openrouter.example/api/v1/key"
-    assert requests[0].headers["authorization"] == (
-        "Bearer quota-key-must-stay-secret"
+    assert [str(request.url) for request in requests] == [
+        "https://openrouter.example/api/v1/key",
+        "https://openrouter.example/api/v1/credits",
+    ]
+    assert all(
+        request.headers["authorization"] == "Bearer quota-key-must-stay-secret"
+        for request in requests
     )
 
 
@@ -430,6 +433,41 @@ async def test_openrouter_quota_preflight_rejects_explicitly_exhausted_key(
     finally:
         await client.aclose()
 
+    assert secret not in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_openrouter_quota_preflight_rejects_exhausted_account_credits() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path.endswith("/key"):
+            return httpx.Response(
+                200,
+                json={
+                    "data": {"limit": 20, "limit_remaining": 2, "usage": 18}
+                },
+            )
+        return httpx.Response(
+            200,
+            json={"data": {"total_credits": 35, "total_usage": 35.18}},
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    secret = "credit-key-must-stay-secret"
+    settings = Settings(
+        openrouter_token=secret,
+        openrouter_base_url="https://openrouter.example/api/v1",
+        _env_file=None,
+    )
+    try:
+        with pytest.raises(RuntimeError, match="account credits are exhausted") as caught:
+            await _preflight_openrouter_quota(settings, client=client)
+    finally:
+        await client.aclose()
+
+    assert len(requests) == 2
     assert secret not in str(caught.value)
 
 
