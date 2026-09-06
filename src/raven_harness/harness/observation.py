@@ -170,27 +170,104 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
             }
             for candidate in game.get("houses", [])
         ]
+        observation["houseCardStatus"] = [
+            _public_house_card_status(candidate)
+            for candidate in game.get("houses", [])
+        ]
         observation["tracks"] = {
             "ironThrone": game.get("ironThroneTrack", []),
             "fiefdoms": game.get("fiefdomsTrack", []),
             "kingsCourt": game.get("kingsCourtTrack", []),
         }
+        revealed_orders = _revealed_orders(context.ingame, observation["map"])
+        revealed_orders_by_region = {
+            item["regionId"]: item for item in revealed_orders
+        }
+        observation["revealedOrders"] = revealed_orders
         observation["board"] = [
             {
                 "id": region.get("id"),
                 "controlPowerToken": region.get("controlPowerToken"),
                 "garrison": region.get("garrison", 0),
                 "units": region.get("units", []),
+                "revealedOrder": revealed_orders_by_region.get(region.get("id")),
             }
             for region in game.get("world", {}).get("regions", [])
             if region.get("units")
             or region.get("garrison")
             or region.get("controlPowerToken")
+            or region.get("id") in revealed_orders_by_region
         ]
         guidance = _action_guidance(context, observation["map"])
         if guidance:
             observation["actionGuidance"] = guidance
     return observation
+
+
+def _public_house_card_status(house: dict[str, Any]) -> dict[str, Any]:
+    """Summarize only card information exposed by the player snapshot."""
+
+    raw_cards = house.get("houseCards")
+    card_values = [
+        pair[1]
+        for pair in raw_cards or []
+        if isinstance(pair, list)
+        and len(pair) == 2
+        and isinstance(pair[1], dict)
+    ]
+    available_cards = [
+        {
+            "id": card.get("id"),
+            "name": card.get("name"),
+            "strength": card.get("combatStrength"),
+            "swords": card.get("swordIcons", 0),
+            "towers": card.get("towerIcons", 0),
+            "ability": card.get("abilityId"),
+        }
+        for card in card_values
+        if card.get("state") == 0 and not card.get("disabled", False)
+    ]
+    return {
+        "houseId": house.get("id"),
+        "houseName": house.get("name"),
+        "detailsVisible": bool(card_values),
+        "totalCount": len(card_values),
+        "availableCount": len(available_cards),
+        "usedCount": sum(card.get("state") == 1 for card in card_values),
+        "disabledCount": sum(bool(card.get("disabled", False)) for card in card_values),
+        "availableCards": available_cards,
+    }
+
+
+def _revealed_orders(
+    ingame: dict[str, Any], map_reference: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Read only the post-reveal order map, never private planning drafts."""
+
+    region_names = {
+        region.get("id"): region.get("name", region.get("id"))
+        for region in map_reference.get("regions", [])
+    }
+    revealed = []
+    for pair in ingame.get("ordersOnBoard", []):
+        if not isinstance(pair, list) or len(pair) != 2 or pair[1] is None:
+            continue
+        region_id, order_id = pair
+        try:
+            normalized_order_id = int(order_id)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        revealed.append(
+            {
+                "regionId": region_id,
+                "regionName": region_names.get(region_id, region_id),
+                "orderId": normalized_order_id,
+                "order": ORDER_LEGEND.get(
+                    normalized_order_id, f"Order {normalized_order_id}"
+                ),
+            }
+        )
+    return revealed
 
 
 def _action_guidance(

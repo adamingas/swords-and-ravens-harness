@@ -4,11 +4,17 @@ import pytest
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
+from raven_harness.game.client import GameConnectionLost
 from raven_harness.game.codec import decode_message, encode_message
 from raven_harness.harness.actions import ActionTaken
 from raven_harness.harness.interface import PreparedTurn
 from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.manager import AgentManager, AgentSession, _monitoring_state
+from raven_harness.manager import (
+    AgentManager,
+    AgentSession,
+    _monitoring_state,
+    _next_reconnect_delay,
+)
 from raven_harness.models.openai_agent import (
     ModelRunCancelled,
     ModelRunError,
@@ -17,7 +23,7 @@ from raven_harness.models.openai_agent import (
 )
 from raven_harness.schemas import AgentCreate
 
-from conftest import lobby_snapshot
+from conftest import lobby_snapshot, planning_snapshot
 
 
 class UnusedRunner:
@@ -46,8 +52,12 @@ class UnusedRunner:
 
 
 class FakeConnection:
-    def __init__(self) -> None:
+    def __init__(self, snapshot=None, *, banned: bool = False) -> None:
         self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
+        self.snapshot = snapshot or lobby_snapshot()
+        self.sent: list[dict] = []
+        self.closed = False
+        self.banned = banned
 
     def __aiter__(self) -> "FakeConnection":
         return self
@@ -60,18 +70,23 @@ class FakeConnection:
 
     async def send(self, payload: str) -> None:
         message = decode_message(payload)
+        self.sent.append(message)
         if message["type"] == "authenticate":
+            if self.banned:
+                await self.incoming.put(encode_message({"type": "banned-response"}))
+                return
             await self.incoming.put(
                 encode_message(
                     {
                         "type": "authenticate-response",
                         "userId": message["authData"]["userId"],
-                        "game": lobby_snapshot(),
+                        "game": self.snapshot,
                     }
                 )
             )
 
     async def close(self) -> None:
+        self.closed = True
         await self.incoming.put(None)
 
 
@@ -79,6 +94,7 @@ class FakeRunClient:
     status = "connected"
     snapshot = lobby_snapshot()
     recent_events: list[dict] = []
+    connection_generation = 1
 
 
 class ContextManifestHarness:
@@ -129,6 +145,17 @@ class ContextManifestHarness:
             messages=[{"type": "choose-house", "house": "stark"}],
         )
         return result
+
+
+class ConnectionLossHarness(ContextManifestHarness):
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = asyncio.Event()
+
+    async def run_turn(self, record, prepared, context, run_id):
+        del record, prepared, context, run_id
+        self.started.set()
+        raise GameConnectionLost("connection changed")
 
 
 class BlockingActivityHarness(ContextManifestHarness):
@@ -381,6 +408,254 @@ async def test_manager_records_each_distinct_player_snapshot(tmp_path) -> None:
     database.close()
 
 
+@pytest.mark.asyncio
+async def test_manager_reconnects_once_and_preserves_autoplay(tmp_path) -> None:
+    database = Database(tmp_path / "reconnect.db")
+    store = AgentStore(database)
+    first = FakeConnection()
+    replacement = lobby_snapshot()
+    replacement["leafStateId"] = "leaf-after-reconnect"
+    second = FakeConnection(replacement)
+    connections = iter((first, second))
+    connection_count = 0
+
+    async def connect(_url: str) -> FakeConnection:
+        nonlocal connection_count
+        connection_count += 1
+        return next(connections)
+
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+        connection_factory=connect,
+        reconnect_retry_base_seconds=0.01,
+        reconnect_retry_max_seconds=0.02,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Reconnecting Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    await manager.start(agent.id)
+    manager.set_autoplay(agent.id, True)
+    original_autoplay_task = manager.sessions[agent.id].autoplay_task
+
+    await first.incoming.put(None)
+    for _ in range(200):
+        session = manager.sessions[agent.id]
+        if (
+            session.status == "connected"
+            and session.client.connection_generation == 2
+        ):
+            break
+        await asyncio.sleep(0.005)
+
+    session = manager.sessions[agent.id]
+    assert connection_count == 2
+    assert session.status == "connected"
+    assert session.client.snapshot["leafStateId"] == "leaf-after-reconnect"
+    assert session.autoplay is True
+    assert session.autoplay_task is original_autoplay_task
+    assert session.reconnect_task is None
+    statuses = [
+        event.payload["status"]
+        for event in store.list_events(agent.id)
+        if event.kind == "connection-status"
+    ]
+    assert "reconnecting" in statuses
+
+    await manager.stop_all()
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_stop_cancels_reconnect_backoff(tmp_path) -> None:
+    database = Database(tmp_path / "reconnect-stop.db")
+    store = AgentStore(database)
+    first = FakeConnection()
+    retry_attempted = asyncio.Event()
+    connection_count = 0
+
+    async def connect(_url: str) -> FakeConnection:
+        nonlocal connection_count
+        connection_count += 1
+        if connection_count == 1:
+            return first
+        retry_attempted.set()
+        raise OSError("server unavailable")
+
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+        connection_factory=connect,
+        reconnect_retry_base_seconds=0.2,
+        reconnect_retry_max_seconds=0.2,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Stopped Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    await manager.start(agent.id)
+    await first.incoming.put(None)
+    await asyncio.wait_for(retry_attempted.wait(), timeout=0.5)
+
+    await asyncio.wait_for(manager.stop(agent.id), timeout=0.5)
+    await asyncio.sleep(0.25)
+
+    assert connection_count == 2
+    assert agent.id not in manager.sessions
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_sync_timeout_reconnects_without_replaying_request(tmp_path) -> None:
+    database = Database(tmp_path / "sync-timeout.db")
+    store = AgentStore(database)
+    first = FakeConnection()
+    replacement = lobby_snapshot()
+    replacement["leafStateId"] = "authoritative-reconnect-leaf"
+    second = FakeConnection(replacement)
+    connections = iter((first, second))
+
+    async def connect(_url: str) -> FakeConnection:
+        return next(connections)
+
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+        connection_factory=connect,
+        reconnect_retry_base_seconds=0.01,
+        reconnect_retry_max_seconds=0.02,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Sync Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    await manager.start(agent.id)
+
+    with pytest.raises(GameConnectionLost, match="authoritative snapshot"):
+        await manager.sessions[agent.id].client.sync_snapshot(timeout=0.01)
+    for _ in range(200):
+        session = manager.sessions[agent.id]
+        if session.status == "connected" and session.client.connection_generation == 2:
+            break
+        await asyncio.sleep(0.005)
+
+    session = manager.sessions[agent.id]
+    assert session.client.snapshot["leafStateId"] == "authoritative-reconnect-leaf"
+    assert [message["type"] for message in first.sent] == [
+        "authenticate",
+        "sync-game",
+    ]
+    assert [message["type"] for message in second.sent] == ["authenticate"]
+    await manager.stop_all()
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_banned_initial_connection_is_terminal(tmp_path) -> None:
+    database = Database(tmp_path / "banned.db")
+    store = AgentStore(database)
+    connection = FakeConnection(banned=True)
+    connection_count = 0
+
+    async def connect(_url: str) -> FakeConnection:
+        nonlocal connection_count
+        connection_count += 1
+        return connection
+
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+        connection_factory=connect,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Banned Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="closed during authentication"):
+        await manager.start(agent.id)
+
+    assert manager.sessions[agent.id].status == "banned"
+    assert manager.sessions[agent.id].reconnect_task is None
+    assert connection_count == 1
+    await manager.stop_all()
+    database.close()
+
+
+def test_reconnect_backoff_is_capped_without_exponential_growth() -> None:
+    delay = 0.0
+    observed = []
+    for _ in range(8):
+        delay = _next_reconnect_delay(delay, 1, 5)
+        observed.append(delay)
+
+    assert observed == [1, 2, 4, 5, 5, 5, 5, 5]
+
+
+@pytest.mark.asyncio
+async def test_connection_loss_does_not_consume_autoplay_failure_budget(
+    tmp_path,
+) -> None:
+    database = Database(tmp_path / "autoplay-connection-loss.db")
+    store = AgentStore(database)
+    harness = ConnectionLossHarness()
+    manager = AgentManager(store=store, harness=harness)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Network Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    client = FakeRunClient()
+    client.snapshot = planning_snapshot()
+    session = AgentSession(
+        status="connected",
+        client=client,
+        autoplay=True,
+        has_connected=True,
+    )
+    manager.sessions[agent.id] = session
+    manager._schedule_autoplay(agent.id, session)
+    await asyncio.wait_for(harness.started.wait(), timeout=2)
+    session.autoplay = False
+    assert session.autoplay_task is not None
+    await asyncio.wait_for(session.autoplay_task, timeout=2)
+
+    assert session.consecutive_failures == 0
+    assert session.failure_leaf_id is None
+    assert session.last_error is None
+    database.close()
+
+
 async def _wait_for_received_events(
     store: AgentStore, agent_id: str, expected: int
 ) -> None:
@@ -422,6 +697,27 @@ def test_monitoring_state_exposes_structured_public_game_data() -> None:
                 "controlledCastleAreas": 2,
             }
         ],
+        "houseCardStatus": [
+            {
+                "houseId": "stark",
+                "houseName": "Stark",
+                "detailsVisible": True,
+                "totalCount": 2,
+                "availableCount": 1,
+                "usedCount": 1,
+                "disabledCount": 0,
+                "availableCards": [
+                    {
+                        "id": "robb-stark",
+                        "name": "Robb Stark",
+                        "strength": 3,
+                        "swords": 0,
+                        "towers": 0,
+                        "ability": "robb-stark",
+                    }
+                ],
+            }
+        ],
         "map": {
             "regions": [
                 {
@@ -439,6 +735,12 @@ def test_monitoring_state_exposes_structured_public_game_data() -> None:
                 "id": "winterfell",
                 "controlPowerToken": "stark",
                 "garrison": 2,
+                "revealedOrder": {
+                    "regionId": "winterfell",
+                    "regionName": "Winterfell",
+                    "orderId": 3,
+                    "order": "March +1",
+                },
                 "units": [
                     {
                         "id": 1,
@@ -447,6 +749,14 @@ def test_monitoring_state_exposes_structured_public_game_data() -> None:
                         "wounded": False,
                     }
                 ],
+            }
+        ],
+        "revealedOrders": [
+            {
+                "regionId": "winterfell",
+                "regionName": "Winterfell",
+                "orderId": 3,
+                "order": "March +1",
             }
         ],
         "actionGuidance": {
@@ -471,8 +781,11 @@ def test_monitoring_state_exposes_structured_public_game_data() -> None:
             "controlPowerToken": "stark",
             "garrison": 2,
             "units": observation["board"][0]["units"],
+            "revealedOrder": observation["revealedOrders"][0],
         }
     ]
+    assert state["houseCardStatus"] == observation["houseCardStatus"]
+    assert state["revealedOrders"] == observation["revealedOrders"]
     assert state["actionGuidance"] == observation["actionGuidance"]
     assert state["player"]["availableHouseCards"][0]["ability"] == "robb-stark"
     assert state["isOwner"] is True

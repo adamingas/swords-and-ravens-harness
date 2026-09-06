@@ -97,6 +97,12 @@ browser client. Agent cards show live model-request and tool activity. The
 detail view keeps the recent activity timeline, complete run traces, player
 state, token use, and provider cost.
 
+After an established game WebSocket drops, the harness keeps autoplay enabled
+and reauthenticates with capped exponential backoff. The authentication response
+replaces local state with a fresh player-scoped snapshot. An action interrupted
+by the drop is never replayed on the replacement socket; the next decision is
+built from that authoritative snapshot.
+
 ## Configuration
 
 ~~~text
@@ -186,6 +192,18 @@ uv run raven-evaluate --games 12 \
 clients, then completes one round with a deterministic safe policy. It invokes
 the same dynamic gameplay tools as a model but makes no provider requests. Use
 it to test local protocol and persistence changes before the paid model smoke.
+
+Verify any saved evaluation without contacting the provider:
+
+~~~bash
+uv run raven-verify-evaluation data/evaluations/glm-one-round-smoke
+uv run raven-verify-evaluation --require-complete \
+  data/evaluations/glm-prompt-comparison
+~~~
+
+The first command accepts an internally consistent partial evaluation and
+labels it `provisional`. The second exits unsuccessfully unless all 12 games
+and both observations for every configuration-house pair are present.
 
 Reusing an output directory skips completed games and preserves failed
 attempts. The manifest rejects changes to the model, prompts, schedule, source

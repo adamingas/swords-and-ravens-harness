@@ -172,13 +172,18 @@ The lifecycle is:
 5. Autoplay runs a decision when the server waits for that user.
 6. Stop closes the connection. It does not delete the saved agent or traces.
 
-The current client does not reconnect automatically after a WebSocket failure.
-It marks normal socket closure as disconnected and fails a pending snapshot
-request immediately. Use **Connect** again after the game server is available.
+After an established WebSocket connection fails, the client reconnects
+automatically: it retries immediately, then uses capped exponential backoff.
+Successful reauthentication supplies a new authoritative player-scoped
+snapshot. Autoplay remains enabled, but a decision from the old connection
+generation cannot send tools through the new socket. The harness never replays
+an action whose delivery or acknowledgement is ambiguous; it makes another
+decision only if the fresh snapshot still requires one.
 
-Agent records and trace rows survive a Python harness restart. WebSocket
-connections, runtime state, and autoplay do not. Reconnect the agents and
-enable autoplay again after a restart.
+This recovery applies while the harness process remains running. Agent records
+and trace rows survive a Python harness restart, but WebSocket connections,
+runtime state, and autoplay do not. Reconnect the agents and enable autoplay
+again after a process restart.
 
 An agent that owns the game can configure and launch the lobby. Setup sends the
 settings and verifies the setup ID and player count in a fresh snapshot. Launch
@@ -281,8 +286,10 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | lobby | Lobby houses, available house IDs, seats, and ready users. Present only before launch. |
 | map | Stable region types, icons, castles, and adjacency data. |
 | houses | Public score, control, power, and supply data for all houses. |
+| houseCardStatus | Public available-card details and available, used, and disabled counts for each house. Used-card identities are omitted. |
 | tracks | Iron Throne, Fiefdoms, and King's Court order. |
-| board | Occupied, controlled, or garrisoned regions and their units. |
+| board | Occupied, controlled, garrisoned, or ordered regions, their units, and any currently revealed order. |
+| revealedOrders | Orders in the server's public post-reveal order map, with region and readable token name. |
 | actionGuidance | Harness-derived base-game sources, targets, units, and choices for march, raid, mustering, consolidate-power, and Raven states. |
 | strategicOverview | A deterministic score and resource summary. |
 | strategicMemory | The player's private structured notebook. |
@@ -291,8 +298,17 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
 
 The map reference is complete, but the board field is sparse. Empty regions
-without a garrison or control token do not appear in board. Use map for
-adjacency and printed board features. Use board for current pieces and control.
+without a garrison, control token, or revealed order do not appear in board.
+Use map for adjacency and printed board features. Use board for current pieces,
+control, and revealed orders.
+
+House-card status is derived only from cards present in this player's upstream
+snapshot. It exposes the card faces that the normal client shows as available.
+It reports used and disabled totals without copying their card identities. If
+the upstream server hides a house's cards, detailsVisible is false and the
+dashboard does not infer them. revealedOrders reads only ordersOnBoard, which
+the server fills after orders are revealed. It never copies private
+planning.placedOrders into that field.
 
 This shortened planning observation shows the shape. A real observation
 contains the complete map, all public houses, the full sparse board, the
@@ -619,10 +635,11 @@ endpoint or query the database for experiment export.
 
 The dashboard header totals the agent count, model runs, failures, tokens, and
 provider-reported cost. Open an agent to see its available house cards and
-card abilities, units, controlled regions, public standings, occupied board
-regions, current action guidance, influence tracks, model usage, run traces,
-snapshots, and memory. Board rows are intentionally sparse: they contain only
-occupied, garrisoned, or controlled regions.
+card abilities, public card availability for every house, units, controlled
+regions, public standings, occupied board regions, currently revealed orders,
+current action guidance, influence tracks, model usage, run traces, snapshots,
+and memory. Board rows are intentionally sparse: they contain only occupied,
+garrisoned, controlled, or currently ordered regions.
 
 While a run is active, the agent card shows whether the harness waits for a
 model response or invokes a tool. It also shows the last five lifecycle steps.
@@ -671,6 +688,14 @@ The current observation itself is stored beside the manifest. The manifest
 does not store API keys. Recorded duration begins before observation
 preparation and includes time waiting for the process-wide model semaphore.
 The 300-second model-run timeout begins only after that semaphore is acquired.
+
+An agent that has connected successfully stays started across transient game
+WebSocket failures. Its runtime becomes reconnecting, autoplay remains enabled,
+and authentication is retried with an immediate attempt followed by capped
+exponential backoff. A reconnect authentication response is the authoritative
+player-scoped resynchronization. The harness never replays an action whose send
+or acknowledgement was interrupted; it starts a fresh decision only after the
+new snapshot shows that the player still needs to act.
 
 A zero cost value can mean that a provider omitted its cost field. It does not
 always mean that the request was free. Git ignores root `data/*.db`,
@@ -820,6 +845,21 @@ provider. It uses only Defense and Support orders, fails closed at an
 unexpected required decision, and writes `smoke.json`, `harness.db`, the saved
 game, and the server log below `data/evaluations/`. This test verifies the
 protocol and persistence path. It does not replace the paid model smoke.
+
+Verify saved evaluation artifacts without a provider request:
+
+~~~bash
+uv run raven-verify-evaluation data/evaluations/glm-one-round-smoke
+uv run raven-verify-evaluation --require-complete \
+  data/evaluations/glm-prompt-comparison
+~~~
+
+The verifier checks the manifest and rotation, completed result and assignment
+files, the terminal saved winner, each SQLite database, the single model ID,
+and the recomputed summary. A valid partial run exits successfully and reports
+`provisional`. `--require-complete` exits with status 2 until 12 games are
+complete and every configuration-house pair has two observations. Invalid or
+corrupt artifacts exit with status 1.
 
 Then run the complete comparison:
 

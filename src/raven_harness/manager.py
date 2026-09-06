@@ -11,7 +11,11 @@ from opentelemetry.trace import Status, StatusCode
 
 from .agent_store import AgentStore
 from .errors import safe_error_text
-from .game.client import ConnectionFactory, SwordsAndRavensClient
+from .game.client import (
+    ConnectionFactory,
+    GameConnectionLost,
+    SwordsAndRavensClient,
+)
 from .harness.actions import HarnessRunContext, describe_tools
 from .harness.interface import PlayerHarness, PreparedTurn
 from .harness.observation import build_context, is_waiting_for_player
@@ -47,7 +51,9 @@ class AgentSession:
     running: bool = False
     autoplay: bool = False
     autoplay_task: asyncio.Task[None] | None = None
+    reconnect_task: asyncio.Task[None] | None = None
     ready_task: asyncio.Task[None] | None = None
+    has_connected: bool = False
     failure_leaf_id: str | None = None
     consecutive_failures: int = 0
     current_run_id: str | None = None
@@ -67,6 +73,8 @@ class AgentManager:
         telemetry: Telemetry | None = None,
         autoplay_max_consecutive_failures: int = 5,
         autoplay_retry_base_seconds: float = 2,
+        reconnect_retry_base_seconds: float = 1,
+        reconnect_retry_max_seconds: float = 30,
         required_model_id: str | None = None,
     ) -> None:
         self.store = store
@@ -75,6 +83,8 @@ class AgentManager:
         self.telemetry = telemetry or Telemetry.create(endpoint="")
         self.autoplay_max_consecutive_failures = autoplay_max_consecutive_failures
         self.autoplay_retry_base_seconds = autoplay_retry_base_seconds
+        self.reconnect_retry_base_seconds = reconnect_retry_base_seconds
+        self.reconnect_retry_max_seconds = reconnect_retry_max_seconds
         self.required_model_id = required_model_id
         self.sessions: dict[str, AgentSession] = {}
 
@@ -150,8 +160,23 @@ class AgentManager:
 
         def on_event(kind: str, payload: dict[str, Any]) -> None:
             if kind == "status":
-                session.status = str(payload["status"])
-                self.store.add_event(agent_id, "connection-status", payload)
+                client_status = str(payload["status"])
+                if client_status == "connected":
+                    session.last_error = None
+                    session.status = "running" if session.running else "connected"
+                elif (
+                    session.has_connected
+                    and client_status in {"connecting", "disconnected", "error"}
+                    and self.sessions.get(agent_id) is session
+                ):
+                    session.status = "reconnecting"
+                else:
+                    session.status = client_status
+                self.store.add_event(
+                    agent_id, "connection-status", {"status": session.status}
+                )
+                if client_status == "disconnected":
+                    self._schedule_reconnect(agent_id, session)
             elif kind == "error":
                 message = safe_error_text(
                     payload.get("message", "Game connection failed")
@@ -200,11 +225,12 @@ class AgentManager:
 
         try:
             await client.connect()
+            session.has_connected = True
             session.connected_at = datetime.now(timezone.utc).isoformat()
             session.status = client.status
         except Exception as error:
             message = safe_error_text(error)
-            session.status = "error"
+            session.status = "banned" if client.status == "banned" else "error"
             session.last_error = message
             self.store.add_event(agent_id, "connection-error", {"message": message})
             raise RuntimeError(message) from None
@@ -214,15 +240,14 @@ class AgentManager:
         session = self.sessions.pop(agent_id, None)
         if session is not None:
             pending_tasks: list[asyncio.Task[None]] = []
-            if (
-                session.autoplay_task
-                and session.autoplay_task is not asyncio.current_task()
+            for task in (
+                session.autoplay_task,
+                session.reconnect_task,
+                session.ready_task,
             ):
-                session.autoplay_task.cancel()
-                pending_tasks.append(session.autoplay_task)
-            if session.ready_task and session.ready_task is not asyncio.current_task():
-                session.ready_task.cancel()
-                pending_tasks.append(session.ready_task)
+                if task and task is not asyncio.current_task():
+                    task.cancel()
+                    pending_tasks.append(task)
             if pending_tasks:
                 await asyncio.gather(*pending_tasks, return_exceptions=True)
             await session.client.close()
@@ -466,7 +491,12 @@ class AgentManager:
                 history_id=prepared.history_id if prepared else None,
             )
             session.running = False
-            session.status = session.client.status
+            session.status = (
+                "reconnecting"
+                if session.reconnect_task is not None
+                and not session.reconnect_task.done()
+                else session.client.status
+            )
             session.current_run_id = None
             session.run_started_at = None
             session.current_tools = []
@@ -474,7 +504,7 @@ class AgentManager:
 
     def set_autoplay(self, agent_id: str, enabled: bool) -> AgentPublic:
         session = self.sessions.get(agent_id)
-        if session is None or session.client.snapshot is None:
+        if session is None or (enabled and not session.has_connected):
             raise RuntimeError("Agent must be connected before autoplay can be changed")
         if enabled and not session.autoplay:
             session.failure_leaf_id = None
@@ -621,6 +651,62 @@ class AgentManager:
                 self._autoplay_loop(agent_id, session)
             )
 
+    def _schedule_reconnect(self, agent_id: str, session: AgentSession) -> None:
+        if (
+            not session.has_connected
+            or self.sessions.get(agent_id) is not session
+            or session.client.status in {"banned", "stopped"}
+        ):
+            return
+        if session.reconnect_task is None or session.reconnect_task.done():
+            session.status = "reconnecting"
+            session.reconnect_task = asyncio.create_task(
+                self._reconnect_loop(agent_id, session)
+            )
+
+    async def _reconnect_loop(
+        self, agent_id: str, expected_session: AgentSession
+    ) -> None:
+        delay = 0.0
+        try:
+            while self.sessions.get(agent_id) is expected_session:
+                if delay:
+                    await asyncio.sleep(delay)
+                if self.sessions.get(agent_id) is not expected_session:
+                    return
+                expected_session.status = "reconnecting"
+                try:
+                    await expected_session.client.connect()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as error:
+                    if expected_session.client.status == "banned":
+                        expected_session.status = "banned"
+                        return
+                    message = safe_error_text(error)
+                    expected_session.last_error = message
+                    expected_session.status = "reconnecting"
+                    self.store.add_event(
+                        agent_id,
+                        "connection-retry-failed",
+                        {"message": message},
+                    )
+                    delay = _next_reconnect_delay(
+                        delay,
+                        self.reconnect_retry_base_seconds,
+                        self.reconnect_retry_max_seconds,
+                    )
+                    continue
+                expected_session.last_error = None
+                expected_session.connected_at = datetime.now(timezone.utc).isoformat()
+                expected_session.status = (
+                    "running" if expected_session.running else "connected"
+                )
+                return
+        finally:
+            if expected_session.reconnect_task is asyncio.current_task():
+                expected_session.reconnect_task = None
+
     def _schedule_lobby_ready(
         self, agent_id: str, session: AgentSession, record: AgentRecord
     ) -> None:
@@ -680,10 +766,16 @@ class AgentManager:
                 continue
             try:
                 await self.run_once(agent_id)
+            except GameConnectionLost:
+                expected_session.last_error = None
+                continue
             except Exception:
                 # Retry a bad model/tool call within the same decision, then leave
                 # a stable failure visible in the dashboard for inspection.
-                current_leaf_id = expected_session.client.snapshot.get("leafStateId")
+                snapshot = expected_session.client.snapshot
+                if snapshot is None:
+                    continue
+                current_leaf_id = snapshot.get("leafStateId")
                 if expected_session.failure_leaf_id == current_leaf_id:
                     expected_session.consecutive_failures += 1
                 else:
@@ -819,6 +911,12 @@ def _optional_nonnegative_int(value: Any) -> int | None:
     return _nonnegative_int(value)
 
 
+def _next_reconnect_delay(current: float, base: float, maximum: float) -> float:
+    """Advance capped reconnect backoff without an unbounded exponent."""
+
+    return min(maximum, base if current <= 0 else current * 2)
+
+
 def _monitoring_state(
     observation: dict[str, Any] | None,
     snapshot: dict[str, Any] | None,
@@ -862,6 +960,7 @@ def _monitoring_state(
             "controlPowerToken": region.get("controlPowerToken"),
             "garrison": region.get("garrison", 0),
             "units": region.get("units", []),
+            "revealedOrder": region.get("revealedOrder"),
         }
         for region in observation.get("board", [])
     ]
@@ -882,7 +981,9 @@ def _monitoring_state(
         "statePath": observation.get("statePath", []),
         "player": {**you, "units": own_units, "controlledRegionDetails": controlled_regions},
         "standings": observation.get("houses", []),
+        "houseCardStatus": observation.get("houseCardStatus", []),
         "board": board,
+        "revealedOrders": observation.get("revealedOrders", []),
         "actionGuidance": action_guidance,
         "tracks": observation.get("tracks", {}),
         "recentEvents": observation.get("recentEvents", [])[-6:],

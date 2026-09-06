@@ -380,6 +380,10 @@ function renderOverview() {
     ),
   ));
   content.append(section("Available house cards", cardList(player.availableHouseCards || [])));
+  content.append(section(
+    "House card status",
+    houseCardStatusTable(state.houseCardStatus || []),
+  ));
   content.append(section("Units", unitTable(player.units || [])));
   content.append(section(
     "Controlled regions",
@@ -388,6 +392,10 @@ function renderOverview() {
     )),
   ));
   content.append(section("Standings", standingsTable(state.standings || [])));
+  content.append(section(
+    "Revealed orders",
+    revealedOrdersTable(state.revealedOrders || []),
+  ));
   content.append(section("Board", boardTable(state.board || [])));
   content.append(section("Action guidance", structuredValue(state.actionGuidance)));
   content.append(section("Influence tracks", trackList(state.tracks || {})));
@@ -523,18 +531,61 @@ function standingsTable(standings) {
   );
 }
 
+function houseCardStatusTable(statuses) {
+  if (!statuses.length) return textNode("No house card status is available.", "muted-line");
+  return dataTable(
+    ["House", "Available", "Used", "Disabled", "Available cards"],
+    statuses.map((status) => [
+      status.houseName || label(status.houseId),
+      status.detailsVisible ? status.availableCount : "—",
+      status.detailsVisible ? status.usedCount : "—",
+      status.detailsVisible ? status.disabledCount : "—",
+      status.detailsVisible
+        ? (status.availableCards || []).map((card) =>
+          (card.name || label(card.id)) + " (" + (card.strength ?? "?") + ")"
+        ).join(", ") || "None"
+        : "Not exposed by the player snapshot",
+    ]),
+  );
+}
+
+function revealedOrdersTable(orders) {
+  if (!orders.length) return textNode("No orders are currently revealed.", "muted-line");
+  return dataTable(
+    ["Region", "Order", "Token ID"],
+    orders.map((order) => [
+      order.regionName || label(order.regionId),
+      order.order || "Unknown",
+      order.orderId ?? "—",
+    ]),
+  );
+}
+
 function boardTable(board) {
-  if (!board.length) return textNode("No occupied or controlled regions.", "muted-line");
+  if (!board.length) {
+    return textNode("No occupied, controlled, or ordered regions.", "muted-line");
+  }
   const ordered = [...board].sort((left, right) =>
     String(left.name || left.id).localeCompare(String(right.name || right.id))
   );
   return dataTable(
-    ["Region", "Type", "Units", "Control", "Garrison", "Castle", "Supply", "Crowns"],
+    [
+      "Region",
+      "Type",
+      "Units",
+      "Control",
+      "Revealed order",
+      "Garrison",
+      "Castle",
+      "Supply",
+      "Crowns",
+    ],
     ordered.map((region) => [
       region.name || label(region.id),
       label(region.type),
       formatUnits(region.units || []),
       region.controlPowerToken ? label(region.controlPowerToken) : "—",
+      region.revealedOrder?.order || "—",
       region.garrison || "—",
       region.castleLevel || "—",
       region.supplyIcons || "—",

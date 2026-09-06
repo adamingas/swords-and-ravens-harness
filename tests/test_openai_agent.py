@@ -10,6 +10,7 @@ from agents import ModelResponse, Usage
 from agents.models.interface import Model
 from openai.types.responses import ResponseFunctionToolCall
 
+from raven_harness.game.client import GameConnectionLost
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.observation import build_observation
 from raven_harness.harness.strategic import remember_strategy
@@ -32,12 +33,29 @@ class FakeClient:
         self.snapshot = lobby_snapshot()
         self.recent_events: list[dict[str, Any]] = []
         self.sent: list[dict[str, Any]] = []
+        self.connection_generation = 1
 
-    async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
+    async def send(
+        self,
+        message: dict[str, Any],
+        *,
+        require_auth: bool = True,
+        expected_generation: int | None = None,
+    ) -> None:
+        del require_auth
+        if expected_generation != self.connection_generation:
+            raise GameConnectionLost("stale connection generation")
         self.sent.append(message)
 
-    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+    async def sync_snapshot(
+        self,
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> dict[str, Any]:
         del timeout
+        if expected_generation != self.connection_generation:
+            raise GameConnectionLost("stale connection generation")
         message = self.sent[-1]
         if message["type"] == "choose-house":
             self.snapshot["childGameState"]["players"].append(
@@ -251,6 +269,33 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
     ]
+
+
+@pytest.mark.asyncio
+async def test_runner_aborts_stale_gameplay_tool_without_replay(
+    monkeypatch,
+) -> None:
+    fake_model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    client = FakeClient()
+    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    client.connection_generation += 1
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+    )
+
+    with pytest.raises(GameConnectionLost, match="stale connection generation"):
+        await runner.run_once(**turn_arguments(record, context))
+
+    assert fake_model.call_count == 1
+    assert client.sent == []
 
 
 @pytest.mark.asyncio

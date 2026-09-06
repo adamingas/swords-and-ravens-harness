@@ -133,14 +133,27 @@ class FakeClient:
         self.snapshot = lobby_snapshot()
         self.recent_events: list[dict[str, Any]] = []
         self.sent: list[dict[str, Any]] = []
+        self.connection_generation = 1
 
     async def send(
-        self, message: dict[str, Any], *, require_auth: bool = True
+        self,
+        message: dict[str, Any],
+        *,
+        require_auth: bool = True,
+        expected_generation: int | None = None,
     ) -> None:
+        del require_auth
+        assert expected_generation == self.connection_generation
         self.sent.append(message)
 
-    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+    async def sync_snapshot(
+        self,
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> dict[str, Any]:
         del timeout
+        assert expected_generation == self.connection_generation
         message = self.sent[-1]
         self.snapshot["childGameState"]["players"].append([message["house"], "2"])
         return self.snapshot

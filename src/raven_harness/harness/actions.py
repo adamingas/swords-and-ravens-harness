@@ -9,11 +9,23 @@ from itertools import combinations, product
 from typing import Annotated, Any, Protocol
 
 from agents import FunctionTool, RunContextWrapper, function_tool
+from agents.tool import default_tool_error_function
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..game.client import GameConnectionLost
 from .observation import HarnessContext, build_context, is_waiting_for_player
 
 Message = dict[str, Any]
+
+
+def gameplay_tool_error(
+    ctx: RunContextWrapper[Any], error: Exception
+) -> str:
+    """Keep recoverable input errors visible to the model, but abort stale actions."""
+
+    if isinstance(error, GameConnectionLost):
+        raise error
+    return default_tool_error_function(ctx, error)
 
 
 class OrderCategory(str, Enum):
@@ -66,10 +78,22 @@ ORDER_TOKEN_STRENGTH = {
 class GameClient(Protocol):
     snapshot: dict[str, Any] | None
     recent_events: Any
+    connection_generation: int
 
-    async def send(self, message: Message, *, require_auth: bool = True) -> None: ...
+    async def send(
+        self,
+        message: Message,
+        *,
+        require_auth: bool = True,
+        expected_generation: int | None = None,
+    ) -> None: ...
 
-    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]: ...
+    async def sync_snapshot(
+        self,
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> dict[str, Any]: ...
 
 
 class HarnessMemory(Protocol):
@@ -130,6 +154,10 @@ class HarnessRunContext:
     activity_sink: Callable[[str, dict[str, Any]], None] | None = None
     action_taken: ActionTaken | None = None
     pending_strategy_note: str | None = None
+    connection_generation: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.connection_generation = self.client.connection_generation
 
     def report_activity(self, kind: str, payload: dict[str, Any]) -> None:
         """Report sanitized model lifecycle metadata without affecting gameplay."""
@@ -194,8 +222,13 @@ class HarnessRunContext:
         before_state_id = before.snapshot.get("leafStateId")
         outgoing = messages if isinstance(messages, list) else [messages]
         for message in outgoing:
-            await self.client.send(message)
-        await self.client.sync_snapshot()
+            await self.client.send(
+                message,
+                expected_generation=self.connection_generation,
+            )
+        await self.client.sync_snapshot(
+            expected_generation=self.connection_generation
+        )
         after = self.current_game_context()
         if not _action_was_acknowledged(
             name, arguments, before_state_id, after
@@ -541,7 +574,7 @@ def describe_tools(tools: list[FunctionTool]) -> list[dict[str, Any]]:
     ]
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def choose_house(ctx: RunContextWrapper[HarnessRunContext], house_id: str) -> str:
     """Join or change to an available house.
 
@@ -561,7 +594,7 @@ async def choose_house(ctx: RunContextWrapper[HarnessRunContext], house_id: str)
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def choose_option(
     ctx: RunContextWrapper[HarnessRunContext],
     choice_index: Annotated[int, Field(ge=0)],
@@ -580,7 +613,7 @@ async def choose_option(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def select_house_card(
     ctx: RunContextWrapper[HarnessRunContext], house_card_id: str
 ) -> str:
@@ -598,7 +631,7 @@ async def select_house_card(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def choose_combat_house_card(
     ctx: RunContextWrapper[HarnessRunContext],
     house_card_id: str,
@@ -628,7 +661,7 @@ async def choose_combat_house_card(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def submit_bid(
     ctx: RunContextWrapper[HarnessRunContext],
     amount: Annotated[int, Field(ge=0)],
@@ -649,7 +682,7 @@ async def submit_bid(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def select_orders(
     ctx: RunContextWrapper[HarnessRunContext], region_ids: list[str]
 ) -> str:
@@ -675,7 +708,7 @@ async def select_orders(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def declare_support(
     ctx: RunContextWrapper[HarnessRunContext], house_id: str
 ) -> str:
@@ -693,7 +726,7 @@ async def declare_support(
     return await ctx.context.perform("declare_support", {"house_id": house_id}, message)
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def submit_orders(
     ctx: RunContextWrapper[HarnessRunContext], assignments: list[OrderAssignment]
 ) -> str:

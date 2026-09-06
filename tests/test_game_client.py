@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from raven_harness.game.client import SwordsAndRavensClient
+from raven_harness.game.client import GameConnectionLost, SwordsAndRavensClient
 from raven_harness.game.codec import decode_message, encode_message
 from raven_harness.game.state import apply_server_message
 
@@ -12,12 +12,18 @@ from conftest import lobby_snapshot, planning_snapshot
 
 class FakeConnection:
     def __init__(
-        self, *, answer_sync: bool = True, close_after_auth: bool = False
+        self,
+        *,
+        answer_sync: bool = True,
+        close_after_auth: bool = False,
+        snapshot: dict[str, Any] | None = None,
     ) -> None:
         self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
         self.closed = False
         self.answer_sync = answer_sync
         self.close_after_auth = close_after_auth
+        self.snapshot = snapshot or lobby_snapshot()
+        self.sent: list[dict[str, Any]] = []
 
     def __aiter__(self) -> "FakeConnection":
         return self
@@ -30,13 +36,14 @@ class FakeConnection:
 
     async def send(self, payload: str) -> None:
         message = decode_message(payload)
+        self.sent.append(message)
         if message["type"] == "authenticate":
             await self.incoming.put(
                 encode_message(
                     {
                         "type": "authenticate-response",
                         "userId": message["authData"]["userId"],
-                        "game": lobby_snapshot(),
+                        "game": self.snapshot,
                     }
                 )
             )
@@ -117,11 +124,57 @@ async def test_normal_socket_eof_disconnects_and_fails_pending_sync() -> None:
 
     await connection.incoming.put(None)
 
-    with pytest.raises(RuntimeError, match="closed before synchronization"):
+    with pytest.raises(GameConnectionLost, match="closed before synchronization"):
         await asyncio.wait_for(pending_sync, timeout=0.5)
     assert client.status == "disconnected"
     assert client.connection is None
     assert client._sync_requests == {}
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_new_connection_generation_replaces_state_and_rejects_stale_send() -> None:
+    first = FakeConnection(snapshot=lobby_snapshot())
+    replacement = lobby_snapshot()
+    replacement["leafStateId"] = "replacement-leaf"
+    second = FakeConnection(snapshot=replacement)
+    connections = iter((first, second))
+
+    async def connect(_url: str) -> FakeConnection:
+        return next(connections)
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+    original_generation = client.connection_generation
+    await first.incoming.put(
+        encode_message({"type": "house-chosen", "players": [["stark", "2"]]})
+    )
+    await asyncio.sleep(0)
+    assert client.recent_events
+
+    await first.incoming.put(None)
+    for _ in range(100):
+        if client.status == "disconnected":
+            break
+        await asyncio.sleep(0)
+    assert client.status == "disconnected"
+    assert client.snapshot is None
+    assert list(client.recent_events) == []
+
+    snapshot = await client.connect(timeout=0.5)
+    assert snapshot["leafStateId"] == "replacement-leaf"
+    assert client.connection_generation == original_generation + 1
+    with pytest.raises(GameConnectionLost, match="will not be replayed"):
+        await client.send(
+            {"type": "ready"}, expected_generation=original_generation
+        )
+    assert [message["type"] for message in second.sent] == ["authenticate"]
     await client.close()
 
 

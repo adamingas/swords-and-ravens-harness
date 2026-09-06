@@ -12,6 +12,7 @@ from raven_harness.harness.actions import (
 )
 from raven_harness.harness.observation import build_context, build_observation
 from raven_harness.harness.protocol_tools import muster_units
+from raven_harness.game.client import GameConnectionLost
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -21,12 +22,29 @@ class FakeClient:
         self.snapshot = snapshot
         self.recent_events: list[dict[str, Any]] = []
         self.sent: list[dict[str, Any]] = []
+        self.connection_generation = 1
 
-    async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
+    async def send(
+        self,
+        message: dict[str, Any],
+        *,
+        require_auth: bool = True,
+        expected_generation: int | None = None,
+    ) -> None:
+        del require_auth
+        if expected_generation != self.connection_generation:
+            raise GameConnectionLost("stale connection generation")
         self.sent.append(message)
 
-    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+    async def sync_snapshot(
+        self,
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> dict[str, Any]:
         del timeout
+        if expected_generation != self.connection_generation:
+            raise GameConnectionLost("stale connection generation")
         child = self.snapshot["childGameState"]
         if child.get("type") == "lobby" and self.sent[-1]["type"] == "choose-house":
             child["players"].append([self.sent[-1]["house"], "2"])
@@ -47,6 +65,22 @@ def test_lobby_exposes_only_currently_applicable_tools() -> None:
     house_schema = tools[0].params_json_schema["properties"]["house_id"]
     assert house_schema["type"] == "string"
     assert house_schema["enum"] == ["stark", "lannister"]
+
+
+@pytest.mark.asyncio
+async def test_stale_run_never_sends_on_a_new_connection_generation() -> None:
+    client = FakeClient(lobby_snapshot())
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    client.connection_generation += 1
+
+    with pytest.raises(GameConnectionLost, match="stale connection generation"):
+        await run_context.perform(
+            "choose_house",
+            {"house_id": "stark"},
+            {"type": "choose-house", "house": "stark", "password": "wolf"},
+        )
+
+    assert client.sent == []
 
 
 @pytest.mark.asyncio
@@ -1682,8 +1716,15 @@ async def test_supply_reconciliation_computes_minimal_legal_removals() -> None:
 @pytest.mark.asyncio
 async def test_unacknowledged_action_is_not_recorded_as_taken() -> None:
     class RejectingClient(FakeClient):
-        async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+        async def sync_snapshot(
+            self,
+            timeout: float = 10,
+            *,
+            expected_generation: int | None = None,
+        ) -> dict[str, Any]:
             del timeout
+            if expected_generation != self.connection_generation:
+                raise GameConnectionLost("stale connection generation")
             return self.snapshot
 
     client = RejectingClient(lobby_snapshot())

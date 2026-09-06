@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 from agents import FunctionTool, RunContextWrapper, function_tool
 from pydantic import BaseModel, ConfigDict, Field
 
-from .actions import HarnessRunContext
+from .actions import HarnessRunContext, gameplay_tool_error
 from .legal import (
     legal_consolidate_power_options,
     legal_march_options,
@@ -56,7 +56,7 @@ class MusterGroup(ToolInput):
     recruitments: list[Recruitment] = Field(min_length=1)
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_raid(
     ctx: RunContextWrapper[HarnessRunContext],
     order_region_id: str,
@@ -98,7 +98,7 @@ async def resolve_raid(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_march(
     ctx: RunContextWrapper[HarnessRunContext],
     starting_region_id: str,
@@ -193,7 +193,7 @@ async def resolve_march(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def select_units(
     ctx: RunContextWrapper[HarnessRunContext], selections: list[RegionUnits]
 ) -> str:
@@ -242,7 +242,7 @@ async def select_units(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def auto_reconcile_armies(
     ctx: RunContextWrapper[HarnessRunContext],
 ) -> str:
@@ -272,7 +272,7 @@ async def auto_reconcile_armies(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def muster_units(
     ctx: RunContextWrapper[HarnessRunContext],
     musters: Annotated[list[MusterGroup], Field(min_length=1)],
@@ -372,13 +372,13 @@ def _canonical_mustering_source_ids(
     return result
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def skip_mustering(ctx: RunContextWrapper[HarnessRunContext]) -> str:
     """Finish the current mustering decision without recruiting any units."""
     return await _send(ctx, "skip_mustering", {}, {"type": "muster", "units": []})
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_track_ties(
     ctx: RunContextWrapper[HarnessRunContext], ranked_tie_groups: list[list[str]]
 ) -> str:
@@ -408,7 +408,7 @@ async def resolve_track_ties(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def use_valyrian_steel_blade(
     ctx: RunContextWrapper[HarnessRunContext], use: bool
 ) -> str:
@@ -425,7 +425,7 @@ async def use_valyrian_steel_blade(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def replace_raven_order(
     ctx: RunContextWrapper[HarnessRunContext],
     region_id: str,
@@ -456,7 +456,7 @@ async def replace_raven_order(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def skip_raven_order_replacement(
     ctx: RunContextWrapper[HarnessRunContext],
 ) -> str:
@@ -469,7 +469,7 @@ async def skip_raven_order_replacement(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def inspect_top_wildling_card(ctx: RunContextWrapper[HarnessRunContext]) -> str:
     """Use the Messenger Raven to inspect the top Wildling card."""
     return await _send(
@@ -480,7 +480,7 @@ async def inspect_top_wildling_card(ctx: RunContextWrapper[HarnessRunContext]) -
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def place_inspected_wildling_card(
     ctx: RunContextWrapper[HarnessRunContext],
     destination: Literal["top", "bottom"],
@@ -499,7 +499,7 @@ async def place_inspected_wildling_card(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def select_region(
     ctx: RunContextWrapper[HarnessRunContext], region_id: str
 ) -> str:
@@ -520,7 +520,7 @@ async def select_region(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def select_westeros_card(
     ctx: RunContextWrapper[HarnessRunContext], deck_id: int, card_id: int
 ) -> str:
@@ -538,7 +538,7 @@ async def select_westeros_card(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def resolve_consolidate_power(
     ctx: RunContextWrapper[HarnessRunContext],
     region_id: str,
@@ -580,7 +580,7 @@ async def resolve_consolidate_power(
     )
 
 
-@function_tool
+@function_tool(failure_error_function=gameplay_tool_error)
 async def call_for_support_against_neutral_force(
     ctx: RunContextWrapper[HarnessRunContext],
 ) -> str:

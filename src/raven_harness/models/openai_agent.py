@@ -24,6 +24,7 @@ from agents.run_config import CallModelData, ModelInputData
 from openai import APITimeoutError, AsyncOpenAI
 
 from ..errors import is_permanent_provider_error, safe_error_text
+from ..game.client import GameConnectionLost
 from ..harness.actions import HarnessRunContext
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
@@ -39,6 +40,19 @@ TRANSIENT_SUPPORT_TOOL_NAMES = {
     "recall_game_state",
     "remember_strategy",
 }
+
+
+def _caused_by_connection_loss(error: BaseException) -> GameConnectionLost | None:
+    """Recover a connection fence wrapped by the Agents SDK tool runner."""
+
+    seen: set[int] = set()
+    current: BaseException | None = error
+    while current is not None and id(current) not in seen:
+        if isinstance(current, GameConnectionLost):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
 
 
 def _stop_after_accepted_action(
@@ -498,7 +512,12 @@ class OpenAIAgentRunner:
                 message,
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
+        except GameConnectionLost:
+            raise
         except Exception as error:
+            connection_error = _caused_by_connection_loss(error)
+            if connection_error is not None:
+                raise connection_error from error
             error_type = (
                 PermanentModelError
                 if is_permanent_provider_error(error)

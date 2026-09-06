@@ -25,13 +25,20 @@ class FakeClient:
         self.snapshot = snapshot
         self.recent_events = []
         self.sent = []
+        self.connection_generation = 1
 
-    async def send(self, message, *, require_auth=True):
+    async def send(
+        self, message, *, require_auth=True, expected_generation=None
+    ):
         del require_auth
+        assert expected_generation == self.connection_generation
         self.sent.append(message)
 
-    async def sync_snapshot(self, timeout=10):
+    async def sync_snapshot(
+        self, timeout=10, *, expected_generation=None
+    ):
         del timeout
+        assert expected_generation == self.connection_generation
         self.snapshot["leafStateId"] += "-accepted"
         return self.snapshot
 

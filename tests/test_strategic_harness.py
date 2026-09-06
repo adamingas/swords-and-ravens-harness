@@ -27,12 +27,27 @@ class FakeClient:
         self.snapshot = snapshot
         self.recent_events: list[dict[str, Any]] = []
         self.sent: list[dict[str, Any]] = []
+        self.connection_generation = 1
 
-    async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
+    async def send(
+        self,
+        message: dict[str, Any],
+        *,
+        require_auth: bool = True,
+        expected_generation: int | None = None,
+    ) -> None:
+        del require_auth
+        assert expected_generation == self.connection_generation
         self.sent.append(message)
 
-    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+    async def sync_snapshot(
+        self,
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> dict[str, Any]:
         del timeout
+        assert expected_generation == self.connection_generation
         message = self.sent[-1]
         if message["type"] == "choose-house":
             self.snapshot["childGameState"]["players"].append(
