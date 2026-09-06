@@ -687,6 +687,16 @@ def test_non_base_game_snapshot_exposes_no_protocol_tools() -> None:
     assert available_tools(build_context(snapshot, "2")) == []
 
 
+def test_non_six_player_snapshot_exposes_no_protocol_tools() -> None:
+    snapshot = planning_snapshot()
+    snapshot["gameSettings"] = {"setupId": "base-game", "playerCount": 5}
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order"
+    }
+
+    assert available_tools(build_context(snapshot, "2")) == []
+
+
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
@@ -709,9 +719,38 @@ def test_unknown_child_state_does_not_inherit_specific_parent_tools() -> None:
     assert available_tools(build_context(snapshot, "2")) == []
 
 
-def test_neutral_force_support_call_is_available_during_single_march() -> None:
+def test_neutral_force_support_call_is_hidden_without_a_possible_supporter() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": None,
+        },
+    }
+
+    tools = available_tools(build_context(snapshot, "2"))
+
+    assert [tool.name for tool in tools] == ["resolve_march"]
+
+
+def test_neutral_force_support_call_requires_a_reachable_foreign_supporter() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 2], ["white-harbor", 7]]
+    white_harbor = next(
+        region
+        for region in ingame["game"]["world"]["regions"]
+        if region["id"] == "white-harbor"
+    )
+    white_harbor["units"] = [
+        {"id": 2, "type": "footman", "allegiance": "lannister", "wounded": False}
+    ]
+    ingame["game"]["world"]["regions"].append(
+        {"id": "moat-cailin", "units": [], "garrison": 3}
+    )
+    ingame["childGameState"] = {
         "type": "resolve-march-order",
         "childGameState": {
             "type": "resolve-single-march",
@@ -742,6 +781,67 @@ def test_neutral_force_support_call_is_hidden_after_support_was_requested() -> N
     tools = available_tools(build_context(snapshot, "2"))
 
     assert [tool.name for tool in tools] == ["resolve_march"]
+
+
+def test_unattainable_neutral_force_is_not_a_march_destination() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 3]]
+    ingame["game"]["world"]["regions"].append(
+        {"id": "moat-cailin", "units": [], "garrison": 5}
+    )
+    ingame["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": None,
+        },
+    }
+
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "resolve_march"
+    )
+    destinations = tool.params_json_schema["$defs"]["UnitMove"]["properties"][
+        "destination_region_id"
+    ]["enum"]
+
+    assert "moat-cailin" not in destinations
+
+
+def test_accepted_foreign_support_makes_neutral_force_attainable() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 2], ["white-harbor", 7]]
+    white_harbor = next(
+        region
+        for region in ingame["game"]["world"]["regions"]
+        if region["id"] == "white-harbor"
+    )
+    white_harbor["units"] = [
+        {"id": 2, "type": "footman", "allegiance": "lannister", "wounded": False}
+    ]
+    ingame["game"]["world"]["regions"].append(
+        {"id": "moat-cailin", "units": [], "garrison": 2}
+    )
+    ingame["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": [["moat-cailin", ["lannister"]]],
+        },
+    }
+
+    tools = available_tools(build_context(snapshot, "2"))
+    assert [tool.name for tool in tools] == ["resolve_march"]
+    destinations = tools[0].params_json_schema["$defs"]["UnitMove"]["properties"][
+        "destination_region_id"
+    ]["enum"]
+
+    assert "moat-cailin" in destinations
 
 
 @pytest.mark.asyncio
@@ -813,6 +913,7 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
         for item in available_tools(build_context(snapshot, "2"))
         if item.name == "resolve_march"
     )
+    assert tool.params_json_schema["properties"]["leave_power_token"]["const"] is False
     arguments = json.dumps(
         {
             "starting_region_id": "winterfell",
@@ -841,6 +942,107 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
     ]
     assert run_context.action_taken is not None
     assert run_context.action_taken.name == "resolve_march"
+
+
+@pytest.mark.asyncio
+async def test_march_omits_an_illegal_power_token_request() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["ordersOnBoard"] = [["winterfell", 2]]
+    snapshot["childGameState"]["childGameState"] = {"type": "resolve-march-order"}
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "resolve_march"
+    )
+    arguments = json.dumps(
+        {
+            "starting_region_id": "winterfell",
+            "moves": [{"destination_region_id": "white-harbor", "unit_ids": [1]}],
+            "leave_power_token": True,
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-march-illegal-token",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent[-1]["leavePowerToken"] is False
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments["leave_power_token"] is False
+    assert (
+        run_context.action_taken.arguments["omitted_illegal_power_token"] is True
+    )
+
+
+@pytest.mark.asyncio
+async def test_march_rejects_a_weak_neutral_force_attack_before_sending() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 2]]
+    winterfell = next(
+        region
+        for region in ingame["game"]["world"]["regions"]
+        if region["id"] == "winterfell"
+    )
+    winterfell["units"].append(
+        {
+            "id": 3,
+            "type": "knight",
+            "allegiance": "stark",
+            "wounded": False,
+        }
+    )
+    ingame["game"]["world"]["regions"].append(
+        {"id": "moat-cailin", "units": [], "garrison": 3}
+    )
+    ingame["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": None,
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "resolve_march"
+    )
+    destinations = tool.params_json_schema["$defs"]["UnitMove"]["properties"][
+        "destination_region_id"
+    ]["enum"]
+    assert "moat-cailin" in destinations
+    weak = json.dumps(
+        {
+            "starting_region_id": "winterfell",
+            "moves": [{"destination_region_id": "moat-cailin", "unit_ids": [1]}],
+            "leave_power_token": False,
+        }
+    )
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-weak-neutral-attack",
+            tool_name=tool.name,
+            tool_arguments=weak,
+        ),
+        weak,
+    )
+
+    assert "neutral force strength of 3" in result
+    assert client.sent == []
+    assert run_context.action_taken is None
 
 
 @pytest.mark.asyncio
@@ -1219,6 +1421,170 @@ async def test_mustering_upgrade_uses_engine_canonical_footman_order() -> None:
             ],
         }
     ]
+
+
+def _supply_limited_mustering_snapshot() -> dict[str, Any]:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    house = ingame["game"]["houses"][0]
+    house["supplyLevel"] = 0
+    house["unitLimits"] = [
+        ["footman", 10],
+        ["knight", 5],
+        ["ship", 6],
+        ["siege-engine", 2],
+    ]
+    ingame["game"]["supplyRestrictions"] = [[2]]
+    ingame["game"]["world"]["regions"].append(
+        {
+            "id": "bay-of-ice",
+            "units": [
+                {
+                    "id": 30,
+                    "type": "ship",
+                    "allegiance": "stark",
+                    "wounded": False,
+                }
+            ],
+        }
+    )
+    ingame["childGameState"] = {
+        "type": "westeros",
+        "childGameState": {
+            "type": "mustering",
+            "childGameState": {
+                "type": "player-mustering",
+                "house": "stark",
+                "musteringType": 0,
+            },
+        },
+    }
+    return snapshot
+
+
+@pytest.mark.asyncio
+async def test_mustering_keeps_priority_ordered_supply_safe_recruitments() -> None:
+    snapshot = _supply_limited_mustering_snapshot()
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "muster_units"
+    )
+    arguments = json.dumps(
+        {
+            "musters": [
+                {
+                    "mustering_region_id": "winterfell",
+                    "recruitments": [
+                        {
+                            "unit_type": "footman",
+                            "region_id": "winterfell",
+                            "upgrade_from_footman": False,
+                        },
+                        {
+                            "unit_type": "ship",
+                            "region_id": "bay-of-ice",
+                            "upgrade_from_footman": False,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-supply-safe-muster",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {
+            "type": "muster",
+            "units": [
+                [
+                    "winterfell",
+                    [{"from": None, "to": "footman", "region": "winterfell"}],
+                ]
+            ],
+        }
+    ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments["musters"][0]["recruitments"] == [
+        {
+            "unit_type": "footman",
+            "region_id": "winterfell",
+            "upgrade_from_footman": False,
+        }
+    ]
+    assert (
+        run_context.action_taken.arguments["omitted_supply_unsafe_recruitments"]
+        == 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_mustering_submits_empty_plan_when_all_requests_exceed_supply() -> None:
+    snapshot = _supply_limited_mustering_snapshot()
+    winterfell = next(
+        region
+        for region in snapshot["childGameState"]["game"]["world"]["regions"]
+        if region["id"] == "winterfell"
+    )
+    winterfell["units"].append(
+        {
+            "id": 31,
+            "type": "footman",
+            "allegiance": "stark",
+            "wounded": False,
+        }
+    )
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "muster_units"
+    )
+    arguments = json.dumps(
+        {
+            "musters": [
+                {
+                    "mustering_region_id": "winterfell",
+                    "recruitments": [
+                        {
+                            "unit_type": "ship",
+                            "region_id": "bay-of-ice",
+                            "upgrade_from_footman": False,
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-no-supply-safe-muster",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [{"type": "muster", "units": []}]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments == {
+        "musters": [],
+        "omitted_supply_unsafe_recruitments": 1,
+    }
 
 
 @pytest.mark.asyncio

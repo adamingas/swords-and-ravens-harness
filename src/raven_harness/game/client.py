@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from websockets.asyncio.client import connect
 
+from ..errors import safe_error_text
 from .codec import decode_message, encode_message
 from .state import apply_server_message
 
@@ -118,7 +119,7 @@ class SwordsAndRavensClient:
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            self.on_event("error", {"message": str(error)})
+            self.on_event("error", {"message": safe_error_text(error)})
             self._set_status("disconnected")
 
     def _on_message(self, message: dict[str, Any]) -> None:

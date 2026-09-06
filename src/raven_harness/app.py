@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from .agent_store import AgentStore
 from .config import Settings
 from .database import Database
+from .errors import safe_error_text
 from .game.client import ConnectionFactory
 from .harness.strategic import StrategicHarness, StrategicModelRunner
 from .manager import AgentManager
@@ -95,7 +96,7 @@ def create_app(
     async def runtime_error_handler(
         _request: Request, error: RuntimeError
     ) -> JSONResponse:
-        return JSONResponse(status_code=400, content={"error": str(error)})
+        return JSONResponse(status_code=400, content={"error": safe_error_text(error)})
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(

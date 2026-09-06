@@ -396,6 +396,11 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
             len(regions), _usable_order_capacity(max_starred)
         )
         required_restricted = max(0, assignment_count - normal_capacity)
+        category_capacities = _category_assignment_capacities(
+            restricted_token_ids,
+            max_starred,
+            required_restricted,
+        )
         restricted_order_categories = sorted(
             (
                 category
@@ -428,6 +433,7 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
                     "restricted_order_categories": restricted_order_categories,
                     "restricted_starred_categories": restricted_starred_categories,
                     "required_restricted": required_restricted,
+                    "category_capacities": category_capacities,
                 },
             )
         )
@@ -495,6 +501,13 @@ def _tool_for_action(action: ActionSpec) -> FunctionTool:
             if legal["required_restricted"] > 0 or order not in restricted
         ]
         assignment_properties["order"]["enum"] = allowed_orders
+        capacities = ", ".join(
+            f"{category.value}={legal['category_capacities'][category]}"
+            for category in OrderCategory
+        )
+        assignment_properties["order"]["description"] += (
+            f" Current maximum assignments by category: {capacities}."
+        )
         schema["$defs"]["OrderCategory"]["enum"] = allowed_orders
 
     return replace(tool, params_json_schema=schema)
@@ -746,6 +759,29 @@ def _normal_order_capacity(
         token_id not in restricted_token_ids for token_id in STARRED_ORDER_TOKENS
     )
     return unstarred + min(max_starred, starred)
+
+
+def _category_assignment_capacities(
+    restricted_token_ids: set[int],
+    max_starred: int,
+    required_restricted: int,
+) -> dict[OrderCategory, int]:
+    """Maximum usable tokens in each family for the current planning state."""
+
+    capacities: dict[OrderCategory, int] = {}
+    for category, token_ids in ORDER_TOKENS.items():
+        normal = sum(
+            token_id not in restricted_token_ids
+            and (token_id not in STARRED_ORDER_TOKENS or max_starred > 0)
+            for token_id in token_ids
+        )
+        fallback = sum(
+            token_id in restricted_token_ids
+            or (max_starred == 0 and token_id in STARRED_ORDER_TOKENS)
+            for token_id in token_ids
+        )
+        capacities[category] = normal + min(required_restricted, fallback)
+    return capacities
 
 
 def _usable_order_capacity(max_starred: int) -> int:

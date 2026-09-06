@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict
 from .agent_store import AgentStore
 from .config import DEFAULT_MODEL_ID, PROJECT_ROOT, Settings
 from .database import Database
+from .errors import safe_error_text
 from .harness.strategic import (
     AGENT_SDK_MAX_TURNS,
     STRATEGIC_INSTRUCTIONS,
@@ -201,19 +202,20 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
             )
             print(f"Game {game_number}: winner {result['winner']}")
         except Exception as error:
+            error_text = safe_error_text(error)
             attempt.update(
                 {
                     "status": "failed",
                     "finishedAt": _now(),
-                    "error": str(error),
+                    "error": error_text,
                 }
             )
             _write_json(attempt_dir / "failure.json", attempt)
-            print(f"Game {game_number}: failed: {error}")
+            print(f"Game {game_number}: failed: {error_text}")
             if not args.continue_on_error:
                 _write_json(manifest_path, manifest)
                 _write_summary(output, manifest)
-                raise
+                raise RuntimeError(error_text) from None
         finally:
             _write_json(manifest_path, manifest)
             _write_summary(output, manifest)

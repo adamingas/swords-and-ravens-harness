@@ -13,6 +13,7 @@ from raven_harness.models.openai_agent import (
     ModelRunCancelled,
     ModelRunError,
     ModelRunResult,
+    PermanentModelError,
 )
 from raven_harness.schemas import AgentCreate
 
@@ -114,6 +115,12 @@ class ContextManifestHarness:
         )
         if self.outcome == "failed":
             raise ModelRunError("model failed", result)
+        if self.outcome == "permanent":
+            raise PermanentModelError(
+                "spending limit exhausted at "
+                "https://provider.test/settings/keys/private-key-id",
+                result,
+            )
         if self.outcome == "cancelled":
             raise ModelRunCancelled(result)
         context.action_taken = ActionTaken(
@@ -172,6 +179,45 @@ async def test_manager_persists_partial_result_context_manifest(
     assert trace is not None
     assert trace["status"] == outcome
     assert trace["contextManifest"] == harness.manifest
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_permanent_provider_error_stops_all_autoplay_and_is_redacted(
+    tmp_path,
+) -> None:
+    database, store, harness, manager, agent = manifest_manager(
+        tmp_path, "permanent"
+    )
+    second = store.create_agent(
+        AgentCreate(
+            name="Second Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="3",
+            auth_token="secret",
+        )
+    )
+    manager.sessions[agent.id].autoplay = True
+    manager.sessions[second.id] = AgentSession(
+        status="connected", client=FakeRunClient(), autoplay=True
+    )
+
+    with pytest.raises(PermanentModelError) as raised:
+        await manager.run_once(agent.id)
+
+    assert "private-key-id" not in str(raised.value)
+    assert all(not session.autoplay for session in manager.sessions.values())
+    trace = store.get_run(agent.id, store.list_runs(agent.id)[0]["id"])
+    assert trace is not None
+    assert "private-key-id" not in (trace["error"] or "")
+    serialized_events = str(
+        [event.payload for event in store.list_events(agent.id)]
+        + [event.payload for event in store.list_events(second.id)]
+    )
+    assert "private-key-id" not in serialized_events
+    assert "permanent-provider-error" in serialized_events
     database.close()
 
 

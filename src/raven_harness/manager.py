@@ -10,11 +10,17 @@ from uuid import uuid4
 from opentelemetry.trace import Status, StatusCode
 
 from .agent_store import AgentStore
+from .errors import safe_error_text
 from .game.client import ConnectionFactory, SwordsAndRavensClient
 from .harness.actions import HarnessRunContext, describe_tools
 from .harness.interface import PlayerHarness, PreparedTurn
 from .harness.observation import build_context, is_waiting_for_player
-from .models.openai_agent import ModelRunCancelled, ModelRunError, ModelRunResult
+from .models.openai_agent import (
+    ModelRunCancelled,
+    ModelRunError,
+    ModelRunResult,
+    PermanentModelError,
+)
 from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
 from .telemetry import Telemetry, provider_cost
 
@@ -109,10 +115,13 @@ class AgentManager:
                 session.status = str(payload["status"])
                 self.store.add_event(agent_id, "connection-status", payload)
             elif kind == "error":
-                session.last_error = str(
+                message = safe_error_text(
                     payload.get("message", "Game connection failed")
                 )
-                self.store.add_event(agent_id, "connection-error", payload)
+                session.last_error = message
+                self.store.add_event(
+                    agent_id, "connection-error", {"message": message}
+                )
             elif kind == "sent":
                 self.store.add_event(
                     agent_id, "game-message-sent", _summarize_message(payload)
@@ -152,12 +161,11 @@ class AgentManager:
             session.connected_at = datetime.now(timezone.utc).isoformat()
             session.status = "connected"
         except Exception as error:
+            message = safe_error_text(error)
             session.status = "error"
-            session.last_error = str(error)
-            self.store.add_event(agent_id, "connection-error", {"message": str(error)})
-            if isinstance(error, RuntimeError):
-                raise
-            raise RuntimeError(str(error)) from error
+            session.last_error = message
+            self.store.add_event(agent_id, "connection-error", {"message": message})
+            raise RuntimeError(message) from None
         return self._require_public_agent(agent_id)
 
     async def stop(self, agent_id: str) -> AgentPublic | None:
@@ -200,8 +208,11 @@ class AgentManager:
             try:
                 result = await self._run_once(agent_id)
             except Exception as error:
-                span.record_exception(error)
-                span.set_status(Status(StatusCode.ERROR, str(error)))
+                message = safe_error_text(error)
+                if isinstance(error, PermanentModelError):
+                    self._disable_all_autoplay(message)
+                span.record_exception(RuntimeError(message))
+                span.set_status(Status(StatusCode.ERROR, message))
                 raise
             decision = result["decision"]
             usage = decision["usage"]
@@ -357,9 +368,11 @@ class AgentManager:
             raise
         except Exception as error:
             status = "failed"
-            error_text = str(error)
+            error_text = safe_error_text(error)
             if isinstance(error, ModelRunError):
                 model_result = error.partial_result
+                if error_text != str(error):
+                    error = type(error)(error_text, error.partial_result)
             session.last_error = error_text
             self.store.add_event(
                 agent_id,
@@ -367,8 +380,10 @@ class AgentManager:
                 {"runId": run_id, "message": error_text},
             )
             if isinstance(error, RuntimeError):
-                raise
-            raise RuntimeError(error_text) from error
+                if str(error) == error_text:
+                    raise error from None
+                raise RuntimeError(error_text) from None
+            raise RuntimeError(error_text) from None
         finally:
             finished_at = datetime.now(timezone.utc).isoformat()
             self.store.add_run(
@@ -580,9 +595,10 @@ class AgentManager:
             await expected_session.client.send({"type": "ready"})
             self.store.add_event(agent_id, "lobby-ready-confirmed", {})
         except Exception as error:
-            expected_session.last_error = str(error)
+            message = safe_error_text(error)
+            expected_session.last_error = message
             self.store.add_event(
-                agent_id, "lobby-ready-failed", {"message": str(error)}
+                agent_id, "lobby-ready-failed", {"message": message}
             )
 
     async def _autoplay_loop(
@@ -630,6 +646,18 @@ class AgentManager:
                         * 2 ** (expected_session.consecutive_failures - 1),
                     )
                     await asyncio.sleep(delay)
+
+    def _disable_all_autoplay(self, message: str) -> None:
+        for agent_id, session in self.sessions.items():
+            if not session.autoplay:
+                continue
+            session.autoplay = False
+            session.last_error = message
+            self.store.add_event(
+                agent_id,
+                "autoplay-stopped",
+                {"reason": "permanent-provider-error", "message": message},
+            )
 
     def _require_agent(self, agent_id: str) -> AgentRecord:
         record = self.store.get_agent(agent_id)

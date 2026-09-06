@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import combinations
 from typing import Any
 
 from ..game.map_reference import load_map_reference
@@ -11,6 +12,8 @@ CONSOLIDATE_POWER_ORDER_IDS = {10, 11, 12}
 STANDARD_RAID_TARGET_ORDER_IDS = {7, 8, 9, 10, 11, 12, 13, 14, 15}
 STARRED_RAID_TARGET_ORDER_IDS = STANDARD_RAID_TARGET_ORDER_IDS | {4, 5, 6}
 LAND_UNIT_TYPES = {"footman", "knight", "siege-engine"}
+SUPPORT_ORDER_MODIFIERS = {7: 0, 8: 0, 9: 1, 17: 1, 21: 0}
+MARCH_ORDER_MODIFIERS = {1: -1, 2: 0, 3: 1, 16: 0, 20: -1}
 
 
 def legal_raid_options(context: HarnessContext) -> list[dict[str, Any]]:
@@ -117,6 +120,20 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
                     != context.house_id
                 ):
                     continue
+            neutral_force = _neutral_force(context, target_id)
+            if neutral_force is not None:
+                feasible_groups = _feasible_neutral_force_unit_groups(
+                    context,
+                    region_id,
+                    target_id,
+                    units,
+                )
+                if not feasible_groups:
+                    continue
+                neutral_force = {
+                    **neutral_force,
+                    "feasibleUnitIdGroups": feasible_groups,
+                }
             destinations.append(
                 {
                     "regionId": target_id,
@@ -127,6 +144,7 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
                         controller != context.house_id
                         and (target.get("units") or target.get("garrison", 0) > 0)
                     ),
+                    "neutralForce": neutral_force,
                 }
             )
         source = static_regions.get(region_id, {})
@@ -148,6 +166,78 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
             }
         )
     return sorted(result, key=lambda item: item["regionId"])
+
+
+def possible_neutral_force_support(
+    context: HarnessContext,
+) -> dict[str, list[str]]:
+    """Return neutral-force targets with foreign houses the server can ask."""
+
+    if (
+        context.game is None
+        or context.ingame is None
+        or context.house_id is None
+        or (context.leaf or {}).get("type") != "resolve-single-march"
+        or (context.leaf or {}).get("supportersAgainstNeutralForce") is not None
+    ):
+        return {}
+    regions, static_regions = _regions(context)
+    result: dict[str, set[str]] = {}
+    for source_id, order_id in _orders(context).items():
+        if order_id not in MARCH_ORDER_IDS:
+            continue
+        if _controller(source_id, regions, static_regions) != context.house_id:
+            continue
+        source_static = static_regions.get(source_id, {})
+        if _region_kind(source_static) != "land":
+            continue
+        target_ids = _reachable_regions(
+            source_id,
+            "land",
+            context.house_id,
+            regions,
+            static_regions,
+        )
+        for target_id in target_ids:
+            target = regions.get(target_id, {})
+            if (
+                int(target.get("garrison", 0)) <= 0
+                or int(target.get("garrison", 0)) == 1_000
+                or _controller(target_id, regions, static_regions) is not None
+            ):
+                continue
+            for support_id in _supporting_region_ids(
+                context, target_id, regions, static_regions
+            ):
+                controller = _controller(support_id, regions, static_regions)
+                if controller is not None and controller != context.house_id:
+                    result.setdefault(target_id, set()).add(controller)
+    return {
+        target_id: sorted(houses)
+        for target_id, houses in sorted(result.items())
+        if houses
+    }
+
+
+def neutral_force_attack_is_legal(
+    context: HarnessContext,
+    starting_region_id: str,
+    target_region_id: str,
+    unit_ids: list[int],
+    prior_non_combat_moves: list[tuple[str, list[int]]] | None = None,
+) -> bool:
+    """Match the base engine's strength gate for an uncontrolled garrison."""
+
+    neutral_force = _neutral_force(context, target_region_id)
+    if neutral_force is None:
+        return True
+    return _neutral_force_attack_strength(
+        context,
+        starting_region_id,
+        target_region_id,
+        unit_ids,
+        prior_non_combat_moves or [],
+    ) >= int(neutral_force["requiredStrength"])
 
 
 def legal_consolidate_power_options(
@@ -295,7 +385,12 @@ def legal_raven_replacements(context: HarnessContext) -> list[dict[str, Any]]:
     return sorted(result, key=lambda item: item["regionId"])
 
 
-def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
+def validate_musterings(
+    context: HarnessContext,
+    musters: list[Any],
+    *,
+    check_supply: bool = True,
+) -> None:
     """Reject statically illegal base-game recruitments before server submission."""
 
     guidance = legal_mustering_options(context)
@@ -362,7 +457,178 @@ def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
         extra = upgrade_count if unit_type == "footman" else 0
         if count > availability.get(unit_type, 0) + extra:
             raise ValueError(f"not enough {unit_type} pieces remain")
-    _validate_supply_after_recruitment(context, additions)
+    if check_supply:
+        _validate_supply_after_recruitment(context, additions)
+
+
+def supply_safe_musterings(
+    context: HarnessContext, musters: list[Any]
+) -> list[Any]:
+    """Keep the priority-ordered subset that fits the current Supply track."""
+
+    allowed = _allowed_army_sizes(context)
+    if allowed is None:
+        return list(musters)
+    additions: dict[str, int] = {}
+    result = []
+    for muster in musters:
+        recruitments = []
+        for recruitment in muster.recruitments:
+            if recruitment.upgrade_from_footman:
+                recruitments.append(recruitment)
+                continue
+            candidate = dict(additions)
+            candidate[recruitment.region_id] = (
+                candidate.get(recruitment.region_id, 0) + 1
+            )
+            if _army_sizes_fit(_army_sizes_after_additions(context, candidate), allowed):
+                additions = candidate
+                recruitments.append(recruitment)
+        if recruitments:
+            result.append(muster.model_copy(update={"recruitments": recruitments}))
+    return result
+
+
+def _neutral_force(
+    context: HarnessContext, target_region_id: str
+) -> dict[str, Any] | None:
+    regions, static_regions = _regions(context)
+    target = regions.get(target_region_id, {})
+    required_strength = int(target.get("garrison", 0))
+    if (
+        required_strength <= 0
+        or required_strength == 1_000
+        or _controller(target_region_id, regions, static_regions) is not None
+    ):
+        return None
+    static = static_regions.get(target_region_id, {})
+    has_structure = (
+        int(static.get("castleLevel", 0)) + int(target.get("castleModifier", 0))
+    ) > 0
+    return {
+        "requiredStrength": required_strength,
+        "hasStructure": has_structure,
+    }
+
+
+def _feasible_neutral_force_unit_groups(
+    context: HarnessContext,
+    starting_region_id: str,
+    target_region_id: str,
+    units: list[dict[str, Any]],
+) -> list[list[int]]:
+    unit_ids = sorted(int(unit["id"]) for unit in units)
+    return [
+        list(group)
+        for count in range(1, len(unit_ids) + 1)
+        for group in combinations(unit_ids, count)
+        if neutral_force_attack_is_legal(
+            context,
+            starting_region_id,
+            target_region_id,
+            list(group),
+        )
+    ]
+
+
+def _neutral_force_attack_strength(
+    context: HarnessContext,
+    starting_region_id: str,
+    target_region_id: str,
+    unit_ids: list[int],
+    prior_non_combat_moves: list[tuple[str, list[int]]],
+) -> int:
+    regions, static_regions = _regions(context)
+    neutral_force = _neutral_force(context, target_region_id)
+    if neutral_force is None:
+        return 0
+    attacking_structure = bool(neutral_force["hasStructure"])
+    units_by_id = {
+        int(unit["id"]): unit
+        for region in regions.values()
+        for unit in region.get("units", [])
+    }
+    strength = sum(
+        _unit_strength(units_by_id[unit_id], attacking_structure)
+        for unit_id in unit_ids
+        if unit_id in units_by_id
+    )
+    march_order_id = _orders(context).get(starting_region_id)
+    strength += MARCH_ORDER_MODIFIERS.get(march_order_id or 0, 0)
+
+    accepted_foreign = _accepted_neutral_force_supporters(
+        context, target_region_id
+    )
+    prior_units_by_destination = {
+        destination_id: [
+            units_by_id[unit_id]
+            for unit_id in moved_unit_ids
+            if unit_id in units_by_id
+        ]
+        for destination_id, moved_unit_ids in prior_non_combat_moves
+    }
+    for support_id in _supporting_region_ids(
+        context, target_region_id, regions, static_regions
+    ):
+        controller = _controller(support_id, regions, static_regions)
+        if controller != context.house_id and controller not in accepted_foreign:
+            continue
+        strength += SUPPORT_ORDER_MODIFIERS[_orders(context)[support_id]]
+        strength += sum(
+            _unit_strength(unit, attacking_structure)
+            for unit in regions.get(support_id, {}).get("units", [])
+        )
+        if controller == context.house_id:
+            strength += sum(
+                _unit_strength(unit, attacking_structure)
+                for unit in prior_units_by_destination.get(support_id, [])
+            )
+    return strength
+
+
+def _supporting_region_ids(
+    context: HarnessContext,
+    target_region_id: str,
+    regions: dict[str, dict[str, Any]],
+    static_regions: dict[str, dict[str, Any]],
+) -> list[str]:
+    orders = _orders(context)
+    result = []
+    for region_id in static_regions.get(target_region_id, {}).get("neighbours", []):
+        if orders.get(region_id) not in SUPPORT_ORDER_MODIFIERS:
+            continue
+        static = static_regions.get(region_id, {})
+        if static.get("type") == "port" and target_region_id in static.get(
+            "neighbours", []
+        ):
+            continue
+        result.append(region_id)
+    return result
+
+
+def _accepted_neutral_force_supporters(
+    context: HarnessContext, target_region_id: str
+) -> set[str]:
+    serialized = (context.leaf or {}).get("supportersAgainstNeutralForce") or []
+    return {
+        str(house_id)
+        for region_id, house_ids in serialized
+        if str(region_id) == target_region_id
+        for house_id in house_ids
+    }
+
+
+def _unit_strength(unit: dict[str, Any], attacking_structure: bool) -> int:
+    if unit.get("wounded", False):
+        return 0
+    unit_type = str(unit.get("type", ""))
+    if unit_type == "knight":
+        return 2
+    if unit_type == "siege-engine":
+        return 4 if attacking_structure else 0
+    if unit_type in {"footman", "ship"}:
+        return 1
+    return 0
 
 
 def _regions(
@@ -524,7 +790,11 @@ def _controller(
             if land_id is not None
             else None
         )
-    return region.get("controlPowerToken") or static.get("homeController")
+    return (
+        region.get("controlPowerToken")
+        or region.get("overwrittenSuperControlPowerToken")
+        or static.get("homeController")
+    )
 
 
 def _reachable_regions(

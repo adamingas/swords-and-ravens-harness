@@ -286,7 +286,7 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | strategicOverview | A deterministic score and resource summary. |
 | strategicMemory | The player's private structured notebook. |
 | historyIndex | A compact index of the current recorded decision state and earlier decision states. |
-| planningConstraints | Starred-order limits, active order restrictions, and the number of restricted dummy orders required by exhausted token inventory. |
+| planningConstraints | Starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
 | previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
 
 The map reference is complete, but the board field is sparse. Empty regions
@@ -324,7 +324,17 @@ automatic notebook, and up to 12 history entries.
     "modelPlan": ""
   },
   "historyIndex": [{"stateId": "leaf-2", "phase": "place-orders"}],
-  "planningConstraints": {"requiredAssignmentCount": 2, "maxStarredOrders": 1}
+  "planningConstraints": {
+    "requiredAssignmentCount": 2,
+    "maxStarredOrders": 1,
+    "maxAssignmentsByOrderCategory": {
+      "march": 3,
+      "defense": 3,
+      "support": 3,
+      "consolidate_power": 3,
+      "raid": 3
+    }
+  }
 }
 ~~~
 
@@ -342,8 +352,14 @@ The harness uses four checks.
 4. **Snapshot inference:** The harness fetches a new authoritative snapshot and
    checks for evidence that the action was processed.
 
+Two narrow corrections avoid wasting another model request. An ineligible
+March control-token request is applied as false. Mustering treats recruitments
+as a priority-ordered list and omits later new units that do not fit Supply.
+The accepted action trace records the applied arguments and an omission count
+or flag; the raw SDK response still records the model's original tool call.
+
 The canonical harness supports a six-player base game. It exposes no protocol
-tool for another game mode. The post-action test is a heuristic, not a
+tool for another setup or player count. The post-action test is a heuristic, not a
 dedicated action acknowledgement. A model can still make a bad attempt. A
 server transition can also make acceptance ambiguous.
 
@@ -386,6 +402,8 @@ regions than usable base-game tokens, it is smaller and the model chooses which
 regions receive no order. When normal tokens are exhausted, the server permits
 the minimum necessary restricted tokens; the harness sends normally legal
 tokens before those forced dummy orders.
+`planningConstraints.maxAssignmentsByOrderCategory` and the state-specific
+tool description give the usable maximum for each family in the current state.
 
 This allocator covers the 15 standard player order tokens used by the base
 game. Optional sea-order and Iron Bank order tokens are not yet model-facing.
@@ -445,10 +463,10 @@ active state controls when each tool is visible.
 | Tool | Exact leaf state | Effect |
 | --- | --- | --- |
 | `resolve_raid(order_region_id, target_region_id)` | `resolve-raid-order`; `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
-| `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. |
+| `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. Unattainable neutral forces are excluded, and the selected army's neutral-force strength is checked locally. |
 | `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
-| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally. |
+| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later Supply-unsafe new units are omitted. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
 | `resolve_track_ties(ranked_tie_groups)` | `resolve-ties` | Rank each displayed tied group from highest to lowest. |
 | `use_valyrian_steel_blade(use)` | `use-valyrian-steel-blade` | Use or decline the blade in the current combat. |
@@ -459,7 +477,7 @@ active state controls when each tool is visible.
 | `select_region(region_id)` | `select-region`; `resolve-retreat` | Select one region for the current prompted effect. |
 | `select_westeros_card(deck_id, card_id)` | `select-westeros-card` | Select a displayed card from a Westeros deck. |
 | `resolve_consolidate_power(region_id, choice)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one base-game order. Choose `gain_power_tokens`, or choose `muster_units` for a starred order on a castle. |
-| `call_for_support_against_neutral_force()` | `resolve-single-march`, before a support request | Ask for support during a march against a neutral force. The harness hides the tool after support has been requested. |
+| `call_for_support_against_neutral_force()` | `resolve-single-march`, before a support request | Ask for support during a march against a neutral force. The harness exposes it only when a reachable neutral force has at least one eligible foreign supporting house. |
 
 `UnitMove` has `destination_region_id` and a non-empty `unit_ids` list.
 `RegionUnits` has `region_id` and a non-empty `unit_ids` list. A recruitment
@@ -467,13 +485,23 @@ has `unit_type`, `region_id`, and `upgrade_from_footman`. Set the boolean when
 the target unit should replace an existing Footman; the harness selects the
 engine-compatible Footman internally. `muster_units` requires a non-empty
 `musters` list. Each muster group has `mustering_region_id` and a non-empty
-`recruitments` list.
+`recruitments` list. Recruitment order is priority order. Legal upgrades are
+kept because they do not change army size; later new units that would exceed
+Supply are omitted. If every requested new unit is unsafe, the harness submits
+an empty mustering plan to finish the decision.
+
+`leave_power_token=true` requires an eligible land source and every listed
+source unit to leave. When no offered source is eligible, the state-specific
+schema fixes this field to false. The runtime also converts an illegal true
+value to false and records `omitted_illegal_power_token=true` in the applied
+action. Neutral-force destination guidance includes the required strength and
+the feasible moving-unit groups.
 
 Mustering guidance includes the current Supply level, the allowed army-size
 slots, each current army, and every single-unit region. Each destination also
 has `supplySafeNewUnitsWhenChosenAlone`. That number applies only when the
-model adds units to that one destination. Combined recruits still pass through
-the full local Supply validator.
+model adds units to that one destination. Combined recruits are applied in the
+submitted priority order through the full local Supply validator.
 
 ## 10. Private support tools
 
@@ -666,8 +694,14 @@ request. It does not delete them from SQLite.
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
+Validation and upstream non-acknowledgement errors are returned to the model
+inside the same SDK run. The run stops only after the harness records an
+accepted gameplay action. Provider account, quota, and authentication failures
+stop autoplay for all running agents immediately. Persisted and API-visible
+error text redacts credential assignments, sensitive URL parameters, and
+provider key-management identifiers.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Cloudflare, CoreWeave, Fireworks, Together, DeepInfra, and Reka.
+defaults to Reka, Cloudflare, CoreWeave, Fireworks, Together, and DeepInfra.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -702,11 +736,11 @@ SQLite is the authoritative local trace store. The harness can also export one
 coarse span per `run_once` invocation to any OTLP/HTTP trace collector. Every
 span starts with agent, game, and model identifiers. A successful decision adds
 its run ID, chosen action, input/output token totals, and cost, using zero when
-the provider omitted cost. A failed invocation records its exception and error
-status, but can fail before a run ID exists. Spans intentionally do not export
-prompts, observations, credentials, or response bodies as attributes. Failed
-spans do include exception events, and an exception message can contain model
-output. Treat the OTLP collector as sensitive.
+the provider omitted cost. A failed invocation records a sanitized exception
+and error status, but can fail before a run ID exists. Spans intentionally do
+not export prompts, observations, credentials, or response bodies as attributes. Failed
+spans do include exception events, and a sanitized exception message can
+contain model output. Treat the OTLP collector as sensitive.
 
 For a local Phoenix viewer, start Phoenix in a separate terminal:
 

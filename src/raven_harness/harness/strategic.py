@@ -271,6 +271,12 @@ class StrategicHarness:
                 "requiredRestrictedOrders": planning.legal_values[
                     "required_restricted"
                 ],
+                "maxAssignmentsByOrderCategory": {
+                    order.value: capacity
+                    for order, capacity in planning.legal_values[
+                        "category_capacities"
+                    ].items()
+                },
             }
         return observation
 

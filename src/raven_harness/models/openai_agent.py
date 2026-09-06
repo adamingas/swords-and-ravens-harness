@@ -15,11 +15,13 @@ from agents import (
     OpenAIResponsesModel,
     RunConfig,
     Runner,
+    ToolsToFinalOutputResult,
 )
 from agents.memory import Session, SessionSettings, SQLiteSession
 from agents.run_config import CallModelData, ModelInputData
 from openai import APITimeoutError, AsyncOpenAI
 
+from ..errors import is_permanent_provider_error, safe_error_text
 from ..harness.actions import HarnessRunContext
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
@@ -35,6 +37,41 @@ TRANSIENT_SUPPORT_TOOL_NAMES = {
     "recall_game_state",
     "remember_strategy",
 }
+
+
+def _stop_after_accepted_action(
+    gameplay_tool_names: list[str],
+):
+    """Keep tool errors in the same model run and stop after an accepted action."""
+
+    allowed = set(gameplay_tool_names)
+
+    def behavior(context_wrapper: Any, tool_results: list[Any]) -> ToolsToFinalOutputResult:
+        action = context_wrapper.context.action_taken
+        if action is None or action.name not in allowed:
+            return ToolsToFinalOutputResult(is_final_output=False, final_output=None)
+        matching_result = next(
+            (
+                result
+                for result in tool_results
+                if result.tool.name == action.name
+                or result.tool.qualified_name == action.name
+            ),
+            None,
+        )
+        return ToolsToFinalOutputResult(
+            is_final_output=True,
+            final_output=(
+                matching_result.output
+                if matching_result is not None
+                else json.dumps(
+                    {"ok": True, "accepted": True, "action": action.name},
+                    separators=(",", ":"),
+                )
+            ),
+        )
+
+    return behavior
 
 
 @dataclass(frozen=True)
@@ -158,6 +195,10 @@ class ModelRunError(RuntimeError):
     def __init__(self, message: str, partial_result: ModelRunResult) -> None:
         super().__init__(message)
         self.partial_result = partial_result
+
+
+class PermanentModelError(ModelRunError):
+    """A provider account or authentication failure that retries cannot repair."""
 
 
 class ModelRunCancelled(asyncio.CancelledError):
@@ -293,15 +334,15 @@ class OpenAIAgentRunner:
                     metadata=trace_metadata,
                     user=agent_record.id,
                 ),
-                tool_use_behavior={"stop_at_tool_names": stop_at_tool_names},
+                tool_use_behavior=_stop_after_accepted_action(stop_at_tool_names),
                 reset_tool_choice=False,
             )
             model_input_recorder.parent_agent = agent
         except Exception as error:
             raise ModelRunError(
-                str(error),
+                safe_error_text(error),
                 _partial_result(oracle_interactions, context_filter.manifest()),
-            ) from error
+            ) from None
         try:
             async with self._run_slots:
                 async with asyncio.timeout(self.run_timeout_seconds):
@@ -317,15 +358,15 @@ class OpenAIAgentRunner:
             raise ModelRunCancelled(
                 _partial_result(oracle_interactions, context_filter.manifest())
             ) from error
-        except TimeoutError as error:
+        except TimeoutError:
             message = (
                 f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
             )
             raise ModelRunError(
                 message,
                 _partial_result(oracle_interactions, context_filter.manifest()),
-            ) from error
-        except APITimeoutError as error:
+            ) from None
+        except APITimeoutError:
             message = (
                 "Model API timed out after "
                 f"{self.request_timeout_seconds:g} seconds per attempt and "
@@ -334,12 +375,17 @@ class OpenAIAgentRunner:
             raise ModelRunError(
                 message,
                 _partial_result(oracle_interactions, context_filter.manifest()),
-            ) from error
+            ) from None
         except Exception as error:
-            raise ModelRunError(
-                str(error),
+            error_type = (
+                PermanentModelError
+                if is_permanent_provider_error(error)
+                else ModelRunError
+            )
+            raise error_type(
+                safe_error_text(error),
                 _partial_result(oracle_interactions, context_filter.manifest()),
-            ) from error
+            ) from None
 
         try:
             return _completed_result(
@@ -349,9 +395,9 @@ class OpenAIAgentRunner:
             )
         except Exception as error:
             raise ModelRunError(
-                str(error),
+                safe_error_text(error),
                 _partial_result(oracle_interactions, context_filter.manifest()),
-            ) from error
+            ) from None
 
     def _session(self, agent_id: str) -> Session | None:
         if self.session_database_path is None:

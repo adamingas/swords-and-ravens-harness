@@ -54,20 +54,20 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
         "allow_fallbacks": True,
         "require_parameters": False,
         "order": [
+            "reka",
             "cloudflare",
             "coreweave",
             "fireworks",
             "together",
             "deepinfra",
-            "reka",
         ],
         "only": [
+            "reka",
             "cloudflare",
             "coreweave",
             "fireworks",
             "together",
             "deepinfra",
-            "reka",
         ],
     }
 

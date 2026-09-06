@@ -32,6 +32,9 @@ z-ai/glm-5.3-flash. The default database is stored at data/harness.db in this
 repository unless `DATABASE_PATH` selects another
 project-relative or absolute path. OpenRouter retries retryable HTTP and
 connection failures and can try another provider for the same exact model ID.
+Handled tool errors stay inside the current Agents SDK run so the model can
+correct its call. An account or authentication failure stops autoplay for all
+agents instead of repeating requests.
 
 Prepare the rules oracle. The dashboard can run without it, but evaluation
 requires it:
@@ -115,7 +118,7 @@ MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
 AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=cloudflare,coreweave,fireworks,together,deepinfra,reka
+OPENROUTER_PROVIDER_ORDER=reka,cloudflare,coreweave,fireworks,together,deepinfra
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true

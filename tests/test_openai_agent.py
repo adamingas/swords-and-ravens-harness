@@ -19,6 +19,7 @@ from raven_harness.models.openai_agent import (
     ModelRunCancelled,
     ModelRunError,
     OpenAIAgentRunner,
+    PermanentModelError,
     _SessionContextFilter,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
@@ -76,9 +77,42 @@ class ToolCallingModel(Model):
             yield None
 
 
+class CorrectingToolCallingModel(ToolCallingModel):
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        self.model_settings = kwargs["model_settings"]
+        self.inputs.append(kwargs["input"])
+        self.call_count += 1
+        assert [tool.name for tool in kwargs["tools"]] == self.expected_tool_names
+        house_id = "greyjoy" if self.call_count == 1 else "stark"
+        return ModelResponse(
+            output=[
+                ResponseFunctionToolCall(
+                    arguments=json.dumps({"house_id": house_id}),
+                    call_id=f"correcting-call-{self.call_count}",
+                    name="choose_house",
+                    type="function_call",
+                )
+            ],
+            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
+            response_id=f"correcting-response-{self.call_count}",
+        )
+
+
 class FailingModel(Model):
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         raise RuntimeError("provider failed")
+
+    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
+        if False:
+            yield None
+
+
+class QuotaFailingModel(Model):
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        raise RuntimeError(
+            "spending limit exhausted; visit "
+            "https://provider.test/settings/keys/private-key-id"
+        )
 
     async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
         if False:
@@ -220,6 +254,37 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
 
 
 @pytest.mark.asyncio
+async def test_tool_validation_error_can_be_corrected_in_the_same_run(
+    monkeypatch,
+) -> None:
+    fake_model = CorrectingToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    client = FakeClient()
+    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    arguments = turn_arguments(record, context)
+    arguments["max_turns"] = 3
+
+    result = await OpenAIAgentRunner(
+        api_key="test-key", base_url="https://api.openai.test/v1"
+    ).run_once(**arguments)
+
+    assert fake_model.call_count == 2
+    assert "must be one of" in json.dumps(fake_model.inputs[1])
+    assert result.response_id == "correcting-response-2"
+    assert context.action_taken is not None
+    assert context.action_taken.arguments == {"house_id": "stark"}
+    assert client.sent == [
+        {"type": "choose-house", "house": "stark", "password": "wolf"}
+    ]
+
+
+@pytest.mark.asyncio
 async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     monkeypatch.setattr(
         "raven_harness.models.openai_agent.OpenAIResponsesModel",
@@ -239,6 +304,27 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     assert context.action_taken is None
     assert raised.value.partial_result.context_manifest["policy"] == CONTEXT_POLICY_NAME
     assert raised.value.partial_result.context_manifest["currentInputItemCount"] == 1
+
+
+@pytest.mark.asyncio
+async def test_quota_error_is_terminal_and_redacted(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: QuotaFailingModel(),
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    context = HarnessRunContext(client=FakeClient(), user_id="2")
+
+    with pytest.raises(PermanentModelError) as raised:
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**turn_arguments(record, context))
+
+    assert "spending limit exhausted" in str(raised.value)
+    assert "private-key-id" not in str(raised.value)
+    assert "[redacted]" in str(raised.value)
 
 
 @pytest.mark.asyncio

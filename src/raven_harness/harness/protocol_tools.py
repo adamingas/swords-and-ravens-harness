@@ -15,6 +15,9 @@ from .legal import (
     legal_mustering_options,
     legal_raven_replacements,
     legal_raid_options,
+    neutral_force_attack_is_legal,
+    possible_neutral_force_support,
+    supply_safe_musterings,
     validate_musterings,
 )
 
@@ -108,6 +111,7 @@ async def resolve_march(
         starting_region_id: Region containing the march order and moving units.
         moves: Destination groups and exact unit IDs to move to each destination.
         leave_power_token: Whether to leave a control token after vacating the starting land region.
+            The harness changes this to false when the current move cannot legally leave one.
     """
     context = ctx.context.current_game_context()
     option = next(
@@ -143,16 +147,38 @@ async def resolve_march(
         for destination in destinations
     ) > 1:
         raise ValueError("at most one destination may trigger combat")
-    if leave_power_token and (
-        not option.get("canLeavePowerToken") or set(moved_units) != available_units
-    ):
-        raise ValueError(
-            "leave_power_token is legal only when every unit leaves an eligible land region"
-        )
+    prior_non_combat_moves: list[tuple[str, list[int]]] = []
+    for move in moves:
+        destination = legal_destinations[move.destination_region_id]
+        if destination.get("neutralForce") and not neutral_force_attack_is_legal(
+            context,
+            starting_region_id,
+            move.destination_region_id,
+            move.unit_ids,
+            prior_non_combat_moves,
+        ):
+            required = destination["neutralForce"]["requiredStrength"]
+            raise ValueError(
+                "the selected units and accepted support do not meet the neutral "
+                f"force strength of {required}"
+            )
+        if not destination.get("triggersCombat"):
+            prior_non_combat_moves.append(
+                (move.destination_region_id, move.unit_ids)
+            )
+    requested_leave_power_token = leave_power_token
+    leave_power_token = bool(
+        leave_power_token
+        and option.get("canLeavePowerToken")
+        and set(moved_units) == available_units
+    )
     arguments = {
         "starting_region_id": starting_region_id,
         "moves": [move.model_dump() for move in moves],
         "leave_power_token": leave_power_token,
+        "omitted_illegal_power_token": (
+            requested_leave_power_token and not leave_power_token
+        ),
     }
     return await _send(
         ctx,
@@ -254,11 +280,21 @@ async def muster_units(
     """Resolve mustering by recruiting or upgrading units from one or more castles.
 
     Args:
-        musters: Mustering castles and the recruitments paid for at each castle.
+        musters: Mustering castles and recruitments in priority order. The harness
+            omits later new units that would exceed Supply. It keeps legal upgrades.
+            The applied plan can be empty when no requested new unit is Supply-safe.
     """
     context = ctx.context.current_game_context()
-    validate_musterings(context, musters)
-    arguments = {"musters": [muster.model_dump() for muster in musters]}
+    validate_musterings(context, musters, check_supply=False)
+    applied_musters = supply_safe_musterings(context, musters)
+    if applied_musters:
+        validate_musterings(context, applied_musters)
+    requested_count = sum(len(muster.recruitments) for muster in musters)
+    applied_count = sum(len(muster.recruitments) for muster in applied_musters)
+    arguments = {
+        "musters": [muster.model_dump() for muster in applied_musters],
+        "omitted_supply_unsafe_recruitments": requested_count - applied_count,
+    }
     return await _send(
         ctx,
         "muster_units",
@@ -282,8 +318,8 @@ async def muster_units(
                     ],
                 ]
                 for muster, source_unit_ids in zip(
-                    musters,
-                    _canonical_mustering_source_ids(context, musters),
+                    applied_musters,
+                    _canonical_mustering_source_ids(context, applied_musters),
                     strict=True,
                 )
             ],
@@ -549,6 +585,9 @@ async def call_for_support_against_neutral_force(
     ctx: RunContextWrapper[HarnessRunContext],
 ) -> str:
     """Call for support when marching against a neutral force."""
+    context = ctx.context.current_game_context()
+    if not possible_neutral_force_support(context):
+        raise ValueError("no foreign house can support a reachable neutral-force target")
     return await _send(
         ctx,
         "call_for_support_against_neutral_force",
@@ -642,7 +681,7 @@ def gameplay_tools_for_context(
     tools = gameplay_tools_for_state(
         state_types, has_specific_tools=has_specific_tools
     )
-    if (context.leaf or {}).get("supportersAgainstNeutralForce") is not None:
+    if not possible_neutral_force_support(context):
         tools = [
             tool
             for tool in tools
@@ -685,6 +724,11 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         move_properties = schema["$defs"]["UnitMove"]["properties"]
         move_properties["destination_region_id"]["enum"] = destinations
         move_properties["unit_ids"]["items"]["enum"] = unit_ids
+        if options and not any(option.get("canLeavePowerToken") for option in options):
+            properties["leave_power_token"]["const"] = False
+        properties["leave_power_token"]["description"] += (
+            " True also requires moving every listed unit from the selected source."
+        )
     elif tool.name == "resolve_consolidate_power":
         options = legal_consolidate_power_options(context)
         properties["region_id"]["enum"] = [item["regionId"] for item in options]
@@ -765,7 +809,11 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
 
 
 def _is_base_game(snapshot: dict[str, Any]) -> bool:
-    return snapshot.get("gameSettings", {}).get("setupId", "base-game") == "base-game"
+    settings = snapshot.get("gameSettings", {})
+    return (
+        settings.get("setupId", "base-game") == "base-game"
+        and int(settings.get("playerCount", 6)) == 6
+    )
 
 
 def _unit_regions(game: dict[str, Any]) -> dict[int, str]:
