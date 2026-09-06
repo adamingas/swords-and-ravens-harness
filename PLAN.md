@@ -20,26 +20,40 @@ this is a huge goal so please write it somewhere first so that you dont forget i
 
 ## Remaining work
 
-### 1. Simplify and consolidate the codebase
+### 1. Simplify and consolidate the codebase — complete
 
 The codebase must:
 
-- Have one canonical implementation for each operation.
-- Remove compatibility layers that are not required.
-- Remove unused interfaces, parameters, branches, and dead code.
-- Avoid large abstractions for hypothetical future uses.
-- Keep the server, harness, game client, and experiment runner separate.
-- Use tests that verify business behavior and runtime results.
-- Not use tests that parse source code, inspect import names, or assert architectural words.
-- Reduce both lines of code and unnecessary conceptual complexity.
+- [x] Have one canonical implementation for each operation.
+- [x] Remove compatibility layers that are not required.
+- [x] Remove unused interfaces, parameters, branches, and dead code.
+- [x] Avoid large abstractions for hypothetical future uses.
+- [x] Keep the server, harness, game client, and experiment runner separate.
+- [x] Use tests that verify business behavior and runtime results.
+- [x] Do not use tests that parse source code, inspect import names, or assert architectural words.
+- [x] Reduce both lines of code and unnecessary conceptual complexity.
 
   Identify the interfaces and implementations that have actually run successfully. Make those the only canonical paths. Remove all duplicate implementations, unused interfaces and parameters, unnecessary compatibility code, dead branches, and speculative abstractions. Verify preserved behavior with runtime and business-logic tests, measure the reduction in lines and concepts, and commit the consolidated code before starting tournament work.
+
+  Evidence: commits `4b81262`, `d7cb7e4`, `a1c0492`, and `39e8eae`
+  removed redundant turn derivation, duplicate persistence operations, unused
+  parameters and properties, and legacy database migration code. From the
+  parent of `4b81262` through `39e8eae`, `src/` and `tests/` changed by 160
+  insertions and 229 deletions, a net reduction of 69 lines while adding
+  behavior tests. The complete runtime suite and real-server smoke tests pass.
 
 
 
 
 ### 2. Run a model tournament
+#### 2.1 same model
 
+Run a six player/agents tournament with the same exact harness version and model, gpt oss 102b (served by cerebras).
+Run it 5 times.
+Produce statistics on the win rate of each house. This way we can know which house is easier, or with which house the models struggle with.
+each game should take less than a minute. produce a report on this.
+
+#### 2.2 different models
 The tournament must:
 
 - Use the same canonical strategic-v1 harness for every model.
