@@ -179,7 +179,8 @@ The lifecycle is:
 2. The client authenticates and receives a player-scoped full snapshot.
 3. The manager updates the dashboard view after each server message.
 4. Take one action runs one model decision.
-5. Autoplay runs a decision when the server waits for that user.
+5. A new server snapshot wakes autoplay. Autoplay runs a decision immediately
+   when the server waits for that user.
 6. Stop closes the connection. It does not delete the saved agent or traces.
 
 After an established WebSocket connection fails, the client reconnects
@@ -782,8 +783,7 @@ initial request.
 OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
 MODEL_REQUEST_TIMEOUT_SECONDS limits one provider attempt.
 MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
-MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
-avoid overloading low-cost providers.
+Agents make asynchronous model calls without a harness concurrency limit.
 MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
 allows reasoning models to complete a tool decision. A 4,096-token limit caused
 repeated incomplete responses from supported tournament models.
@@ -817,11 +817,11 @@ this filter is enabled.
 | WebSocket authentication wait | 10 seconds |
 | Authoritative snapshot wait | 10 seconds |
 | WebSocket ping interval | 30 seconds |
-| Autoplay polling interval | 0.75 seconds |
+| Autoplay trigger | New server snapshot |
 | Model request timeout | 45 seconds per attempt |
 | Model API retries | 2 |
-| Complete model-run timeout | 300 seconds after queue acquisition |
-| Concurrent model runs | 1 |
+| Complete model-run timeout | 300 seconds per agent decision |
+| Concurrent model runs | No harness limit |
 | Parent Agents SDK turns | 6 |
 | Rules-oracle turns | 3 |
 | Maximum model output | 16,384 tokens |
@@ -1010,15 +1010,17 @@ The runner starts independent games concurrently. Each active game has one
 TypeScript server and six clients. Game 1 uses port 5101 by default. Each later
 game uses the next port. A 12-game run uses ports 5101 through 5112. The
 `--concurrent-games` value limits the number of active games. Its default is
-12. At this value, the command starts 12 servers and 72 clients. The default
-`MODEL_MAX_CONCURRENCY=1` permits one active model call in each game, or up to
-12 calls across the evaluator. Reduce `--concurrent-games` when the machine or
-provider cannot support this load.
+12. At this value, the command starts 12 servers and 72 clients. Simultaneous
+decisions can produce up to 72 active model calls across the evaluator. Reduce
+`--concurrent-games` when the machine or provider cannot support this load.
 
 A completed attempt contains `game.json`, `harness.db`, assignments, a server
 log, and a result. Progress data is written during a long game. A failed or
 cancelled attempt can contain fewer files because failure can occur at any
-stage. The manifest always records the attempt status and known error. Game
+stage. Every attempt with a harness database also gets a `metrics.json` file.
+The same-model summary includes elapsed time, failures, requests, tokens, and
+cost from partial attempts as well as completed games. The manifest always
+records the attempt status and known error. Game
 completion never performs a provider-specific metadata request. Response IDs
 in `harness.db` allow a separate reporting process to add optional endpoint
 metadata later without replaying or reopening the completed game. The

@@ -110,6 +110,9 @@ replaces local state with a fresh player-scoped snapshot. An action interrupted
 by the drop is never replayed on the replacement socket; the next decision is
 built from that authoritative snapshot.
 
+Autoplay is event-driven. A new server snapshot wakes each affected agent, and
+all agents required to decide can make asynchronous model calls concurrently.
+
 ## Configuration
 
 ~~~text
@@ -127,7 +130,6 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 MODEL_REQUEST_TIMEOUT_SECONDS=45
 MODEL_RUN_TIMEOUT_SECONDS=300
 MODEL_API_MAX_RETRIES=2
-MODEL_MAX_CONCURRENCY=1
 MODEL_MAX_OUTPUT_TOKENS=16384
 MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
@@ -150,8 +152,7 @@ fallback pool and does not fall through to unlisted hosts. The OpenAI client
 retries the pool twice on retryable failures. Reka is first because it
 completed the existing GLM tool-call smoke runs; every fallback still serves
 the model requested by that agent.
-MODEL_MAX_CONCURRENCY applies to all agents in the Python process. The sort
-setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
+The sort setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
 
 Keep HOST at 127.0.0.1 unless you add authentication and transport security.
 The dashboard API has no authentication. The local SQLite database contains
@@ -207,9 +208,11 @@ uv run raven-evaluate --games 12 \
 `raven-evaluate-houses` runs five complete games with `openai/gpt-oss-120b` in
 all six seats. It has no round-limit option. The command requests the Cerebras
 backend with fallback disabled and records each game's active elapsed time. It
-runs one game at a time and permits two model requests at once by default, so
-endpoint queuing does not dominate the measurement. Reusing its output
-directory resumes incomplete games from their saved game and agent checkpoints.
+runs one game at a time. Agents with simultaneous decisions make asynchronous
+model requests without a harness concurrency limit. Reusing its output directory
+resumes incomplete games from their saved game and agent checkpoints.
+Its summary lists every completed, failed, and cancelled attempt. Request,
+token, and cost totals include partial attempts instead of only finished games.
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
 clients, then completes two rounds with a deterministic policy. It invokes the
@@ -243,7 +246,7 @@ harness prompt, seed, schedule,
 source commits, rules, or runtime settings. Independent games run concurrently.
 Each game uses one port. The first game uses `--game-port`, and later games use
 the next ports. The default starts all 12 games at the same time. This uses
-ports 5101 through 5112 and can make up to 12 model calls concurrently. Use a
+ports 5101 through 5112 and can make up to 72 model calls concurrently. Use a
 smaller `--concurrent-games` value when the machine or provider cannot support
 that load.
 

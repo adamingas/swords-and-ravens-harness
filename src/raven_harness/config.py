@@ -69,7 +69,6 @@ class Settings(BaseSettings):
     model_request_timeout_seconds: float = Field(default=45, gt=0, le=600)
     model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_api_max_retries: int = Field(default=2, ge=0, le=10)
-    model_max_concurrency: int = Field(default=1, ge=1, le=32)
     model_max_output_tokens: int = Field(
         default=DEFAULT_MODEL_MAX_OUTPUT_TOKENS, ge=256, le=65_536
     )

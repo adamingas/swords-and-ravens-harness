@@ -58,6 +58,7 @@ class AgentSession:
     running: bool = False
     autoplay: bool = False
     autoplay_task: asyncio.Task[None] | None = None
+    autoplay_wakeup: asyncio.Event = field(default_factory=asyncio.Event)
     reconnect_task: asyncio.Task[None] | None = None
     ready_task: asyncio.Task[None] | None = None
     has_connected: bool = False
@@ -545,6 +546,11 @@ class AgentManager:
             session.run_started_at = None
             session.current_tools = []
             session.current_activity = None
+            if (
+                session.autoplay
+                and asyncio.current_task() is not session.autoplay_task
+            ):
+                session.autoplay_wakeup.set()
 
     def set_autoplay(self, agent_id: str, enabled: bool) -> AgentPublic:
         session = self.sessions.get(agent_id)
@@ -557,6 +563,8 @@ class AgentManager:
         self.store.add_event(agent_id, "autoplay-changed", {"enabled": enabled})
         if enabled:
             self._schedule_autoplay(agent_id, session)
+        else:
+            session.autoplay_wakeup.set()
         return self._require_public_agent(agent_id)
 
     def get_observation(self, agent_id: str) -> dict[str, Any] | None:
@@ -740,6 +748,7 @@ class AgentManager:
     def _schedule_autoplay(self, agent_id: str, session: AgentSession) -> None:
         if not session.autoplay or session.client.snapshot is None:
             return
+        session.autoplay_wakeup.set()
         if session.autoplay_task is None or session.autoplay_task.done():
             session.autoplay_task = asyncio.create_task(
                 self._autoplay_loop(agent_id, session)
@@ -861,7 +870,13 @@ class AgentManager:
             self.sessions.get(agent_id) is expected_session
             and expected_session.autoplay
         ):
-            await asyncio.sleep(0.75)
+            await expected_session.autoplay_wakeup.wait()
+            expected_session.autoplay_wakeup.clear()
+            if (
+                self.sessions.get(agent_id) is not expected_session
+                or not expected_session.autoplay
+            ):
+                return
             if expected_session.running or (
                 expected_session.status != "connected"
                 or expected_session.client.snapshot is None
@@ -905,12 +920,14 @@ class AgentManager:
                         * 2 ** (expected_session.consecutive_failures - 1),
                     )
                     await asyncio.sleep(delay)
+                    expected_session.autoplay_wakeup.set()
 
     def _disable_all_autoplay(self, message: str) -> None:
         for agent_id, session in self.sessions.items():
             if not session.autoplay:
                 continue
             session.autoplay = False
+            session.autoplay_wakeup.set()
             session.last_error = message
             self.store.add_event(
                 agent_id,

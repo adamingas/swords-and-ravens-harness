@@ -98,6 +98,26 @@ class ToolCallingModel(Model):
             yield None
 
 
+class ConcurrentToolCallingModel(ToolCallingModel):
+    def __init__(self, expected_concurrency: int) -> None:
+        super().__init__()
+        self.expected_concurrency = expected_concurrency
+        self.active = 0
+        self.peak_active = 0
+        self.all_started = asyncio.Event()
+
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        self.active += 1
+        self.peak_active = max(self.peak_active, self.active)
+        if self.active == self.expected_concurrency:
+            self.all_started.set()
+        try:
+            await asyncio.wait_for(self.all_started.wait(), timeout=0.5)
+            return await super().get_response(*args, **kwargs)
+        finally:
+            self.active -= 1
+
+
 class CorrectingToolCallingModel(ToolCallingModel):
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         self.model_settings = kwargs["model_settings"]
@@ -295,6 +315,46 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
     ]
+
+
+@pytest.mark.asyncio
+async def test_runner_does_not_limit_simultaneous_agent_model_calls(
+    monkeypatch,
+) -> None:
+    fake_model = ConcurrentToolCallingModel(expected_concurrency=6)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+    )
+    calls = []
+    for call_number in range(1, 7):
+        record = AgentRecord.from_create(
+            AgentCreate(
+                name=f"Player {call_number}",
+                user_id="2",
+                auth_token="secret",
+            )
+        )
+        context = HarnessRunContext(
+            client=FakeClient(),
+            user_id="2",
+            game_password="wolf",
+        )
+        arguments = turn_arguments(record, context)
+        arguments["trace_metadata"] = {
+            **arguments["trace_metadata"],
+            "agent_id": record.id,
+            "run_id": f"run-{call_number}",
+        }
+        calls.append(runner.run_once(**arguments))
+
+    await asyncio.wait_for(asyncio.gather(*calls), timeout=1)
+
+    assert fake_model.peak_active == 6
 
 
 @pytest.mark.asyncio

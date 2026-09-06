@@ -46,17 +46,32 @@ The codebase must:
 
 
 ### 2. Run a model tournament
+
+- [x] Within a game do not impose any limitations on concurrency for llm calls. This is an embarassingly parallel problem, hence all llms should be ran in parallel. In other words, dont use the semaphore.
+Run games sequentially and observe. Between games you can make harness changes if you see failures or stupid latency mistakes.
+
+  Evidence: the shared model-run semaphore and its configuration interface were
+  removed. A runtime test admits six simultaneous agent calls. The same-model
+  runner executes games sequentially, and snapshot-driven autoplay replaces
+  the 0.75-second polling interval. The complete 221-test Python suite, the
+  TypeScript compiler, schema generation, and a two-round real-server protocol
+  smoke all pass. The smoke completed 53 accepted decisions in 4.6 seconds
+  without a provider request.
+
 #### 2.1 same model — in progress
+
+note that a game should take around a minute or two. if it takes longer then investigate why.
 
 - [ ] Run six players with the same `strategic-v1` harness and exact
   `openai/gpt-oss-120b` model, served by Cerebras.
-- [ ] Run five complete games with no artificial round limit.
+- [ ] Run five complete games with no artificial round limit. (This means the games must have a winner)
 - [ ] Produce win-rate and placement statistics for every house.
-- [ ] Measure whether every complete game finishes within one minute.
-- [ ] Record the method, performance, cost, failure, and interpretation in
+- [ ] Record the method, performance, cost, time taken to complete game, failure, and interpretation in
   `docs/GPT_OSS_120B_HOUSE_TEST.md`.
 
 #### 2.2 different models
+DO NOT START THIS UNLESS YOU ARE CERTAIN THE HARNESS WORKS AS EXPECTED.
+
 The tournament must:
 
 - Use the same canonical strategic-v1 harness for every model.

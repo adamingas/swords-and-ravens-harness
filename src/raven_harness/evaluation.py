@@ -307,6 +307,7 @@ async def run_game(
     server_log: BinaryIO | None = None
     process: asyncio.subprocess.Process | None = None
     database: Database | None = None
+    store: AgentStore | None = None
     manager: AgentManager | None = None
     telemetry: Telemetry | None = None
     runner: StrategicModelRunner | None = model_runner
@@ -339,7 +340,6 @@ async def run_game(
                 request_timeout_seconds=settings.model_request_timeout_seconds,
                 run_timeout_seconds=settings.model_run_timeout_seconds,
                 max_retries=settings.model_api_max_retries,
-                max_concurrency=settings.model_max_concurrency,
                 max_output_tokens=settings.model_max_output_tokens,
                 session_database_path=database_path,
                 session_history_items=settings.model_session_history_items,
@@ -443,6 +443,16 @@ async def run_game(
             telemetry.shutdown()
         if database is not None:
             try:
+                if store is not None:
+                    _write_json(
+                        attempt_dir / "metrics.json",
+                        _aggregate_run_metrics(
+                            [
+                                store.get_run_metrics(record.id)
+                                for record in store.list_agents()
+                            ]
+                        ),
+                    )
                 if completed_result is not None:
                     _require_sqlite_quick_check(database)
             except Exception as error:
@@ -1520,6 +1530,54 @@ def _build_game_result(
     }
 
 
+def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
+    """Combine per-agent run metrics without dropping failed attempt usage."""
+
+    status_counts: Counter[str] = Counter()
+    token_totals = {
+        "input": 0,
+        "output": 0,
+        "total": 0,
+        "cachedInput": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "maxInputInRun": 0,
+    }
+    run_count = model_requests = 0
+    cost_usd = 0.0
+    duration_total = duration_maximum = 0
+    for item in metrics:
+        item_run_count = int(item.get("runCount") or 0)
+        run_count += item_run_count
+        status_counts.update(item.get("statusCounts") or {})
+        model_requests += int(item.get("modelRequests") or 0)
+        tokens = item.get("tokens") or {}
+        for key in token_totals:
+            value = int(tokens.get(key) or 0)
+            if key == "maxInputInRun":
+                token_totals[key] = max(token_totals[key], value)
+            else:
+                token_totals[key] += value
+        cost_usd += float(item.get("costUsd") or 0)
+        duration = item.get("durationMs") or {}
+        duration_total += int(duration.get("total") or 0)
+        duration_maximum = max(
+            duration_maximum, int(duration.get("maximum") or 0)
+        )
+    return {
+        "runCount": run_count,
+        "statusCounts": dict(sorted(status_counts.items())),
+        "modelRequests": model_requests,
+        "tokens": token_totals,
+        "costUsd": round(cost_usd, 9),
+        "durationMs": {
+            "total": duration_total,
+            "average": round(duration_total / run_count) if run_count else 0,
+            "maximum": duration_maximum,
+        },
+    }
+
+
 def _load_manifest(
     path: Path,
     args: argparse.Namespace,
@@ -1614,7 +1672,6 @@ def _build_provenance(
             "requestTimeoutSeconds": settings.model_request_timeout_seconds,
             "runTimeoutSeconds": settings.model_run_timeout_seconds,
             "apiMaxRetries": settings.model_api_max_retries,
-            "maxConcurrency": settings.model_max_concurrency,
             "maxOutputTokens": settings.model_max_output_tokens,
             "sessionHistoryItems": settings.model_session_history_items,
             "autoplayMaxConsecutiveFailures": (

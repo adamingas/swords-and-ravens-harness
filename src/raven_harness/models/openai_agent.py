@@ -377,7 +377,6 @@ class OpenAIAgentRunner:
         request_timeout_seconds: float = 45,
         run_timeout_seconds: float = 300,
         max_retries: int = 2,
-        max_concurrency: int = 1,
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
         session_history_items: int = 32,
@@ -389,7 +388,6 @@ class OpenAIAgentRunner:
         self.request_timeout_seconds = request_timeout_seconds
         self.run_timeout_seconds = run_timeout_seconds
         self.max_retries = max_retries
-        self._run_slots = asyncio.Semaphore(max_concurrency)
         self.max_output_tokens = max_output_tokens
         self.session_database_path = session_database_path
         self.session_history_items = session_history_items
@@ -508,24 +506,23 @@ class OpenAIAgentRunner:
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
         try:
-            async with self._run_slots:
-                async with asyncio.timeout(self.run_timeout_seconds):
-                    self._save_agent_checkpoint(
-                        agent_record=agent_record,
-                        observation=observation,
-                        session_item_count=session_item_count,
-                        run_id=trace_metadata["run_id"],
-                        phase="before-model",
-                    )
-                    result = await Runner.run(
-                        agent,
-                        input=current_input,
-                        context=context,
-                        max_turns=max_turns,
-                        run_config=run_config,
-                        session=session,
-                        hooks=activity_hooks,
-                    )
+            async with asyncio.timeout(self.run_timeout_seconds):
+                self._save_agent_checkpoint(
+                    agent_record=agent_record,
+                    observation=observation,
+                    session_item_count=session_item_count,
+                    run_id=trace_metadata["run_id"],
+                    phase="before-model",
+                )
+                result = await Runner.run(
+                    agent,
+                    input=current_input,
+                    context=context,
+                    max_turns=max_turns,
+                    run_config=run_config,
+                    session=session,
+                    hooks=activity_hooks,
+                )
         except asyncio.CancelledError as error:
             await _rollback_unaccepted_session(
                 session, session_item_count, context=context

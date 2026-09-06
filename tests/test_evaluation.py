@@ -314,7 +314,6 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
         rules_path=rules_path,
         openrouter_token="do-not-record-this-token",
         openrouter_base_url="https://url-secret@example.test/api/v1?key=hidden",
-        model_max_concurrency=3,
     )
     args = argparse.Namespace(
         random_seed=1,
@@ -346,7 +345,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     )
     assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
-    assert provenance["harness"]["maxConcurrency"] == 3
+    assert "maxConcurrency" not in provenance["harness"]
     assert provenance["harness"]["maxOutputTokens"] == 16_384
     serialized = str(provenance)
     assert "do-not-record-this-token" not in serialized

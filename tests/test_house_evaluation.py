@@ -7,8 +7,6 @@ import pytest
 from raven_harness.config import Settings
 from raven_harness.evaluation import HOUSES
 from raven_harness.house_evaluation import (
-    HOUSE_TEST_AGENT_CONCURRENCY,
-    HOUSE_TEST_CONCURRENT_GAMES,
     HOUSE_TEST_GAMES,
     HOUSE_TEST_MODEL,
     build_parser,
@@ -49,12 +47,44 @@ def _result(game_number: int, winner: str = "stark") -> dict:
     }
 
 
+def _attempt(
+    game_number: int,
+    *,
+    status: str = "completed",
+    error: str | None = None,
+) -> dict:
+    return {
+        "gameNumber": game_number,
+        "attemptNumber": 1,
+        "status": status,
+        "activeElapsedSeconds": 42.5,
+        "error": error,
+        "metrics": {
+            "runCount": 12,
+            "statusCounts": {status: 12},
+            "modelRequests": 12,
+            "tokens": {
+                "input": 60,
+                "output": 12,
+                "total": 72,
+                "cachedInput": 18,
+                "cacheWrite": 0,
+                "reasoning": 0,
+                "maxInputInRun": 10,
+            },
+            "costUsd": 0.06,
+            "durationMs": {"total": 1200, "average": 100, "maximum": 100},
+        },
+    }
+
+
 def test_house_summary_uses_complete_game_results_and_measured_time() -> None:
     results = [_result(game) for game in range(1, HOUSE_TEST_GAMES + 1)]
 
     summary = summarize_house_results(
         results,
         active_elapsed_seconds={game: 42.5 for game in range(1, 6)},
+        attempts=[_attempt(game) for game in range(1, 6)],
     )
 
     assert summary["complete"] is True
@@ -80,16 +110,36 @@ def test_house_summary_uses_complete_game_results_and_measured_time() -> None:
         "output": 60,
         "total": 360,
         "cachedInput": 90,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "maxInputInRun": 10,
     }
     assert summary["costUsd"] == 0.3
 
 
-def test_house_runner_defaults_to_one_game_at_a_time() -> None:
-    assert build_parser().parse_args([]).concurrent_games == HOUSE_TEST_CONCURRENT_GAMES
+def test_house_summary_includes_failed_attempt_usage_and_error() -> None:
+    attempt = _attempt(1, status="failed", error="model request failed")
+
+    summary = summarize_house_results(
+        [],
+        active_elapsed_seconds={},
+        attempts=[attempt],
+    )
+
+    assert summary["completedGames"] == 0
+    assert summary["runStatusCounts"] == {"failed": 12}
+    assert summary["modelRequests"] == 12
+    assert summary["costUsd"] == 0.06
+    assert summary["attempts"] == [attempt]
+
+
+def test_house_runner_does_not_offer_concurrent_games() -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["--concurrent-games", "2"])
 
 
 @pytest.mark.asyncio
-async def test_house_runner_uses_five_unrestricted_isolated_games(
+async def test_house_runner_uses_five_sequential_unrestricted_isolated_games(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     evaluation_root = tmp_path / "evaluations"
@@ -156,7 +206,7 @@ async def test_house_runner_uses_five_unrestricted_isolated_games(
     args = argparse.Namespace(
         output=str(output),
         game_port=5201,
-        concurrent_games=5,
+        concurrent_games=1,
         poll_seconds=0.25,
         stall_seconds=360.0,
         match_timeout_hours=6.0,
@@ -167,8 +217,8 @@ async def test_house_runner_uses_five_unrestricted_isolated_games(
 
     assert await run_house_evaluation(args) == output
 
-    assert settings_arguments["model_max_concurrency"] == HOUSE_TEST_AGENT_CONCURRENCY
-    assert peak_active == 5
+    assert "model_max_concurrency" not in settings_arguments
+    assert peak_active == 1
     assert [call["game_port"] for call in calls] == list(range(5201, 5206))
     assert all(call["max_rounds"] is None for call in calls)
     assert all(call["seat_models"] == [HOUSE_TEST_MODEL] * 6 for call in calls)

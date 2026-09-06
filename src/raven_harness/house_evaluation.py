@@ -3,16 +3,18 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-from collections import Counter
 from pathlib import Path
 from time import monotonic
 from typing import Any
 
+from .agent_store import AgentStore
 from .config import Settings
+from .database import Database
 from .errors import safe_error_text
 from .evaluation import (
     HOUSES,
     TOURNAMENT_HARNESS_ID,
+    _aggregate_run_metrics,
     _build_provenance,
     _now,
     _preflight_model_catalog,
@@ -30,15 +32,12 @@ HOUSE_TEST_MODEL = "openai/gpt-oss-120b"
 HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
-HOUSE_TEST_AGENT_CONCURRENCY = 2
-HOUSE_TEST_CONCURRENT_GAMES = 1
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
     """Run complete games with one model in all six seats."""
 
     settings = Settings(
-        model_max_concurrency=HOUSE_TEST_AGENT_CONCURRENCY,
         openrouter_provider_order=HOUSE_TEST_PROVIDER,
         openrouter_allow_unlisted_providers=False,
         openrouter_allow_fallbacks=False,
@@ -85,9 +84,6 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
             f"Game-server port range ends at {last_port}; choose a lower --game-port"
         )
 
-    semaphore = asyncio.Semaphore(args.concurrent_games)
-    write_lock = asyncio.Lock()
-
     async def run_scheduled_game(game_number: int) -> None:
         game_entry = manifest["games"][game_number - 1]
         completed = next(
@@ -102,117 +98,104 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
             print(f"Game {game_number}: already completed")
             return
 
-        async with semaphore:
-            resumable = _resumable_attempt(output, game_entry)
-            if resumable is None:
-                attempt_number = len(game_entry["attempts"]) + 1
-                attempt_dir = (
-                    output
-                    / f"game-{game_number:02d}"
-                    / f"attempt-{attempt_number:02d}"
-                )
-                attempt_dir.mkdir(parents=True, exist_ok=False)
-                attempt = {
-                    "number": attempt_number,
-                    "status": "running",
-                    "directory": str(attempt_dir.relative_to(output)),
-                    "startedAt": _now(),
-                    "resumeCount": 0,
-                    "activeElapsedSeconds": 0.0,
-                }
-                game_entry["attempts"].append(attempt)
-                resume = False
-                verb = "starting"
-            else:
-                attempt, attempt_dir = resumable
-                attempt_number = int(attempt["number"])
-                attempt.setdefault("interruptions", []).append(
-                    {
-                        key: attempt[key]
-                        for key in ("status", "finishedAt", "error")
-                        if key in attempt
-                    }
-                )
-                for key in ("finishedAt", "error", "winner"):
-                    attempt.pop(key, None)
-                attempt.update(
-                    {
-                        "status": "running",
-                        "resumedAt": _now(),
-                        "resumeCount": int(attempt.get("resumeCount", 0)) + 1,
-                    }
-                )
-                resume = True
-                verb = "resuming"
-
-            async with write_lock:
-                _write_json(manifest_path, manifest)
-            game_port = args.game_port + game_number - 1
-            print(
-                f"Game {game_number}: {verb} attempt {attempt_number} "
-                f"on port {game_port}"
+        resumable = _resumable_attempt(output, game_entry)
+        if resumable is None:
+            attempt_number = len(game_entry["attempts"]) + 1
+            attempt_dir = (
+                output
+                / f"game-{game_number:02d}"
+                / f"attempt-{attempt_number:02d}"
             )
-            segment_started = monotonic()
-            try:
-                result = await run_game(
-                    game_number=game_number,
-                    attempt_dir=attempt_dir,
-                    random_seed=int(game_entry["randomSeed"]),
-                    game_port=game_port,
-                    max_rounds=None,
-                    poll_seconds=args.poll_seconds,
-                    stall_seconds=args.stall_seconds,
-                    match_timeout_seconds=args.match_timeout_hours * 3_600,
-                    settings=settings,
-                    resume=resume,
-                    seat_models=[HOUSE_TEST_MODEL] * len(HOUSES),
-                    seat_houses=HOUSES,
-                )
-                attempt.update(
-                    {
-                        "status": "completed",
-                        "finishedAt": _now(),
-                        "winner": result["winner"],
-                    }
-                )
-                print(f"Game {game_number}: winner {result['winner']}")
-            except asyncio.CancelledError:
-                attempt.update({"status": "cancelled", "finishedAt": _now()})
-                raise
-            except Exception as error:
-                error_text = safe_error_text(error)
-                attempt.update(
-                    {
-                        "status": "failed",
-                        "finishedAt": _now(),
-                        "error": error_text,
-                    }
-                )
-                _write_json(attempt_dir / "failure.json", attempt)
-                print(f"Game {game_number}: failed: {error_text}")
-                if not args.continue_on_error:
-                    raise RuntimeError(error_text) from None
-            finally:
-                elapsed = float(attempt.get("activeElapsedSeconds") or 0)
-                attempt["activeElapsedSeconds"] = round(
-                    elapsed + monotonic() - segment_started, 3
-                )
-                async with write_lock:
-                    _write_json(manifest_path, manifest)
-                    _write_house_summary(output, manifest)
+            attempt_dir.mkdir(parents=True, exist_ok=False)
+            attempt = {
+                "number": attempt_number,
+                "status": "running",
+                "directory": str(attempt_dir.relative_to(output)),
+                "startedAt": _now(),
+                "resumeCount": 0,
+                "activeElapsedSeconds": 0.0,
+            }
+            game_entry["attempts"].append(attempt)
+            resume = False
+            verb = "starting"
+        else:
+            attempt, attempt_dir = resumable
+            attempt_number = int(attempt["number"])
+            attempt.setdefault("interruptions", []).append(
+                {
+                    key: attempt[key]
+                    for key in ("status", "finishedAt", "error")
+                    if key in attempt
+                }
+            )
+            for key in ("finishedAt", "error", "winner"):
+                attempt.pop(key, None)
+            attempt.update(
+                {
+                    "status": "running",
+                    "resumedAt": _now(),
+                    "resumeCount": int(attempt.get("resumeCount", 0)) + 1,
+                }
+            )
+            resume = True
+            verb = "resuming"
 
-    tasks = [
-        asyncio.create_task(run_scheduled_game(game_number))
-        for game_number in range(1, HOUSE_TEST_GAMES + 1)
-    ]
-    try:
-        await asyncio.gather(*tasks)
-    except BaseException:
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        raise
+        _write_json(manifest_path, manifest)
+        game_port = args.game_port + game_number - 1
+        print(
+            f"Game {game_number}: {verb} attempt {attempt_number} "
+            f"on port {game_port}"
+        )
+        segment_started = monotonic()
+        try:
+            result = await run_game(
+                game_number=game_number,
+                attempt_dir=attempt_dir,
+                random_seed=int(game_entry["randomSeed"]),
+                game_port=game_port,
+                max_rounds=None,
+                poll_seconds=args.poll_seconds,
+                stall_seconds=args.stall_seconds,
+                match_timeout_seconds=args.match_timeout_hours * 3_600,
+                settings=settings,
+                resume=resume,
+                seat_models=[HOUSE_TEST_MODEL] * len(HOUSES),
+                seat_houses=HOUSES,
+            )
+            attempt.update(
+                {
+                    "status": "completed",
+                    "finishedAt": _now(),
+                    "winner": result["winner"],
+                }
+            )
+            print(f"Game {game_number}: winner {result['winner']}")
+        except asyncio.CancelledError:
+            attempt.update({"status": "cancelled", "finishedAt": _now()})
+            raise
+        except Exception as error:
+            error_text = safe_error_text(error)
+            attempt.update(
+                {
+                    "status": "failed",
+                    "finishedAt": _now(),
+                    "error": error_text,
+                }
+            )
+            _write_json(attempt_dir / "failure.json", attempt)
+            print(f"Game {game_number}: failed: {error_text}")
+            if not args.continue_on_error:
+                raise RuntimeError(error_text) from None
+        finally:
+            elapsed = float(attempt.get("activeElapsedSeconds") or 0)
+            attempt["activeElapsedSeconds"] = round(
+                elapsed + monotonic() - segment_started, 3
+            )
+            _write_json(manifest_path, manifest)
+            _write_house_summary(output, manifest)
+
+    for game_number in range(1, HOUSE_TEST_GAMES + 1):
+        await run_scheduled_game(game_number)
 
     manifest["finishedAt"] = _now()
     _write_json(manifest_path, manifest)
@@ -224,6 +207,7 @@ def summarize_house_results(
     results: list[dict[str, Any]],
     *,
     active_elapsed_seconds: dict[int, float],
+    attempts: list[dict[str, Any]],
 ) -> dict[str, Any]:
     houses = {
         house: {
@@ -236,10 +220,6 @@ def summarize_house_results(
         }
         for house in HOUSES
     }
-    status_counts: Counter[str] = Counter()
-    model_requests = input_tokens = output_tokens = total_tokens = 0
-    cached_input_tokens = 0
-    cost_usd = 0.0
     games: list[dict[str, Any]] = []
 
     for result in sorted(results, key=lambda item: int(item["gameNumber"])):
@@ -260,15 +240,6 @@ def summarize_house_results(
             house["placementTotal"] += int(standing["placement"])
             house["victoryPointTotal"] += int(standing["victoryPoints"])
             house["landAreaTotal"] += int(standing["landAreas"])
-            metrics = standing["metrics"]
-            status_counts.update(metrics["statusCounts"])
-            model_requests += int(metrics.get("modelRequests") or 0)
-            tokens = metrics.get("tokens") or {}
-            input_tokens += int(tokens.get("input") or 0)
-            output_tokens += int(tokens.get("output") or 0)
-            total_tokens += int(tokens.get("total") or 0)
-            cached_input_tokens += int(tokens.get("cachedInput") or 0)
-            cost_usd += float(metrics.get("costUsd") or 0)
 
     house_statistics = []
     for values in houses.values():
@@ -305,6 +276,9 @@ def summarize_house_results(
         for game in games
         if (value := game["activeElapsedSeconds"]) is not None
     ]
+    metrics = _aggregate_run_metrics(
+        [attempt.get("metrics") or {} for attempt in attempts]
+    )
     return {
         "schemaVersion": 1,
         "model": HOUSE_TEST_MODEL,
@@ -313,6 +287,7 @@ def summarize_house_results(
         "completedGames": completed_games,
         "complete": completed_games == HOUSE_TEST_GAMES,
         "games": games,
+        "attempts": attempts,
         "durationSeconds": {
             "minimum": round(min(durations), 3) if durations else None,
             "average": round(sum(durations) / len(durations), 3)
@@ -324,15 +299,10 @@ def summarize_house_results(
             and all(value < 60 for value in durations),
         },
         "houseStatistics": house_statistics,
-        "runStatusCounts": dict(sorted(status_counts.items())),
-        "modelRequests": model_requests,
-        "tokens": {
-            "input": input_tokens,
-            "output": output_tokens,
-            "total": total_tokens,
-            "cachedInput": cached_input_tokens,
-        },
-        "costUsd": round(cost_usd, 6),
+        "runStatusCounts": metrics["statusCounts"],
+        "modelRequests": metrics["modelRequests"],
+        "tokens": metrics["tokens"],
+        "costUsd": round(metrics["costUsd"], 6),
     }
 
 
@@ -398,7 +368,20 @@ def _load_or_create_manifest(
 def _write_house_summary(output: Path, manifest: dict[str, Any]) -> None:
     results: list[dict[str, Any]] = []
     elapsed: dict[int, float] = {}
+    attempts: list[dict[str, Any]] = []
     for game in manifest["games"]:
+        for attempt in game["attempts"]:
+            attempt_dir = output / attempt["directory"]
+            attempts.append(
+                {
+                    "gameNumber": int(game["number"]),
+                    "attemptNumber": int(attempt["number"]),
+                    "status": attempt.get("status"),
+                    "activeElapsedSeconds": attempt.get("activeElapsedSeconds"),
+                    "error": attempt.get("error"),
+                    "metrics": _load_attempt_metrics(attempt_dir),
+                }
+            )
         completed = next(
             (
                 attempt
@@ -418,8 +401,40 @@ def _write_house_summary(output: Path, manifest: dict[str, Any]) -> None:
         )
     _write_json(
         output / "summary.json",
-        summarize_house_results(results, active_elapsed_seconds=elapsed),
+        summarize_house_results(
+            results,
+            active_elapsed_seconds=elapsed,
+            attempts=attempts,
+        ),
     )
+
+
+def _load_attempt_metrics(attempt_dir: Path) -> dict[str, Any]:
+    metrics_path = attempt_dir / "metrics.json"
+    if metrics_path.is_file():
+        try:
+            value = json.loads(metrics_path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                f"Saved attempt metrics cannot be loaded: {metrics_path}: {error}"
+            ) from error
+        if not isinstance(value, dict):
+            raise RuntimeError(
+                f"Saved attempt metrics must be a JSON object: {metrics_path}"
+            )
+        return value
+
+    database_path = attempt_dir / "harness.db"
+    if not database_path.is_file():
+        return _aggregate_run_metrics([])
+    database = Database(database_path)
+    try:
+        store = AgentStore(database)
+        return _aggregate_run_metrics(
+            [store.get_run_metrics(record.id) for record in store.list_agents()]
+        )
+    finally:
+        database.close()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -432,17 +447,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", help="Artifact directory under data/evaluations."
     )
     parser.add_argument("--game-port", type=int, default=5121)
-    parser.add_argument(
-        "--concurrent-games",
-        type=int,
-        default=HOUSE_TEST_CONCURRENT_GAMES,
-        choices=range(1, HOUSE_TEST_GAMES + 1),
-    )
     parser.add_argument("--poll-seconds", type=float, default=0.25)
     parser.add_argument("--stall-seconds", type=float, default=360.0)
     parser.add_argument("--match-timeout-hours", type=float, default=6.0)
     parser.add_argument("--continue-on-error", action="store_true")
     parser.set_defaults(
+        concurrent_games=1,
         random_seed=HOUSE_TEST_RANDOM_SEED,
         max_rounds=None,
     )

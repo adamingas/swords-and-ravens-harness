@@ -917,8 +917,8 @@ async def test_connection_loss_does_not_consume_autoplay_failure_budget(
     )
     manager.sessions[agent.id] = session
     manager._schedule_autoplay(agent.id, session)
-    await asyncio.wait_for(harness.started.wait(), timeout=2)
-    session.autoplay = False
+    await asyncio.wait_for(harness.started.wait(), timeout=0.5)
+    manager.set_autoplay(agent.id, False)
     assert session.autoplay_task is not None
     await asyncio.wait_for(session.autoplay_task, timeout=2)
 
