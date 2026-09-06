@@ -906,10 +906,15 @@ Then run the complete comparison:
 ~~~bash
 uv run raven-evaluate --games 12 \
   --random-seed 1 \
+  --concurrent-games 12 \
   --output data/evaluations/glm-prompt-comparison
 ~~~
 
-The runner starts one isolated TypeScript server at port 5101 for each game.
+The runner starts independent games concurrently. It starts one isolated
+TypeScript server for each active game. Game 1 uses port 5101 by default. Each
+later game uses the next port. `--concurrent-games` limits how many games can
+run at the same time. Its default is 12, so a complete schedule starts all 12
+games together.
 Each attempt contains `game.json`, `harness.db`, assignments, progress,
 `provider-generations.json`, a server log, and a result or failure record. The
 provider artifact is collected best-effort for completed and failed games. The

@@ -153,7 +153,15 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
     manifest_path = output / "manifest.json"
     manifest = _load_manifest(manifest_path, args, output, settings)
 
-    for game_number in range(args.start_game, args.games + 1):
+    last_port = args.game_port + args.games - 1
+    if last_port > 65_535:
+        raise RuntimeError(
+            f"Game-server port range ends at {last_port}; choose a lower --game-port"
+        )
+    semaphore = asyncio.Semaphore(args.concurrent_games)
+    write_lock = asyncio.Lock()
+
+    async def run_scheduled_game(game_number: int) -> None:
         game_entry = _game_entry(manifest, game_number)
         completed_attempt = next(
             (
@@ -170,60 +178,87 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
                 settings=settings,
             )
             if refreshed:
-                _write_summary(output, manifest)
+                async with write_lock:
+                    _write_summary(output, manifest)
             print(f"Game {game_number}: already completed")
-            continue
-        attempt_number = len(game_entry["attempts"]) + 1
-        attempt_dir = output / f"game-{game_number:02d}" / f"attempt-{attempt_number:02d}"
-        attempt_dir.mkdir(parents=True, exist_ok=False)
-        attempt = {
-            "number": attempt_number,
-            "status": "running",
-            "directory": str(attempt_dir.relative_to(output)),
-            "startedAt": _now(),
-        }
-        game_entry["attempts"].append(attempt)
-        _write_json(manifest_path, manifest)
-        print(f"Game {game_number}: starting attempt {attempt_number}")
-        try:
-            result = await run_game(
-                game_number=game_number,
-                attempt_dir=attempt_dir,
-                model=args.model,
-                random_seed=int(game_entry["randomSeed"]),
-                game_port=args.game_port,
-                max_rounds=args.max_rounds,
-                poll_seconds=args.poll_seconds,
-                stall_seconds=args.stall_seconds,
-                match_timeout_seconds=args.match_timeout_hours * 3_600,
-                settings=settings,
+            return
+
+        async with semaphore:
+            attempt_number = len(game_entry["attempts"]) + 1
+            attempt_dir = (
+                output
+                / f"game-{game_number:02d}"
+                / f"attempt-{attempt_number:02d}"
             )
-            attempt.update(
-                {
-                    "status": "completed",
-                    "finishedAt": _now(),
-                    "winner": result["winner"],
-                }
-            )
-            print(f"Game {game_number}: winner {result['winner']}")
-        except Exception as error:
-            error_text = safe_error_text(error)
-            attempt.update(
-                {
-                    "status": "failed",
-                    "finishedAt": _now(),
-                    "error": error_text,
-                }
-            )
-            _write_json(attempt_dir / "failure.json", attempt)
-            print(f"Game {game_number}: failed: {error_text}")
-            if not args.continue_on_error:
+            attempt_dir.mkdir(parents=True, exist_ok=False)
+            attempt = {
+                "number": attempt_number,
+                "status": "running",
+                "directory": str(attempt_dir.relative_to(output)),
+                "startedAt": _now(),
+            }
+            game_entry["attempts"].append(attempt)
+            async with write_lock:
                 _write_json(manifest_path, manifest)
-                _write_summary(output, manifest)
-                raise RuntimeError(error_text) from None
-        finally:
-            _write_json(manifest_path, manifest)
-            _write_summary(output, manifest)
+            game_port = args.game_port + game_number - 1
+            print(
+                f"Game {game_number}: starting attempt {attempt_number} "
+                f"on port {game_port}"
+            )
+            try:
+                result = await run_game(
+                    game_number=game_number,
+                    attempt_dir=attempt_dir,
+                    model=args.model,
+                    random_seed=int(game_entry["randomSeed"]),
+                    game_port=game_port,
+                    max_rounds=args.max_rounds,
+                    poll_seconds=args.poll_seconds,
+                    stall_seconds=args.stall_seconds,
+                    match_timeout_seconds=args.match_timeout_hours * 3_600,
+                    settings=settings,
+                )
+                attempt.update(
+                    {
+                        "status": "completed",
+                        "finishedAt": _now(),
+                        "winner": result["winner"],
+                    }
+                )
+                print(f"Game {game_number}: winner {result['winner']}")
+            except asyncio.CancelledError:
+                attempt.update({"status": "cancelled", "finishedAt": _now()})
+                raise
+            except Exception as error:
+                error_text = safe_error_text(error)
+                attempt.update(
+                    {
+                        "status": "failed",
+                        "finishedAt": _now(),
+                        "error": error_text,
+                    }
+                )
+                _write_json(attempt_dir / "failure.json", attempt)
+                print(f"Game {game_number}: failed: {error_text}")
+                if not args.continue_on_error:
+                    raise RuntimeError(error_text) from None
+            finally:
+                async with write_lock:
+                    _write_json(manifest_path, manifest)
+                    _write_summary(output, manifest)
+
+    tasks = [
+        asyncio.create_task(run_scheduled_game(game_number))
+        for game_number in range(args.start_game, args.games + 1)
+    ]
+    try:
+        await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
 
     manifest["finishedAt"] = _now()
     _write_json(manifest_path, manifest)
@@ -1250,7 +1285,8 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
         },
         "evaluation": {
             "randomSeed": args.random_seed,
-            "gamePort": args.game_port,
+            "baseGamePort": args.game_port,
+            "concurrentGames": args.concurrent_games,
             "maxRounds": args.max_rounds,
             "pollSeconds": args.poll_seconds,
             "stallSeconds": args.stall_seconds,
@@ -1690,6 +1726,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--games", type=int, default=12, choices=range(1, 13))
     parser.add_argument("--start-game", type=int, default=1, choices=range(1, 13))
     parser.add_argument("--game-port", type=int, default=5101)
+    parser.add_argument(
+        "--concurrent-games",
+        type=int,
+        default=12,
+        choices=range(1, 13),
+        help="Maximum number of independent games to run at once (default: 12).",
+    )
     parser.add_argument("--max-rounds", type=int, choices=range(1, 11))
     parser.add_argument("--poll-seconds", type=float, default=1.0)
     parser.add_argument("--stall-seconds", type=float, default=360.0)

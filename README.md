@@ -194,6 +194,7 @@ uv run raven-evaluate --games 1 --max-rounds 1 \
   --output data/evaluations/glm-one-round-smoke
 uv run raven-evaluate --games 12 \
   --random-seed 1 \
+  --concurrent-games 12 \
   --output data/evaluations/glm-prompt-comparison
 ~~~
 
@@ -219,7 +220,10 @@ The evaluator derives one game seed from `--random-seed` and the game number.
 It records that seed and reuses it for every retry of that game. Reusing an
 output directory skips completed games and preserves failed attempts. The
 manifest rejects changes to the model, prompts, seed, schedule, source commits,
-rules, or runtime settings. Before it creates a new attempt, the runner stops
+rules, or runtime settings. Independent games run concurrently. Each game uses
+one port, starting at `--game-port` and increasing with the game number. The
+default `--concurrent-games 12` runs the complete schedule at once. Before it
+creates a new attempt, the runner stops
 if OpenRouter reports that the configured key has exhausted its spending
 limit. The summary labels rankings as provisional until all 12 games are
 complete and every configuration has played each house twice.

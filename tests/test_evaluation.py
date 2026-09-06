@@ -239,6 +239,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
         model="z-ai/glm-5.3-flash",
         random_seed=1,
         game_port=5101,
+        concurrent_games=4,
         max_rounds=None,
         poll_seconds=1.0,
         stall_seconds=360.0,
@@ -428,6 +429,7 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
         games=1,
         start_game=1,
         game_port=5101,
+        concurrent_games=1,
         max_rounds=1,
         poll_seconds=1.0,
         stall_seconds=360.0,
@@ -438,6 +440,75 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
     with pytest.raises(RuntimeError, match="quota rejected"):
         await run_evaluation(args)
     assert not output.exists()
+
+
+@pytest.mark.asyncio
+async def test_evaluation_runs_games_concurrently_on_distinct_ports(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    evaluation_root = tmp_path / "evaluations"
+    output = evaluation_root / "comparison"
+    rules = tmp_path / "rules.json"
+    rules.write_text("{}\n")
+    settings = Settings(
+        rules_path=rules,
+        openrouter_token="secret",
+        _env_file=None,
+    )
+    active = 0
+    peak_active = 0
+    ports: dict[int, int] = {}
+
+    async def accept_quota(_settings: Settings) -> None:
+        return None
+
+    async def fake_run_game(**arguments):
+        nonlocal active, peak_active
+        game_number = arguments["game_number"]
+        ports[game_number] = arguments["game_port"]
+        active += 1
+        peak_active = max(peak_active, active)
+        try:
+            await asyncio.sleep(0.02)
+            return {"winner": HOUSES[game_number - 1]}
+        finally:
+            active -= 1
+
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
+    )
+    monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
+    monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._build_provenance",
+        lambda _args, _settings: {"test": True},
+    )
+    args = argparse.Namespace(
+        output=str(output),
+        model="z-ai/glm-5.3-flash",
+        random_seed=1,
+        games=4,
+        start_game=1,
+        game_port=5101,
+        concurrent_games=3,
+        max_rounds=1,
+        poll_seconds=1.0,
+        stall_seconds=360.0,
+        match_timeout_hours=6.0,
+        continue_on_error=False,
+    )
+
+    assert await run_evaluation(args) == output
+    assert peak_active == 3
+    assert ports == {1: 5101, 2: 5102, 3: 5103, 4: 5104}
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert [game["attempts"][0]["status"] for game in manifest["games"]] == [
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+    ]
 
 
 @pytest.mark.asyncio
