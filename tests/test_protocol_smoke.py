@@ -8,8 +8,11 @@ import pytest
 
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.observation import build_context
+from raven_harness.game.client import OrderSubmission
 from raven_harness.evaluation import GAME_SERVER_DIR
 from raven_harness.protocol_smoke import (
+    REQUIRED_TOOL_COVERAGE,
+    REQUIRED_TOOL_COUNTS,
     ScriptedProtocolRunner,
     UnsupportedSmokeDecision,
     _safe_tool_arguments,
@@ -42,16 +45,45 @@ class FakeClient:
         self.snapshot["leafStateId"] += "-accepted"
         return self.snapshot
 
+    async def submit_orders(
+        self, orders, timeout=10, *, expected_generation=None
+    ):
+        del timeout
+        assert expected_generation == self.connection_generation
+        message = {
+            "type": "submit-orders",
+            "requestId": "order-request-1",
+            "orders": orders,
+        }
+        self.sent.append(message)
+        accepted = not any(order.get("orderId") == 999_999 for order in orders)
+        if accepted:
+            self.snapshot["childGameState"]["childGameState"]["placedOrders"] = [
+                [order["regionId"], order["orderId"]] for order in orders
+            ]
+            self.snapshot["leafStateId"] += "-accepted"
+        return OrderSubmission(
+            message=message,
+            response={
+                "type": "submit-orders-response",
+                "requestId": "order-request-1",
+                "accepted": accepted,
+                "reason": "ok" if accepted else "unknown-order",
+                "stateId": self.snapshot["leafStateId"],
+            },
+            snapshot=self.snapshot,
+        )
 
-def test_safe_planning_arguments_use_dynamic_non_active_order_capacity() -> None:
+
+def test_safe_planning_arguments_use_dynamic_action_order_plan() -> None:
     snapshot = planning_snapshot()
     context = build_context(snapshot, "2")
     submit_orders = available_tools(context)[0]
     observation = {
         "planningConstraints": {
             "maxAssignmentsByOrderCategory": {
-                "defense": 2,
-                "support": 2,
+                "march": 2,
+                "raid": 2,
             }
         }
     }
@@ -62,18 +94,29 @@ def test_safe_planning_arguments_use_dynamic_non_active_order_capacity() -> None
         "assignments": [
             {
                 "region_id": "winterfell",
-                "order": "defense",
+                "order": "march",
                 "starred_preference": "avoid",
                 "priority": 2,
             },
             {
                 "region_id": "white-harbor",
-                "order": "defense",
+                "order": "raid",
                 "starred_preference": "avoid",
                 "priority": 1,
             },
         ]
     }
+
+
+def test_safe_planning_arguments_support_empty_order_state() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["game"]["world"]["regions"] = []
+    tool = available_tools(build_context(snapshot, "2"))[0]
+
+    assert _safe_tool_arguments(
+        tool,
+        {"planningConstraints": {"maxAssignmentsByOrderCategory": {}}},
+    ) == {"assignments": []}
 
 
 @pytest.mark.asyncio
@@ -88,8 +131,8 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
         "statePath": ["ingame", "planning", "place-orders"],
         "planningConstraints": {
             "maxAssignmentsByOrderCategory": {
-                "defense": 2,
-                "support": 2,
+                "march": 2,
+                "raid": 2,
             }
         },
     }
@@ -113,7 +156,9 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
         "function_call",
         "function_call_output",
     ]
-    assert client.sent[-1] == {"type": "ready"}
+    assert client.sent[-1]["type"] == "submit-orders"
+    assert len(client.sent) == 2
+    assert result.context_manifest["selectedTool"] == "submit_orders"
 
 
 def test_scripted_runner_fails_closed_with_dynamic_schema() -> None:
@@ -154,7 +199,25 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(tmp_path) ->
     assert smoke["status"] == "completed"
     assert smoke["providerRequests"] == 0
     assert smoke["winner"] == game_result["winner"]
+    assert set(smoke["toolCoverage"]["invoked"]) >= REQUIRED_TOOL_COVERAGE
+    assert smoke["toolCoverage"]["required"] == REQUIRED_TOOL_COUNTS
+    assert all(
+        smoke["toolCoverage"]["invoked"][name] >= required
+        for name, required in REQUIRED_TOOL_COUNTS.items()
+    )
+    assert len(smoke["toolCoverage"]["sequence"]) == sum(
+        smoke["toolCoverage"]["invoked"].values()
+    )
     assert game_result["artifacts"]["sqliteQuickCheck"] == "ok"
+    rejection_probe = smoke["orderSubmissionRejectionProbe"]
+    assert rejection_probe["accepted"] is False
+    assert rejection_probe["reason"] == "unknown-order"
+    assert rejection_probe["stateUnchanged"] is True
+    assert isinstance(rejection_probe["stateId"], str)
+    privacy_probe = smoke["orderSubmissionPrivacyProbe"]
+    assert privacy_probe["ownerReceivedExactOrderIds"] is True
+    assert privacy_probe["opponentReceivedOnlyHiddenOrders"] is True
+    assert privacy_probe["observedOrderCount"] > 0
     connection = sqlite3.connect(output / "harness.db")
     try:
         statuses = dict(
@@ -170,5 +233,7 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(tmp_path) ->
         ).fetchone()[0]
     finally:
         connection.close()
-    assert statuses == {"completed": 7}
+    assert statuses == {
+        "completed": len(smoke["toolCoverage"]["sequence"]),
+    }
     assert provider_requests == 0

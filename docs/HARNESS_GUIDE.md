@@ -386,14 +386,16 @@ The canonical harness supports a six-player base game with vassals disabled.
 PBEM mode and the victory-point target remain configurable. It exposes no
 protocol tool when the snapshot omits the setup or player-count identity, or
 identifies another setup, player count, or an explicitly enabled vassal mode.
-The upstream serializer normally omits `vassals: false`. The post-action test is
-a heuristic, not a dedicated action acknowledgement. A model can still make a
-bad attempt. A server transition can also make acceptance ambiguous.
+The upstream serializer normally omits `vassals: false`. Most post-action tests
+infer acceptance from the next authoritative snapshot. A model can still make
+a bad attempt. A server transition can also make acceptance ambiguous.
 
-submit_orders sends several protocol messages and is not transactional. A
-failure can occur after the server has already applied part of the draft. More
-generally, a failed harness trace does not prove that the upstream server made
-no change.
+`submit_orders` is the exception. The harness sends the complete planning draft
+as one correlated request. The game server validates the complete draft before
+it changes the board, then sends a private acceptance or rejection response.
+The harness requests a fresh player-scoped snapshot after that response. A
+connection failure can still hide a response, so the harness does not replay
+the request automatically.
 
 For an unknown state, the harness exposes no gameplay tool. This fail-closed
 behavior makes missing state coverage visible.
@@ -475,10 +477,11 @@ For this example, the full path is:
 3. The model calls `submit_orders` with the JSON above.
 4. Pydantic checks the object shape. The harness checks region eligibility,
    order inventory, starred limits, and current turn ownership.
-5. The harness converts semantic orders to physical order tokens. It sends the
-   typed placement messages and the ready message.
-6. The client requests `sync-game`. The returned snapshot confirms or rejects
-   the action.
+5. The harness converts semantic orders to physical order tokens. It sends one
+   complete `submit-orders` request.
+6. The server validates the full draft before mutation and sends a private
+   correlated response. The client then requests `sync-game` and replaces its
+   state with the returned player-scoped snapshot.
 7. SQLite stores the input observation, instructions, offered tool schemas,
    SDK response items, selected arguments, usage, timing, and any error.
 
@@ -747,7 +750,7 @@ stop autoplay for all running agents immediately. Persisted and API-visible
 error text redacts credential assignments, sensitive URL parameters, and
 provider key-management identifiers.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Reka, Cloudflare, CoreWeave, Fireworks, Together, and DeepInfra.
+defaults to Cloudflare, CoreWeave, Fireworks, DeepInfra, Together, and Reka.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -851,12 +854,15 @@ uv run raven-evaluate --games 1 --max-rounds 1 \
 ~~~
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
-clients. A deterministic runner invokes the dynamic `submit_orders` and
-`skip_raven_order_replacement` tools to finish one round without a model
-provider. It uses only Defense and Support orders, fails closed at an
-unexpected required decision, and writes `smoke.json`, `harness.db`, the saved
-game, and the server log below `data/evaluations/`. This test verifies the
-protocol and persistence path. It does not replace the paid model smoke.
+clients. A deterministic runner finishes two rounds without a model provider.
+It must exercise planning submission, Raven inspection, Raid, March, combat
+card selection, and consolidate-power resolution. It records the actual tool
+counts and sequence in `smoke.json`. It also proves that one rejected draft
+does not change the submitting player's state and that another player sees
+only hidden planning orders. It fails closed at an unexpected required
+decision and writes `harness.db`, the saved game, result, and server log below
+`data/evaluations/`. This test verifies the protocol and persistence path. It
+does not replace the paid model smoke.
 
 Verify saved evaluation artifacts without a provider request:
 

@@ -15,12 +15,16 @@ class FakeConnection:
         self,
         *,
         answer_sync: bool = True,
+        answer_submit: bool = True,
+        accept_submit: bool = True,
         close_after_auth: bool = False,
         snapshot: dict[str, Any] | None = None,
     ) -> None:
         self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
         self.closed = False
         self.answer_sync = answer_sync
+        self.answer_submit = answer_submit
+        self.accept_submit = accept_submit
         self.close_after_auth = close_after_auth
         self.snapshot = snapshot or lobby_snapshot()
         self.sent: list[dict[str, Any]] = []
@@ -58,6 +62,18 @@ class FakeConnection:
                         "type": "game-snapshot",
                         "requestId": message["requestId"],
                         "game": game,
+                    }
+                )
+            )
+        elif message["type"] == "submit-orders" and self.answer_submit:
+            await self.incoming.put(
+                encode_message(
+                    {
+                        "type": "submit-orders-response",
+                        "requestId": message["requestId"],
+                        "accepted": self.accept_submit,
+                        "reason": "ok" if self.accept_submit else "invalid-region-set",
+                        "stateId": "submitted-leaf",
                     }
                 )
             )
@@ -129,6 +145,96 @@ async def test_normal_socket_eof_disconnects_and_fails_pending_sync() -> None:
     assert client.status == "disconnected"
     assert client.connection is None
     assert client._sync_requests == {}
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("accepted", [True, False])
+async def test_submit_orders_waits_for_private_response_and_fresh_snapshot(
+    accepted: bool,
+) -> None:
+    connection = FakeConnection(accept_submit=accepted)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+
+    result = await client.submit_orders(
+        [{"regionId": "winterfell", "orderId": 2}], timeout=0.5
+    )
+
+    assert result.response["accepted"] is accepted
+    assert result.snapshot["leafStateId"] == "synced-leaf"
+    assert result.message == connection.sent[-2]
+    assert [message["type"] for message in connection.sent] == [
+        "authenticate",
+        "submit-orders",
+        "sync-game",
+    ]
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_submit_orders_disconnects_when_response_is_missing() -> None:
+    connection = FakeConnection(answer_submit=False)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+
+    with pytest.raises(GameConnectionLost, match="did not acknowledge"):
+        await client.submit_orders([], timeout=0.01)
+
+    assert client.status == "disconnected"
+    assert client._order_submissions == {}
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_submit_orders_retires_ambiguous_connection() -> None:
+    connection = FakeConnection(answer_submit=False)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+    submission = asyncio.create_task(client.submit_orders([], timeout=10))
+    for _ in range(100):
+        if any(message["type"] == "submit-orders" for message in connection.sent):
+            break
+        await asyncio.sleep(0)
+
+    submission.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await submission
+
+    assert client.status == "disconnected"
+    assert client.connection is None
+    assert client.snapshot is None
+    assert client._order_submissions == {}
     await client.close()
 
 

@@ -128,7 +128,7 @@ MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
 AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=reka,cloudflare,coreweave,fireworks,together,deepinfra
+OPENROUTER_PROVIDER_ORDER=cloudflare,coreweave,fireworks,deepinfra,together,reka
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -191,9 +191,10 @@ uv run raven-evaluate --games 12 \
 ~~~
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
-clients, then completes one round with a deterministic safe policy. It invokes
-the same dynamic gameplay tools as a model but makes no provider requests. Use
-it to test local protocol and persistence changes before the paid model smoke.
+clients, then completes two rounds with a deterministic policy. It invokes the
+same dynamic gameplay tools as a model, records required and observed tool
+coverage, and makes no provider requests. Use it to test local protocol and
+persistence changes before the paid model smoke.
 
 Verify any saved evaluation without contacting the provider:
 

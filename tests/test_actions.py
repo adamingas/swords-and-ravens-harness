@@ -16,7 +16,7 @@ from raven_harness.harness.protocol_tools import (
     gameplay_tools_for_context,
     muster_units,
 )
-from raven_harness.game.client import GameConnectionLost
+from raven_harness.game.client import GameConnectionLost, OrderSubmission
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -55,6 +55,35 @@ class FakeClient:
         else:
             self.snapshot["leafStateId"] += "-accepted"
         return self.snapshot
+
+    async def submit_orders(
+        self,
+        orders: list[dict[str, Any]],
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> OrderSubmission:
+        del timeout
+        if expected_generation != self.connection_generation:
+            raise GameConnectionLost("stale connection generation")
+        message = {
+            "type": "submit-orders",
+            "requestId": "order-request-1",
+            "orders": orders,
+        }
+        self.sent.append(message)
+        self.snapshot["leafStateId"] += "-accepted"
+        return OrderSubmission(
+            message=message,
+            response={
+                "type": "submit-orders-response",
+                "requestId": "order-request-1",
+                "accepted": True,
+                "reason": "ok",
+                "stateId": self.snapshot["leafStateId"],
+            },
+            snapshot=self.snapshot,
+        )
 
 
 def test_mustering_requires_at_least_one_group() -> None:
@@ -191,7 +220,7 @@ async def test_pydantic_rejects_bad_order_category_before_sending() -> None:
 
 
 @pytest.mark.asyncio
-async def test_submit_orders_clears_partial_draft_before_replacing_it() -> None:
+async def test_submit_orders_replaces_complete_draft_atomically() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["game"]["starredOrderRestrictions"] = [3]
     client = FakeClient(snapshot)
@@ -227,12 +256,78 @@ async def test_submit_orders_clears_partial_draft_before_replacing_it() -> None:
     )
 
     assert client.sent == [
-        {"type": "place-order", "regionId": "winterfell", "orderId": None},
-        {"type": "place-order", "regionId": "white-harbor", "orderId": None},
-        {"type": "place-order", "regionId": "winterfell", "orderId": 4},
-        {"type": "place-order", "regionId": "white-harbor", "orderId": 5},
-        {"type": "ready"},
+        {
+            "type": "submit-orders",
+            "requestId": "order-request-1",
+            "orders": [
+                {"regionId": "winterfell", "orderId": 4},
+                {"regionId": "white-harbor", "orderId": 5},
+            ],
+        }
     ]
+
+
+@pytest.mark.asyncio
+async def test_submit_orders_reports_server_rejection_without_taking_action() -> None:
+    class RejectingOrderClient(FakeClient):
+        async def submit_orders(
+            self,
+            orders: list[dict[str, Any]],
+            timeout: float = 10,
+            *,
+            expected_generation: int | None = None,
+        ) -> OrderSubmission:
+            del timeout
+            if expected_generation != self.connection_generation:
+                raise GameConnectionLost("stale connection generation")
+            message = {
+                "type": "submit-orders",
+                "requestId": "order-request-1",
+                "orders": orders,
+            }
+            self.sent.append(message)
+            return OrderSubmission(
+                message=message,
+                response={
+                    "type": "submit-orders-response",
+                    "requestId": "order-request-1",
+                    "accepted": False,
+                    "reason": "invalid-region-set",
+                    "stateId": self.snapshot["leafStateId"],
+                },
+                snapshot=self.snapshot,
+            )
+
+    snapshot = planning_snapshot()
+    client = RejectingOrderClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps(
+        {
+            "assignments": [
+                {
+                    "region_id": region_id,
+                    "order": "defense",
+                    "starred_preference": "avoid",
+                    "priority": 50,
+                }
+                for region_id in ("winterfell", "white-harbor")
+            ]
+        }
+    )
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-rejected-orders",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert "invalid-region-set" in result
+    assert run_context.action_taken is None
 
 
 @pytest.mark.asyncio
@@ -287,9 +382,9 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
         arguments,
     )
 
-    assert client.sent[2:4] == [
-        {"type": "place-order", "regionId": "winterfell", "orderId": 2},
-        {"type": "place-order", "regionId": "white-harbor", "orderId": 12},
+    assert client.sent[0]["orders"] == [
+        {"regionId": "winterfell", "orderId": 2},
+        {"regionId": "white-harbor", "orderId": 12},
     ]
 
 
@@ -336,9 +431,9 @@ async def test_submit_orders_respects_restriction_on_only_starred_family_member(
         arguments,
     )
 
-    assert client.sent[2:4] == [
-        {"type": "place-order", "regionId": "winterfell", "orderId": 2},
-        {"type": "place-order", "regionId": "white-harbor", "orderId": 1},
+    assert client.sent[0]["orders"] == [
+        {"regionId": "winterfell", "orderId": 2},
+        {"regionId": "white-harbor", "orderId": 1},
     ]
 
 
@@ -444,8 +539,7 @@ async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() 
     )
 
     assert json.loads(result)["accepted"] is True
-    assert client.sent[-2] == {
-        "type": "place-order",
+    assert client.sent[0]["orders"][-1] == {
         "regionId": "region-9",
         "orderId": 4,
     }
@@ -573,7 +667,7 @@ async def test_submit_orders_can_ready_with_no_eligible_regions() -> None:
     )
 
     assert json.loads(result)["accepted"] is True
-    assert client.sent == [{"type": "ready"}]
+    assert client.sent[0]["orders"] == []
 
 
 @pytest.mark.asyncio
@@ -632,12 +726,13 @@ async def test_submit_orders_leaves_regions_empty_when_usable_tokens_run_out() -
     )
 
     assert json.loads(result)["accepted"] is True
-    placed = [message for message in client.sent if message.get("orderId")]
+    placed = [
+        order for order in client.sent[0]["orders"] if order.get("orderId")
+    ]
     assert len(placed) == 11
     assert {message["regionId"] for message in placed} == {
         f"region-{index}" for index in range(1, 12)
     }
-    assert client.sent[-1] == {"type": "ready"}
 
 
 def test_submit_orders_caps_zero_star_inventory_at_all_fifteen_tokens() -> None:

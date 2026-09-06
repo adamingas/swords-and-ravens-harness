@@ -12,7 +12,7 @@ from agents import FunctionTool, RunContextWrapper, function_tool
 from agents.tool import default_tool_error_function
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..game.client import GameConnectionLost
+from ..game.client import GameConnectionLost, OrderSubmission
 from .observation import HarnessContext, build_context, is_waiting_for_player
 
 Message = dict[str, Any]
@@ -94,6 +94,14 @@ class GameClient(Protocol):
         *,
         expected_generation: int | None = None,
     ) -> dict[str, Any]: ...
+
+    async def submit_orders(
+        self,
+        orders: list[Message],
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> OrderSubmission: ...
 
 
 class HarnessMemory(Protocol):
@@ -180,16 +188,16 @@ class HarnessRunContext:
         )
 
     async def perform(
-        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+        self, name: str, arguments: dict[str, Any], message: Message
     ) -> str:
         context = self.current_game_context()
         if context.ingame is not None and not is_waiting_for_player(context):
             raise RuntimeError("This player is not responsible for the current decision")
         _require_action(context, name)
-        return await self._send_messages(name, arguments, messages)
+        return await self._send_message(name, arguments, message)
 
     async def perform_protocol(
-        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+        self, name: str, arguments: dict[str, Any], message: Message
     ) -> str:
         """Send a typed gameplay action and let the game server enforce detailed rules."""
 
@@ -211,21 +219,54 @@ class HarnessRunContext:
         }
         if name not in available:
             raise ValueError(f"Tool {name!r} is not legal in the current game state")
-        return await self._send_messages(name, arguments, messages)
+        return await self._send_message(name, arguments, message)
 
-    async def _send_messages(
-        self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
+    async def perform_order_submission(
+        self,
+        arguments: dict[str, Any],
+        orders: list[Message],
+    ) -> str:
+        """Submit one server-validated planning draft and record its response."""
+
+        context = self.current_game_context()
+        if context.ingame is not None and not is_waiting_for_player(context):
+            raise RuntimeError("This player is not responsible for the current decision")
+        _require_action(context, "submit_orders")
+        if self.action_taken is not None:
+            raise RuntimeError("This model run has already taken an action")
+        result = await self.client.submit_orders(
+            orders,
+            expected_generation=self.connection_generation,
+        )
+        if result.response.get("accepted") is not True:
+            reason = result.response.get("reason")
+            detail = reason if isinstance(reason, str) and reason else "unknown-reason"
+            raise RuntimeError(f"The game server rejected 'submit_orders': {detail}")
+        self.action_taken = ActionTaken(
+            name="submit_orders",
+            arguments=arguments,
+            messages=[result.message],
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "accepted": True,
+                "action": "submit_orders",
+                "stateId": result.snapshot.get("leafStateId"),
+            }
+        )
+
+    async def _send_message(
+        self, name: str, arguments: dict[str, Any], message: Message
     ) -> str:
         if self.action_taken is not None:
             raise RuntimeError("This model run has already taken an action")
         before = self.current_game_context()
         before_state_id = before.snapshot.get("leafStateId")
-        outgoing = messages if isinstance(messages, list) else [messages]
-        for message in outgoing:
-            await self.client.send(
-                message,
-                expected_generation=self.connection_generation,
-            )
+        await self.client.send(
+            message,
+            expected_generation=self.connection_generation,
+        )
         await self.client.sync_snapshot(
             expected_generation=self.connection_generation
         )
@@ -237,7 +278,7 @@ class HarnessRunContext:
                 f"The game server did not accept {name!r}; its authoritative state did not reflect the action"
             )
         self.action_taken = ActionTaken(
-            name=name, arguments=arguments, messages=outgoing
+            name=name, arguments=arguments, messages=[message]
         )
         return json.dumps(
             {
@@ -770,10 +811,9 @@ async def submit_orders(
             assignment.model_dump(mode="json") for assignment in assignments
         ]
     }
-    messages = [
-        {"type": "place-order", "regionId": region_id, "orderId": None}
-        for region_id in expected_regions
-    ]
+    order_by_region: dict[str, int | None] = {
+        region_id: None for region_id in expected_regions
+    }
     fallback_tokens = set(spec.legal_values["restricted_token_ids"])
     if spec.legal_values["max_starred"] == 0:
         fallback_tokens.update(STARRED_ORDER_TOKENS)
@@ -784,18 +824,17 @@ async def submit_orders(
             expected_regions.index(item[0].region_id),
         ),
     )
-    messages.extend(
-        [
-            {
-                "type": "place-order",
-                "regionId": assignment.region_id,
-                "orderId": order_id,
-            }
+    order_by_region.update(
+        {
+            assignment.region_id: order_id
             for assignment, order_id in ordered_assignments
-        ]
+        }
     )
-    messages.append({"type": "ready"})
-    return await ctx.context.perform("submit_orders", arguments, messages)
+    orders = [
+        {"regionId": region_id, "orderId": order_by_region[region_id]}
+        for region_id in expected_regions
+    ]
+    return await ctx.context.perform_order_submission(arguments, orders)
 
 
 def _normal_order_capacity(

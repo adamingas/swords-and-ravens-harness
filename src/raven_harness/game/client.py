@@ -2,6 +2,7 @@ import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
@@ -17,6 +18,13 @@ ConnectionFactory = Callable[[str], Awaitable[Any]]
 
 class GameConnectionLost(RuntimeError):
     """A gameplay operation cannot safely continue on the current socket."""
+
+
+@dataclass(frozen=True)
+class OrderSubmission:
+    message: dict[str, Any]
+    response: dict[str, Any]
+    snapshot: dict[str, Any]
 
 
 class SwordsAndRavensClient:
@@ -49,6 +57,7 @@ class SwordsAndRavensClient:
         self._ping_task: asyncio.Task[None] | None = None
         self._send_lock = asyncio.Lock()
         self._sync_requests: dict[str, asyncio.Future[dict[str, Any]]] = {}
+        self._order_submissions: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
     async def connect(self, timeout: float = 10) -> dict[str, Any]:
         if self.connection is not None or (
@@ -142,6 +151,52 @@ class SwordsAndRavensClient:
         finally:
             self._sync_requests.pop(request_id, None)
 
+    async def submit_orders(
+        self,
+        orders: list[dict[str, Any]],
+        timeout: float = 10,
+        *,
+        expected_generation: int | None = None,
+    ) -> OrderSubmission:
+        """Submit one complete planning draft and wait for its private response."""
+
+        self._require_generation(expected_generation)
+        if (
+            self.connection is None
+            or self.snapshot is None
+            or self.status != "connected"
+        ):
+            raise GameConnectionLost("Game connection is not authenticated")
+        request_id = str(uuid4())
+        connection = self.connection
+        assert connection is not None
+        message = {
+            "type": "submit-orders",
+            "requestId": request_id,
+            "orders": orders,
+        }
+        future = asyncio.get_running_loop().create_future()
+        self._order_submissions[request_id] = future
+        try:
+            await self.send(message, expected_generation=expected_generation)
+            response = await asyncio.wait_for(future, timeout)
+            self._require_generation(expected_generation)
+            snapshot = await self.sync_snapshot(
+                timeout=timeout,
+                expected_generation=expected_generation,
+            )
+            return OrderSubmission(message, response, snapshot)
+        except asyncio.CancelledError:
+            await self._disconnect(connection)
+            raise
+        except TimeoutError as error:
+            await self._disconnect(connection)
+            raise GameConnectionLost(
+                f"Game server did not acknowledge the order submission within {timeout:g} seconds"
+            ) from error
+        finally:
+            self._order_submissions.pop(request_id, None)
+
     async def close(self, *, status: str = "stopped") -> None:
         current = asyncio.current_task()
         connection = self.connection
@@ -165,6 +220,10 @@ class SwordsAndRavensClient:
             if not future.done():
                 future.cancel()
         self._sync_requests.clear()
+        for future in self._order_submissions.values():
+            if not future.done():
+                future.cancel()
+        self._order_submissions.clear()
         self._ping_task = None
         self._receive_task = None
         self._set_status(status)
@@ -204,6 +263,16 @@ class SwordsAndRavensClient:
                 future.set_result(game)
             self.on_event("game-message", {"type": "game-snapshot"})
             self.on_event("snapshot", {})
+            return
+        if message.get("type") == "submit-orders-response":
+            request_id = str(message.get("requestId", ""))
+            future = self._order_submissions.get(request_id)
+            if future is None:
+                return
+            if not future.done():
+                future.set_result(message)
+            self.recent_events.append(message)
+            self.on_event("game-message", message)
             return
         if message.get("type") == "banned-response":
             self._set_status("banned")
@@ -253,6 +322,13 @@ class SwordsAndRavensClient:
                 future.set_exception(
                     GameConnectionLost(
                         "Game connection closed before synchronization"
+                    )
+                )
+        for future in self._order_submissions.values():
+            if not future.done():
+                future.set_exception(
+                    GameConnectionLost(
+                        "Game connection closed before the order submission was acknowledged"
                     )
                 )
         if self._ping_task is not current:
