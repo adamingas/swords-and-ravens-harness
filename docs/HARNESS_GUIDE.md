@@ -377,10 +377,12 @@ as a priority-ordered list and omits later new units that do not fit Supply.
 The accepted action trace records the applied arguments and an omission count
 or flag; the raw SDK response still records the model's original tool call.
 
-The canonical harness supports a six-player base game. It exposes no protocol
-tool for another setup or player count. The post-action test is a heuristic, not a
-dedicated action acknowledgement. A model can still make a bad attempt. A
-server transition can also make acceptance ambiguous.
+The canonical harness supports a six-player base game with vassals disabled.
+PBEM mode and the victory-point target remain configurable. It exposes no
+protocol tool when the snapshot omits these variant settings or identifies
+another setup, player count, or vassal mode. The post-action test is a heuristic,
+not a dedicated action acknowledgement. A model can still make a bad attempt.
+A server transition can also make acceptance ambiguous.
 
 submit_orders sends several protocol messages and is not transactional. A
 failure can occur after the server has already applied part of the draft. More

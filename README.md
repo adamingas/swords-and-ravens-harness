@@ -91,7 +91,8 @@ authentication tokens are equal. Give every human or model player a different
 user ID.
 
 The harness dashboard can create and connect agents, ask a model to choose a
-house, configure a six-player lobby through an owner agent, launch the game,
+house, configure a six-player base-game lobby without vassals through an owner
+agent, launch the game,
 run one decision, and enable autoplay. Humans continue to use the original
 browser client. Agent cards show live model-request and tool activity. The
 detail view keeps the recent activity timeline, complete run traces, player

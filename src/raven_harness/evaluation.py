@@ -1138,27 +1138,24 @@ def _load_manifest(
     provenance = _build_provenance(args, settings)
     if path.is_file():
         manifest = json.loads(path.read_text())
+        schema_version = manifest.get("schemaVersion")
+        if schema_version != 2:
+            raise RuntimeError(
+                "Existing evaluation manifest uses unsupported schema version "
+                f"{schema_version!r}; start a new evaluation directory"
+            )
         if manifest.get("model") != args.model:
             raise RuntimeError("Existing evaluation manifest uses another model ID")
         if int(manifest.get("gameCount", 0)) != args.games:
             raise RuntimeError("Existing evaluation manifest uses another game count")
         existing_provenance = manifest.get("provenance")
-        if existing_provenance is None:
-            if any(game.get("attempts") for game in manifest.get("games", [])):
-                raise RuntimeError(
-                    "Existing evaluation has attempts but no provenance; start a new "
-                    "evaluation directory"
-                )
-            manifest["provenance"] = provenance
-            manifest["schemaVersion"] = 2
-            manifest["configurations"] = [
-                item.model_dump() for item in PROMPT_CONFIGURATIONS
-            ]
-            manifest["games"] = _evaluation_schedule(args.games)
-            _write_json(path, manifest)
-        else:
-            _validate_reproducible_provenance(existing_provenance, provenance)
-            _validate_evaluation_schedule(manifest.get("games"), args.games)
+        if not isinstance(existing_provenance, dict):
+            raise RuntimeError(
+                "Existing evaluation manifest has no schema-2 provenance; start a "
+                "new evaluation directory"
+            )
+        _validate_reproducible_provenance(existing_provenance, provenance)
+        _validate_evaluation_schedule(manifest.get("games"), args.games)
         return manifest
     manifest = {
         "schemaVersion": 2,

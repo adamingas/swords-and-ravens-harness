@@ -809,10 +809,13 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
 
 
 def _is_base_game(snapshot: dict[str, Any]) -> bool:
-    settings = snapshot.get("gameSettings", {})
+    settings = snapshot.get("gameSettings")
+    if not isinstance(settings, dict):
+        return False
     return (
-        settings.get("setupId", "base-game") == "base-game"
-        and int(settings.get("playerCount", 6)) == 6
+        settings.get("setupId") == "base-game"
+        and settings.get("playerCount") == 6
+        and settings.get("vassals") is False
     )
 
 

@@ -579,9 +579,14 @@ class AgentManager:
         )
         snapshot = await session.client.sync_snapshot()
         current_settings = snapshot.get("gameSettings", {})
-        if current_settings.get("setupId") != setup.setup_id or int(
-            current_settings.get("playerCount", 0)
-        ) != setup.player_count:
+        if (
+            not isinstance(current_settings, dict)
+            or any(
+                type(current_settings.get(key)) is not type(expected)
+                or current_settings.get(key) != expected
+                for key, expected in settings.items()
+            )
+        ):
             raise RuntimeError("The game server did not accept the lobby settings")
         self.store.add_event(agent_id, "lobby-configured", settings)
         return settings

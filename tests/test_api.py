@@ -1,9 +1,12 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from raven_harness.app import create_app
 from raven_harness.config import PROJECT_ROOT, Settings
+from raven_harness.schemas import LobbySetupRequest
 
 from conftest import lobby_snapshot
 
@@ -84,6 +87,24 @@ def test_openrouter_routing_uses_sort_when_order_is_empty() -> None:
         "require_parameters": False,
         "sort": "latency",
     }
+
+
+def test_lobby_setup_request_accepts_only_supported_variant() -> None:
+    assert LobbySetupRequest().model_dump() == {
+        "setup_id": "base-game",
+        "player_count": 6,
+        "pbem": True,
+        "vassals": False,
+        "victory_points_to_win": 7,
+    }
+
+    for field, value in (
+        ("setupId", "mother-of-dragons"),
+        ("playerCount", 5),
+        ("vassals", True),
+    ):
+        with pytest.raises(ValidationError):
+            LobbySetupRequest.model_validate({field: value})
 
 
 def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:

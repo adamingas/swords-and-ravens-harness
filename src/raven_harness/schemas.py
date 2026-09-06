@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -91,12 +91,18 @@ class AutoplayRequest(CamelModel):
 
 
 class LobbySetupRequest(CamelModel):
-    """Small, stable subset of the upstream lobby settings used by the harness."""
+    """The one lobby configuration supported by the gameplay harness.
 
-    setup_id: str = Field(default="base-game", min_length=1, max_length=100)
-    player_count: int = Field(default=3, ge=2, le=8)
+    The tool and legality layer currently implement the six-player base game
+    without vassals.  Keep the other upstream settings configurable where the
+    game server supports them, but reject variants that the harness cannot
+    reason about.
+    """
+
+    setup_id: Literal["base-game"] = "base-game"
+    player_count: Literal[6] = 6
     pbem: bool = True
-    vassals: bool = False
+    vassals: Literal[False] = False
     victory_points_to_win: int = Field(default=7, ge=6, le=15)
 
 

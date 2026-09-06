@@ -19,6 +19,7 @@ from raven_harness.evaluation import (
     _collect_openrouter_generations,
     _evaluation_schedule,
     _git_provenance,
+    _load_manifest,
     _persisted_response_rows,
     _preflight_openrouter_quota,
     _progress_signature,
@@ -74,6 +75,48 @@ def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() 
     schedule[0]["users"]["Balanced"] = "2"
     with pytest.raises(RuntimeError, match="different house or user schedule"):
         _validate_evaluation_schedule(schedule, 12)
+
+
+def test_load_manifest_rejects_legacy_schema_without_modifying_it(
+    tmp_path, monkeypatch
+) -> None:
+    path = tmp_path / "manifest.json"
+    legacy = {
+        "schemaVersion": 1,
+        "model": "z-ai/glm-5.3-flash",
+        "gameCount": 12,
+        "games": _evaluation_schedule(12),
+    }
+    path.write_text(json.dumps(legacy))
+    monkeypatch.setattr(
+        "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
+    )
+    args = argparse.Namespace(model="z-ai/glm-5.3-flash", games=12)
+
+    with pytest.raises(RuntimeError, match="unsupported schema version 1"):
+        _load_manifest(path, args, tmp_path, Settings(_env_file=None))
+
+    assert json.loads(path.read_text()) == legacy
+
+
+def test_load_manifest_rejects_schema_two_without_provenance(
+    tmp_path, monkeypatch
+) -> None:
+    path = tmp_path / "manifest.json"
+    manifest = {
+        "schemaVersion": 2,
+        "model": "z-ai/glm-5.3-flash",
+        "gameCount": 12,
+        "games": _evaluation_schedule(12),
+    }
+    path.write_text(json.dumps(manifest))
+    monkeypatch.setattr(
+        "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
+    )
+    args = argparse.Namespace(model="z-ai/glm-5.3-flash", games=12)
+
+    with pytest.raises(RuntimeError, match="no schema-2 provenance"):
+        _load_manifest(path, args, tmp_path, Settings(_env_file=None))
 
 
 def test_progress_signature_includes_runtime_and_completed_run_progress() -> None:

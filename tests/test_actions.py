@@ -11,7 +11,11 @@ from raven_harness.harness.actions import (
     available_tools,
 )
 from raven_harness.harness.observation import build_context, build_observation
-from raven_harness.harness.protocol_tools import muster_units
+from raven_harness.harness.protocol_tools import (
+    _is_base_game,
+    gameplay_tools_for_context,
+    muster_units,
+)
 from raven_harness.game.client import GameConnectionLost
 
 from conftest import lobby_snapshot, planning_snapshot
@@ -729,6 +733,30 @@ def test_non_six_player_snapshot_exposes_no_protocol_tools() -> None:
     }
 
     assert available_tools(build_context(snapshot, "2")) == []
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        None,
+        {},
+        {"playerCount": 6, "vassals": False},
+        {"setupId": "mother-of-dragons", "playerCount": 6, "vassals": False},
+        {"setupId": "base-game", "vassals": False},
+        {"setupId": "base-game", "playerCount": 5, "vassals": False},
+        {"setupId": "base-game", "playerCount": 6, "vassals": True},
+    ],
+)
+def test_base_game_detection_fails_closed_for_missing_or_wrong_settings(settings) -> None:
+    snapshot = planning_snapshot()
+    if settings is None:
+        snapshot.pop("gameSettings")
+    else:
+        snapshot["gameSettings"] = settings
+
+    assert _is_base_game(snapshot) is False
+    context = build_context(snapshot, "2")
+    assert gameplay_tools_for_context(context, has_specific_tools=False) == []
 
 
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:

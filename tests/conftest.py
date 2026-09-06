@@ -7,7 +7,11 @@ def lobby_snapshot() -> dict[str, Any]:
         "name": "Test game",
         "ownerUserId": "1",
         "leafStateId": "leaf-1",
-        "gameSettings": {"playerCount": 3},
+        "gameSettings": {
+            "setupId": "base-game",
+            "playerCount": 6,
+            "vassals": False,
+        },
         "childGameState": {
             "type": "lobby",
             "players": [["baratheon", "1"]],
@@ -30,6 +34,11 @@ def planning_snapshot() -> dict[str, Any]:
         "name": "Test game",
         "ownerUserId": "1",
         "leafStateId": "leaf-2",
+        "gameSettings": {
+            "setupId": "base-game",
+            "playerCount": 6,
+            "vassals": False,
+        },
         "childGameState": {
             "type": "ingame",
             "waitedForUserIds": ["2"],

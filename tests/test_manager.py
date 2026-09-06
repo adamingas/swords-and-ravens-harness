@@ -21,7 +21,7 @@ from raven_harness.models.openai_agent import (
     ModelRunResult,
     PermanentModelError,
 )
-from raven_harness.schemas import AgentCreate
+from raven_harness.schemas import AgentCreate, LobbySetupRequest
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -95,6 +95,24 @@ class FakeRunClient:
     snapshot = lobby_snapshot()
     recent_events: list[dict] = []
     connection_generation = 1
+
+
+class FakeLobbyClient:
+    status = "connected"
+    recent_events: list[dict] = []
+    connection_generation = 1
+
+    def __init__(self, returned_settings: dict) -> None:
+        self.snapshot = lobby_snapshot()
+        self.synced_snapshot = lobby_snapshot()
+        self.synced_snapshot["gameSettings"] = returned_settings
+        self.sent: list[dict] = []
+
+    async def send(self, message: dict) -> None:
+        self.sent.append(message)
+
+    async def sync_snapshot(self) -> dict:
+        return self.synced_snapshot
 
 
 class ContextManifestHarness:
@@ -216,6 +234,69 @@ def manifest_manager(tmp_path, outcome: str = "completed"):
         status="connected", client=FakeRunClient()
     )
     return database, store, harness, manager, agent
+
+
+def lobby_manager(tmp_path, returned_settings: dict):
+    database = Database(tmp_path / "lobby-manager.db")
+    store = AgentStore(database)
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Lobby Owner",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="1",
+            auth_token="secret",
+        )
+    )
+    client = FakeLobbyClient(returned_settings)
+    manager.sessions[agent.id] = AgentSession(status="connected", client=client)
+    return database, manager, agent, client
+
+
+@pytest.mark.asyncio
+async def test_configure_lobby_verifies_all_accepted_settings(tmp_path) -> None:
+    expected = {
+        "setupId": "base-game",
+        "playerCount": 6,
+        "pbem": False,
+        "vassals": False,
+        "victoryPointsCountNeededToWin": 9,
+    }
+    database, manager, agent, client = lobby_manager(tmp_path, expected)
+
+    result = await manager.configure_lobby(
+        agent.id,
+        LobbySetupRequest(pbem=False, victory_points_to_win=9),
+    )
+
+    assert result == expected
+    assert client.sent == [{"type": "change-game-settings", "settings": expected}]
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_configure_lobby_rejects_partially_applied_settings(tmp_path) -> None:
+    returned = {
+        "setupId": "base-game",
+        "playerCount": 6,
+        "pbem": True,
+        "vassals": False,
+        "victoryPointsCountNeededToWin": 7,
+    }
+    database, manager, agent, _client = lobby_manager(tmp_path, returned)
+
+    with pytest.raises(RuntimeError, match="did not accept"):
+        await manager.configure_lobby(
+            agent.id,
+            LobbySetupRequest(pbem=False),
+        )
+
+    database.close()
 
 
 @pytest.mark.asyncio
