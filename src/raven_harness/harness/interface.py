@@ -11,15 +11,6 @@ from .actions import HarnessRunContext
 from .observation import HarnessContext
 
 
-@dataclass(frozen=True)
-class HarnessInfo:
-    id: str
-    name: str
-    description: str
-    persistent_memory: bool = False
-    historical_recall: bool = False
-
-
 @dataclass
 class PreparedTurn:
     observation: dict[str, Any]
@@ -31,9 +22,7 @@ class PreparedTurn:
 
 @runtime_checkable
 class PlayerHarness(Protocol):
-    """Interchangeable policy for presenting and running one model player."""
-
-    info: HarnessInfo
+    """Canonical interface between game state, model execution, and persistence."""
 
     def preview_observation(
         self, record: AgentRecord, context: HarnessContext

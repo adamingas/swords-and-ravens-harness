@@ -52,55 +52,6 @@ class SellswordPlacement(ToolInput):
 
 
 @function_tool
-async def place_planning_order(
-    ctx: RunContextWrapper[HarnessRunContext],
-    region_id: str,
-    order_id: Annotated[int, Field(ge=1, le=15)],
-) -> str:
-    """Place or replace one planning order token.
-
-    Args:
-        region_id: Region receiving the order.
-        order_id: Physical order token ID from 1 through 15.
-    """
-    return await _send(
-        ctx,
-        "place_planning_order",
-        {"region_id": region_id, "order_id": order_id},
-        {"type": "place-order", "regionId": region_id, "orderId": order_id},
-    )
-
-
-@function_tool
-async def remove_planning_order(
-    ctx: RunContextWrapper[HarnessRunContext], region_id: str
-) -> str:
-    """Remove the planning order currently assigned to a region.
-
-    Args:
-        region_id: Region whose order should be removed.
-    """
-    return await _send(
-        ctx,
-        "remove_planning_order",
-        {"region_id": region_id},
-        {"type": "place-order", "regionId": region_id, "orderId": None},
-    )
-
-
-@function_tool
-async def mark_ready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Mark your current simultaneous decision or setup as complete."""
-    return await _send(ctx, "mark_ready", {}, {"type": "ready"})
-
-
-@function_tool
-async def mark_unready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Withdraw ready status so a simultaneous decision can be edited."""
-    return await _send(ctx, "mark_unready", {}, {"type": "unready"})
-
-
-@function_tool
 async def resolve_raid(
     ctx: RunContextWrapper[HarnessRunContext],
     order_region_id: str,
@@ -191,29 +142,6 @@ async def select_units(
             "type": "select-units",
             "units": [
                 [selection.region_id, selection.unit_ids] for selection in selections
-            ],
-        },
-    )
-
-
-@function_tool
-async def reconcile_armies(
-    ctx: RunContextWrapper[HarnessRunContext], removals: list[RegionUnits]
-) -> str:
-    """Remove units grouped by region to satisfy a supply limit.
-
-    Args:
-        removals: Regions and exact unit IDs to remove.
-    """
-    arguments = {"removals": [removal.model_dump() for removal in removals]}
-    return await _send(
-        ctx,
-        "reconcile_armies",
-        arguments,
-        {
-            "type": "reconcile-armies",
-            "unitsToRemove": [
-                [removal.region_id, removal.unit_ids] for removal in removals
             ],
         },
     )
@@ -320,26 +248,6 @@ async def use_valyrian_steel_blade(
         "use_valyrian_steel_blade",
         {"use": use},
         {"type": "use-valyrian-steel-blade", "use": use},
-    )
-
-
-@function_tool
-async def refuse_support(
-    ctx: RunContextWrapper[HarnessRunContext], from_house_id: str | None
-) -> str:
-    """Refuse granted support, either from one house or from all supporters.
-
-    Args:
-        from_house_id: Supporting house to refuse, or null to refuse all support.
-    """
-    message = {"type": "refuse-support"}
-    if from_house_id is not None:
-        message["from"] = from_house_id
-    return await _send(
-        ctx,
-        "refuse_support",
-        {"from_house_id": from_house_id},
-        message,
     )
 
 
@@ -459,26 +367,6 @@ async def claim_vassals(
 
 
 @function_tool
-async def gift_power_tokens(
-    ctx: RunContextWrapper[HarnessRunContext],
-    to_house_id: str,
-    amount: Annotated[int, Field(ge=0)],
-) -> str:
-    """Gift power tokens to another house when prompted by an effect.
-
-    Args:
-        to_house_id: House receiving the tokens.
-        amount: Number of tokens to give.
-    """
-    return await _send(
-        ctx,
-        "gift_power_tokens",
-        {"to_house_id": to_house_id, "amount": amount},
-        {"type": "gift-power-tokens", "toHouse": to_house_id, "powerTokens": amount},
-    )
-
-
-@function_tool
 async def distribute_power_tokens(
     ctx: RunContextWrapper[HarnessRunContext], allocations: list[PowerAllocation]
 ) -> str:
@@ -499,12 +387,6 @@ async def distribute_power_tokens(
             ],
         },
     )
-
-
-@function_tool
-async def drop_power_tokens(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Drop the power tokens required by the current card or effect."""
-    return await _send(ctx, "drop_power_tokens", {}, {"type": "drop-power-tokens"})
 
 
 @function_tool
@@ -657,21 +539,15 @@ async def call_for_support_against_neutral_force(
 
 
 GAMEPLAY_TOOLS: list[FunctionTool] = [
-    place_planning_order,
-    remove_planning_order,
-    mark_ready,
-    mark_unready,
     resolve_raid,
     resolve_march,
     choose_casualties,
     select_units,
-    reconcile_armies,
     auto_reconcile_armies,
     muster_units,
     skip_mustering,
     resolve_track_ties,
     use_valyrian_steel_blade,
-    refuse_support,
     replace_raven_order,
     skip_raven_order_replacement,
     inspect_top_wildling_card,
@@ -679,9 +555,7 @@ GAMEPLAY_TOOLS: list[FunctionTool] = [
     select_region,
     select_westeros_card,
     claim_vassals,
-    gift_power_tokens,
     distribute_power_tokens,
-    drop_power_tokens,
     move_loyalty_token,
     resolve_consolidate_power,
     place_sellswords,
@@ -699,12 +573,7 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
     "choose-house-card": set(),
     "select-orders": set(),
     "support": set(),
-    "place-orders": {
-        "place_planning_order",
-        "remove_planning_order",
-        "mark_ready",
-        "mark_unready",
-    },
+    "place-orders": set(),
     "resolve-raid-order": {"resolve_raid"},
     "resolve-march-order": {
         "resolve_march",
@@ -757,7 +626,7 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
 def gameplay_tools_for_state(
     state_types: list[str], *, has_specific_tools: bool
 ) -> list[FunctionTool]:
-    """Use the deepest recognized state's tools; fall back broadly if uncovered."""
+    """Return tools for the deepest recognized state and no tools for unknown states."""
 
     if has_specific_tools:
         return []
@@ -765,7 +634,7 @@ def gameplay_tools_for_state(
         if state_type in _TOOLS_BY_STATE:
             names = _TOOLS_BY_STATE[state_type]
             return [_TOOLS_BY_NAME[name] for name in sorted(names)]
-    return GAMEPLAY_TOOLS
+    return []
 
 
 async def _send(

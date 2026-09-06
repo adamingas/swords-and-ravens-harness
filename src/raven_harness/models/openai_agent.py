@@ -16,6 +16,7 @@ from agents import (
 from openai import APITimeoutError, AsyncOpenAI
 
 from ..harness.actions import HarnessRunContext, available_tools
+from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
 
 
@@ -39,15 +40,19 @@ class OpenAIAgentRunner:
         request_timeout_seconds: float = 45,
         run_timeout_seconds: float = 150,
         max_retries: int = 2,
-        max_output_tokens: int = 8_192,
+        max_concurrency: int = 1,
+        max_output_tokens: int = 2_048,
         provider_routing: dict[str, Any] | None = None,
+        rulebook: Rulebook | None = None,
     ) -> None:
         self.api_key = api_key
         self.request_timeout_seconds = request_timeout_seconds
         self.run_timeout_seconds = run_timeout_seconds
         self.max_retries = max_retries
+        self._run_slots = asyncio.Semaphore(max_concurrency)
         self.max_output_tokens = max_output_tokens
         self.provider_routing = provider_routing
+        self.rulebook = rulebook
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
             base_url=base_url,
@@ -63,7 +68,6 @@ class OpenAIAgentRunner:
         context: HarnessRunContext,
         tools: list[FunctionTool] | None = None,
         instructions: str | None = None,
-        session: Any | None = None,
         max_turns: int = 1,
         stop_at_tool_names: list[str] | None = None,
         prompt_cache_key: str | None = None,
@@ -74,41 +78,53 @@ class OpenAIAgentRunner:
                 "OPENROUTER_TOKEN or OPENAI_API_KEY is not configured on the harness server"
             )
 
-        tools = tools or available_tools(context.current_game_context())
+        if tools is None:
+            tools = available_tools(context.current_game_context())
         if not tools:
             raise RuntimeError(
                 "No model tool is implemented for the current game state"
             )
 
-        model = OpenAIResponsesModel(
-            model=agent_record.model, openai_client=self.client
+        model = OpenAIResponsesModel(model=agent_record.model, openai_client=self.client)
+        oracle_interactions: list[dict[str, Any]] = []
+        run_config = RunConfig(
+            tracing_disabled=True,
+            workflow_name="Raven Harness action",
+            group_id=agent_record.id,
+            trace_metadata=trace_metadata,
         )
+        tools = [
+            (
+                self.rulebook.build_oracle_tool(
+                    model=OpenAIResponsesModel(
+                        model=agent_record.model, openai_client=self.client
+                    ),
+                    model_settings=self._model_settings(
+                        max_tokens=900,
+                        prompt_cache_key=(
+                            f"raven-rules-{agent_record.model}-"
+                            f"{self.rulebook.cache_fingerprint}"
+                        ),
+                        metadata=trace_metadata,
+                    ),
+                    interaction_sink=oracle_interactions,
+                    run_config=run_config,
+                )
+                if tool.name == RULES_ORACLE_TOOL_NAME and self.rulebook is not None
+                else tool
+            )
+            for tool in tools
+        ]
         agent = Agent[HarnessRunContext](
             name=agent_record.name,
             instructions=instructions or agent_record.system_prompt,
             model=model,
             tools=tools,
-            model_settings=ModelSettings(
-                tool_choice="required",
-                parallel_tool_calls=False,
+            model_settings=self._model_settings(
                 max_tokens=self.max_output_tokens,
-                reasoning={"effort": "low"},
-                store=False,
+                prompt_cache_key=prompt_cache_key,
                 metadata=trace_metadata,
-                preserve_raw_usage=True,
-                extra_body=(
-                    {"provider": self.provider_routing}
-                    if self.provider_routing
-                    else None
-                ),
-                extra_args=(
-                    {
-                        "prompt_cache_key": prompt_cache_key,
-                        "user": agent_record.id,
-                    }
-                    if prompt_cache_key
-                    else None
-                ),
+                user=agent_record.id,
             ),
             tool_use_behavior=(
                 {"stop_at_tool_names": stop_at_tool_names}
@@ -117,57 +133,91 @@ class OpenAIAgentRunner:
             ),
             reset_tool_choice=not bool(stop_at_tool_names),
         )
-        session_item_count = await _session_item_count(session)
         try:
-            async with asyncio.timeout(self.run_timeout_seconds):
-                result = await Runner.run(
-                    agent,
-                    input=(
-                        "This is your current player-scoped game observation. "
-                        "Choose exactly one available tool.\n\n"
-                        + json.dumps(observation, separators=(",", ":"))
-                    ),
-                    context=context,
-                    max_turns=max_turns,
-                    session=session,
-                    run_config=RunConfig(
-                        tracing_disabled=True,
-                        workflow_name="Raven Harness action",
-                        group_id=agent_record.id,
-                        trace_metadata=trace_metadata,
-                    ),
-                )
-        except BaseException as error:
-            await _rollback_session(session, session_item_count)
-            if isinstance(error, TimeoutError):
-                raise RuntimeError(
-                    f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
-                ) from error
-            if isinstance(error, APITimeoutError):
-                raise RuntimeError(
-                    "Model API timed out after "
-                    f"{self.request_timeout_seconds:g} seconds per attempt and "
-                    f"{self.max_retries} retries"
-                ) from error
-            raise
+            async with self._run_slots:
+                async with asyncio.timeout(self.run_timeout_seconds):
+                    result = await Runner.run(
+                        agent,
+                        input=(
+                            "This is your current player-scoped game observation. "
+                            "Choose exactly one available tool.\n\n"
+                            + json.dumps(observation, separators=(",", ":"))
+                        ),
+                        context=context,
+                        max_turns=max_turns,
+                        run_config=run_config,
+                    )
+        except TimeoutError as error:
+            raise RuntimeError(
+                f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
+            ) from error
+        except APITimeoutError as error:
+            raise RuntimeError(
+                "Model API timed out after "
+                f"{self.request_timeout_seconds:g} seconds per attempt and "
+                f"{self.max_retries} retries"
+            ) from error
 
-        usage = {"requests": 0, "inputTokens": 0, "outputTokens": 0, "totalTokens": 0}
-        response_items: list[dict[str, Any]] = []
+        total_usage = result.context_wrapper.usage
+        usage = {
+            "requests": total_usage.requests,
+            "inputTokens": total_usage.input_tokens,
+            "outputTokens": total_usage.output_tokens,
+            "totalTokens": total_usage.total_tokens,
+        }
+        response_items = [_jsonable(item.to_input_item()) for item in result.new_items]
         raw_usage: list[dict[str, Any]] = []
         for response in result.raw_responses:
-            usage["requests"] += response.usage.requests
-            usage["inputTokens"] += response.usage.input_tokens
-            usage["outputTokens"] += response.usage.output_tokens
-            usage["totalTokens"] += response.usage.total_tokens
-            response_items.extend(_jsonable(item) for item in response.output)
             if response.raw_usage is not None:
                 raw_usage.append(_jsonable(response.raw_usage))
+        for interaction in oracle_interactions:
+            response_items.append(
+                {
+                    "type": "rules_oracle",
+                    "question": interaction["question"],
+                    "answer": interaction["answer"],
+                    "sectionIds": interaction["sectionIds"],
+                    "responseItems": interaction["responseItems"],
+                }
+            )
+            raw_usage.extend(interaction["rawUsage"])
         return ModelRunResult(
             response_id=result.last_response_id,
             output_text=str(result.final_output or ""),
             usage=usage,
             response_items=response_items,
             raw_usage=raw_usage,
+        )
+
+    def _model_settings(
+        self,
+        *,
+        max_tokens: int,
+        prompt_cache_key: str | None,
+        metadata: dict[str, str] | None,
+        user: str | None = None,
+    ) -> ModelSettings:
+        return ModelSettings(
+            tool_choice="required",
+            parallel_tool_calls=False,
+            max_tokens=max_tokens,
+            reasoning={"effort": "low"},
+            store=False,
+            metadata=metadata,
+            preserve_raw_usage=True,
+            extra_body=(
+                {"provider": self.provider_routing}
+                if self.provider_routing
+                else None
+            ),
+            extra_args=(
+                {
+                    "prompt_cache_key": prompt_cache_key,
+                    **({"user": user} if user else {}),
+                }
+                if prompt_cache_key
+                else None
+            ),
         )
 
 
@@ -177,19 +227,3 @@ def _jsonable(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
     return {"value": str(value)}
-
-
-async def _session_item_count(session: Any | None) -> int | None:
-    if session is None or not hasattr(session, "get_items"):
-        return None
-    return len(await session.get_items(limit=-1))
-
-
-async def _rollback_session(session: Any | None, item_count: int | None) -> None:
-    """Make a failed Agents SDK run atomic with respect to conversation memory."""
-
-    if item_count is None or session is None or not hasattr(session, "pop_item"):
-        return
-    while len(await session.get_items(limit=-1)) > item_count:
-        if await session.pop_item() is None:
-            return

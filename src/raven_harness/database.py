@@ -3,23 +3,23 @@ from pathlib import Path
 from threading import RLock
 
 
+SCHEMA_VERSION = 1
+
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS agents (
+CREATE TABLE agents (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   model TEXT NOT NULL,
-  harness_id TEXT NOT NULL DEFAULT 'legacy',
   system_prompt TEXT NOT NULL,
   game_server_url TEXT NOT NULL,
   game_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   auth_token TEXT NOT NULL,
   game_password TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS agent_events (
+CREATE TABLE agent_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,
@@ -27,11 +27,10 @@ CREATE TABLE IF NOT EXISTS agent_events (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS agent_runs (
+CREATE TABLE agent_runs (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   status TEXT NOT NULL,
-  harness_id TEXT NOT NULL DEFAULT 'legacy',
   model TEXT,
   observation_json TEXT NOT NULL,
   instructions TEXT,
@@ -50,7 +49,7 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   history_id INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS game_state_history (
+CREATE TABLE game_state_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   state_id TEXT NOT NULL,
@@ -63,7 +62,7 @@ CREATE TABLE IF NOT EXISTS game_state_history (
   UNIQUE(agent_id, state_id)
 );
 
-CREATE TABLE IF NOT EXISTS strategic_memories (
+CREATE TABLE strategic_memories (
   agent_id TEXT PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE,
   memory_json TEXT NOT NULL,
   revision INTEGER NOT NULL DEFAULT 1,
@@ -79,21 +78,6 @@ CREATE INDEX IF NOT EXISTS game_state_history_agent_id_id
 """
 
 
-AGENT_RUN_MIGRATIONS = {
-    "harness_id": "TEXT NOT NULL DEFAULT 'legacy'",
-    "model": "TEXT",
-    "instructions": "TEXT",
-    "tools_json": "TEXT",
-    "response_id": "TEXT",
-    "response_json": "TEXT",
-    "usage_json": "TEXT",
-    "raw_usage_json": "TEXT",
-    "finished_at": "TEXT",
-    "duration_ms": "INTEGER",
-    "history_id": "INTEGER",
-}
-
-
 class Database:
     def __init__(self, filename: Path) -> None:
         filename.parent.mkdir(parents=True, exist_ok=True)
@@ -103,22 +87,19 @@ class Database:
         with self.lock:
             self.connection.execute("PRAGMA journal_mode = WAL")
             self.connection.execute("PRAGMA foreign_keys = ON")
-            self.connection.executescript(SCHEMA)
-            self._ensure_column(
-                "agents", "harness_id", "TEXT NOT NULL DEFAULT 'legacy'"
-            )
-            for name, declaration in AGENT_RUN_MIGRATIONS.items():
-                self._ensure_column("agent_runs", name, declaration)
-
-    def _ensure_column(self, table: str, name: str, declaration: str) -> None:
-        columns = {
-            row["name"]
-            for row in self.connection.execute(f"PRAGMA table_info({table})")
-        }
-        if name not in columns:
-            self.connection.execute(
-                f"ALTER TABLE {table} ADD COLUMN {name} {declaration}"
-            )
+            version = int(self.connection.execute("PRAGMA user_version").fetchone()[0])
+            has_tables = self.connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' LIMIT 1"
+            ).fetchone()
+            if version == 0 and has_tables is None:
+                self.connection.executescript(SCHEMA)
+                self.connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            elif version != SCHEMA_VERSION:
+                self.connection.close()
+                raise RuntimeError(
+                    f"Database schema version {version} is not supported; "
+                    f"expected {SCHEMA_VERSION}. Use a new DATABASE_PATH."
+                )
 
     def close(self) -> None:
         with self.lock:

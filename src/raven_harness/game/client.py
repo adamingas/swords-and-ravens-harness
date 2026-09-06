@@ -3,6 +3,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from typing import Any
+from uuid import uuid4
 
 from websockets.asyncio.client import connect
 
@@ -43,6 +44,7 @@ class SwordsAndRavensClient:
         self._receive_task: asyncio.Task[None] | None = None
         self._ping_task: asyncio.Task[None] | None = None
         self._send_lock = asyncio.Lock()
+        self._sync_requests: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
     async def connect(self, timeout: float = 10) -> dict[str, Any]:
         if self.connection is not None:
@@ -74,6 +76,24 @@ class SwordsAndRavensClient:
             await self.connection.send(encode_message(message))
         self.on_event("sent", _redact(message))
 
+    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+        """Fetch a fresh player-scoped snapshot after earlier socket messages."""
+
+        if self.connection is None or self.snapshot is None:
+            raise RuntimeError("Game connection is not authenticated")
+        request_id = str(uuid4())
+        future = asyncio.get_running_loop().create_future()
+        self._sync_requests[request_id] = future
+        try:
+            await self.send({"type": "sync-game", "requestId": request_id})
+            return await asyncio.wait_for(future, timeout)
+        except TimeoutError as error:
+            raise RuntimeError(
+                f"Game server did not return an authoritative snapshot within {timeout:g} seconds"
+            ) from error
+        finally:
+            self._sync_requests.pop(request_id, None)
+
     async def close(self, *, status: str = "stopped") -> None:
         current = asyncio.current_task()
         for task in (self._ping_task, self._receive_task):
@@ -83,6 +103,10 @@ class SwordsAndRavensClient:
             with suppress(Exception):
                 await self.connection.close()
         self.connection = None
+        for future in self._sync_requests.values():
+            if not future.done():
+                future.cancel()
+        self._sync_requests.clear()
         self._ping_task = None
         self._receive_task = None
         self._set_status(status)
@@ -104,6 +128,18 @@ class SwordsAndRavensClient:
             self.authenticated_user_id = str(message["userId"])
             self._set_status("connected")
             self._authenticated.set()
+            self.on_event("snapshot", {})
+            return
+        if message.get("type") == "game-snapshot":
+            request_id = str(message.get("requestId", ""))
+            future = self._sync_requests.get(request_id)
+            game = message.get("game")
+            if future is None or not isinstance(game, dict):
+                return
+            self.snapshot = game
+            if not future.done():
+                future.set_result(game)
+            self.on_event("game-message", {"type": "game-snapshot"})
             self.on_event("snapshot", {})
             return
         if message.get("type") == "banned-response":

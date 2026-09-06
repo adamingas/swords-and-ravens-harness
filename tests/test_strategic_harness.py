@@ -28,6 +28,15 @@ class FakeClient:
     async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
         self.sent.append(message)
 
+    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+        del timeout
+        message = self.sent[-1]
+        if message["type"] == "choose-house":
+            self.snapshot["childGameState"]["players"].append(
+                [message["house"], "2"]
+            )
+        return self.snapshot
+
 
 class MemoryThenActionModel(Model):
     def __init__(self) -> None:
@@ -103,7 +112,6 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
         AgentCreate(
             name="Wolf",
             model="test-model",
-            harness_id="strategic-v1",
             user_id="2",
             auth_token="secret",
         )
@@ -111,7 +119,6 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
     harness = StrategicHarness(
         runner=object(),  # type: ignore[arg-type]
         store=store,
-        database_path=str(tmp_path / "strategic.db"),
     )
     assert isinstance(harness, PlayerHarness)
 
@@ -125,17 +132,11 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
     assert prepared.observation["strategicMemory"]["revision"] == 0
     assert prepared.observation["strategicMemory"]["roundNumber"] is None
     assert prepared.observation["strategicOverview"]["round"] == 1
-    assert prepared.observation["availableGameTools"] == ["submit_orders"]
-    assert prepared.observation["legalActions"] == [
-        {
-            "name": "submit_orders",
-            "legalValues": {
-                "region_ids": ["winterfell", "white-harbor"],
-                "max_starred": 0,
-                "restricted_orders": [],
-            },
-        }
-    ]
+    submit_schema = next(
+        tool.params_json_schema for tool in prepared.tools if tool.name == "submit_orders"
+    )
+    assignment = submit_schema["$defs"]["OrderAssignment"]["properties"]
+    assert assignment["region_id"]["enum"] == ["winterfell", "white-harbor"]
     assert store.recall_state(record.id, 0)["stateId"] == "leaf-2"  # type: ignore[index]
 
     later_snapshot = copy.deepcopy(planning_snapshot())
@@ -147,10 +148,7 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
     assert later.metadata["promptCacheKey"] == prepared.metadata["promptCacheKey"]
     submit_orders = next(tool for tool in later.tools if tool.name == "submit_orders")
     assert "winterfell" not in submit_orders.description.lower()
-    assert later.observation["legalActions"][0]["legalValues"]["region_ids"] == [
-        "winterfell",
-        "white-harbor",
-    ]
+    assert later.metadata["gameToolNames"] == ["submit_orders"]
     database.close()
 
 
@@ -170,7 +168,6 @@ async def test_strategic_harness_keeps_memory_call_and_game_action_in_one_run(
         AgentCreate(
             name="Wolf",
             model="test-model",
-            harness_id="strategic-v1",
             user_id="2",
             auth_token="secret",
         )
@@ -180,7 +177,6 @@ async def test_strategic_harness_keeps_memory_call_and_game_action_in_one_run(
     harness = StrategicHarness(
         OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1"),
         store,
-        str(database_path),
     )
     prepared = harness.prepare_turn(record, game_context, previous_error=None)
     run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
@@ -192,11 +188,11 @@ async def test_strategic_harness_keeps_memory_call_and_game_action_in_one_run(
     assert run_context.action_taken is not None
     assert run_context.action_taken.name == "choose_house"
     assert store.get_strategic_memory(record.id)["objectives"] == ["Hold Winterfell"]
-    conversation = store.list_conversation_items(record.id)
+    conversation = result.response_items
     assert any(
-        item["item"].get("name") == "update_strategic_memory" for item in conversation
+        item.get("name") == "update_strategic_memory" for item in conversation
     )
-    assert any(item["item"].get("name") == "choose_house" for item in conversation)
+    assert any(item.get("name") == "choose_house" for item in conversation)
     await harness.shutdown()
     database.close()
 
@@ -217,7 +213,6 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
         AgentCreate(
             name="Wolf",
             model="test-model",
-            harness_id="strategic-v1",
             user_id="2",
             auth_token="secret",
         )
@@ -231,22 +226,21 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
     harness = StrategicHarness(
         OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1"),
         store,
-        str(database_path),
     )
     prepared = harness.prepare_turn(record, game_context, previous_error=None)
     run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
 
-    await harness.run_turn(record, prepared, run_context, "run-with-recall")
+    result = await harness.run_turn(record, prepared, run_context, "run-with-recall")
 
     assert fake_model.calls == 2
     assert run_context.action_taken is not None
     assert run_context.action_taken.name == "choose_house"
-    conversation = store.list_conversation_items(record.id)
+    conversation = result.response_items
     recall_output = next(
-        item["item"]["output"]
+        item["output"]
         for item in conversation
-        if item["item"].get("call_id") == "recall-1"
-        and item["item"].get("type") == "function_call_output"
+        if item.get("call_id") == "recall-1"
+        and item.get("type") == "function_call_output"
     )
     recalled = json.loads(recall_output)
     assert recalled["found"] is True

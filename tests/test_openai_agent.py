@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
-from agents import ModelResponse, SQLiteSession, Usage
+from agents import ModelResponse, Usage
 from agents.models.interface import Model
 from openai.types.responses import ResponseFunctionToolCall
 
@@ -22,6 +22,15 @@ class FakeClient:
 
     async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
         self.sent.append(message)
+
+    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+        del timeout
+        message = self.sent[-1]
+        if message["type"] == "choose-house":
+            self.snapshot["childGameState"]["players"].append(
+                [message["house"], "2"]
+            )
+        return self.snapshot
 
 
 class ToolCallingModel(Model):
@@ -106,7 +115,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
 
 
 @pytest.mark.asyncio
-async def test_failed_model_run_rolls_back_session_input(monkeypatch, tmp_path) -> None:
+async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     monkeypatch.setattr(
         "raven_harness.models.openai_agent.OpenAIResponsesModel",
         lambda **_kwargs: FailingModel(),
@@ -116,10 +125,6 @@ async def test_failed_model_run_rolls_back_session_input(monkeypatch, tmp_path) 
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    session = SQLiteSession("rollback", db_path=tmp_path / "session.db")
-    original = {"role": "user", "content": "an earlier retained item"}
-    await session.add_items([original])
-
     with pytest.raises(RuntimeError, match="provider failed"):
         await OpenAIAgentRunner(
             api_key="test-key", base_url="https://api.openai.test/v1"
@@ -127,8 +132,7 @@ async def test_failed_model_run_rolls_back_session_input(monkeypatch, tmp_path) 
             agent_record=record,
             observation=build_observation(build_context(client.snapshot, "2")),
             context=context,
-            session=session,
         )
 
-    assert await session.get_items(limit=-1) == [original]
-    session.close()
+    assert client.sent == []
+    assert context.action_taken is None

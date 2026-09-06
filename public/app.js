@@ -31,7 +31,6 @@ form.addEventListener("submit", async (event) => {
     await api("/api/agents", { method: "POST", body: JSON.stringify(input) });
     form.reset();
     form.elements.model.value = defaultModel;
-    form.elements.harnessId.value = "legacy";
     form.elements.gameServerUrl.value = "ws://localhost:5001";
     form.elements.gameId.value = "1";
     agentDialog.close();
@@ -67,20 +66,6 @@ async function loadModels() {
   select.value = models.some((model) => model.id === defaultModel) ? defaultModel : models[0].id;
 }
 
-async function loadHarnesses() {
-  const { harnesses } = await api("/api/harnesses");
-  if (!harnesses.length) return;
-  const select = form.elements.harnessId;
-  select.replaceChildren(...harnesses.map((harness) => {
-    const option = document.createElement("option");
-    option.value = harness.id;
-    option.textContent = harness.name;
-    option.title = harness.description;
-    return option;
-  }));
-  select.value = harnesses.some((harness) => harness.id === "legacy") ? "legacy" : harnesses[0].id;
-}
-
 function render() {
   grid.replaceChildren();
   emptyState.classList.toggle("hidden", agents.length !== 0);
@@ -91,7 +76,6 @@ function render() {
     node.querySelector(".status-label").textContent = agent.runtime.status;
     node.querySelector(".agent-name").textContent = agent.name;
     node.querySelector(".model-name").textContent = agent.model;
-    node.querySelector(".harness-name").textContent = agent.harnessId;
     node.querySelector(".game-id").textContent = agent.gameId;
     node.querySelector(".seat").textContent = agent.runtime.houseId || agent.userId;
     node.querySelector(".phase").textContent = agent.runtime.phase || "—";
@@ -129,7 +113,7 @@ function render() {
           method: "POST",
           body: JSON.stringify({
             setupId: "base-game",
-            playerCount: 3,
+            playerCount: 6,
             pbem: true,
             vassals: false,
             victoryPointsToWin: 7,
@@ -202,7 +186,7 @@ async function api(url, options = {}) {
   return body;
 }
 
-Promise.all([loadModels(), loadHarnesses()]).then(refresh).catch((error) => {
+loadModels().then(refresh).catch((error) => {
   document.querySelector("#api-status").textContent = error.message;
 });
 setInterval(() => refresh().catch(() => {}), 2500);

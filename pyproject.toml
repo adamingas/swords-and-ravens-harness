@@ -7,12 +7,14 @@ dependencies = [
     "httpx>=0.28.1",
     "openai-agents>=0.22.0",
     "pydantic-settings>=2.15.0",
+    "pypdf>=6.6.0",
     "uvicorn[standard]>=0.52.4",
     "websockets>=15,<17",
 ]
 
 [project.scripts]
 raven-harness = "raven_harness.__main__:main"
+raven-prepare-rules = "raven_harness.rulebook:main"
 
 [build-system]
 requires = ["hatchling"]

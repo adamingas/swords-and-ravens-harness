@@ -14,18 +14,18 @@ from .agent_store import AgentStore
 from .config import Settings
 from .database import Database
 from .game.client import ConnectionFactory
-from .harness.legacy import LegacyHarness
-from .harness.strategic import StrategicHarness
-from .manager import AgentManager, AgentRunner
+from .harness.strategic import StrategicHarness, StrategicModelRunner
+from .manager import AgentManager
 from .models.openai_agent import OpenAIAgentRunner
 from .models.catalog import OpenRouterModelCatalog
+from .rulebook import Rulebook
 from .schemas import AgentCreate, AgentPublic, AutoplayRequest, LobbySetupRequest
 
 
 def create_app(
     settings: Settings | None = None,
     *,
-    runner: AgentRunner | None = None,
+    runner: StrategicModelRunner | None = None,
     connection_factory: ConnectionFactory | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
@@ -34,12 +34,14 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(settings.resolved_database_path)
         store = AgentStore(database)
+        rulebook = Rulebook.load_optional(settings.resolved_rules_path)
         model_runner = runner or OpenAIAgentRunner(
             api_key=settings.model_api_key,
             base_url=settings.model_base_url,
             request_timeout_seconds=settings.model_request_timeout_seconds,
             run_timeout_seconds=settings.model_run_timeout_seconds,
             max_retries=settings.model_api_max_retries,
+            max_concurrency=settings.model_max_concurrency,
             max_output_tokens=settings.model_max_output_tokens,
             provider_routing=(
                 {
@@ -50,18 +52,16 @@ def create_app(
                 if settings.model_provider == "OpenRouter"
                 else None
             ),
+            rulebook=rulebook,
         )
-        harnesses = {
-            "legacy": LegacyHarness(model_runner),
-            "strategic-v1": StrategicHarness(
-                model_runner,
-                store,
-                str(settings.resolved_database_path),
-            ),
-        }
+        harness = StrategicHarness(
+            model_runner,
+            store,
+            rules_available=rulebook is not None,
+        )
         manager = AgentManager(
             store=store,
-            harnesses=harnesses,
+            harness=harness,
             connection_factory=connection_factory,
         )
         app.state.database = database
@@ -109,8 +109,10 @@ def create_app(
             "ok": True,
             "modelApiConfigured": bool(settings.model_api_key),
             "modelProvider": settings.model_provider,
-            "openAiConfigured": bool(settings.model_api_key),
+            "modelMaxConcurrency": settings.model_max_concurrency,
             "databasePath": str(settings.resolved_database_path),
+            "rulesPath": str(settings.resolved_rules_path),
+            "rulesOracleAvailable": settings.resolved_rules_path.is_file(),
         }
 
     @app.get("/api/agents")
@@ -126,14 +128,8 @@ def create_app(
             "models": await request.app.state.model_catalog.list_cheap_tool_models(),
         }
 
-    @app.get("/api/harnesses")
-    async def list_harnesses(request: Request) -> dict[str, Any]:
-        return {"harnesses": _manager(request).list_harnesses()}
-
     @app.post("/api/agents", status_code=201)
     async def create_agent(value: AgentCreate, request: Request) -> dict[str, Any]:
-        if value.harness_id not in _manager(request).harnesses:
-            raise RuntimeError(f"Unknown harness {value.harness_id!r}")
         record = _store(request).create_agent(value)
         agent = AgentPublic.from_record(
             record, _manager(request).get_runtime(record.id)
@@ -242,12 +238,6 @@ def create_app(
             raise KeyError("Agent not found")
         return {"history": _store(request).list_state_history(agent_id, 80)}
 
-    @app.get("/api/agents/{agent_id}/conversation")
-    async def conversation(agent_id: str, request: Request) -> dict[str, Any]:
-        if _manager(request).get_agent(agent_id) is None:
-            raise KeyError("Agent not found")
-        return {"conversation": _store(request).list_conversation_items(agent_id)}
-
     public_directory = Path(__file__).resolve().parents[2] / "public"
     app.mount("/", StaticFiles(directory=public_directory, html=True), name="dashboard")
     return app
@@ -263,6 +253,3 @@ def _store(request: Request) -> AgentStore:
 
 def _public(agent: AgentPublic) -> dict[str, Any]:
     return agent.model_dump(by_alias=True)
-
-
-app = create_app()

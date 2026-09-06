@@ -32,15 +32,14 @@ class AgentStore:
             self.database.connection.execute(
                 """
                 INSERT INTO agents (
-                  id, name, model, harness_id, system_prompt, game_server_url, game_id,
-                  user_id, auth_token, game_password, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  id, name, model, system_prompt, game_server_url, game_id,
+                  user_id, auth_token, game_password, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     agent.id,
                     agent.name,
                     agent.model,
-                    agent.harness_id,
                     agent.system_prompt,
                     agent.game_server_url,
                     agent.game_id,
@@ -48,7 +47,6 @@ class AgentStore:
                     agent.auth_token.get_secret_value(),
                     agent.game_password.get_secret_value(),
                     agent.created_at,
-                    agent.updated_at,
                 ),
             )
         return agent
@@ -104,7 +102,6 @@ class AgentStore:
         tool_name: str | None = None,
         tool_arguments: dict[str, Any] | None = None,
         model_output: str | None = None,
-        harness_id: str = "legacy",
         model: str | None = None,
         instructions: str | None = None,
         tools: list[dict[str, Any]] | None = None,
@@ -122,18 +119,17 @@ class AgentStore:
             self.database.connection.execute(
                 """
                 INSERT INTO agent_runs (
-                  id, agent_id, status, harness_id, model, observation_json,
+                  id, agent_id, status, model, observation_json,
                   instructions, tools_json, tool_name, tool_arguments_json,
                   model_output, response_id, response_json, usage_json,
                   raw_usage_json, error, created_at, finished_at, duration_ms,
                   history_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
                     agent_id,
                     status,
-                    harness_id,
                     model,
                     json.dumps(observation),
                     instructions,
@@ -276,7 +272,7 @@ class AgentStore:
         with self.database.lock:
             rows = self.database.connection.execute(
                 """
-                SELECT id, status, harness_id, model, tool_name,
+                SELECT id, status, model, tool_name,
                        tool_arguments_json, response_id, usage_json,
                        raw_usage_json, error, created_at, finished_at, duration_ms
                 FROM agent_runs WHERE agent_id = ?
@@ -288,7 +284,6 @@ class AgentStore:
             {
                 "id": row["id"],
                 "status": row["status"],
-                "harnessId": row["harness_id"],
                 "model": row["model"],
                 "tool": row["tool_name"],
                 "arguments": self._load_optional_json(row["tool_arguments_json"]),
@@ -309,7 +304,7 @@ class AgentStore:
         with self.database.lock:
             row = self.database.connection.execute(
                 """
-                SELECT id, status, harness_id, model, observation_json,
+                SELECT id, status, model, observation_json,
                        instructions, tools_json, tool_name, tool_arguments_json,
                        model_output, response_id, response_json, usage_json,
                        raw_usage_json, error, created_at, finished_at,
@@ -323,7 +318,6 @@ class AgentStore:
         return {
             "id": row["id"],
             "status": row["status"],
-            "harnessId": row["harness_id"],
             "model": row["model"],
             "observation": json.loads(row["observation_json"]),
             "instructions": row["instructions"],
@@ -357,18 +351,6 @@ class AgentStore:
                 "SELECT COUNT(*) FROM game_state_history WHERE agent_id = ?",
                 (agent_id,),
             ).fetchone()[0]
-            conversation_table = self.database.connection.execute(
-                """
-                SELECT 1 FROM sqlite_master
-                WHERE type = 'table' AND name = 'agent_messages'
-                """
-            ).fetchone()
-            conversation_count = 0
-            if conversation_table is not None:
-                conversation_count = self.database.connection.execute(
-                    "SELECT COUNT(*) FROM agent_messages WHERE session_id = ?",
-                    (f"strategic:{agent_id}",),
-                ).fetchone()[0]
 
         statuses: dict[str, int] = {}
         requests = input_tokens = output_tokens = total_tokens = 0
@@ -417,38 +399,8 @@ class AgentStore:
                 "average": round(sum(durations) / len(durations)) if durations else 0,
                 "maximum": max(durations, default=0),
             },
-            "conversationItems": int(conversation_count),
             "historicalStates": int(history_count),
         }
-
-    def list_conversation_items(
-        self, agent_id: str, limit: int = 80
-    ) -> list[dict[str, Any]]:
-        with self.database.lock:
-            table_exists = self.database.connection.execute(
-                """
-                SELECT 1 FROM sqlite_master
-                WHERE type = 'table' AND name = 'agent_messages'
-                """
-            ).fetchone()
-            if table_exists is None:
-                return []
-            session_id = f"strategic:{agent_id}"
-            rows = self.database.connection.execute(
-                """
-                SELECT id, message_data, created_at FROM agent_messages
-                WHERE session_id = ? ORDER BY id DESC LIMIT ?
-                """,
-                (session_id, limit),
-            ).fetchall()
-        return [
-            {
-                "id": row["id"],
-                "item": json.loads(row["message_data"]),
-                "createdAt": row["created_at"],
-            }
-            for row in reversed(rows)
-        ]
 
     @staticmethod
     def _load_optional_json(value: str | None) -> Any:
@@ -475,7 +427,6 @@ class AgentStore:
             id=row["id"],
             name=row["name"],
             model=row["model"],
-            harness_id=row["harness_id"],
             system_prompt=row["system_prompt"],
             game_server_url=row["game_server_url"],
             game_id=row["game_id"],
@@ -483,5 +434,4 @@ class AgentStore:
             auth_token=SecretStr(row["auth_token"]),
             game_password=SecretStr(row["game_password"]),
             created_at=row["created_at"],
-            updated_at=row["updated_at"],
         )

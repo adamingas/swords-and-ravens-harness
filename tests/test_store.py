@@ -22,8 +22,8 @@ def test_agent_configuration_persists_without_exposing_credentials(tmp_path) -> 
     assert loaded.auth_token.get_secret_value() == "secret"
     public = AgentPublic.from_record(loaded).model_dump(by_alias=True)
     assert "authToken" not in public
-    assert public["authTokenConfigured"] is True
-    assert public["harnessId"] == "legacy"
+    assert "authTokenConfigured" not in public
+    assert "harnessId" not in public
     database.close()
 
 
@@ -34,7 +34,6 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         AgentCreate(
             name="Remembering Wolf",
             model="test-model",
-            harness_id="strategic-v1",
             user_id="2",
             auth_token="secret",
         )
@@ -68,7 +67,6 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         run_id="run-1",
         agent_id=agent.id,
         status="completed",
-        harness_id="strategic-v1",
         model="test-model",
         observation=second,
         instructions="stable prompt",
@@ -95,7 +93,6 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         history_id=first_id,
     )
     run = store.list_runs(agent.id)[0]
-    assert run["harnessId"] == "strategic-v1"
     assert run["responseId"] == "resp-1"
     assert run["rawUsage"][0]["cost"] == 0.001
     assert run["durationMs"] == 1000
@@ -122,7 +119,6 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         },
         "costUsd": 0.001,
         "durationMs": {"total": 1000, "average": 1000, "maximum": 1000},
-        "conversationItems": 0,
         "historicalStates": 2,
     }
     database.close()
@@ -135,7 +131,6 @@ def test_exact_state_can_be_recalled_three_decisions_ago(tmp_path) -> None:
         AgentCreate(
             name="Historical Wolf",
             model="test-model",
-            harness_id="strategic-v1",
             user_id="3",
             auth_token="secret",
         )

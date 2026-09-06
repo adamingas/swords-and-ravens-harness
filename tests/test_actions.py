@@ -24,14 +24,24 @@ class FakeClient:
     async def send(self, message: dict[str, Any], *, require_auth: bool = True) -> None:
         self.sent.append(message)
 
+    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+        del timeout
+        child = self.snapshot["childGameState"]
+        if child.get("type") == "lobby" and self.sent[-1]["type"] == "choose-house":
+            child["players"].append([self.sent[-1]["house"], "2"])
+        else:
+            self.snapshot["leafStateId"] += "-accepted"
+        return self.snapshot
+
 
 def test_lobby_exposes_only_currently_applicable_tools() -> None:
     context = build_context(lobby_snapshot(), "2")
     tools = available_tools(context)
 
     assert [tool.name for tool in tools] == ["choose_house"]
-    assert "stark, lannister" in tools[0].description
-    assert tools[0].params_json_schema["properties"]["house_id"]["type"] == "string"
+    house_schema = tools[0].params_json_schema["properties"]["house_id"]
+    assert house_schema["type"] == "string"
+    assert house_schema["enum"] == ["stark", "lannister"]
 
 
 @pytest.mark.asyncio
@@ -51,7 +61,12 @@ async def test_agents_sdk_tool_sends_a_legal_action() -> None:
         arguments,
     )
 
-    assert json.loads(result) == {"ok": True, "action": "choose_house"}
+    assert json.loads(result) == {
+        "ok": True,
+        "accepted": True,
+        "action": "choose_house",
+        "stateId": "leaf-1",
+    }
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
     ]
@@ -196,7 +211,7 @@ def test_observation_is_player_scoped_and_concise() -> None:
     assert len(observation["lobby"]["seats"]) == 1
     assert observation["recentEvents"][0]["type"] == "house-chosen"
     assert "playerView" not in observation
-    assert [state["type"] for state in observation["activeStatePath"]] == ["lobby"]
+    assert observation["statePath"] == ["lobby"]
 
 
 def test_known_ingame_phase_gets_a_small_relevant_toolset() -> None:
@@ -275,6 +290,8 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
             "leavePowerToken": True,
         }
     ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.name == "resolve_march"
 
 
 @pytest.mark.asyncio
@@ -324,3 +341,31 @@ async def test_supply_reconciliation_computes_minimal_legal_removals() -> None:
             "unitsToRemove": [["winterfell", [1, 2]]],
         }
     ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.name == "auto_reconcile_armies"
+
+
+@pytest.mark.asyncio
+async def test_unacknowledged_action_is_not_recorded_as_taken() -> None:
+    class RejectingClient(FakeClient):
+        async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]:
+            del timeout
+            return self.snapshot
+
+    client = RejectingClient(lobby_snapshot())
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    tool = available_tools(build_context(client.snapshot, "2"))[0]
+    arguments = json.dumps({"house_id": "stark"})
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-rejected",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert "authoritative state did not reflect the action" in result
+    assert run_context.action_taken is None

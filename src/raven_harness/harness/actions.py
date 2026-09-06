@@ -9,7 +9,7 @@ from typing import Annotated, Any, Protocol
 from agents import FunctionTool, RunContextWrapper, function_tool
 from pydantic import BaseModel, ConfigDict, Field
 
-from .observation import HarnessContext, build_context
+from .observation import HarnessContext, build_context, is_waiting_for_player
 
 Message = dict[str, Any]
 
@@ -66,6 +66,8 @@ class GameClient(Protocol):
 
     async def send(self, message: Message, *, require_auth: bool = True) -> None: ...
 
+    async def sync_snapshot(self, timeout: float = 10) -> dict[str, Any]: ...
+
 
 class HarnessMemory(Protocol):
     """Durable private memory exposed only through deliberate model tools."""
@@ -90,7 +92,8 @@ class OrderAssignment(BaseModel):
     order: PlanningOrder = Field(
         description=(
             "Semantic order. The harness allocates a matching physical token and "
-            "translates it to the upstream server protocol."
+            "translates it to the upstream server protocol. Obey the current "
+            "planningConstraints.maxStarredOrders value."
         ),
     )
 
@@ -139,10 +142,25 @@ class HarnessRunContext:
     ) -> str:
         """Send a typed gameplay action and let the game server enforce detailed rules."""
 
+        context = self.current_game_context()
         if self.action_taken is not None:
             raise RuntimeError("This model run has already taken an action")
-        if self.current_game_context().ingame is None:
+        if context.ingame is None:
             raise RuntimeError(f"Tool {name!r} is only available after the game starts")
+        if not is_waiting_for_player(context):
+            raise RuntimeError("This player is not responsible for the current decision")
+        from .protocol_tools import gameplay_tools_for_state
+
+        state_types = [state["type"] for state in context.path if state.get("type")]
+        available = {
+            tool.name
+            for tool in gameplay_tools_for_state(
+                state_types,
+                has_specific_tools=bool(available_action_specs(context)),
+            )
+        }
+        if name not in available:
+            raise ValueError(f"Tool {name!r} is not legal in the current game state")
         return await self._send_messages(name, arguments, messages)
 
     async def _send_messages(
@@ -150,13 +168,69 @@ class HarnessRunContext:
     ) -> str:
         if self.action_taken is not None:
             raise RuntimeError("This model run has already taken an action")
+        before = self.current_game_context()
+        before_state_id = before.snapshot.get("leafStateId")
         outgoing = messages if isinstance(messages, list) else [messages]
         for message in outgoing:
             await self.client.send(message)
+        await self.client.sync_snapshot()
+        after = self.current_game_context()
+        if not _action_was_acknowledged(
+            name, arguments, before_state_id, after
+        ):
+            raise RuntimeError(
+                f"The game server did not accept {name!r}; its authoritative state did not reflect the action"
+            )
         self.action_taken = ActionTaken(
             name=name, arguments=arguments, messages=outgoing
         )
-        return json.dumps({"ok": True, "action": name})
+        return json.dumps(
+            {
+                "ok": True,
+                "accepted": True,
+                "action": name,
+                "stateId": after.snapshot.get("leafStateId"),
+            }
+        )
+
+
+def _action_was_acknowledged(
+    name: str,
+    arguments: dict[str, Any],
+    before_state_id: Any,
+    after: HarnessContext,
+) -> bool:
+    """Confirm an action from the authoritative post-action player snapshot."""
+
+    if before_state_id != after.snapshot.get("leafStateId"):
+        return True
+
+    child = after.snapshot.get("childGameState", {})
+    if name == "choose_house" and child.get("type") == "lobby":
+        return any(
+            house_id == arguments.get("house_id") and str(user_id) == after.user_id
+            for house_id, user_id in child.get("players", [])
+        )
+    if after.ingame is None:
+        return False
+    if not is_waiting_for_player(after):
+        return True
+
+    # A tool can disappear while a parent state remains active. This is the
+    # authoritative signal for sequential protocol actions with a stable leaf ID.
+    specific_names = {item.name for item in available_action_specs(after)}
+    if name in specific_names:
+        return False
+    from .protocol_tools import gameplay_tools_for_state
+
+    state_types = [state["type"] for state in after.path if state.get("type")]
+    protocol_names = {
+        tool.name
+        for tool in gameplay_tools_for_state(
+            state_types, has_specific_tools=bool(specific_names)
+        )
+    }
+    return name not in protocol_names
 
 
 def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
@@ -174,11 +248,15 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
             (pair for pair in child.get("players", []) if str(pair[1]) == user_id), None
         )
         occupied = {pair[0] for pair in child.get("players", [])}
+        available_house_ids = set(child.get("availableHouseIds", []))
         houses = [
             house["id"]
             for house in child.get("lobbyHouses", [])
-            if house["id"] not in occupied
-            or (current_seat and current_seat[0] == house["id"])
+            if house["id"] in available_house_ids
+            and (
+                house["id"] not in occupied
+                or (current_seat and current_seat[0] == house["id"])
+            )
         ]
         if houses and child.get("readyUsers") is None:
             actions.append(
@@ -186,47 +264,6 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
                     "choose_house",
                     f"Join or change house. Legal house_id values: {_choices(houses)}.",
                     {"house_ids": houses},
-                )
-            )
-        settings = snapshot.get("gameSettings", {})
-        required_players = settings.get("playerCount")
-        seated_houses = {pair[0] for pair in child.get("players", [])}
-        minimum_players = (
-            4 if isinstance(required_players, int) and required_players >= 8 else 3
-        )
-        enough_players = isinstance(required_players, int) and (
-            len(child.get("players", [])) >= required_players
-            or (
-                settings.get("vassals", False)
-                and len(child.get("players", [])) >= minimum_players
-            )
-        )
-        targaryen_requirement_met = not (
-            isinstance(required_players, int)
-            and required_players >= 8
-            and not settings.get("randomHouses", False)
-            and "targaryen" not in seated_houses
-        )
-        if (
-            str(snapshot.get("ownerUserId")) == user_id
-            and child.get("readyUsers") is None
-            and enough_players
-            and targaryen_requirement_met
-        ):
-            actions.append(
-                ActionSpec(
-                    "start_game",
-                    "Launch the game. Live games begin a ready check; correspondence games start immediately.",
-                )
-            )
-        if child.get("readyUsers") is not None and current_seat:
-            is_ready = user_id in {str(value) for value in child["readyUsers"]}
-            actions.append(
-                ActionSpec(
-                    "withdraw_ready" if is_ready else "confirm_ready",
-                    "Withdraw your ready confirmation."
-                    if is_ready
-                    else "Confirm that you are ready to start the game.",
                 )
             )
         return actions
@@ -389,13 +426,11 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
     return actions
 
 
-def available_tools(
-    context: HarnessContext, *, dynamic_descriptions: bool = True
-) -> list[FunctionTool]:
+def available_tools(context: HarnessContext) -> list[FunctionTool]:
     """Build the Agents SDK tool list for a particular player observation."""
 
     tools = [
-        _tool_for_action(action, dynamic_descriptions=dynamic_descriptions)
+        _tool_for_action(action)
         for action in available_action_specs(context)
     ]
     if context.ingame is not None:
@@ -413,9 +448,7 @@ def available_tools(
     return tools
 
 
-def _tool_for_action(
-    action: ActionSpec, *, dynamic_descriptions: bool
-) -> FunctionTool:
+def _tool_for_action(action: ActionSpec) -> FunctionTool:
     """Narrow model-facing schemas to the values legal in this exact state."""
 
     tool = _TOOL_CATALOG[action.name]
@@ -456,10 +489,7 @@ def _tool_for_action(
         assignment_properties["order"]["enum"] = allowed_orders
         schema["$defs"]["PlanningOrder"]["enum"] = allowed_orders
 
-    changes: dict[str, Any] = {"params_json_schema": schema}
-    if dynamic_descriptions:
-        changes["description"] = action.description
-    return replace(tool, **changes)
+    return replace(tool, params_json_schema=schema)
 
 
 def describe_tools(tools: list[FunctionTool]) -> list[dict[str, Any]]:
@@ -495,24 +525,6 @@ async def choose_house(ctx: RunContextWrapper[HarnessRunContext], house_id: str)
             "password": ctx.context.game_password,
         },
     )
-
-
-@function_tool
-async def start_game(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Launch the game, or its ready check when the lobby is in live mode."""
-    return await ctx.context.perform("start_game", {}, {"type": "launch-game"})
-
-
-@function_tool
-async def confirm_ready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Confirm that you are ready to start the game."""
-    return await ctx.context.perform("confirm_ready", {}, {"type": "ready"})
-
-
-@function_tool
-async def withdraw_ready(ctx: RunContextWrapper[HarnessRunContext]) -> str:
-    """Withdraw your ready confirmation."""
-    return await ctx.context.perform("withdraw_ready", {}, {"type": "unready"})
 
 
 @function_tool
@@ -648,6 +660,12 @@ async def submit_orders(
 ) -> str:
     """Place all planning orders and mark the house ready.
 
+    Use at most the number of starred orders in
+    planningConstraints.maxStarredOrders. Token capacities are: one each for
+    march_minus_one, march, march_plus_one, defense_plus_two, support_plus_one,
+    consolidate_power_starred, and raid_starred; two each for defense, support,
+    consolidate_power, and raid.
+
     Args:
         assignments: One region/order-token assignment for every required region.
     """
@@ -724,9 +742,6 @@ _TOOL_CATALOG: dict[str, FunctionTool] = {
     tool.name: tool
     for tool in [
         choose_house,
-        start_game,
-        confirm_ready,
-        withdraw_ready,
         choose_option,
         select_house_card,
         choose_combat_house_card,

@@ -36,6 +36,18 @@ class FakeConnection:
                     }
                 )
             )
+        elif message["type"] == "sync-game":
+            game = lobby_snapshot()
+            game["leafStateId"] = "synced-leaf"
+            await self.incoming.put(
+                encode_message(
+                    {
+                        "type": "game-snapshot",
+                        "requestId": message["requestId"],
+                        "game": game,
+                    }
+                )
+            )
 
     async def close(self) -> None:
         self.closed = True
@@ -73,6 +85,9 @@ async def test_client_authenticates_and_applies_lobby_updates() -> None:
     )
     await asyncio.sleep(0)
     assert client.snapshot["childGameState"]["players"] == [["stark", "2"]]
+    snapshot = await client.sync_snapshot(timeout=0.5)
+    assert snapshot["leafStateId"] == "synced-leaf"
+    assert client.snapshot is snapshot
     await client.close()
 
 
@@ -144,3 +159,23 @@ def test_state_change_refreshes_authoritative_waited_users() -> None:
 
     assert snapshot["leafStateId"] == "next-leaf"
     assert snapshot["childGameState"]["waitedForUserIds"] == ["2"]
+
+
+def test_settings_change_refreshes_available_lobby_houses() -> None:
+    snapshot = lobby_snapshot()
+
+    apply_server_message(
+        snapshot,
+        {
+            "type": "game-settings-changed",
+            "settings": {"setupId": "base-game", "playerCount": 3},
+            "availableHouseIds": ["baratheon", "lannister", "stark"],
+        },
+    )
+
+    assert snapshot["gameSettings"]["playerCount"] == 3
+    assert snapshot["childGameState"]["availableHouseIds"] == [
+        "baratheon",
+        "lannister",
+        "stark",
+    ]

@@ -57,6 +57,13 @@ def apply_server_message(serialized_game: JsonObject, message: JsonObject) -> No
 
     if message_type == "game-settings-changed":
         serialized_game["gameSettings"] = message["settings"]
+        lobby = serialized_game.get("childGameState")
+        if (
+            isinstance(lobby, dict)
+            and lobby.get("type") == "lobby"
+            and isinstance(message.get("availableHouseIds"), list)
+        ):
+            lobby["availableHouseIds"] = message["availableHouseIds"]
         return
 
     path = state_path(serialized_game)

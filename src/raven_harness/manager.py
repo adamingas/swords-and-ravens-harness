@@ -4,28 +4,16 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import monotonic
-from typing import Any, Protocol
+from typing import Any
 from uuid import uuid4
 
 from .agent_store import AgentStore
 from .game.client import ConnectionFactory, SwordsAndRavensClient
 from .harness.actions import HarnessRunContext, describe_tools
 from .harness.interface import PlayerHarness, PreparedTurn
-from .harness.legacy import LegacyHarness
 from .harness.observation import build_context, is_waiting_for_player
 from .models.openai_agent import ModelRunResult
 from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
-
-
-class AgentRunner(Protocol):
-    async def run_once(
-        self,
-        *,
-        agent_record: AgentRecord,
-        observation: dict[str, Any],
-        context: HarnessRunContext,
-        **options: Any,
-    ) -> ModelRunResult: ...
 
 
 @dataclass
@@ -38,8 +26,7 @@ class AgentSession:
     running: bool = False
     autoplay: bool = False
     autoplay_task: asyncio.Task[None] | None = None
-    last_action_leaf_id: str | None = None
-    last_action_at: float | None = None
+    ready_task: asyncio.Task[None] | None = None
     failure_leaf_id: str | None = None
     consecutive_failures: int = 0
 
@@ -49,30 +36,13 @@ class AgentManager:
         self,
         *,
         store: AgentStore,
-        runner: AgentRunner | None = None,
-        harnesses: dict[str, PlayerHarness] | None = None,
+        harness: PlayerHarness,
         connection_factory: ConnectionFactory | None = None,
     ) -> None:
         self.store = store
-        if harnesses is None:
-            if runner is None:
-                raise ValueError("runner or harnesses must be provided")
-            harnesses = {"legacy": LegacyHarness(runner)}
-        self.harnesses = harnesses
+        self.harness = harness
         self.connection_factory = connection_factory
         self.sessions: dict[str, AgentSession] = {}
-
-    def list_harnesses(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": harness.info.id,
-                "name": harness.info.name,
-                "description": harness.info.description,
-                "persistentMemory": harness.info.persistent_memory,
-                "historicalRecall": harness.info.historical_recall,
-            }
-            for harness in self.harnesses.values()
-        ]
 
     def list_agents(self) -> list[AgentPublic]:
         return [
@@ -136,9 +106,10 @@ class AgentManager:
                     record.user_id,
                     list(session.client.recent_events),
                 )
-                session.observation = self._harness(record).preview_observation(
+                session.observation = self.harness.preview_observation(
                     record, context
                 )
+                self._schedule_lobby_ready(agent_id, session, record)
                 self._schedule_autoplay(agent_id, session)
 
         client_args: dict[str, Any] = {
@@ -175,6 +146,8 @@ class AgentManager:
                 and session.autoplay_task is not asyncio.current_task()
             ):
                 session.autoplay_task.cancel()
+            if session.ready_task and session.ready_task is not asyncio.current_task():
+                session.ready_task.cancel()
             await session.client.close()
             self.store.add_event(agent_id, "connection-status", {"status": "stopped"})
         return self.get_agent(agent_id)
@@ -206,7 +179,7 @@ class AgentManager:
         model_result: ModelRunResult | None = None
         status = "running"
         started_at = monotonic()
-        harness = self._harness(record)
+        harness = self.harness
 
         try:
             game_context = build_context(
@@ -214,9 +187,14 @@ class AgentManager:
                 record.user_id,
                 list(session.client.recent_events),
             )
+            if game_context.ingame is not None and not is_waiting_for_player(
+                game_context
+            ):
+                raise RuntimeError(
+                    "This player is not responsible for the current decision"
+                )
             prepared = harness.prepare_turn(record, game_context, previous_error)
             observation = prepared.observation
-            action_leaf_id = session.client.snapshot.get("leafStateId")
             session.observation = observation
             tools = prepared.tools
             if not tools:
@@ -228,7 +206,6 @@ class AgentManager:
                 "model-run-started",
                 {
                     "runId": run_id,
-                    "harnessId": harness.info.id,
                     "model": record.model,
                     "phase": observation["game"]["phase"],
                     "tools": [tool.name for tool in tools],
@@ -259,8 +236,6 @@ class AgentManager:
                 self.store.record_history_action(
                     prepared.history_id, action_name, action_arguments
                 )
-            session.last_action_leaf_id = action_leaf_id
-            session.last_action_at = monotonic()
             session.failure_leaf_id = None
             session.consecutive_failures = 0
             status = "completed"
@@ -284,7 +259,6 @@ class AgentManager:
                 "model-action",
                 {
                     "runId": run_id,
-                    "harnessId": harness.info.id,
                     "model": record.model,
                     "responseId": model_result.response_id,
                     "tool": action_name,
@@ -326,7 +300,6 @@ class AgentManager:
                 tool_name=action_name,
                 tool_arguments=action_arguments,
                 model_output=output_text,
-                harness_id=harness.info.id,
                 model=record.model,
                 instructions=prepared.instructions
                 if prepared
@@ -374,8 +347,7 @@ class AgentManager:
             record.user_id,
             list(session.client.recent_events),
         )
-        harness = self._harness(record)
-        return describe_tools(harness.preview_tools(record, context))
+        return describe_tools(self.harness.preview_tools(record, context))
 
     async def configure_lobby(
         self, agent_id: str, setup: LobbySetupRequest
@@ -401,6 +373,12 @@ class AgentManager:
         await session.client.send(
             {"type": "change-game-settings", "settings": settings}
         )
+        snapshot = await session.client.sync_snapshot()
+        current_settings = snapshot.get("gameSettings", {})
+        if current_settings.get("setupId") != setup.setup_id or int(
+            current_settings.get("playerCount", 0)
+        ) != setup.player_count:
+            raise RuntimeError("The game server did not accept the lobby settings")
         self.store.add_event(agent_id, "lobby-configured", settings)
         return settings
 
@@ -420,8 +398,7 @@ class AgentManager:
     async def stop_all(self) -> None:
         for agent_id in list(self.sessions):
             await self.stop(agent_id)
-        for harness in self.harnesses.values():
-            await harness.shutdown()
+        await self.harness.shutdown()
 
     def _schedule_autoplay(self, agent_id: str, session: AgentSession) -> None:
         if not session.autoplay or session.client.snapshot is None:
@@ -429,6 +406,39 @@ class AgentManager:
         if session.autoplay_task is None or session.autoplay_task.done():
             session.autoplay_task = asyncio.create_task(
                 self._autoplay_loop(agent_id, session)
+            )
+
+    def _schedule_lobby_ready(
+        self, agent_id: str, session: AgentSession, record: AgentRecord
+    ) -> None:
+        snapshot = session.client.snapshot or {}
+        lobby = snapshot.get("childGameState", {})
+        ready_users = lobby.get("readyUsers")
+        seated = any(
+            str(user_id) == record.user_id for _, user_id in lobby.get("players", [])
+        )
+        if (
+            lobby.get("type") != "lobby"
+            or not isinstance(ready_users, list)
+            or record.user_id in {str(user_id) for user_id in ready_users}
+            or not seated
+        ):
+            return
+        if session.ready_task is None or session.ready_task.done():
+            session.ready_task = asyncio.create_task(
+                self._confirm_lobby_ready(agent_id, session)
+            )
+
+    async def _confirm_lobby_ready(
+        self, agent_id: str, expected_session: AgentSession
+    ) -> None:
+        try:
+            await expected_session.client.send({"type": "ready"})
+            self.store.add_event(agent_id, "lobby-ready-confirmed", {})
+        except Exception as error:
+            expected_session.last_error = str(error)
+            self.store.add_event(
+                agent_id, "lobby-ready-failed", {"message": str(error)}
             )
 
     async def _autoplay_loop(
@@ -454,13 +464,6 @@ class AgentManager:
             )
             if context.ingame is None or not is_waiting_for_player(context):
                 continue
-            leaf_id = expected_session.client.snapshot.get("leafStateId")
-            if expected_session.last_action_leaf_id == leaf_id:
-                elapsed = monotonic() - (expected_session.last_action_at or 0)
-                if elapsed < 3.0:
-                    continue
-                expected_session.last_action_leaf_id = None
-                expected_session.last_action_at = None
             try:
                 await self.run_once(agent_id)
             except Exception:
@@ -479,15 +482,6 @@ class AgentManager:
         if record is None:
             raise KeyError("Agent not found")
         return record
-
-    def _harness(self, record: AgentRecord) -> PlayerHarness:
-        harness = self.harnesses.get(record.harness_id)
-        if harness is None:
-            available = ", ".join(sorted(self.harnesses))
-            raise RuntimeError(
-                f"Unknown harness {record.harness_id!r}; available: {available}"
-            )
-        return harness
 
     def _require_public_agent(self, agent_id: str) -> AgentPublic:
         agent = self.get_agent(agent_id)

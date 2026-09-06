@@ -90,7 +90,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
             if leaf
             else None
         ),
-        "activeStatePath": _compact_state_path(context.path),
+        "statePath": [state.get("type", "unknown") for state in context.path],
         "recentEvents": [_sanitize_event(item) for item in context.recent_events[-12:]],
         "orderLegend": ORDER_LEGEND,
     }
@@ -99,6 +99,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
     if child.get("type") == "lobby":
         observation["lobby"] = {
             "houses": child.get("lobbyHouses", []),
+            "availableHouseIds": child.get("availableHouseIds", []),
             "seats": [
                 {"houseId": house_id, "userId": str(user_id)}
                 for house_id, user_id in child.get("players", [])
@@ -120,11 +121,25 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
             bool(settings.get("addPortToTheEyrie", False)),
         )
         observation["game"]["round"] = game.get("turn")
+        observation["game"]["victoryPointsToWin"] = game.get(
+            "victoryPointsCountNeededToWin"
+        )
+        observation["game"]["maxRounds"] = game.get("maxTurns")
         observation["you"].update(
             {
                 "powerTokens": (house or {}).get("powerTokens"),
                 "supply": (house or {}).get("supplyLevel"),
-                "victoryPoints": (house or {}).get("victoryPoints"),
+                "currentVictoryPoints": (house or {}).get("currentVictoryPoints"),
+                "controlledLandAreas": (house or {}).get(
+                    "controlledLandAreaCount"
+                ),
+                "controlledCastleAreas": (house or {}).get(
+                    "controlledCastleAreaCount"
+                ),
+                "controlledSupplyIcons": (house or {}).get(
+                    "controlledSupplyIcons"
+                ),
+                "controlledRegions": (house or {}).get("controlledRegionIds", []),
                 "availableHouseCards": [
                     {
                         "id": card.get("id"),
@@ -145,7 +160,13 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
                 "name": candidate.get("name"),
                 "powerTokens": candidate.get("powerTokens"),
                 "supply": candidate.get("supplyLevel"),
-                "victoryPoints": candidate.get("victoryPoints"),
+                "currentVictoryPoints": candidate.get("currentVictoryPoints"),
+                "controlledLandAreas": candidate.get("controlledLandAreaCount"),
+                "controlledCastleAreas": candidate.get(
+                    "controlledCastleAreaCount"
+                ),
+                "controlledSupplyIcons": candidate.get("controlledSupplyIcons"),
+                "controlledRegions": candidate.get("controlledRegionIds", []),
             }
             for candidate in game.get("houses", [])
         ]
@@ -296,28 +317,32 @@ def _action_guidance(
     return guidance
 
 
-def _compact_state_path(path: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep decision context without duplicating the large raw engine snapshot."""
-
-    omitted = {
-        "childGameState",
-        "game",
-        "players",
-        "gameLogManager",
-        "ordersOnBoard",
-        "waitedForUserIds",
-    }
-    return [
-        _redact_secrets(
-            {key: value for key, value in state.items() if key not in omitted}
-        )
-        for state in path
-    ]
-
-
 def _sanitize_event(event: dict[str, Any]) -> dict[str, Any]:
     if event.get("type") == "add-game-log":
-        return {"type": event["type"], "data": event.get("data")}
+        data = event.get("data") or {}
+        if data.get("type") == "orders-revealed":
+            orders = [
+                {
+                    "regionId": region.get("id"),
+                    "order": (region.get("order") or {}).get("type"),
+                }
+                for region in data.get("worldState", [])
+                if region.get("order")
+            ]
+            return {
+                "type": "game-log",
+                "event": "orders-revealed",
+                "orders": orders,
+            }
+        return {
+            "type": "game-log",
+            "event": data.get("type", "unknown"),
+            "details": {
+                key: value
+                for key, value in data.items()
+                if key not in {"type", "worldState", "gameSnapshot"}
+            },
+        }
     allowed = {
         "type",
         "houseId",
