@@ -2,8 +2,8 @@
 
 ## Status
 
-This experiment is in progress. Three of five games are complete. Do not use
-three games to estimate house strength.
+This experiment is in progress. Four of five games are complete. Do not use
+four games to estimate house strength.
 
 ## Method
 
@@ -17,9 +17,10 @@ independent asynchronous autoplay task. The harness does not limit concurrent
 model calls. A new game-server snapshot wakes each affected agent.
 
 The source revision for Game 1 is `b4279fb`. The source revision for Game 2 is
-`11a7615`. The source revision for Game 3 is `446b444`. Each attempt stores its
-full runtime provenance. The experiment base seed is 102. The first three
-derived seeds are 647336519, 2863619190, and 2003516222. The artifact root is
+`11a7615`. The source revision for Game 3 is `446b444`. The source revision for
+Game 4 is `7a08b11`. Each attempt stores its full runtime provenance. The
+experiment base seed is 102. The first four derived seeds are 647336519,
+2863619190, 2003516222, and 629562040. The artifact root is
 `data/evaluations/gpt-oss-120b-house-test-b4279fb`.
 
 ## Game 1
@@ -128,6 +129,28 @@ than three times the largest observed successful response and makes a runaway
 generation fail sooner and at lower cost. The next fresh turn still retries the
 unchanged game decision.
 
+## Game 4
+
+Lannister won at the end of turn 10.
+
+| Place | House | Victory points | Land areas |
+| ---: | --- | ---: | ---: |
+| 1 | Lannister | 4 | 7 |
+| 2 | Greyjoy | 3 | 4 |
+| 3 | Stark | 3 | 4 |
+| 4 | Tyrell | 2 | 5 |
+| 5 | Martell | 2 | 3 |
+| 6 | Baratheon | 1 | 2 |
+
+The game completed in 213.333 seconds. All 274 agent runs completed. The run
+made 294 model-endpoint requests. Every request start has a matching completed
+response in the trace and in the metrics. There was no failed, cancelled,
+oracle, tool, game-server, or terminal-response run.
+
+The game used 3,863,113 input tokens and 80,939 output tokens. Its recorded cost
+was $1.412794. The maximum response was 1,196 output tokens, so the new
+4,096-token limit did not constrain a successful response.
+
 ## Latency investigation
 
 For Game 1, the completed request intervals account for the active runtime as
@@ -184,7 +207,13 @@ between completed request intervals. Its largest accumulated request times were
 order placement at 92.427 seconds, march resolution at 70.399 seconds, bidding
 at 42.494 seconds, and mustering at 38.275 seconds.
 
-All three games exceeded the expected one-to-two-minute duration. The calls
+Game 4 reached six concurrent calls for 18.482 seconds. Its 294 calls had a
+mean duration of 1.188 seconds, a median of 1.084 seconds, a 95th percentile of
+1.916 seconds, and a maximum of 2.831 seconds. At least one request was active
+for 192.852 seconds. The game had 17.445 seconds between completed request
+intervals.
+
+All four games exceeded the expected one-to-two-minute duration. The calls
 themselves were fast, but a complete ten-turn game required hundreds of model
 decisions. Removing decisions would change the harness behavior and the model
 comparison.
@@ -193,18 +222,18 @@ comparison.
 
 | House | Wins | Win rate | Average place | Average victory points | Average land areas |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Stark | 0 | 0% | 3.667 | 1.667 | 4.0 |
-| Greyjoy | 1 | 33.33% | 3.333 | 3.0 | 3.333 |
-| Lannister | 2 | 66.67% | 2.667 | 3.333 | 5.0 |
-| Tyrell | 0 | 0% | 4.0 | 2.0 | 3.0 |
-| Martell | 0 | 0% | 2.0 | 3.333 | 6.333 |
-| Baratheon | 0 | 0% | 5.333 | 1.0 | 1.0 |
+| Stark | 0 | 0% | 3.5 | 2.0 | 4.0 |
+| Greyjoy | 1 | 25% | 3.0 | 3.0 | 3.5 |
+| Lannister | 3 | 75% | 2.25 | 3.5 | 5.5 |
+| Tyrell | 0 | 0% | 4.0 | 2.0 | 3.5 |
+| Martell | 0 | 0% | 2.75 | 3.0 | 5.5 |
+| Baratheon | 0 | 0% | 5.5 | 1.0 | 1.25 |
 
-These values are descriptive only. Three games are not enough to make a claim
+These values are descriptive only. Four games are not enough to make a claim
 about house balance.
 
 ## Remaining work
 
-Two more complete games are required. The final report must replace this
+One more complete game is required. The final report must replace this
 provisional interpretation with five-game house win-rate and placement
 statistics.
