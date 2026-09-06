@@ -287,7 +287,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert len(provenance["harness"]["systemPromptSha256"]) == 64
     assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
     assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
-    assert provenance["harness"]["toolChoice"] == "auto"
+    assert provenance["harness"]["toolChoice"] == "required"
     assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
     assert provenance["harness"]["maxConcurrency"] == 3

@@ -893,9 +893,10 @@ The tournament requires `OPENROUTER_TOKEN` and ignores `MODEL_ID`. It does not
 use the dashboard's provider allow-list. It uses one routing policy for all
 models. The policy allows all listed hosts and provider fallbacks. It selects
 hosts by throughput and gives preference to hosts that support the tools. The
-common request uses `tool_choice=auto`. Qwen 3.7 does not accept `required`.
-The system instruction still requires one game action. The manager rejects a
-response that does not take an action.
+common request uses `tool_choice=required`. Provider parameter filtering stays
+disabled because Qwen 3.7's only endpoint does not advertise that value even
+though OpenRouter accepts and routes the request. The manager still rejects a
+response that does not take a game action.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for
 the model and current tool set. Rules-oracle calls use a separate key for the

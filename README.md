@@ -234,11 +234,12 @@ schedules attempts. It verifies the exact six IDs and tool-call support. The
 tournament ignores `MODEL_ID`. It also replaces the dashboard provider
 allow-list with one common tournament policy: select by throughput, allow
 fallbacks, allow all listed hosts, and prefer hosts that support the tools. The
-shared request uses `tool_choice=auto` because Qwen 3.7 does not accept
-`required`. The harness instruction still requires one game action, and the
-manager rejects a response with no action. Stable provider prompt-cache keys are
-sent for player and rules-oracle calls. The harness has no local response
-cache. The summary reports cached input tokens when a provider returns them.
+shared request uses `tool_choice=required`. Provider parameter filtering stays
+disabled because Qwen 3.7's only endpoint does not advertise that value even
+though OpenRouter accepts and routes the request. The manager still rejects a
+response with no game action. Stable provider prompt-cache keys are sent for
+player and rules-oracle calls. The harness has no local response cache. The
+summary reports cached input tokens when a provider returns them.
 
 The default is fail-fast. Use `--continue-on-error` to let sibling games
 continue after one game fails. An exact rerun skips completed games and retries
