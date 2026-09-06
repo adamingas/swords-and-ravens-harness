@@ -185,17 +185,18 @@ For a one-round smoke game, start the game server with
 HARNESS_TEST_MAX_TURNS=1. Omit that variable for normal games.
 
 The evaluation runner starts an isolated game server, stores its database and
-game JSON below `data/evaluations/`, and assigns the same model to all six
-players. Run a one-round smoke before a complete 12-game comparison:
+game JSON below `data/evaluations/`, and puts the six tournament models in the
+six seats. Every seat uses the same `strategic-v1` harness configuration. Run a
+one-round smoke before the complete 12-game tournament:
 
 ~~~bash
 uv run raven-protocol-smoke
 uv run raven-evaluate --games 1 --max-rounds 1 \
-  --output data/evaluations/glm-one-round-smoke
+  --output data/evaluations/model-tournament-smoke
 uv run raven-evaluate --games 12 \
   --random-seed 1 \
   --concurrent-games 12 \
-  --output data/evaluations/glm-prompt-comparison
+  --output data/evaluations/model-tournament
 ~~~
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
@@ -207,23 +208,36 @@ persistence changes before the paid model smoke.
 Verify any saved evaluation without contacting the provider:
 
 ~~~bash
-uv run raven-verify-evaluation data/evaluations/glm-one-round-smoke
+uv run raven-verify-evaluation data/evaluations/model-tournament-smoke
 uv run raven-verify-evaluation --require-complete \
-  data/evaluations/glm-prompt-comparison
+  data/evaluations/model-tournament
 ~~~
 
-The first command accepts an internally consistent partial evaluation and
-labels it `provisional`. The second exits unsuccessfully unless all 12 games
-and both observations for every configuration-house pair are present.
+The first command accepts an internally consistent partial evaluation. It
+labels the ranking `provisional`. The second command succeeds only when all 12
+games are complete. Each model-house pair must have two completed games. Every
+provider response must also have model, provider, and cost attribution.
 
 The evaluator derives one game seed from `--random-seed` and the game number.
 It records that seed and reuses it for every retry of that game. Reusing an
 output directory skips completed games and preserves failed attempts. The
-manifest rejects changes to the model, prompts, seed, schedule, source commits,
-rules, or runtime settings. Independent games run concurrently. Each game uses
-one port, starting at `--game-port` and increasing with the game number. The
-default `--concurrent-games 12` runs the complete schedule at once. Before it
-creates a new attempt, the runner stops
-if OpenRouter reports that the configured key has exhausted its spending
-limit. The summary labels rankings as provisional until all 12 games are
-complete and every configuration has played each house twice.
+manifest rejects changes to the model set, harness prompt, seed, schedule,
+source commits, rules, or runtime settings. Independent games run concurrently.
+Each game uses one port. The first game uses `--game-port`, and later games use
+the next ports. The default starts all 12 games at the same time. This uses
+ports 5101 through 5112 and can make up to 12 model calls concurrently. Use a
+smaller `--concurrent-games` value when the machine or provider cannot support
+that load.
+
+The command checks the OpenRouter quota and model catalog once before it
+schedules attempts. It verifies the exact six IDs and tool-call support. The
+tournament ignores `MODEL_ID`. It also replaces the dashboard provider
+allow-list with one common tournament policy: select by throughput, allow
+fallbacks, and allow all listed hosts. Stable provider prompt-cache keys are
+sent for player and rules-oracle calls. The harness has no local response
+cache. The summary reports cached input tokens when a provider returns them.
+
+The default is fail-fast. Use `--continue-on-error` to let sibling games
+continue after one game fails. An exact rerun skips completed games and retries
+incomplete games. Use the same source, rules, game count, seed, ports,
+concurrency, timeouts, and model settings when you resume.

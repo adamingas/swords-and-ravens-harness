@@ -73,6 +73,7 @@ in that external runner or in scripts.
 - Make heavy use of provider based caching (NOT local caching)
 - Use working providers and appropriate retry handling.
 - If an error is happening a lot, i.e. websocket error, or tool error, or network, it means you have fucked up someplace. Try to fix errors not patch them. 99% of the time, its an architecture decision that caused an error, and its 100% of the times your fault.
-- Keep the database at `data/harness.db`.
+- Keep the dashboard and manual-harness database at `data/harness.db`.
+  Tournament attempts use isolated `harness.db` files in their artifact directories.
 - The submodule must point to master and not change except if it is impossible to use the harnesses otherwise
 - Commit coherent changes only after verification.

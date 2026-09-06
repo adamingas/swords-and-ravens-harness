@@ -51,32 +51,30 @@ stage as completion of the full objective.
   model behavior.
 - Verify the UI in a browser at desktop and narrow widths.
 
-## 5. Same-model evaluation
+## 5. Six-model tournament
 
 - Use only the final strategic harness for evaluation games.
-- Use the same exact model ID for every player so model capability does not
-  confound a harness or prompt comparison.
-- Use `z-ai/glm-5.3-flash` through OpenRouter unless provider smoke tests show
-  that its structured tool calls are not reliable enough.
+- Put the six requested model IDs in the six seats of every game.
+- Give every model the same prompt, tool-selection policy, state representation,
+  memory policy, request limits, and retry policy.
+- Verify the exact IDs and tool-call support against OpenRouter before a run.
 - Keep provider retries and provider-host fallback enabled. Do not switch to a
   different model after a failed request.
-- Compare six plainly named prompt configurations while keeping tools and state
-  representation constant for the first evaluation.
+- Use stable provider prompt-cache keys. Do not add a local response cache.
 - Run six-player games.
-- Rotate houses so each prompt configuration plays each house at least twice.
-  This requires at least 12 complete games when each game contains all six
-  configurations.
+- Rotate houses so each model plays each house at least twice. This requires 12
+  complete games when each game contains all six models.
 - Derive and record one stable gameplay seed per game. Reuse the same seed when
   a failed game is retried.
 - Preserve all game snapshots, agent traces, token use, cost, failures, and
   seat assignments.
-- Produce configuration rankings that include match wins, placement or score,
+- Produce model rankings that include match wins, placement or score,
   house effects, reliability, cost, and an Elo-style rating with stated
   assumptions.
 
 ## Completion criteria
 
 The project is complete only when all five stages are implemented and verified,
-the requested evaluation has at least two observations for every
-configuration-house pair, the artifacts are saved in the repository data
+the requested evaluation has at least two completed games for every
+model-house pair, the artifacts are saved in the repository data
 directory, and the final results can be reproduced from documented commands.

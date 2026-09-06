@@ -3,10 +3,12 @@ import sys
 
 import pytest
 
+from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
-    PROMPT_CONFIGURATIONS,
+    TOURNAMENT_HARNESS_ID,
+    TOURNAMENT_MODELS,
     _effective_instructions,
     _evaluation_schedule,
     _provider_attribution_summary,
@@ -19,33 +21,53 @@ from raven_harness.evaluation import (
 from raven_harness.evaluation_verifier import (
     EvaluationIncompleteError,
     EvaluationVerificationError,
+    _resolved_model_matches,
     main,
     verify_evaluation,
 )
+from raven_harness.schemas import AgentCreate
 
 
-MODEL = "z-ai/glm-5.3-flash"
 EMPTY_METRICS = {
     "statusCounts": {"completed": 1},
     "modelRequests": 1,
     "tokens": {"input": 10, "output": 2, "total": 12},
     "costUsd": 0.001,
 }
-EMPTY_PROVIDER_ATTRIBUTION = _provider_attribution_summary({"generations": []})
 
 
-def _prompt_provenance() -> list[dict[str, str]]:
+def test_resolved_model_accepts_the_verified_deepseek_alias_target() -> None:
+    assert _resolved_model_matches(
+        "~deepseek/deepseek-v4-flash-latest",
+        "deepseek/deepseek-v4-flash-0731",
+        alias="deepseek/deepseek-v4-flash-0731",
+    )
+    assert _resolved_model_matches(
+        "~deepseek/deepseek-v4-flash-latest",
+        "deepseek/deepseek-v4-flash-0915",
+        alias="deepseek/deepseek-v4-flash-0731",
+    )
+    assert not _resolved_model_matches(
+        "~deepseek/deepseek-v4-flash-latest",
+        "deepseek/deepseek-v4-pro-0813",
+        alias="deepseek/deepseek-v4-flash-0731",
+    )
+
+
+def _verified_models() -> list[dict]:
     return [
         {
-            "configuration": configuration.name,
-            "configuredSystemPromptSha256": _sha256_text(
-                _system_prompt(configuration)
+            "id": model,
+            "name": model,
+            "canonicalSlug": model,
+            "aliasTarget": (
+                "deepseek/deepseek-v4-flash-0731"
+                if model.startswith("~deepseek/")
+                else None
             ),
-            "effectiveInstructionsSha256": _sha256_text(
-                _effective_instructions(configuration)
-            ),
+            "supportedParameters": ["tool_choice", "tools"],
         }
-        for configuration in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     ]
 
 
@@ -69,15 +91,18 @@ def _terminal_game(winner: str) -> dict:
 def _completed_game(root, manifest, game_number: int) -> dict:
     rotation = house_rotation(game_number)
     users = user_rotation(game_number)
+    relative = f"game-{game_number:02d}/attempt-01"
+    attempt_dir = root / relative
+    attempt_dir.mkdir(parents=True, exist_ok=True)
     assignments = [
         {
-            "configuration": configuration.name,
-            "house": rotation[configuration.name],
-            "userId": users[configuration.name],
-            "model": MODEL,
-            "promptSha256": _sha256_text(_effective_instructions(configuration)),
+            "model": model,
+            "house": rotation[model],
+            "userId": users[model],
+            "harness": TOURNAMENT_HARNESS_ID,
+            "promptSha256": _sha256_text(_effective_instructions()),
         }
-        for configuration in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     ]
     standings = [
         {
@@ -89,24 +114,66 @@ def _completed_game(root, manifest, game_number: int) -> dict:
         for placement, assignment in enumerate(assignments, 1)
     ]
     winner = standings[0]["house"]
+    database = Database(attempt_dir / "harness.db")
+    store = AgentStore(database)
+    records = []
+    for index, model in enumerate(TOURNAMENT_MODELS, 1):
+        record = store.create_agent(
+            AgentCreate(
+                name=model,
+                model=model,
+                user_id=str(index),
+                auth_token=str(index),
+            )
+        )
+        store.add_run(
+            run_id=f"run-{game_number}-{index}",
+            agent_id=record.id,
+            status="completed",
+            observation={},
+            response_id=f"response-{game_number}-{index}",
+            usage={"requests": 1, "inputTokens": 10, "outputTokens": 2, "totalTokens": 12},
+            created_at=f"2026-09-06T00:00:{index:02d}+00:00",
+        )
+        records.append(record)
+    database.close()
+    generations = [
+        {
+            "runId": f"run-{game_number}-{index}",
+            "agentId": records[index - 1].id,
+            "requestedModel": model,
+            "responseId": f"response-{game_number}-{index}",
+            "responseIndex": 0,
+            "provider": "Example",
+            "model": (
+                "deepseek/deepseek-v4-flash-0731"
+                if model.startswith("~deepseek/")
+                else model
+            ),
+            "costUsd": 0.001,
+            "latencyMs": 10,
+            "error": None,
+        }
+        for index, model in enumerate(TOURNAMENT_MODELS, 1)
+    ]
+    provider_attribution = _provider_attribution_summary(
+        {"generations": generations}
+    )
     result = {
         "gameNumber": game_number,
         "randomSeed": manifest["games"][game_number - 1]["randomSeed"],
         "winner": winner,
         "round": 10,
         "standings": standings,
-        "providerAttribution": EMPTY_PROVIDER_ATTRIBUTION,
+        "providerAttribution": provider_attribution,
     }
-    relative = f"game-{game_number:02d}/attempt-01"
-    attempt_dir = root / relative
     _write_json(attempt_dir / "assignments.json", assignments)
     _write_json(attempt_dir / "game.json", _terminal_game(winner))
     _write_json(attempt_dir / "result.json", result)
     _write_json(
         attempt_dir / "provider-generations.json",
-        {"generations": [], **EMPTY_PROVIDER_ATTRIBUTION},
+        {"generations": generations, **provider_attribution},
     )
-    Database(attempt_dir / "harness.db").close()
     manifest["games"][game_number - 1]["attempts"] = [
         {
             "number": 1,
@@ -120,18 +187,27 @@ def _completed_game(root, manifest, game_number: int) -> dict:
 
 def _evaluation(root, *, game_count: int, completed_games: int) -> None:
     manifest = {
-        "schemaVersion": 3,
-        "model": MODEL,
+        "schemaVersion": 4,
+        "harness": TOURNAMENT_HARNESS_ID,
+        "models": TOURNAMENT_MODELS,
+        "modelVerification": {
+            "source": "OpenRouter GET /models",
+            "verifiedAt": "2026-09-06T00:00:00+00:00",
+            "models": _verified_models(),
+        },
         "gameCount": game_count,
         "randomSeed": 1,
-        "configurations": [
-            configuration.model_dump() for configuration in PROMPT_CONFIGURATIONS
-        ],
         "provenance": {
             "repositories": {},
-            "prompts": _prompt_provenance(),
+            "harness": {
+                "id": TOURNAMENT_HARNESS_ID,
+                "systemPromptSha256": _sha256_text(_system_prompt()),
+                "effectiveInstructionsSha256": _sha256_text(
+                    _effective_instructions()
+                ),
+            },
             "rules": {},
-            "model": {"id": MODEL},
+            "models": {"ids": TOURNAMENT_MODELS},
             "evaluation": {"randomSeed": 1},
         },
         "games": _evaluation_schedule(game_count),
@@ -171,8 +247,36 @@ def test_verifier_accepts_complete_two_rotation_comparison(tmp_path) -> None:
     assert report["evaluationStatus"] == "complete"
     assert report["completedGames"] == 12
     assert report["checkedDatabases"] == 12
-    assert report["minimumObservationsPerConfigurationHouse"] == 2
+    assert report["minimumObservationsPerModelHouse"] == 2
     assert report["comparisonComplete"] is True
+
+
+def test_complete_tournament_requires_provider_model_and_cost_attribution(
+    tmp_path,
+) -> None:
+    root = tmp_path / "missing-attribution"
+    _evaluation(root, game_count=12, completed_games=12)
+    artifact_path = root / "game-01/attempt-01/provider-generations.json"
+    artifact = json.loads(artifact_path.read_text())
+    artifact["generations"][0]["costUsd"] = None
+    attribution = _provider_attribution_summary(artifact)
+    _write_json(artifact_path, {"generations": artifact["generations"], **attribution})
+    result_path = root / "game-01/attempt-01/result.json"
+    result = json.loads(result_path.read_text())
+    result["providerAttribution"] = attribution
+    _write_json(result_path, result)
+    results = [
+        json.loads((root / f"game-{game:02d}/attempt-01/result.json").read_text())
+        for game in range(1, 13)
+    ]
+    _write_json(root / "summary.json", summarize_results(results))
+
+    report = verify_evaluation(root)
+
+    assert report["evaluationStatus"] == "provisional"
+    assert report["providerAttributionComplete"] is False
+    with pytest.raises(EvaluationIncompleteError, match="attribution: False"):
+        verify_evaluation(root, require_complete=True)
 
 
 def test_verifier_rejects_missing_completed_result(tmp_path) -> None:
@@ -205,7 +309,7 @@ def test_verifier_rejects_stale_summary(tmp_path) -> None:
         verify_evaluation(root)
 
 
-def test_require_complete_reports_configuration_house_coverage_failure(
+def test_require_complete_reports_model_house_coverage_failure(
     tmp_path,
 ) -> None:
     root = tmp_path / "coverage"
@@ -215,10 +319,10 @@ def test_require_complete_reports_configuration_house_coverage_failure(
 
     assert report["evaluationStatus"] == "provisional"
     assert report["completedGames"] == 11
-    assert report["minimumObservationsPerConfigurationHouse"] == 1
+    assert report["minimumObservationsPerModelHouse"] == 1
     with pytest.raises(
         EvaluationIncompleteError,
-        match="11/12 completed games.*minimum config-house observations 1/2",
+        match="11/12 completed games.*minimum model-house appearances 1/2",
     ):
         verify_evaluation(root, require_complete=True)
 
@@ -231,7 +335,7 @@ def test_verifier_rejects_assignment_model_mismatch(tmp_path) -> None:
     assignments[0]["model"] = "another-model"
     _write_json(assignment_path, assignments)
 
-    with pytest.raises(EvaluationVerificationError, match="must all use model"):
+    with pytest.raises(EvaluationVerificationError, match="each tournament model"):
         verify_evaluation(root)
 
 
@@ -259,7 +363,7 @@ def test_verifier_rejects_schedule_random_seed_mismatch(tmp_path) -> None:
         verify_evaluation(root)
 
 
-def test_verifier_rejects_missing_schema_three_provenance(tmp_path) -> None:
+def test_verifier_rejects_missing_schema_four_provenance(tmp_path) -> None:
     root = tmp_path / "missing-provenance"
     _evaluation(root, game_count=1, completed_games=1)
     manifest_path = root / "manifest.json"
@@ -288,17 +392,17 @@ def test_verifier_rejects_noncanonical_provenance_prompt_hash(tmp_path) -> None:
     _evaluation(root, game_count=1, completed_games=1)
     manifest_path = root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
-    manifest["provenance"]["prompts"][0]["effectiveInstructionsSha256"] = "0" * 64
+    manifest["provenance"]["harness"]["effectiveInstructionsSha256"] = "0" * 64
     _write_json(manifest_path, manifest)
 
-    with pytest.raises(EvaluationVerificationError, match="canonical prompt"):
+    with pytest.raises(EvaluationVerificationError, match="canonical.*prompt"):
         verify_evaluation(root)
 
 
 def test_verifier_rejects_saved_winner_mismatch(tmp_path) -> None:
     root = tmp_path / "winner-mismatch"
     _evaluation(root, game_count=1, completed_games=1)
-    winner = house_rotation(1)[PROMPT_CONFIGURATIONS[0].name]
+    winner = house_rotation(1)[TOURNAMENT_MODELS[0]]
     other = next(house for house in HOUSES if house != winner)
     _write_json(root / "game-01/attempt-01/game.json", _terminal_game(other))
 
@@ -327,22 +431,13 @@ def test_verifier_rejects_missing_provider_attribution(tmp_path) -> None:
 def test_verifier_rejects_unexpected_resolved_provider_model(tmp_path) -> None:
     root = tmp_path / "resolved-model-mismatch"
     _evaluation(root, game_count=1, completed_games=1)
-    generation = {
-        "runId": "run-1",
-        "agentId": "agent-1",
-        "configuration": "Balanced",
-        "responseId": "response-1",
-        "responseIndex": 0,
-        "provider": "Example",
-        "model": "another/model",
-        "costUsd": 0.001,
-        "latencyMs": 10,
-        "error": None,
-    }
-    summary = _provider_attribution_summary({"generations": [generation]})
+    artifact_path = root / "game-01/attempt-01/provider-generations.json"
+    artifact = json.loads(artifact_path.read_text())
+    artifact["generations"][0]["model"] = "another/model"
+    summary = _provider_attribution_summary(artifact)
     _write_json(
-        root / "game-01/attempt-01/provider-generations.json",
-        {"generations": [generation], **summary},
+        artifact_path,
+        {"generations": artifact["generations"], **summary},
     )
     result_path = root / "game-01/attempt-01/result.json"
     result = json.loads(result_path.read_text())

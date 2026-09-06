@@ -14,13 +14,15 @@ from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
     MUTABLE_GAME_SAVE_PATH,
-    PROMPT_CONFIGURATIONS,
+    TOURNAMENT_HARNESS_ID,
+    TOURNAMENT_MODELS,
     _build_provenance,
     _collect_openrouter_generations,
     _evaluation_schedule,
     _git_provenance,
     _load_manifest,
     _persisted_response_rows,
+    _preflight_openrouter_models,
     _preflight_openrouter_quota,
     _progress_signature,
     _require_sqlite_quick_check,
@@ -39,20 +41,37 @@ from raven_harness.evaluation import (
 from raven_harness.schemas import AgentCreate
 
 
-def test_twelve_game_rotation_assigns_each_house_twice() -> None:
-    names = [configuration.name for configuration in PROMPT_CONFIGURATIONS]
+VERIFIED_MODELS = [
+    {
+        "id": model,
+        "name": model,
+        "canonicalSlug": model,
+        "aliasTarget": None,
+        "supportedParameters": ["tool_choice", "tools"],
+    }
+    for model in TOURNAMENT_MODELS
+]
+COMPLETE_PROVIDER_ATTRIBUTION = {
+    "requestedCount": 6,
+    "attributedCount": 6,
+    "modelAttributedCount": 6,
+    "costAttributedCount": 6,
+    "unavailableCount": 0,
+    "providerCounts": {"test": 6},
+    "modelCounts": {model: 1 for model in TOURNAMENT_MODELS},
+}
 
-    for name in names:
-        assignments = [house_rotation(game)[name] for game in range(1, 13)]
+
+def test_twelve_game_rotation_assigns_each_house_twice() -> None:
+    for model in TOURNAMENT_MODELS:
+        assignments = [house_rotation(game)[model] for game in range(1, 13)]
         assert sorted(assignments) == sorted(HOUSES * 2)
 
     for game in range(1, 13):
         assert sorted(house_rotation(game).values()) == sorted(HOUSES)
 
 
-def test_twelve_game_user_rotation_makes_each_configuration_owner_twice() -> None:
-    names = [configuration.name for configuration in PROMPT_CONFIGURATIONS]
-
+def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
     for game in range(1, 13):
         assert sorted(user_rotation(game).values()) == [
             "1",
@@ -63,8 +82,8 @@ def test_twelve_game_user_rotation_makes_each_configuration_owner_twice() -> Non
             "6",
         ]
 
-    for name in names:
-        user_ids = [user_rotation(game)[name] for game in range(1, 13)]
+    for model in TOURNAMENT_MODELS:
+        user_ids = [user_rotation(game)[model] for game in range(1, 13)]
         assert user_ids.count("1") == 2
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
 
@@ -75,7 +94,7 @@ def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() 
 
     _validate_evaluation_schedule(schedule, 12)
 
-    schedule[0]["users"]["Balanced"] = "2"
+    schedule[0]["users"][TOURNAMENT_MODELS[0]] = "2"
     with pytest.raises(RuntimeError, match="different seed, house, or user schedule"):
         _validate_evaluation_schedule(schedule, 12)
 
@@ -155,23 +174,28 @@ def test_load_manifest_rejects_legacy_schema_without_modifying_it(
     monkeypatch.setattr(
         "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
     )
-    args = argparse.Namespace(
-        model="z-ai/glm-5.3-flash", games=12, random_seed=1
-    )
+    args = argparse.Namespace(games=12, random_seed=1)
 
     with pytest.raises(RuntimeError, match="unsupported schema version 1"):
-        _load_manifest(path, args, tmp_path, Settings(_env_file=None))
+        _load_manifest(
+            path,
+            args,
+            tmp_path,
+            Settings(_env_file=None),
+            verified_models=VERIFIED_MODELS,
+        )
 
     assert json.loads(path.read_text()) == legacy
 
 
-def test_load_manifest_rejects_schema_three_without_provenance(
+def test_load_manifest_rejects_schema_four_without_provenance(
     tmp_path, monkeypatch
 ) -> None:
     path = tmp_path / "manifest.json"
     manifest = {
-        "schemaVersion": 3,
-        "model": "z-ai/glm-5.3-flash",
+        "schemaVersion": 4,
+        "models": TOURNAMENT_MODELS,
+        "modelVerification": {"models": VERIFIED_MODELS},
         "gameCount": 12,
         "randomSeed": 1,
         "games": _evaluation_schedule(12),
@@ -180,12 +204,16 @@ def test_load_manifest_rejects_schema_three_without_provenance(
     monkeypatch.setattr(
         "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
     )
-    args = argparse.Namespace(
-        model="z-ai/glm-5.3-flash", games=12, random_seed=1
-    )
+    args = argparse.Namespace(games=12, random_seed=1)
 
-    with pytest.raises(RuntimeError, match="no schema-3 provenance"):
-        _load_manifest(path, args, tmp_path, Settings(_env_file=None))
+    with pytest.raises(RuntimeError, match="no schema-4 provenance"):
+        _load_manifest(
+            path,
+            args,
+            tmp_path,
+            Settings(_env_file=None),
+            verified_models=VERIFIED_MODELS,
+        )
 
 
 def test_progress_signature_includes_runtime_and_completed_run_progress() -> None:
@@ -236,7 +264,6 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
         model_max_concurrency=3,
     )
     args = argparse.Namespace(
-        model="z-ai/glm-5.3-flash",
         random_seed=1,
         game_port=5101,
         concurrent_games=4,
@@ -257,15 +284,12 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert provenance["rules"]["sha256"] == hashlib.sha256(
         rules_path.read_bytes()
     ).hexdigest()
-    assert len(provenance["prompts"]) == 6
-    assert all(
-        len(item["configuredSystemPromptSha256"]) == 64
-        and len(item["effectiveInstructionsSha256"]) == 64
-        for item in provenance["prompts"]
-    )
-    assert provenance["model"]["id"] == "z-ai/glm-5.3-flash"
+    assert len(provenance["harness"]["systemPromptSha256"]) == 64
+    assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
+    assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
+    assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
-    assert provenance["model"]["maxConcurrency"] == 3
+    assert provenance["harness"]["maxConcurrency"] == 3
     serialized = str(provenance)
     assert "do-not-record-this-token" not in serialized
     assert "url-secret" not in serialized
@@ -402,6 +426,65 @@ async def test_openrouter_quota_preflight_rejects_explicitly_exhausted_key(
 
 
 @pytest.mark.asyncio
+async def test_model_preflight_verifies_exact_ids_tools_and_aliases() -> None:
+    rows = [
+        {
+            "id": model,
+            "name": f"Name for {model}",
+            "canonical_slug": model,
+            "alias_target": (
+                {"slug": "deepseek/deepseek-v4-flash-0731"}
+                if model.startswith("~deepseek/")
+                else None
+            ),
+            "supported_parameters": ["max_tokens", "tools", "tool_choice"],
+        }
+        for model in TOURNAMENT_MODELS
+    ]
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer secret"
+        return httpx.Response(200, json={"data": rows})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(
+        openrouter_token="secret",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        _env_file=None,
+    )
+    try:
+        verified = await _preflight_openrouter_models(settings, client=client)
+    finally:
+        await client.aclose()
+
+    assert [row["id"] for row in verified] == TOURNAMENT_MODELS
+    assert verified[3]["aliasTarget"] == "deepseek/deepseek-v4-flash-0731"
+    assert all(row["supportedParameters"] == ["max_tokens", "tool_choice", "tools"] for row in verified)
+
+
+@pytest.mark.asyncio
+async def test_model_preflight_rejects_missing_or_non_tool_models() -> None:
+    rows = [
+        {
+            "id": model,
+            "supported_parameters": ["tools", "tool_choice"],
+        }
+        for model in TOURNAMENT_MODELS[:-1]
+    ]
+
+    async def missing_handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": rows})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(missing_handler))
+    settings = Settings(openrouter_token="secret", _env_file=None)
+    try:
+        with pytest.raises(RuntimeError, match="does not list the exact"):
+            await _preflight_openrouter_models(settings, client=client)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_quota_preflight_runs_before_evaluation_output_is_created(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
@@ -418,13 +501,14 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
         assert not output.exists()
         raise RuntimeError("quota rejected")
 
-    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
+    )
     monkeypatch.setattr(
         "raven_harness.evaluation._preflight_openrouter_quota", reject_quota
     )
     args = argparse.Namespace(
         output=str(output),
-        model="z-ai/glm-5.3-flash",
         random_seed=1,
         games=1,
         start_game=1,
@@ -462,6 +546,9 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
     async def accept_quota(_settings: Settings) -> None:
         return None
 
+    async def accept_models(_settings: Settings) -> list[dict]:
+        return VERIFIED_MODELS
+
     async def fake_run_game(**arguments):
         nonlocal active, peak_active
         game_number = arguments["game_number"]
@@ -474,9 +561,14 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
         finally:
             active -= 1
 
-    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
+    )
     monkeypatch.setattr(
         "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
+    )
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_models", accept_models
     )
     monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
     monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
@@ -486,7 +578,6 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
     )
     args = argparse.Namespace(
         output=str(output),
-        model="z-ai/glm-5.3-flash",
         random_seed=1,
         games=4,
         start_game=1,
@@ -521,7 +612,9 @@ async def test_evaluation_requires_openrouter_even_with_direct_openai_key(
         openai_api_key="direct-openai-key",
         _env_file=None,
     )
-    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
+    )
 
     with pytest.raises(RuntimeError, match="Set OPENROUTER_TOKEN"):
         await run_evaluation(argparse.Namespace())
@@ -631,7 +724,7 @@ def test_provider_attribution_includes_nested_response_from_failed_parent(
             {
                 "runId": "failed-parent",
                 "agentId": record.id,
-                "configuration": "Balanced",
+                "requestedModel": "z-ai/glm-5.3-flash",
                 "responseId": "oracle-generation",
                 "responseIndex": 0,
             }
@@ -649,13 +742,13 @@ async def test_openrouter_generation_attribution_is_best_effort_and_secret_free(
     records = [
         store.create_agent(
             AgentCreate(
-                name=name,
-                model="z-ai/glm-5.3-flash",
+                name=model,
+                model=model,
                 user_id=str(index + 1),
                 auth_token=str(index + 1),
             )
         )
-        for index, name in enumerate(("Balanced", "Expansion"))
+        for index, model in enumerate(TOURNAMENT_MODELS[:2])
     ]
     for index, record in enumerate(records, 1):
         store.add_run(
@@ -710,13 +803,14 @@ async def test_openrouter_generation_attribution_is_best_effort_and_secret_free(
     assert artifact["requestedCount"] == 2
     assert artifact["attributedCount"] == 1
     assert artifact["modelAttributedCount"] == 1
+    assert artifact["costAttributedCount"] == 1
     assert artifact["unavailableCount"] == 1
     assert artifact["providerCounts"] == {"Fast Provider": 1}
     assert artifact["modelCounts"] == {"z-ai/glm-5.3-flash": 1}
     assert artifact["generations"][0] == {
         "runId": "run-1",
         "agentId": records[0].id,
-        "configuration": "Balanced",
+        "requestedModel": TOURNAMENT_MODELS[0],
         "responseId": "gen-1",
         "responseIndex": 0,
         "provider": "Fast Provider",
@@ -725,7 +819,7 @@ async def test_openrouter_generation_attribution_is_best_effort_and_secret_free(
         "latencyMs": 842,
         "error": None,
     }
-    assert artifact["generations"][1]["configuration"] == "Expansion"
+    assert artifact["generations"][1]["requestedModel"] == TOURNAMENT_MODELS[1]
     assert artifact["generations"][1]["provider"] is None
     assert artifact["generations"][1]["error"] == "OpenRouter returned HTTP 503"
     assert "provider-token-must-not-be-recorded" not in str(artifact)
@@ -795,14 +889,14 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     }
     standings = [
         {
-            "configuration": configuration.name,
+            "model": model,
             "house": house,
             "placement": index + 1,
             "victoryPoints": 7 - index,
             "metrics": metrics,
         }
-        for index, (configuration, house) in enumerate(
-            zip(PROMPT_CONFIGURATIONS, HOUSES, strict=True)
+        for index, (model, house) in enumerate(
+            zip(TOURNAMENT_MODELS, HOUSES, strict=True)
         )
     ]
 
@@ -812,6 +906,7 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
                 "gameNumber": 1,
                 "winner": HOUSES[0],
                 "standings": standings,
+                "providerAttribution": COMPLETE_PROVIDER_ATTRIBUTION,
             }
         ]
     )
@@ -819,9 +914,9 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     assert summary["completedGames"] == 1
     assert summary["comparisonComplete"] is False
     assert summary["rankingStatus"] == "provisional"
-    assert summary["requiredObservationsPerConfigurationHouse"] == 2
-    assert summary["minimumObservationsPerConfigurationHouse"] == 0
-    assert summary["ranking"][0]["configuration"] == "Balanced"
+    assert summary["requiredObservationsPerModelHouse"] == 2
+    assert summary["minimumObservationsPerModelHouse"] == 0
+    assert summary["ranking"][0]["model"] == TOURNAMENT_MODELS[0]
     assert summary["ranking"][0]["elo"] > 1500
     assert summary["ranking"][0]["reliability"] == 0.75
     assert summary["ranking"][0]["costUsd"] == 0.25
@@ -850,19 +945,20 @@ def test_summary_requires_two_complete_house_rotations() -> None:
         rotation = house_rotation(game_number)
         standings = [
             {
-                "configuration": configuration.name,
-                "house": rotation[configuration.name],
+                "model": model,
+                "house": rotation[model],
                 "placement": placement,
                 "victoryPoints": 7 - placement,
                 "metrics": empty_metrics,
             }
-            for placement, configuration in enumerate(PROMPT_CONFIGURATIONS, 1)
+            for placement, model in enumerate(TOURNAMENT_MODELS, 1)
         ]
         results.append(
             {
                 "gameNumber": game_number,
                 "winner": standings[0]["house"],
                 "standings": standings,
+                "providerAttribution": COMPLETE_PROVIDER_ATTRIBUTION,
             }
         )
 
@@ -871,12 +967,12 @@ def test_summary_requires_two_complete_house_rotations() -> None:
     assert summary["completedGames"] == 12
     assert summary["comparisonComplete"] is True
     assert summary["rankingStatus"] == "complete"
-    assert summary["minimumObservationsPerConfigurationHouse"] == 2
-    assert summary["configurationHouseCoverage"] == [
+    assert summary["minimumObservationsPerModelHouse"] == 2
+    assert summary["modelHouseCoverage"] == [
         {
-            "configuration": configuration.name,
+            "model": model,
             "houses": {house: 2 for house in HOUSES},
             "minimumObservations": 2,
         }
-        for configuration in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     ]

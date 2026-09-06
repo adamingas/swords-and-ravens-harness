@@ -15,10 +15,9 @@ from typing import Any, BinaryIO
 from urllib.parse import urlsplit
 
 import httpx
-from pydantic import BaseModel, ConfigDict
 
 from .agent_store import AgentStore
-from .config import DEFAULT_MODEL_ID, PROJECT_ROOT, Settings
+from .config import PROJECT_ROOT, Settings
 from .database import Database
 from .errors import safe_error_text
 from .harness.strategic import (
@@ -35,6 +34,15 @@ from .telemetry import Telemetry
 
 
 HOUSES = ["stark", "greyjoy", "lannister", "tyrell", "martell", "baratheon"]
+TOURNAMENT_MODELS = [
+    "z-ai/glm-5.3-flash",
+    "qwen/qwen3.7-flash",
+    "openai/gpt-oss-120b",
+    "~deepseek/deepseek-v4-flash-latest",
+    "qwen/qwen3-235b-a22b-2507",
+    "openai/gpt-5.6-luna",
+]
+TOURNAMENT_HARNESS_ID = "strategic-v1"
 DEFAULT_RANDOM_SEED = 1
 RANDOM_SEED_NAMESPACE = "raven-harness-evaluation-v1"
 EVALUATION_ROOT = PROJECT_ROOT / "data" / "evaluations"
@@ -44,103 +52,39 @@ MUTABLE_GAME_SAVE_PATH = (
 )
 
 
-class PromptConfiguration(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    suffix: str
-
-
-PROMPT_CONFIGURATIONS = [
-    PromptConfiguration(
-        name="Balanced",
-        suffix=(
-            "Strategic policy: Use an adaptive, low-regret strategy. Compare "
-            "expansion, defense, resources, and denial for each decision. Avoid "
-            "extreme commitments unless they create or prevent a decisive victory. "
-            "Prefer actions that preserve several strong follow-up options."
-        ),
-    ),
-    PromptConfiguration(
-        name="Expansion",
-        suffix=(
-            "Strategic policy: Prioritize control of new castles and strongholds. "
-            "Use early marches and coordinated support before opponents consolidate. "
-            "Accept moderate resource or card costs when they materially accelerate "
-            "victory. Defend only holdings that are critical to continued expansion."
-        ),
-    ),
-    PromptConfiguration(
-        name="Economy",
-        suffix=(
-            "Strategic policy: Prioritize power tokens, supply, efficient mustering, "
-            "influence positions, and house-card efficiency. Expand when you can "
-            "retain the gain. Prefer durable resource advantages over speculative "
-            "combat. Convert accumulated resources into a late victory push."
-        ),
-    ),
-    PromptConfiguration(
-        name="Defense",
-        suffix=(
-            "Strategic policy: Prioritize castles, retreat routes, and protection "
-            "against catastrophic losses. Use defense and support to make enemy "
-            "attacks inefficient. Avoid marginal battles and preserve decisive "
-            "cards. Expand through low-risk openings or counterattacks against "
-            "overextended opponents."
-        ),
-    ),
-    PromptConfiguration(
-        name="Aggression",
-        suffix=(
-            "Strategic policy: Prioritize initiative and tactical pressure. Attack "
-            "exposed castles, disrupt support, and force opponents to spend strong "
-            "cards. Accept calculated exchanges that improve tempo or weaken the "
-            "current leader. Spend resources when immediate pressure creates a "
-            "stronger winning chance."
-        ),
-    ),
-    PromptConfiguration(
-        name="Leader Control",
-        suffix=(
-            "Strategic policy: Prioritize reducing the strongest opponent's victory "
-            "probability. Identify the leader from castles, land, supply, cards, and "
-            "influence. Raid, outbid, block, or attack that leader when cost-effective. "
-            "Avoid creating a replacement leader. Take your own winning line whenever "
-            "one is available."
-        ),
-    ),
-]
-
-
 def house_rotation(game_number: int) -> dict[str, str]:
-    """Return a two-block rotation in which every configuration gets each house."""
+    """Return a two-block rotation in which every model gets each house."""
 
     index = (game_number - 1) % 12
     if index < 6:
-        house_indexes = [(configuration + index) % 6 for configuration in range(6)]
+        house_indexes = [(model_index + index) % 6 for model_index in range(6)]
     else:
         mirrored = index - 6
-        house_indexes = [(mirrored - configuration) % 6 for configuration in range(6)]
+        house_indexes = [(mirrored - model_index) % 6 for model_index in range(6)]
     return {
-        configuration.name: HOUSES[house_index]
-        for configuration, house_index in zip(
-            PROMPT_CONFIGURATIONS, house_indexes, strict=True
-        )
+        model: HOUSES[house_index]
+        for model, house_index in zip(TOURNAMENT_MODELS, house_indexes, strict=True)
     }
 
 
 def user_rotation(game_number: int) -> dict[str, str]:
-    """Rotate local identities so every configuration owns exactly two games."""
+    """Rotate local identities so every model owns exactly two games."""
 
     round_index = (game_number - 1) % 6
     return {
-        configuration.name: str(1 + ((index - round_index) % 6))
-        for index, configuration in enumerate(PROMPT_CONFIGURATIONS)
+        model: str(1 + ((index - round_index) % 6))
+        for index, model in enumerate(TOURNAMENT_MODELS)
     }
 
 
 async def run_evaluation(args: argparse.Namespace) -> Path:
-    settings = Settings()
+    settings = Settings(
+        openrouter_provider_order="",
+        openrouter_allow_unlisted_providers=True,
+        openrouter_provider_sort="throughput",
+        openrouter_allow_fallbacks=True,
+        openrouter_require_parameters=True,
+    )
     if not settings.openrouter_token:
         raise RuntimeError("Set OPENROUTER_TOKEN before starting an evaluation")
     if not settings.resolved_rules_path.is_file():
@@ -148,10 +92,13 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
             "Rules oracle data is required for evaluation; run uv run raven-prepare-rules"
         )
     await _preflight_openrouter_quota(settings)
+    verified_models = await _preflight_openrouter_models(settings)
     output = _resolve_output(args.output)
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / "manifest.json"
-    manifest = _load_manifest(manifest_path, args, output, settings)
+    manifest = _load_manifest(
+        manifest_path, args, output, settings, verified_models=verified_models
+    )
 
     last_port = args.game_port + args.games - 1
     if last_port > 65_535:
@@ -209,7 +156,6 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
                 result = await run_game(
                     game_number=game_number,
                     attempt_dir=attempt_dir,
-                    model=args.model,
                     random_seed=int(game_entry["randomSeed"]),
                     game_port=game_port,
                     max_rounds=args.max_rounds,
@@ -270,7 +216,6 @@ async def run_game(
     *,
     game_number: int,
     attempt_dir: Path,
-    model: str,
     random_seed: int,
     game_port: int,
     max_rounds: int | None,
@@ -290,13 +235,13 @@ async def run_game(
     users = user_rotation(game_number)
     assignments = [
         {
-            "configuration": configuration.name,
-            "house": rotation[configuration.name],
-            "userId": users[configuration.name],
             "model": model,
-            "promptSha256": _sha256_text(_effective_instructions(configuration)),
+            "house": rotation[model],
+            "userId": users[model],
+            "harness": TOURNAMENT_HARNESS_ID,
+            "promptSha256": _sha256_text(_effective_instructions()),
         }
-        for configuration in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     ]
     _write_json(attempt_dir / "assignments.json", assignments)
 
@@ -357,17 +302,17 @@ async def run_game(
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
         )
 
-        assignment_by_configuration = {
-            assignment["configuration"]: assignment for assignment in assignments
+        assignment_by_model = {
+            assignment["model"]: assignment for assignment in assignments
         }
-        for configuration in PROMPT_CONFIGURATIONS:
-            user_id = assignment_by_configuration[configuration.name]["userId"]
+        for model in TOURNAMENT_MODELS:
+            user_id = assignment_by_model[model]["userId"]
             records.append(
                 store.create_agent(
                     AgentCreate(
-                        name=configuration.name,
+                        name=model,
                         model=model,
-                        system_prompt=_system_prompt(configuration),
+                        system_prompt=DEFAULT_PROMPT,
                         game_server_url=f"ws://127.0.0.1:{game_port}",
                         game_id="1",
                         user_id=user_id,
@@ -389,10 +334,8 @@ async def run_game(
                 victory_points_to_win=7,
             ),
         )
-        for record, configuration in zip(
-            records, PROMPT_CONFIGURATIONS, strict=True
-        ):
-            await manager.choose_lobby_house(record.id, rotation[configuration.name])
+        for record in records:
+            await manager.choose_lobby_house(record.id, rotation[record.model])
         await manager.launch_game(owner.id)
         await _wait_for_game_start(manager, records, timeout=30)
         for record in records:
@@ -586,7 +529,7 @@ async def _wait_for_game_end(
 
         blocked = [
             {
-                "configuration": record.name,
+                "model": record.model,
                 "statePath": (observation or {}).get("statePath", []),
                 "error": runtime.last_error,
             }
@@ -616,7 +559,7 @@ async def _wait_for_game_end(
                     "elapsedSeconds": round(now - started, 1),
                     "agents": [
                         {
-                            "configuration": record.name,
+                            "model": record.model,
                             "status": runtime.status,
                             "autoplay": runtime.autoplay,
                             "stateId": (observation or {}).get("game", {}).get(
@@ -814,6 +757,90 @@ async def _preflight_openrouter_quota(
             await active_client.aclose()
 
 
+async def _preflight_openrouter_models(
+    settings: Settings,
+    *,
+    client: httpx.AsyncClient | None = None,
+) -> list[dict[str, Any]]:
+    """Verify the exact tournament IDs and required tool parameters."""
+
+    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
+        raise RuntimeError("The tournament requires OpenRouter")
+    endpoint = settings.openrouter_base_url.rstrip("/") + "/models"
+    owns_client = client is None
+    active_client = client or httpx.AsyncClient(timeout=15)
+    try:
+        try:
+            response = await active_client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {settings.openrouter_token}"},
+            )
+        except httpx.HTTPError as error:
+            raise RuntimeError(
+                "OpenRouter model-catalog preflight failed "
+                f"({type(error).__name__})"
+            ) from error
+        if response.status_code != 200:
+            raise RuntimeError(
+                "OpenRouter model-catalog preflight returned HTTP "
+                f"{response.status_code}"
+            )
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "OpenRouter model-catalog preflight returned an invalid response"
+            ) from error
+        rows = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise RuntimeError(
+                "OpenRouter model-catalog preflight returned an invalid response"
+            )
+        by_id = {
+            row.get("id"): row
+            for row in rows
+            if isinstance(row, dict) and isinstance(row.get("id"), str)
+        }
+        missing = [model for model in TOURNAMENT_MODELS if model not in by_id]
+        if missing:
+            raise RuntimeError(
+                "OpenRouter does not list the exact tournament model IDs: "
+                + ", ".join(missing)
+            )
+        required_parameters = {"tools", "tool_choice"}
+        unsupported = []
+        verified = []
+        for model in TOURNAMENT_MODELS:
+            row = by_id[model]
+            supported = row.get("supported_parameters")
+            parameters = {
+                value for value in supported or [] if isinstance(value, str)
+            }
+            if not required_parameters <= parameters:
+                unsupported.append(model)
+            alias = row.get("alias_target")
+            verified.append(
+                {
+                    "id": model,
+                    "name": row.get("name"),
+                    "canonicalSlug": row.get("canonical_slug"),
+                    "aliasTarget": (
+                        alias.get("slug") if isinstance(alias, dict) else None
+                    ),
+                    "supportedParameters": sorted(parameters),
+                }
+            )
+        if unsupported:
+            raise RuntimeError(
+                "OpenRouter does not advertise required tool calling for: "
+                + ", ".join(unsupported)
+            )
+        return verified
+    finally:
+        if owns_client:
+            await active_client.aclose()
+
+
 async def _collect_openrouter_generations(
     *,
     database: Database,
@@ -915,7 +942,7 @@ async def _collect_openrouter_generations(
 def _persisted_response_rows(
     database: Database, records: list[Any]
 ) -> list[dict[str, Any]]:
-    configurations = {record.id: record.name for record in records}
+    requested_models = {record.id: record.model for record in records}
     with database.lock:
         rows = database.connection.execute(
             """
@@ -941,7 +968,7 @@ def _persisted_response_rows(
                 {
                     "runId": str(row["id"]),
                     "agentId": str(row["agent_id"]),
-                    "configuration": configurations.get(
+                    "requestedModel": requested_models.get(
                         str(row["agent_id"]), "unknown"
                     ),
                     "responseId": response_id,
@@ -1011,11 +1038,23 @@ def _provider_attribution_summary(value: dict[str, Any]) -> dict[str, Any]:
     model_counts = Counter(item["model"] for item in generations if item.get("model"))
     attributed = sum(1 for item in generations if item.get("provider"))
     model_attributed = sum(1 for item in generations if item.get("model"))
+    cost_attributed = sum(
+        1 for item in generations if _optional_number(item.get("costUsd")) is not None
+    )
+    complete = sum(
+        1
+        for item in generations
+        if item.get("provider")
+        and item.get("model")
+        and _optional_number(item.get("costUsd")) is not None
+        and not item.get("error")
+    )
     return {
         "requestedCount": len(generations),
         "attributedCount": attributed,
         "modelAttributedCount": model_attributed,
-        "unavailableCount": len(generations) - attributed,
+        "costAttributedCount": cost_attributed,
+        "unavailableCount": len(generations) - complete,
         "providerCounts": dict(sorted(provider_counts.items())),
         "modelCounts": dict(sorted(model_counts.items())),
     }
@@ -1033,6 +1072,7 @@ def _failed_provider_attribution(error: Exception) -> dict[str, Any]:
         "requestedCount": 0,
         "attributedCount": 0,
         "modelAttributedCount": 0,
+        "costAttributedCount": 0,
         "unavailableCount": 0,
         "providerCounts": {},
         "modelCounts": {},
@@ -1137,15 +1177,15 @@ def _build_game_result(
         )
     if winner not in houses:
         raise RuntimeError(f"Winner house {winner!r} is absent from the saved game")
-    metrics_by_name = {
-        record.name: store.get_run_metrics(record.id) for record in records
+    metrics_by_model = {
+        record.model: store.get_run_metrics(record.id) for record in records
     }
     standings = []
     for house_id, house in houses.items():
         assignment = assignment_by_house.get(house_id)
         if assignment is None:
             continue
-        metrics = metrics_by_name[assignment["configuration"]]
+        metrics = metrics_by_model[assignment["model"]]
         standings.append(
             {
                 **assignment,
@@ -1182,25 +1222,44 @@ def _build_game_result(
 
 
 def _load_manifest(
-    path: Path, args: argparse.Namespace, output: Path, settings: Settings
+    path: Path,
+    args: argparse.Namespace,
+    output: Path,
+    settings: Settings,
+    *,
+    verified_models: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    if [row.get("id") for row in verified_models] != TOURNAMENT_MODELS:
+        raise RuntimeError("Verified model catalog does not match tournament models")
     provenance = _build_provenance(args, settings)
     if path.is_file():
         manifest = json.loads(path.read_text())
         schema_version = manifest.get("schemaVersion")
-        if schema_version != 3:
+        if schema_version != 4:
             raise RuntimeError(
                 "Existing evaluation manifest uses unsupported schema version "
                 f"{schema_version!r}; start a new evaluation directory"
             )
-        if manifest.get("model") != args.model:
-            raise RuntimeError("Existing evaluation manifest uses another model ID")
+        if manifest.get("models") != TOURNAMENT_MODELS:
+            raise RuntimeError("Existing evaluation manifest uses other model IDs")
+        recorded_verification = manifest.get("modelVerification")
+        recorded_rows = (
+            recorded_verification.get("models")
+            if isinstance(recorded_verification, dict)
+            else None
+        )
+        if not isinstance(recorded_rows, list) or [
+            row.get("id") if isinstance(row, dict) else None for row in recorded_rows
+        ] != TOURNAMENT_MODELS:
+            raise RuntimeError(
+                "Existing evaluation manifest has no valid model verification"
+            )
         if int(manifest.get("gameCount", 0)) != args.games:
             raise RuntimeError("Existing evaluation manifest uses another game count")
         existing_provenance = manifest.get("provenance")
         if not isinstance(existing_provenance, dict):
             raise RuntimeError(
-                "Existing evaluation manifest has no schema-3 provenance; start a "
+                "Existing evaluation manifest has no schema-4 provenance; start a "
                 "new evaluation directory"
             )
         _validate_reproducible_provenance(existing_provenance, provenance)
@@ -1211,14 +1270,19 @@ def _load_manifest(
         )
         return manifest
     manifest = {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "createdAt": _now(),
         "outputDirectory": str(output),
-        "model": args.model,
+        "harness": TOURNAMENT_HARNESS_ID,
+        "models": TOURNAMENT_MODELS,
+        "modelVerification": {
+            "source": "OpenRouter GET /models",
+            "verifiedAt": _now(),
+            "models": verified_models,
+        },
         "gameCount": args.games,
         "randomSeed": args.random_seed,
         "maxRounds": args.max_rounds,
-        "configurations": [item.model_dump() for item in PROMPT_CONFIGURATIONS],
         "provenance": provenance,
         "games": _evaluation_schedule(args.games, args.random_seed),
     }
@@ -1239,27 +1303,10 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
                 ignored_paths=(MUTABLE_GAME_SAVE_PATH,),
             ),
         },
-        "prompts": [
-            {
-                "configuration": configuration.name,
-                "configuredSystemPromptSha256": _sha256_text(
-                    _system_prompt(configuration)
-                ),
-                "effectiveInstructionsSha256": _sha256_text(
-                    _effective_instructions(configuration)
-                ),
-            }
-            for configuration in PROMPT_CONFIGURATIONS
-        ],
-        "rules": {
-            "available": rules_path.is_file(),
-            "sha256": _sha256_file(rules_path) if rules_path.is_file() else None,
-        },
-        "model": {
-            "id": args.model,
-            "provider": settings.model_provider,
-            "baseUrl": _sanitized_base_url(settings.model_base_url),
-            "baseUrlSha256": _sha256_text(settings.model_base_url),
+        "harness": {
+            "id": TOURNAMENT_HARNESS_ID,
+            "systemPromptSha256": _sha256_text(_system_prompt()),
+            "effectiveInstructionsSha256": _sha256_text(_effective_instructions()),
             "requestTimeoutSeconds": settings.model_request_timeout_seconds,
             "runTimeoutSeconds": settings.model_run_timeout_seconds,
             "apiMaxRetries": settings.model_api_max_retries,
@@ -1277,6 +1324,16 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             "agentSdkMaxTurns": AGENT_SDK_MAX_TURNS,
             "resetToolChoice": False,
             "rulesOracleMaxOutputTokens": 900,
+        },
+        "rules": {
+            "available": rules_path.is_file(),
+            "sha256": _sha256_file(rules_path) if rules_path.is_file() else None,
+        },
+        "models": {
+            "ids": TOURNAMENT_MODELS,
+            "provider": settings.model_provider,
+            "baseUrl": _sanitized_base_url(settings.model_base_url),
+            "baseUrlSha256": _sha256_text(settings.model_base_url),
             "providerRouting": (
                 settings.openrouter_provider_routing
                 if settings.model_provider == "OpenRouter"
@@ -1298,7 +1355,7 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
 def _validate_reproducible_provenance(
     existing: dict[str, Any], current: dict[str, Any]
 ) -> None:
-    for key in ("repositories", "prompts", "rules", "model", "evaluation"):
+    for key in ("repositories", "harness", "rules", "models", "evaluation"):
         if existing.get(key) != current.get(key):
             raise RuntimeError(
                 f"Existing evaluation provenance has different {key}; start a new "
@@ -1398,12 +1455,12 @@ def _run_git(directory: Path, *arguments: str) -> str | None:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def _system_prompt(configuration: PromptConfiguration) -> str:
-    return f"{DEFAULT_PROMPT}\n\n{configuration.suffix}"
+def _system_prompt() -> str:
+    return DEFAULT_PROMPT
 
 
-def _effective_instructions(configuration: PromptConfiguration) -> str:
-    return _system_prompt(configuration).rstrip() + STRATEGIC_INSTRUCTIONS
+def _effective_instructions() -> str:
+    return _system_prompt().rstrip() + STRATEGIC_INSTRUCTIONS
 
 
 def _sha256_text(value: str) -> str:
@@ -1517,14 +1574,13 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
 
 
 def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
-    ratings = {item.name: 1500.0 for item in PROMPT_CONFIGURATIONS}
-    configuration_house_counts = {
-        item.name: {house: 0 for house in HOUSES}
-        for item in PROMPT_CONFIGURATIONS
+    ratings = {model: 1500.0 for model in TOURNAMENT_MODELS}
+    model_house_counts = {
+        model: {house: 0 for house in HOUSES} for model in TOURNAMENT_MODELS
     }
-    configurations: dict[str, dict[str, Any]] = {
-        item.name: {
-            "configuration": item.name,
+    models: dict[str, dict[str, Any]] = {
+        model: {
+            "model": model,
             "games": 0,
             "wins": 0,
             "placementTotal": 0,
@@ -1539,7 +1595,7 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
             "cachedInputTokens": 0,
             "costUsd": 0.0,
         }
-        for item in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     }
     houses = {
         house: {"house": house, "games": 0, "wins": 0, "placementTotal": 0}
@@ -1549,13 +1605,13 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     for result in sorted(results, key=lambda item: item["gameNumber"]):
         standings = result["standings"]
         old_ratings = ratings.copy()
-        deltas = {name: 0.0 for name in ratings}
+        deltas = {model: 0.0 for model in ratings}
         for standing in standings:
-            name = standing["configuration"]
+            model = standing["model"]
             house = standing["house"]
             metrics = standing["metrics"]
-            values = configurations[name]
-            configuration_house_counts[name][house] += 1
+            values = models[model]
+            model_house_counts[model][house] += 1
             values["games"] += 1
             values["wins"] += int(standing["house"] == result["winner"])
             values["placementTotal"] += standing["placement"]
@@ -1577,27 +1633,29 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
         for index, first in enumerate(standings):
             for second in standings[index + 1 :]:
-                first_name = first["configuration"]
-                second_name = second["configuration"]
+                first_model = first["model"]
+                second_model = second["model"]
                 expected = 1 / (
-                    1 + 10 ** ((old_ratings[second_name] - old_ratings[first_name]) / 400)
+                    1
+                    + 10
+                    ** ((old_ratings[second_model] - old_ratings[first_model]) / 400)
                 )
                 actual = 1.0 if first["placement"] < second["placement"] else 0.5
                 change = 24 * (actual - expected) / 5
-                deltas[first_name] += change
-                deltas[second_name] -= change
-        for name, change in deltas.items():
-            ratings[name] += change
+                deltas[first_model] += change
+                deltas[second_model] -= change
+        for model, change in deltas.items():
+            ratings[model] += change
 
     ranking = []
-    for name, values in configurations.items():
+    for model, values in models.items():
         games = values.pop("games")
         attempts = (
             values["completedRuns"] + values["failedRuns"] + values["cancelledRuns"]
         )
         ranking.append(
             {
-                "configuration": name,
+                "model": model,
                 "games": games,
                 "wins": values["wins"],
                 "averagePlacement": (
@@ -1620,10 +1678,10 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
                 "outputTokens": values["outputTokens"],
                 "totalTokens": values["totalTokens"],
                 "cachedInputTokens": values["cachedInputTokens"],
-                "elo": round(ratings[name], 1),
+                "elo": round(ratings[model], 1),
             }
         )
-    ranking.sort(key=lambda item: (-item["elo"], item["configuration"]))
+    ranking.sort(key=lambda item: (-item["elo"], item["model"]))
     house_effects = [
         {
             "house": house,
@@ -1637,37 +1695,44 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         }
         for house, values in houses.items()
     ]
-    configuration_house_coverage = [
+    model_house_coverage = [
         {
-            "configuration": configuration.name,
-            "houses": configuration_house_counts[configuration.name],
-            "minimumObservations": min(
-                configuration_house_counts[configuration.name].values()
-            ),
+            "model": model,
+            "houses": model_house_counts[model],
+            "minimumObservations": min(model_house_counts[model].values()),
         }
-        for configuration in PROMPT_CONFIGURATIONS
+        for model in TOURNAMENT_MODELS
     ]
     required_observations = 2
     minimum_observations = min(
         count
-        for house_counts in configuration_house_counts.values()
+        for house_counts in model_house_counts.values()
         for count in house_counts.values()
     )
+    provider_attribution_complete = bool(results) and all(
+        (attribution := result.get("providerAttribution"))
+        and int(attribution.get("requestedCount") or 0) > 0
+        and int(attribution.get("unavailableCount") or 0) == 0
+        for result in results
+    )
     comparison_complete = (
-        len(results) >= 12 and minimum_observations >= required_observations
+        len(results) >= 12
+        and minimum_observations >= required_observations
+        and provider_attribution_complete
     )
     return {
         "completedGames": len(results),
         "comparisonComplete": comparison_complete,
         "rankingStatus": "complete" if comparison_complete else "provisional",
-        "requiredObservationsPerConfigurationHouse": required_observations,
-        "minimumObservationsPerConfigurationHouse": minimum_observations,
-        "configurationHouseCoverage": configuration_house_coverage,
+        "requiredObservationsPerModelHouse": required_observations,
+        "minimumObservationsPerModelHouse": minimum_observations,
+        "modelHouseCoverage": model_house_coverage,
+        "providerAttributionComplete": provider_attribution_complete,
         "ranking": ranking,
         "houseEffects": house_effects,
         "eloMethod": (
             "Initial rating 1500; K=24; each six-player result is five pairwise "
-            "comparisons per configuration with K divided by five. Ratings update "
+            "comparisons per model with K divided by five. Ratings update "
             "simultaneously after each game."
         ),
     }
@@ -1711,12 +1776,11 @@ def _now() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run resumable same-model Raven Harness evaluation games."
+        description="Run the resumable six-model Raven Harness tournament."
     )
     parser.add_argument(
         "--output", help="Artifact directory under data/evaluations."
     )
-    parser.add_argument("--model", default=DEFAULT_MODEL_ID)
     parser.add_argument(
         "--random-seed",
         type=_parse_random_seed,

@@ -149,3 +149,18 @@ model-visible registries: strategic gameplay, protocol gameplay, memory, and
 the rules oracle. It derives documented names from the guide tables and support
 tool headings. A tool addition, removal, or rename now fails the test until the
 guide and source agree.
+
+## Reviewer 7: six-model tournament
+
+An independent reviewer compared the tournament guide with the runner,
+verifier, roadmap, and plan. The reviewer found that the first draft used
+"observation" for a completed game appearance. That word already means a player
+state in this guide. The revised text now uses "completed game."
+
+The reviewer also found weak or inaccurate claims about provider attribution,
+catalog checks, attempt files, preflight timing, routing, concurrency, resume
+rules, and caching. The verifier now makes model, provider, and cost attribution
+a completion condition. The guide now distinguishes a live preflight from an
+offline verification of stored catalog data. It also describes partial failure
+artifacts, tournament-specific provider routing, provider cache keys, fail-fast
+behavior, and the load created by 12 concurrent games.

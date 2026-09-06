@@ -27,7 +27,6 @@ from .models.openai_agent import ModelRunResult
 from .schemas import AgentRecord
 
 
-SMOKE_MODEL_ID = "deterministic-protocol-smoke"
 PROTOCOL_SMOKE_RANDOM_SEED = 1
 ORDER_PLAN = ("march", "raid", "consolidate_power", "support", "defense")
 REQUIRED_TOOL_COVERAGE = {
@@ -825,7 +824,6 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
         result = await run_game(
             game_number=1,
             attempt_dir=output,
-            model=SMOKE_MODEL_ID,
             random_seed=PROTOCOL_SMOKE_RANDOM_SEED,
             game_port=args.game_port,
             max_rounds=2,
@@ -870,7 +868,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
             "winner": result["winner"],
             "round": result["round"],
             "runCounts": {
-                standing["configuration"]: standing["metrics"]["statusCounts"]
+                standing["model"]: standing["metrics"]["statusCounts"]
                 for standing in result["standings"]
             },
             "toolCoverage": {

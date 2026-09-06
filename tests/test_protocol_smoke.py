@@ -9,7 +9,11 @@ import pytest
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.observation import build_context
 from raven_harness.game.client import OrderSubmission
-from raven_harness.evaluation import GAME_SERVER_DIR
+from raven_harness.evaluation import (
+    GAME_SERVER_DIR,
+    TOURNAMENT_HARNESS_ID,
+    TOURNAMENT_MODELS,
+)
 from raven_harness.protocol_smoke import (
     REQUIRED_TOOL_COVERAGE,
     REQUIRED_TOOL_COUNTS,
@@ -199,11 +203,17 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(
     assert result == output
     smoke = json.loads((output / "smoke.json").read_text())
     game_result = json.loads((output / "result.json").read_text())
+    assignments = json.loads((output / "assignments.json").read_text())
     assert smoke["status"] == "completed"
     assert smoke["providerRequests"] == 0
     assert smoke["randomSeed"] == 1
     assert game_result["randomSeed"] == smoke["randomSeed"]
     assert smoke["winner"] == game_result["winner"]
+    assert [assignment["model"] for assignment in assignments] == TOURNAMENT_MODELS
+    assert {assignment["harness"] for assignment in assignments} == {
+        TOURNAMENT_HARNESS_ID
+    }
+    assert len({assignment["promptSha256"] for assignment in assignments}) == 1
     assert set(smoke["toolCoverage"]["invoked"]) >= REQUIRED_TOOL_COVERAGE
     assert smoke["toolCoverage"]["required"] == REQUIRED_TOOL_COUNTS
     assert all(
