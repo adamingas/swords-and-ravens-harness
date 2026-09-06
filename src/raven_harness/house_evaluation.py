@@ -7,15 +7,14 @@ from pathlib import Path
 from time import monotonic
 from typing import Any
 
-from .agent_store import AgentStore
 from .config import Settings
-from .database import Database
 from .errors import safe_error_text
 from .evaluation import (
     HOUSES,
     TOURNAMENT_HARNESS_ID,
     _aggregate_run_metrics,
     _build_provenance,
+    _load_attempt_metrics,
     _now,
     _preflight_model_catalog,
     _preflight_openrouter_quota,
@@ -447,34 +446,6 @@ def _write_house_summary(output: Path, manifest: dict[str, Any]) -> None:
     )
 
 
-def _load_attempt_metrics(attempt_dir: Path) -> dict[str, Any]:
-    metrics_path = attempt_dir / "metrics.json"
-    if metrics_path.is_file():
-        try:
-            value = json.loads(metrics_path.read_text())
-        except (OSError, json.JSONDecodeError) as error:
-            raise RuntimeError(
-                f"Saved attempt metrics cannot be loaded: {metrics_path}: {error}"
-            ) from error
-        if not isinstance(value, dict):
-            raise RuntimeError(
-                f"Saved attempt metrics must be a JSON object: {metrics_path}"
-            )
-        return value
-
-    database_path = attempt_dir / "harness.db"
-    if not database_path.is_file():
-        return _aggregate_run_metrics([])
-    database = Database(database_path)
-    try:
-        store = AgentStore(database)
-        return _aggregate_run_metrics(
-            [store.get_run_metrics(record.id) for record in store.list_agents()]
-        )
-    finally:
-        database.close()
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -489,11 +460,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--stall-seconds", type=float, default=360.0)
     parser.add_argument("--match-timeout-hours", type=float, default=6.0)
     parser.add_argument("--continue-on-error", action="store_true")
-    parser.set_defaults(
-        concurrent_games=1,
-        random_seed=HOUSE_TEST_RANDOM_SEED,
-        max_rounds=None,
-    )
+    parser.set_defaults(random_seed=HOUSE_TEST_RANDOM_SEED)
     return parser
 
 

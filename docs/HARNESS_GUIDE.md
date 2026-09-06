@@ -936,19 +936,22 @@ retry limits, and output limit. The legal game state determines which tools a
 model can use on a turn. Models rotate through all six houses twice across 12
 games. Local user IDs rotate too, so each model owns two lobbies.
 Evaluation requires prepared rules data. Run `uv run raven-prepare-rules`
-before the smoke game.
+before the tournament.
 
 The command checks the configured endpoint's live model catalog once before it
 creates the output directory and schedules attempts. It stops when an exact
-model ID is absent. When OpenRouter is configured, its adapter also checks the
-key limit, account credits, advertised tool-call support, canonical slugs, and
-aliases. These checks do not write the key to an artifact.
+model ID is absent. It also rejects an advertised model that does not support
+required tool calls. If the endpoint adapter supports a budget check, the
+command rejects an exhausted key or account before it creates an attempt.
+These checks do not write the key to an artifact.
 
 The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
 provider allow-list; they use one tournament routing policy that allows
 fallbacks and selects hosts by throughput. Other compatible endpoints receive
-no OpenRouter routing fields. Every decision request uses
+no endpoint-specific routing fields. This routing adapter is optional; the
+tournament logic depends only on the OpenAI-compatible interface. Every
+decision request uses
 `tool_choice=required`. Memory and the rules oracle remain available as tools.
 A reduced-tool retry sends the complete current observation without older SDK
 history. The manager still rejects a nonconforming response that does not take
@@ -960,12 +963,14 @@ model and rulebook. The harness does not keep a local response cache. A
 provider decides whether to cache a request. The summary includes cached input
 tokens when the provider returns them.
 
-Start with a one-round smoke:
+Start with the provider-free protocol smoke. Then start the first complete
+tournament game:
 
 ~~~bash
 uv run raven-protocol-smoke
-uv run raven-evaluate --games 1 --max-rounds 1 \
-  --output data/evaluations/model-tournament-smoke
+uv run raven-evaluate \
+  --random-seed 1 \
+  --output data/evaluations/model-tournament
 ~~~
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
@@ -977,71 +982,78 @@ does not change the submitting player's state and that another player sees
 only hidden planning orders. It fails closed at an unexpected required
 decision and writes `harness.db`, the saved game, result, and server log below
 `data/evaluations/`. This test verifies the protocol and persistence path. It
-does not replace the paid model smoke.
+does not measure model behavior. The first complete tournament game is the
+paid model check. Inspect it before you start game 2.
 
 Verify saved evaluation artifacts without a provider request:
 
 ~~~bash
-uv run raven-verify-evaluation data/evaluations/model-tournament-smoke
+uv run raven-verify-evaluation data/evaluations/model-tournament
 uv run raven-verify-evaluation --require-complete \
   data/evaluations/model-tournament
 ~~~
 
-The verifier checks stored catalog data, seeds, rotations, assignments, and
-results. It checks the terminal saved winner and the integrity of each SQLite
-file. It also checks exact requested IDs, any available endpoint-specific
-enrichment, the common harness prompt, and the recomputed summary. A valid
-partial run exits successfully and reports `provisional`. `--require-complete`
-exits with status 2 until 12 games are complete and each model-house pair has
-two completed games. Missing optional provider/cost enrichment is reported but
-does not invalidate the gameplay comparison. Invalid or corrupt artifacts exit
-with status 1.
+The verifier checks each attempt's catalog record, provenance, seed, rotation,
+assignments, and result. It checks the terminal saved winner and the integrity
+of each SQLite file. It maps every stored response ID to the exact model on its
+agent record. It also checks the configured endpoint-provider label and the
+recomputed summary. It does not contact a provider. A valid partial run exits
+successfully and reports `provisional`. `--require-complete` exits with status
+2 until 12 games are complete and each model-house pair has two completed
+games. Invalid or corrupt artifacts exit with status 1.
 
-Then run the complete comparison:
+Run one game:
 
 ~~~bash
-uv run raven-evaluate --games 12 \
+uv run raven-evaluate \
   --random-seed 1 \
-  --concurrent-games 12 \
   --output data/evaluations/model-tournament
 ~~~
 
-The runner starts independent games concurrently. Each active game has one
-TypeScript server and six clients. Game 1 uses port 5101 by default. Each later
-game uses the next port. A 12-game run uses ports 5101 through 5112. The
-`--concurrent-games` value limits the number of active games. Its default is
-12. At this value, the command starts 12 servers and 72 clients. Simultaneous
-decisions can produce up to 72 active model calls across the evaluator. Reduce
-`--concurrent-games` when the machine or provider cannot support this load.
+The schedule always contains 12 full games. One command starts or resumes only
+the first incomplete game. It exits when that game ends or fails. Inspect its
+result, duration, errors, request count, tokens, and cost. Run the same command
+again when it is safe to start the next game. All games use port 5101 by
+default because two tournament games never run at the same time.
+
+Concurrency inside one game is different. The six clients are independent.
+When several players must decide at the same time, their model calls run as
+asynchronous tasks. The harness does not use a semaphore or another shared
+model-call limit.
 
 A completed attempt contains `game.json`, `harness.db`, assignments, a server
-log, and a result. Progress data is written during a long game. A failed or
-cancelled attempt can contain fewer files because failure can occur at any
-stage. Every attempt with a harness database also gets a `metrics.json` file.
-The same-model summary includes elapsed time, failures, requests, tokens, and
-cost from partial attempts as well as completed games. The manifest always
-records the attempt status and known error. Game
-completion never performs a provider-specific metadata request. Response IDs
-in `harness.db` allow a separate reporting process to add optional endpoint
-metadata later without replaying or reopening the completed game. The
-manifest records source commits, harness prompt and rules hashes, the exact
-model set, model settings, provider routing, the base random seed, and the fixed
-house and user schedule.
-The same-model runner stops before the next sequential game when a completed
-game takes more than 120 seconds. Investigate that latency before resuming.
+log, metrics, and a result. Progress data is written during a long game. A
+failed or cancelled attempt can contain fewer files because failure can occur
+at any stage. The summary includes elapsed time, failures, requests, tokens,
+and cost from partial attempts as well as completed games. The manifest always
+records the attempt status and known error.
+
+Each attempt records the configured endpoint-provider label and endpoint
+fingerprint. Every response trace in `harness.db` belongs to an agent with one
+exact requested model ID. This is the provider and model attribution that the
+standard endpoint exposes. Game completion does not call a provider-specific
+metadata API. The harness does not claim to know an upstream host when the
+response does not contain that fact.
+
 Failed and cancelled turns retain usage from completed parent-model responses,
 oracle responses, and failed or incomplete Responses API terminal payloads.
 This keeps request, token, and cost totals attached to the attempt that incurred
 them.
-The GPT-OSS house test uses a 4,096-token response limit. Its first three games
-used a 16,384-token limit, but no successful response exceeded 1,216 tokens.
-The lower limit stops rare runaway generations sooner without constraining the
-observed successful responses.
+
+The mixed tournament uses the same 16,384-token output limit for all models.
+Prior successful tournament traces include 15,599 output tokens for DeepSeek
+and 7,531 for Qwen 3.7. A lower common limit would truncate those models. The
+same-model GPT-OSS house test uses 4,096 because its observed successful
+responses did not exceed 1,216 tokens.
+
 Each attempt records its own source, runtime, rules, model, and game-server
 provenance. Documentation commits do not change the runtime fingerprint. An
 interrupted attempt resumes only when its runtime provenance still matches.
-The next sequential game can use a newer runtime after an investigation and
-records that new provenance on its attempt.
+If the runtime or live model verification changed, the runner marks the old
+attempt as superseded and starts a new numbered attempt. A later game can use a
+newer tested runtime after an investigation. It records that runtime in its own
+attempt.
+
 The evaluator derives a distinct uint32 seed for each game and reuses it for
 every attempt of that game. The game result records the exact seed, and the
 verifier checks it against the schedule. Client-only hidden-deck shuffles use a
@@ -1053,10 +1065,10 @@ the saved game, reopens the agent database, reuses the six agent identities,
 reconnects their clients, restores each model session to its last checkpoint,
 and enables autoplay. A model request that was active at shutdown is run again
 from its pre-call state. If the game or database was never created, the
-evaluator starts a new numbered attempt. The default is fail-fast: one failed
-game cancels unfinished sibling games. Use `--continue-on-error` to keep those
-games running. A resume must use the same source, rules, game count, seed, port,
-concurrency, round limit, polling values, timeouts, and model settings.
+evaluator marks that attempt as superseded and starts a new numbered attempt.
+A game failure exits the command. No sibling game exists to cancel. A resume
+must use the same harness runtime, rules, game server, model endpoint, seed,
+port, polling values, timeouts, and model settings.
 
 The saved game includes the deterministic random-generator cursor. A resumed
 game therefore continues the same gameplay random stream. This does not make
@@ -1068,12 +1080,11 @@ upstream source, or the recorded submodule commit.
 
 Completion requires a matching terminal winner in the live observation and
 the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
-`summary.json` reports wins, placement, victory points, reliability, provider
-requests, input/output/total/cached token counts, cost, house effects, and a
-stated pairwise Elo calculation. It also reports the completed-game count for
-each model-house pair. A ranking is `provisional` until 12 games are complete,
-and every pair has two games. Optional provider attribution has its own
-`providerAttributionComplete` status and does not control `comparisonComplete`.
+`summary.json` reports wins, placement, victory points, reliability, model
+requests, input/output/total/cached token counts, cost, endpoint-provider
+counts, house effects, and a stated pairwise Elo calculation. It also reports
+all attempts and the completed-game count for each model-house pair. A ranking
+is `provisional` until 12 games are complete and every pair has two games.
 
 ## 17. Verify changes
 

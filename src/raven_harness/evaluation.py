@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import fcntl
 import hashlib
 import json
 import os
@@ -43,6 +44,8 @@ TOURNAMENT_MODELS = [
     "openai/gpt-5.6-luna",
 ]
 TOURNAMENT_HARNESS_ID = "strategic-v1"
+TOURNAMENT_GAMES = 12
+TOURNAMENT_MAX_OUTPUT_TOKENS = 16_384
 DEFAULT_RANDOM_SEED = 1
 RANDOM_SEED_NAMESPACE = "raven-harness-evaluation-v1"
 EVALUATION_ROOT = PROJECT_ROOT / "data" / "evaluations"
@@ -78,12 +81,15 @@ def user_rotation(game_number: int) -> dict[str, str]:
 
 
 async def run_evaluation(args: argparse.Namespace) -> Path:
+    """Run or resume exactly one sequential game of the mixed-model tournament."""
+
     settings = Settings(
         openrouter_provider_order="",
         openrouter_allow_unlisted_providers=True,
         openrouter_provider_sort="throughput",
         openrouter_allow_fallbacks=True,
         openrouter_require_parameters=False,
+        model_max_output_tokens=TOURNAMENT_MAX_OUTPUT_TOKENS,
     )
     if not settings.model_api_key:
         raise RuntimeError(
@@ -96,144 +102,210 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
         )
     await _preflight_openrouter_quota(settings)
     verified_models = await _preflight_model_catalog(settings)
+    if [row.get("id") for row in verified_models] != TOURNAMENT_MODELS:
+        raise RuntimeError("Verified model catalog does not match tournament models")
     output = _resolve_output(args.output)
     output.mkdir(parents=True, exist_ok=True)
-    manifest_path = output / "manifest.json"
-    manifest = _load_manifest(
-        manifest_path, args, output, settings, verified_models=verified_models
-    )
-    manifest.pop("finishedAt", None)
-
-    last_port = args.game_port + args.games - 1
-    if last_port > 65_535:
-        raise RuntimeError(
-            f"Game-server port range ends at {last_port}; choose a lower --game-port"
-        )
-    semaphore = asyncio.Semaphore(args.concurrent_games)
-    write_lock = asyncio.Lock()
-
-    async def run_scheduled_game(game_number: int) -> None:
-        game_entry = _game_entry(manifest, game_number)
-        completed_attempt = next(
-            (
-                attempt
-                for attempt in game_entry["attempts"]
-                if attempt.get("status") == "completed"
-            ),
-            None,
-        )
-        if completed_attempt is not None:
-            print(f"Game {game_number}: already completed")
-            return
-
-        async with semaphore:
-            resumable = _resumable_attempt(output, game_entry)
-            if resumable is None:
-                attempt_number = len(game_entry["attempts"]) + 1
-                attempt_dir = (
-                    output
-                    / f"game-{game_number:02d}"
-                    / f"attempt-{attempt_number:02d}"
-                )
-                attempt_dir.mkdir(parents=True, exist_ok=False)
-                attempt = {
-                    "number": attempt_number,
-                    "status": "running",
-                    "directory": str(attempt_dir.relative_to(output)),
-                    "startedAt": _now(),
-                    "resumeCount": 0,
-                }
-                game_entry["attempts"].append(attempt)
-                resume = False
-                message = "starting"
-            else:
-                attempt, attempt_dir = resumable
-                attempt_number = int(attempt["number"])
-                interruptions = attempt.setdefault("interruptions", [])
-                interruptions.append(
-                    {
-                        key: attempt[key]
-                        for key in ("status", "finishedAt", "error")
-                        if key in attempt
-                    }
-                )
-                for key in ("finishedAt", "error", "winner"):
-                    attempt.pop(key, None)
-                attempt.update(
-                    {
-                        "status": "running",
-                        "resumedAt": _now(),
-                        "resumeCount": int(attempt.get("resumeCount", 0)) + 1,
-                    }
-                )
-                resume = True
-                message = "resuming"
-            async with write_lock:
-                _write_json(manifest_path, manifest)
-            game_port = args.game_port + game_number - 1
-            print(
-                f"Game {game_number}: {message} attempt {attempt_number} "
-                f"on port {game_port}"
-            )
-            try:
-                result = await run_game(
-                    game_number=game_number,
-                    attempt_dir=attempt_dir,
-                    random_seed=int(game_entry["randomSeed"]),
-                    game_port=game_port,
-                    max_rounds=args.max_rounds,
-                    poll_seconds=args.poll_seconds,
-                    stall_seconds=args.stall_seconds,
-                    match_timeout_seconds=args.match_timeout_hours * 3_600,
-                    settings=settings,
-                    resume=resume,
-                )
-                attempt.update(
-                    {
-                        "status": "completed",
-                        "finishedAt": _now(),
-                        "winner": result["winner"],
-                    }
-                )
-                print(f"Game {game_number}: winner {result['winner']}")
-            except asyncio.CancelledError:
-                attempt.update({"status": "cancelled", "finishedAt": _now()})
-                raise
-            except Exception as error:
-                error_text = safe_error_text(error)
-                attempt.update(
-                    {
-                        "status": "failed",
-                        "finishedAt": _now(),
-                        "error": error_text,
-                    }
-                )
-                _write_json(attempt_dir / "failure.json", attempt)
-                print(f"Game {game_number}: failed: {error_text}")
-                if not args.continue_on_error:
-                    raise RuntimeError(error_text) from None
-            finally:
-                async with write_lock:
-                    _write_json(manifest_path, manifest)
-                    _write_summary(output, manifest)
-
-    tasks = [
-        asyncio.create_task(run_scheduled_game(game_number))
-        for game_number in range(args.start_game, args.games + 1)
-    ]
+    runner_lock = _acquire_runner_lock(output)
     try:
-        await asyncio.gather(*tasks)
-    except BaseException:
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        raise
+        return await _run_evaluation_game(
+            args=args,
+            settings=settings,
+            verified_models=verified_models,
+            output=output,
+        )
+    finally:
+        fcntl.flock(runner_lock.fileno(), fcntl.LOCK_UN)
+        runner_lock.close()
 
-    manifest["finishedAt"] = _now()
+
+async def _run_evaluation_game(
+    *,
+    args: argparse.Namespace,
+    settings: Settings,
+    verified_models: list[dict[str, Any]],
+    output: Path,
+) -> Path:
+    manifest_path = output / "manifest.json"
+    manifest = _load_manifest(manifest_path, args, output)
+    manifest.pop("finishedAt", None)
+    provenance = _build_provenance(args, settings)
+    model_verification = {
+        "source": "configured model endpoint catalog",
+        "verifiedAt": _now(),
+        "models": verified_models,
+    }
+
+    game_entry = next(
+        (
+            game
+            for game in manifest["games"]
+            if not any(
+                attempt.get("status") == "completed" for attempt in game["attempts"]
+            )
+        ),
+        None,
+    )
+    if game_entry is None:
+        manifest["finishedAt"] = _now()
+        _write_json(manifest_path, manifest)
+        _write_summary(output, manifest)
+        print("Tournament: all 12 games are already completed")
+        return output
+
+    game_number = int(game_entry["number"])
+    resumable = _resumable_attempt(output, game_entry)
+    if resumable is not None:
+        saved_attempt, _ = resumable
+        try:
+            saved_provenance = saved_attempt.get("provenance")
+            if not isinstance(saved_provenance, dict):
+                raise RuntimeError("saved attempt has no runtime provenance")
+            _validate_resumable_provenance(saved_provenance, provenance)
+            if (
+                saved_attempt.get("modelVerification", {}).get("models")
+                != (model_verification["models"])
+            ):
+                raise RuntimeError("the verified model catalog changed")
+        except RuntimeError as error:
+            _supersede_attempt(saved_attempt, reason=str(error))
+            resumable = None
+    elif game_entry["attempts"]:
+        latest = game_entry["attempts"][-1]
+        if latest.get("status") != "completed":
+            _supersede_attempt(
+                latest,
+                reason="the durable game state or agent database is missing",
+            )
+
+    if resumable is None:
+        attempt_number = len(game_entry["attempts"]) + 1
+        attempt_dir = (
+            output / f"game-{game_number:02d}" / f"attempt-{attempt_number:02d}"
+        )
+        try:
+            attempt_dir.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            if any(attempt_dir.iterdir()):
+                raise RuntimeError(
+                    f"Unrecorded nonempty attempt directory blocks game "
+                    f"{game_number}: {attempt_dir}"
+                ) from None
+        attempt = {
+            "number": attempt_number,
+            "status": "running",
+            "directory": str(attempt_dir.relative_to(output)),
+            "startedAt": _now(),
+            "resumeCount": 0,
+            "activeElapsedSeconds": 0.0,
+            "provenance": provenance,
+            "modelVerification": model_verification,
+        }
+        game_entry["attempts"].append(attempt)
+        resume = False
+        verb = "starting"
+    else:
+        attempt, attempt_dir = resumable
+        attempt_number = int(attempt["number"])
+        attempt.setdefault("interruptions", []).append(
+            {
+                key: attempt[key]
+                for key in ("status", "finishedAt", "error")
+                if key in attempt
+            }
+        )
+        for key in ("finishedAt", "error", "winner"):
+            attempt.pop(key, None)
+        attempt.update(
+            {
+                "status": "running",
+                "resumedAt": _now(),
+                "resumeCount": int(attempt.get("resumeCount", 0)) + 1,
+            }
+        )
+        resume = True
+        verb = "resuming"
+
     _write_json(manifest_path, manifest)
     _write_summary(output, manifest)
+    print(
+        f"Game {game_number}: {verb} attempt {attempt_number} on port {args.game_port}"
+    )
+    segment_started = monotonic()
+    try:
+        result = await run_game(
+            game_number=game_number,
+            attempt_dir=attempt_dir,
+            random_seed=int(game_entry["randomSeed"]),
+            game_port=args.game_port,
+            max_rounds=None,
+            poll_seconds=args.poll_seconds,
+            stall_seconds=args.stall_seconds,
+            match_timeout_seconds=args.match_timeout_hours * 3_600,
+            settings=settings,
+            resume=resume,
+        )
+        attempt.update(
+            {
+                "status": "completed",
+                "finishedAt": _now(),
+                "winner": result["winner"],
+            }
+        )
+        print(f"Game {game_number}: winner {result['winner']}")
+    except asyncio.CancelledError:
+        attempt.update({"status": "cancelled", "finishedAt": _now()})
+        raise
+    except Exception as error:
+        error_text = safe_error_text(error)
+        attempt.update(
+            {
+                "status": "failed",
+                "finishedAt": _now(),
+                "error": error_text,
+            }
+        )
+        _write_json(attempt_dir / "failure.json", attempt)
+        print(f"Game {game_number}: failed: {error_text}")
+        raise RuntimeError(error_text) from None
+    finally:
+        elapsed = float(attempt.get("activeElapsedSeconds") or 0)
+        attempt["activeElapsedSeconds"] = round(
+            elapsed + monotonic() - segment_started, 3
+        )
+        if all(
+            any(
+                candidate.get("status") == "completed"
+                for candidate in scheduled["attempts"]
+            )
+            for scheduled in manifest["games"]
+        ):
+            manifest["finishedAt"] = _now()
+        _write_json(manifest_path, manifest)
+        _write_summary(output, manifest)
     return output
+
+
+def _acquire_runner_lock(output: Path) -> BinaryIO:
+    lock = (output / ".runner.lock").open("a+b")
+    try:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        raise RuntimeError(
+            f"Another tournament runner is already active for {output}"
+        ) from None
+    return lock
+
+
+def _supersede_attempt(attempt: dict[str, Any], *, reason: str) -> None:
+    attempt.update(
+        {
+            "status": "superseded",
+            "finishedAt": _now(),
+            "error": f"Attempt cannot be resumed: {reason}",
+        }
+    )
 
 
 def _resumable_attempt(
@@ -245,7 +317,11 @@ def _resumable_attempt(
     if not isinstance(attempts, list) or not attempts:
         return None
     attempt = attempts[-1]
-    if not isinstance(attempt, dict) or attempt.get("status") == "completed":
+    if not isinstance(attempt, dict) or attempt.get("status") not in {
+        "running",
+        "failed",
+        "cancelled",
+    }:
         return None
     game_number = int(game_entry["number"])
     attempt_number = attempt.get("number")
@@ -257,9 +333,10 @@ def _resumable_attempt(
             f"Game {game_number} attempt {attempt_number} has an invalid directory"
         )
     attempt_dir = output / relative
-    if not (attempt_dir / "game.json").is_file() or not (
-        attempt_dir / "harness.db"
-    ).is_file():
+    if (
+        not (attempt_dir / "game.json").is_file()
+        or not (attempt_dir / "harness.db").is_file()
+    ):
         return None
     return attempt, attempt_dir
 
@@ -434,6 +511,7 @@ async def run_game(
             game_document=game_document,
             records=records,
             store=store,
+            endpoint_provider=settings.model_provider,
         )
         return completed_result
     finally:
@@ -492,6 +570,7 @@ def _validate_resumed_agents(
         record = by_user[assignment["userId"]]
         if (
             record.name != _seat_name(assignment, assignments)
+            or record.model != model
             or record.system_prompt != DEFAULT_PROMPT
             or record.game_server_url != expected_url
             or record.game_id != "1"
@@ -512,9 +591,7 @@ def _run_assignments(
     if seat_models is None and seat_houses is None:
         rotation = house_rotation(game_number)
         users = user_rotation(game_number)
-        pairs = [
-            (model, rotation[model], users[model]) for model in TOURNAMENT_MODELS
-        ]
+        pairs = [(model, rotation[model], users[model]) for model in TOURNAMENT_MODELS]
     else:
         if seat_models is None or seat_houses is None:
             raise RuntimeError("seat_models and seat_houses must be supplied together")
@@ -530,7 +607,9 @@ def _run_assignments(
                 "Explicit seats must match the native three- or six-player "
                 "base-game houses"
             )
-        if any(not isinstance(model, str) or not model.strip() for model in seat_models):
+        if any(
+            not isinstance(model, str) or not model.strip() for model in seat_models
+        ):
             raise RuntimeError("Every explicit seat must have a model ID")
         pairs = [
             (model.strip(), house, str(index))
@@ -550,9 +629,7 @@ def _run_assignments(
     ]
 
 
-def _seat_name(
-    assignment: dict[str, str], assignments: list[dict[str, str]]
-) -> str:
+def _seat_name(assignment: dict[str, str], assignments: list[dict[str, str]]) -> str:
     model = assignment["model"]
     if sum(item["model"] == model for item in assignments) == 1:
         return model
@@ -629,8 +706,7 @@ async def _wait_for_game_start(
     while monotonic() < deadline:
         observations = [manager.get_observation(record.id) for record in records]
         if all(
-            observation
-            and observation.get("statePath", [None])[0] == "ingame"
+            observation and observation.get("statePath", [None])[0] == "ingame"
             for observation in observations
         ):
             return
@@ -716,9 +792,9 @@ async def _wait_for_game_end(
                             "model": record.model,
                             "status": runtime.status,
                             "autoplay": runtime.autoplay,
-                            "stateId": (observation or {}).get("game", {}).get(
-                                "stateId"
-                            ),
+                            "stateId": (observation or {})
+                            .get("game", {})
+                            .get("stateId"),
                             "statePath": (observation or {}).get("statePath", []),
                             "isYourTurn": (observation or {}).get("isYourTurn"),
                             "lastError": runtime.last_error,
@@ -876,13 +952,11 @@ async def _preflight_openrouter_quota(
             )
         except httpx.HTTPError as error:
             raise RuntimeError(
-                f"OpenRouter {label} preflight request failed "
-                f"({type(error).__name__})"
+                f"OpenRouter {label} preflight request failed ({type(error).__name__})"
             ) from error
         if response.status_code != 200:
             raise RuntimeError(
-                f"OpenRouter {label} preflight returned HTTP "
-                f"{response.status_code}"
+                f"OpenRouter {label} preflight returned HTTP {response.status_code}"
             )
         try:
             payload = response.json()
@@ -931,96 +1005,6 @@ async def _preflight_openrouter_quota(
             await active_client.aclose()
 
 
-async def _preflight_openrouter_models(
-    settings: Settings,
-    *,
-    client: httpx.AsyncClient | None = None,
-    model_ids: list[str] | tuple[str, ...] = tuple(TOURNAMENT_MODELS),
-) -> list[dict[str, Any]]:
-    """Verify the exact tournament IDs and required tool parameters."""
-
-    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
-        raise RuntimeError("The tournament requires OpenRouter")
-    endpoint = settings.openrouter_base_url.rstrip("/") + "/models"
-    owns_client = client is None
-    active_client = client or httpx.AsyncClient(timeout=15)
-    try:
-        try:
-            response = await active_client.get(
-                endpoint,
-                headers={"Authorization": f"Bearer {settings.openrouter_token}"},
-            )
-        except httpx.HTTPError as error:
-            raise RuntimeError(
-                "OpenRouter model-catalog preflight failed "
-                f"({type(error).__name__})"
-            ) from error
-        if response.status_code != 200:
-            raise RuntimeError(
-                "OpenRouter model-catalog preflight returned HTTP "
-                f"{response.status_code}"
-            )
-        try:
-            payload = response.json()
-        except (TypeError, ValueError) as error:
-            raise RuntimeError(
-                "OpenRouter model-catalog preflight returned an invalid response"
-            ) from error
-        rows = payload.get("data") if isinstance(payload, dict) else None
-        if not isinstance(rows, list):
-            raise RuntimeError(
-                "OpenRouter model-catalog preflight returned an invalid response"
-            )
-        by_id = {
-            row.get("id"): row
-            for row in rows
-            if isinstance(row, dict) and isinstance(row.get("id"), str)
-        }
-        missing = [model for model in model_ids if model not in by_id]
-        if missing:
-            raise RuntimeError(
-                "OpenRouter does not list the exact tournament model IDs: "
-                + ", ".join(missing)
-            )
-        required_parameters = {"tools", "tool_choice"}
-        unsupported = []
-        verified = []
-        for model in model_ids:
-            row = by_id[model]
-            supported = row.get("supported_parameters")
-            parameters = {
-                value for value in supported or [] if isinstance(value, str)
-            }
-            if not required_parameters <= parameters:
-                unsupported.append(model)
-            alias = row.get("alias_target")
-            canonical_slug = row.get("canonical_slug")
-            if not isinstance(canonical_slug, str) or not canonical_slug:
-                raise RuntimeError(
-                    f"OpenRouter returned no canonical slug for {model!r}"
-                )
-            verified.append(
-                {
-                    "id": model,
-                    "name": row.get("name"),
-                    "canonicalSlug": canonical_slug,
-                    "aliasTarget": (
-                        alias.get("slug") if isinstance(alias, dict) else None
-                    ),
-                    "supportedParameters": sorted(parameters),
-                }
-            )
-        if unsupported:
-            raise RuntimeError(
-                "OpenRouter does not advertise required tool calling for: "
-                + ", ".join(unsupported)
-            )
-        return verified
-    finally:
-        if owns_client:
-            await active_client.aclose()
-
-
 async def _preflight_model_catalog(
     settings: Settings,
     *,
@@ -1028,11 +1012,6 @@ async def _preflight_model_catalog(
     model_ids: list[str] | tuple[str, ...] = tuple(TOURNAMENT_MODELS),
 ) -> list[dict[str, Any]]:
     """Verify tournament IDs through the configured endpoint's model catalog."""
-
-    if settings.model_provider == "OpenRouter":
-        return await _preflight_openrouter_models(
-            settings, client=client, model_ids=model_ids
-        )
 
     endpoint = settings.model_base_url.rstrip("/") + "/models"
     owns_client = client is None
@@ -1045,7 +1024,7 @@ async def _preflight_model_catalog(
             )
         except httpx.HTTPError as error:
             raise RuntimeError(
-                "Model-catalog preflight failed " f"({type(error).__name__})"
+                f"Model-catalog preflight failed ({type(error).__name__})"
             ) from error
         if response.status_code != 200:
             raise RuntimeError(
@@ -1107,333 +1086,6 @@ async def _preflight_model_catalog(
             await active_client.aclose()
 
 
-async def _collect_openrouter_generations(
-    *,
-    database: Database,
-    records: list[Any],
-    settings: Settings,
-    client: httpx.AsyncClient | None = None,
-    retries: int = 2,
-    retry_delay_seconds: float = 0.25,
-    deadline_seconds: float = 60,
-) -> dict[str, Any]:
-    """Fetch non-textual routing metadata for every persisted model response."""
-
-    response_rows = _persisted_response_rows(database, records)
-    if not response_rows:
-        return _provider_generation_artifact([])
-    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
-        generations = [
-            {
-                **row,
-                "provider": None,
-                "model": None,
-                "costUsd": None,
-                "latencyMs": None,
-                "error": "OpenRouter attribution is not configured",
-            }
-            for row in response_rows
-        ]
-        return _provider_generation_artifact(generations)
-
-    endpoint = settings.openrouter_base_url.rstrip("/") + "/generation"
-    owns_client = client is None
-    active_client = client or httpx.AsyncClient(timeout=10)
-    semaphore = asyncio.Semaphore(4)
-
-    def unavailable(row: dict[str, Any], error: str) -> dict[str, Any]:
-        return {
-            **row,
-            "provider": None,
-            "model": None,
-            "costUsd": None,
-            "latencyMs": None,
-            "error": error,
-        }
-
-    async def collect(row: dict[str, Any]) -> dict[str, Any]:
-        try:
-            async with semaphore:
-                metadata, error = await _fetch_openrouter_generation(
-                    client=active_client,
-                    endpoint=endpoint,
-                    api_key=settings.openrouter_token,
-                    response_id=row["responseId"],
-                    retries=retries,
-                    retry_delay_seconds=retry_delay_seconds,
-                )
-            return {
-                **row,
-                "provider": metadata.get("provider_name") if metadata else None,
-                "model": metadata.get("model") if metadata else None,
-                "costUsd": _optional_number(metadata.get("total_cost"))
-                if metadata
-                else None,
-                "latencyMs": _optional_number(metadata.get("latency"))
-                if metadata
-                else None,
-                "error": error,
-            }
-        except asyncio.CancelledError:
-            raise
-        except Exception as error:
-            return unavailable(
-                row,
-                f"OpenRouter attribution failed ({type(error).__name__})",
-            )
-
-    tasks = [asyncio.create_task(collect(row)) for row in response_rows]
-    try:
-        done, pending = await asyncio.wait(tasks, timeout=deadline_seconds)
-        for task in pending:
-            task.cancel()
-        if pending:
-            await asyncio.gather(*pending, return_exceptions=True)
-        generations = [
-            task.result()
-            if task in done
-            else unavailable(row, "OpenRouter attribution exceeded its deadline")
-            for row, task in zip(response_rows, tasks, strict=True)
-        ]
-    finally:
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        if owns_client:
-            await active_client.aclose()
-    return _provider_generation_artifact(generations)
-
-
-async def _collect_provider_metadata(
-    *,
-    database: Database,
-    records: list[Any],
-    settings: Settings,
-) -> dict[str, Any]:
-    """Collect optional endpoint-specific accounting outside game semantics."""
-
-    if settings.model_provider == "OpenRouter" and settings.openrouter_token:
-        return await _collect_openrouter_generations(
-            database=database,
-            records=records,
-            settings=settings,
-            retries=0,
-            deadline_seconds=2,
-        )
-    generations = [
-        {
-            **row,
-            "provider": None,
-            "model": None,
-            "costUsd": None,
-            "latencyMs": None,
-            "error": (
-                f"No optional metadata adapter is configured for "
-                f"{settings.model_provider}"
-            ),
-        }
-        for row in _persisted_response_rows(database, records)
-    ]
-    return _provider_generation_artifact(
-        generations,
-        source=f"{settings.model_provider} response trace",
-    )
-
-
-def _persisted_response_rows(
-    database: Database, records: list[Any]
-) -> list[dict[str, Any]]:
-    requested_models = {record.id: record.model for record in records}
-    with database.lock:
-        rows = database.connection.execute(
-            """
-            SELECT id, agent_id, response_id, raw_usage_json
-            FROM agent_runs
-            WHERE (response_id IS NOT NULL AND response_id != '')
-               OR (raw_usage_json IS NOT NULL AND raw_usage_json != '[]')
-            ORDER BY created_at ASC, id ASC
-            """
-        ).fetchall()
-    result: list[dict[str, Any]] = []
-    for row in rows:
-        raw_usage = json.loads(row["raw_usage_json"] or "[]")
-        response_ids = [
-            str(item["response_id"])
-            for item in raw_usage
-            if isinstance(item, dict) and item.get("response_id")
-        ]
-        if row["response_id"]:
-            response_ids.append(str(row["response_id"]))
-        for response_index, response_id in enumerate(dict.fromkeys(response_ids)):
-            result.append(
-                {
-                    "runId": str(row["id"]),
-                    "agentId": str(row["agent_id"]),
-                    "requestedModel": requested_models.get(
-                        str(row["agent_id"]), "unknown"
-                    ),
-                    "responseId": response_id,
-                    "responseIndex": response_index,
-                }
-            )
-    return result
-
-
-async def _fetch_openrouter_generation(
-    *,
-    client: httpx.AsyncClient,
-    endpoint: str,
-    api_key: str,
-    response_id: str,
-    retries: int,
-    retry_delay_seconds: float,
-) -> tuple[dict[str, Any] | None, str | None]:
-    problem = "OpenRouter attribution is unavailable"
-    for attempt in range(retries + 1):
-        transient = False
-        try:
-            response = await client.get(
-                endpoint,
-                params={"id": response_id},
-                headers={"Authorization": f"Bearer {api_key}"},
-            )
-            if response.status_code == 200:
-                payload = response.json()
-                data = payload.get("data") if isinstance(payload, dict) else None
-                if isinstance(data, dict):
-                    return data, None
-                problem = "OpenRouter returned an invalid generation document"
-            else:
-                problem = f"OpenRouter returned HTTP {response.status_code}"
-                transient = response.status_code in {404, 408, 409, 425, 429} or (
-                    response.status_code >= 500
-                )
-        except httpx.HTTPError as error:
-            problem = f"OpenRouter request failed ({type(error).__name__})"
-            transient = True
-        except (TypeError, ValueError):
-            problem = "OpenRouter returned an invalid generation document"
-
-        if not transient or attempt == retries:
-            break
-        await asyncio.sleep(retry_delay_seconds * (2**attempt))
-    return None, problem
-
-
-def _provider_generation_artifact(
-    generations: list[dict[str, Any]],
-    *,
-    source: str = "OpenRouter GET /generation",
-) -> dict[str, Any]:
-    return {
-        "generatedAt": _now(),
-        "source": source,
-        "generations": generations,
-        **_provider_attribution_summary({"generations": generations}),
-    }
-
-
-def _provider_attribution_summary(value: dict[str, Any]) -> dict[str, Any]:
-    generations = value.get("generations", [])
-    provider_counts = Counter(
-        item["provider"] for item in generations if item.get("provider")
-    )
-    model_counts = Counter(item["model"] for item in generations if item.get("model"))
-    attributed = sum(1 for item in generations if item.get("provider"))
-    model_attributed = sum(1 for item in generations if item.get("model"))
-    cost_attributed = sum(
-        1 for item in generations if _optional_number(item.get("costUsd")) is not None
-    )
-    complete = sum(
-        1
-        for item in generations
-        if item.get("provider")
-        and item.get("model")
-        and _optional_number(item.get("costUsd")) is not None
-        and not item.get("error")
-    )
-    return {
-        "requestedCount": len(generations),
-        "attributedCount": attributed,
-        "modelAttributedCount": model_attributed,
-        "costAttributedCount": cost_attributed,
-        "unavailableCount": len(generations) - complete,
-        "providerCounts": dict(sorted(provider_counts.items())),
-        "modelCounts": dict(sorted(model_counts.items())),
-    }
-
-
-def _failed_provider_attribution(
-    error: Exception, *, provider: str = "model endpoint"
-) -> dict[str, Any]:
-    return {
-        "generatedAt": _now(),
-        "source": f"{provider} response trace",
-        "generations": [],
-        "collectionError": (
-            "Provider attribution was temporarily unavailable "
-            f"({type(error).__name__})"
-        ),
-        "requestedCount": 0,
-        "attributedCount": 0,
-        "modelAttributedCount": 0,
-        "costAttributedCount": 0,
-        "unavailableCount": 0,
-        "providerCounts": {},
-        "modelCounts": {},
-    }
-
-
-async def _refresh_completed_provider_attribution(
-    *, output: Path, attempt: dict[str, Any], settings: Settings
-) -> bool:
-    """Retry missing provider metadata without replaying a completed game."""
-
-    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
-        return False
-
-    attempt_dir = output / str(attempt["directory"])
-    artifact_path = attempt_dir / "provider-generations.json"
-    try:
-        existing = (
-            json.loads(artifact_path.read_text()) if artifact_path.is_file() else None
-        )
-    except (OSError, json.JSONDecodeError):
-        existing = None
-    if (
-        isinstance(existing, dict)
-        and not existing.get("collectionError")
-        and int(existing.get("unavailableCount") or 0) == 0
-    ):
-        return False
-
-    database_path = attempt_dir / "harness.db"
-    result_path = attempt_dir / "result.json"
-    if not database_path.is_file() or not result_path.is_file():
-        return False
-
-    database: Database | None = None
-    try:
-        database = Database(database_path)
-        records = AgentStore(database).list_agents()
-        artifact = await _collect_openrouter_generations(
-            database=database,
-            records=records,
-            settings=settings,
-        )
-        result = json.loads(result_path.read_text())
-        result["providerAttribution"] = _provider_attribution_summary(artifact)
-        _write_json(artifact_path, artifact)
-        _write_json(result_path, result)
-        return True
-    except Exception:
-        return False
-    finally:
-        if database is not None:
-            database.close()
-
-
 def _optional_number(value: Any) -> int | float | None:
     if isinstance(value, bool) or value is None:
         return None
@@ -1465,6 +1117,7 @@ def _build_game_result(
     game_document: dict[str, Any],
     records: list[Any],
     store: AgentStore,
+    endpoint_provider: str,
 ) -> dict[str, Any]:
     winner = _validate_winner_house(winner, source="result builder")
     saved_winner = _terminal_winner(game_document)
@@ -1503,9 +1156,7 @@ def _build_game_result(
                 "supply": int(house.get("supplyLevel") or 0),
                 "powerTokens": int(house.get("powerTokens") or 0),
                 "ironThronePosition": (
-                    iron_throne.index(house_id) + 1
-                    if house_id in iron_throne
-                    else None
+                    iron_throne.index(house_id) + 1 if house_id in iron_throne else None
                 ),
                 "metrics": metrics,
             }
@@ -1524,6 +1175,7 @@ def _build_game_result(
         "gameNumber": game_number,
         "randomSeed": _require_uint32(random_seed),
         "completedAt": _now(),
+        "endpointProvider": endpoint_provider,
         "winner": winner,
         "round": game.get("turn"),
         "standings": standings,
@@ -1561,9 +1213,7 @@ def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
         cost_usd += float(item.get("costUsd") or 0)
         duration = item.get("durationMs") or {}
         duration_total += int(duration.get("total") or 0)
-        duration_maximum = max(
-            duration_maximum, int(duration.get("maximum") or 0)
-        )
+        duration_maximum = max(duration_maximum, int(duration.get("maximum") or 0))
     return {
         "runCount": run_count,
         "statusCounts": dict(sorted(status_counts.items())),
@@ -1578,70 +1228,83 @@ def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _load_attempt_metrics(attempt_dir: Path) -> dict[str, Any]:
+    metrics_path = attempt_dir / "metrics.json"
+    if metrics_path.is_file():
+        try:
+            value = json.loads(metrics_path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                f"Saved attempt metrics cannot be loaded: {metrics_path}: {error}"
+            ) from error
+        if not isinstance(value, dict):
+            raise RuntimeError(
+                f"Saved attempt metrics must be a JSON object: {metrics_path}"
+            )
+        return value
+
+    database_path = attempt_dir / "harness.db"
+    if not database_path.is_file():
+        return _aggregate_run_metrics([])
+    database = Database(database_path)
+    try:
+        store = AgentStore(database)
+        return _aggregate_run_metrics(
+            [store.get_run_metrics(record.id) for record in store.list_agents()]
+        )
+    finally:
+        database.close()
+
+
 def _load_manifest(
     path: Path,
     args: argparse.Namespace,
     output: Path,
-    settings: Settings,
-    *,
-    verified_models: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if [row.get("id") for row in verified_models] != TOURNAMENT_MODELS:
-        raise RuntimeError("Verified model catalog does not match tournament models")
-    provenance = _build_provenance(args, settings)
     if path.is_file():
-        manifest = json.loads(path.read_text())
+        try:
+            manifest = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(f"Saved tournament manifest cannot be loaded: {error}")
+        if not isinstance(manifest, dict):
+            raise RuntimeError("Saved tournament manifest must be a JSON object")
         schema_version = manifest.get("schemaVersion")
-        if schema_version != 4:
+        if schema_version != 5:
             raise RuntimeError(
                 "Existing evaluation manifest uses unsupported schema version "
                 f"{schema_version!r}; start a new evaluation directory"
             )
+        if manifest.get("experiment") != "mixed-model-tournament":
+            raise RuntimeError("Existing evaluation manifest is another experiment")
         if manifest.get("models") != TOURNAMENT_MODELS:
             raise RuntimeError("Existing evaluation manifest uses other model IDs")
-        recorded_verification = manifest.get("modelVerification")
-        recorded_rows = (
-            recorded_verification.get("models")
-            if isinstance(recorded_verification, dict)
-            else None
-        )
-        if not isinstance(recorded_rows, list) or [
-            row.get("id") if isinstance(row, dict) else None for row in recorded_rows
-        ] != TOURNAMENT_MODELS:
-            raise RuntimeError(
-                "Existing evaluation manifest has no valid model verification"
-            )
-        if int(manifest.get("gameCount", 0)) != args.games:
-            raise RuntimeError("Existing evaluation manifest uses another game count")
-        existing_provenance = manifest.get("provenance")
-        if not isinstance(existing_provenance, dict):
-            raise RuntimeError(
-                "Existing evaluation manifest has no schema-4 provenance; start a "
-                "new evaluation directory"
-            )
-        _validate_reproducible_provenance(existing_provenance, provenance)
+        if manifest.get("gameCount") != TOURNAMENT_GAMES:
+            raise RuntimeError("Existing evaluation manifest is not a 12-game run")
         if manifest.get("randomSeed") != args.random_seed:
             raise RuntimeError("Existing evaluation manifest uses another random seed")
         _validate_evaluation_schedule(
-            manifest.get("games"), args.games, args.random_seed
+            manifest.get("games"), TOURNAMENT_GAMES, args.random_seed
         )
+        for game in manifest["games"]:
+            for attempt in game["attempts"]:
+                if not isinstance(attempt.get("provenance"), dict) or not isinstance(
+                    attempt.get("modelVerification"), dict
+                ):
+                    raise RuntimeError(
+                        "Existing tournament attempt has no runtime provenance or "
+                        "model verification"
+                    )
         return manifest
     manifest = {
-        "schemaVersion": 4,
+        "schemaVersion": 5,
+        "experiment": "mixed-model-tournament",
         "createdAt": _now(),
         "outputDirectory": str(output),
         "harness": TOURNAMENT_HARNESS_ID,
         "models": TOURNAMENT_MODELS,
-        "modelVerification": {
-            "source": f"{settings.model_provider} GET /models",
-            "verifiedAt": _now(),
-            "models": verified_models,
-        },
-        "gameCount": args.games,
+        "gameCount": TOURNAMENT_GAMES,
         "randomSeed": args.random_seed,
-        "maxRounds": args.max_rounds,
-        "provenance": provenance,
-        "games": _evaluation_schedule(args.games, args.random_seed),
+        "games": _evaluation_schedule(TOURNAMENT_GAMES, args.random_seed),
     }
     _write_json(path, manifest)
     return manifest
@@ -1706,25 +1369,15 @@ def _build_provenance(
         },
         "evaluation": {
             "randomSeed": args.random_seed,
-            "baseGamePort": args.game_port,
-            "concurrentGames": args.concurrent_games,
-            "maxRounds": args.max_rounds,
+            "gameCount": TOURNAMENT_GAMES,
+            "gamePort": args.game_port,
+            "gamesPerInvocation": 1,
+            "maxRounds": None,
             "pollSeconds": args.poll_seconds,
             "stallSeconds": args.stall_seconds,
             "matchTimeoutHours": args.match_timeout_hours,
         },
     }
-
-
-def _validate_reproducible_provenance(
-    existing: dict[str, Any], current: dict[str, Any]
-) -> None:
-    for key in ("repositories", "harness", "rules", "models", "evaluation"):
-        if existing.get(key) != current.get(key):
-            raise RuntimeError(
-                f"Existing evaluation provenance has different {key}; start a new "
-                "evaluation directory"
-            )
 
 
 def _validate_resumable_provenance(
@@ -1776,9 +1429,7 @@ def _git_provenance(
     ignore_dirty_submodules: bool = False,
 ) -> dict[str, Any]:
     commit = _run_git(directory, "rev-parse", "HEAD")
-    submodule_option = (
-        ("--ignore-submodules=dirty",) if ignore_dirty_submodules else ()
-    )
+    submodule_option = ("--ignore-submodules=dirty",) if ignore_dirty_submodules else ()
     pathspec = (".", *(f":(exclude){path}" for path in ignored_paths))
     status = _run_git(
         directory,
@@ -1920,6 +1571,16 @@ def _parse_random_seed(value: str) -> int:
         raise argparse.ArgumentTypeError(str(error)) from None
 
 
+def _parse_port(value: str) -> int:
+    try:
+        port = int(value, 10)
+    except ValueError:
+        raise argparse.ArgumentTypeError("game port must be an integer") from None
+    if not 1 <= port <= 65_535:
+        raise argparse.ArgumentTypeError("game port must be from 1 through 65535")
+    return port
+
+
 def _evaluation_schedule(
     game_count: int, base_seed: int = DEFAULT_RANDOM_SEED
 ) -> list[dict[str, Any]]:
@@ -1956,13 +1617,27 @@ def _validate_evaluation_schedule(
         raise RuntimeError("Evaluation schedule contains duplicate random seeds")
 
 
-def _game_entry(manifest: dict[str, Any], number: int) -> dict[str, Any]:
-    return next(game for game in manifest["games"] if game["number"] == number)
-
-
 def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
-    results = []
+    results: list[dict[str, Any]] = []
+    active_elapsed_seconds: dict[int, float] = {}
+    attempts: list[dict[str, Any]] = []
     for game in manifest["games"]:
+        game_number = int(game["number"])
+        for attempt in game["attempts"]:
+            attempt_dir = output / attempt["directory"]
+            provenance = attempt.get("provenance") or {}
+            model_provenance = provenance.get("models") or {}
+            attempts.append(
+                {
+                    "gameNumber": game_number,
+                    "attemptNumber": int(attempt["number"]),
+                    "status": attempt.get("status"),
+                    "activeElapsedSeconds": attempt.get("activeElapsedSeconds"),
+                    "endpointProvider": model_provenance.get("provider"),
+                    "error": attempt.get("error"),
+                    "metrics": _load_attempt_metrics(attempt_dir),
+                }
+            )
         completed = next(
             (
                 attempt
@@ -1976,10 +1651,27 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
         result_path = output / completed["directory"] / "result.json"
         if result_path.is_file():
             results.append(json.loads(result_path.read_text()))
-    _write_json(output / "summary.json", summarize_results(results))
+            active_elapsed_seconds[game_number] = float(
+                completed.get("activeElapsedSeconds") or 0
+            )
+    _write_json(
+        output / "summary.json",
+        summarize_results(
+            results,
+            attempts=attempts,
+            active_elapsed_seconds=active_elapsed_seconds,
+        ),
+    )
 
 
-def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_results(
+    results: list[dict[str, Any]],
+    *,
+    attempts: list[dict[str, Any]] | None = None,
+    active_elapsed_seconds: dict[int, float] | None = None,
+) -> dict[str, Any]:
+    attempts = attempts or []
+    active_elapsed_seconds = active_elapsed_seconds or {}
     ratings = {model: 1500.0 for model in TOURNAMENT_MODELS}
     model_house_counts = {
         model: {house: 0 for house in HOUSES} for model in TOURNAMENT_MODELS
@@ -2007,8 +1699,23 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         house: {"house": house, "games": 0, "wins": 0, "placementTotal": 0}
         for house in HOUSES
     }
+    games: list[dict[str, Any]] = []
+    endpoint_provider_counts: Counter[str] = Counter()
 
     for result in sorted(results, key=lambda item: item["gameNumber"]):
+        game_number = int(result["gameNumber"])
+        endpoint_provider = str(result["endpointProvider"])
+        endpoint_provider_counts[endpoint_provider] += 1
+        games.append(
+            {
+                "gameNumber": game_number,
+                "randomSeed": int(result["randomSeed"]),
+                "winner": result["winner"],
+                "round": int(result["round"]),
+                "activeElapsedSeconds": active_elapsed_seconds.get(game_number),
+                "endpointProvider": endpoint_provider,
+            }
+        )
         standings = result["standings"]
         old_ratings = ratings.copy()
         deltas = {model: 0.0 for model in ratings}
@@ -2055,25 +1762,29 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
     ranking = []
     for model, values in models.items():
-        games = values.pop("games")
-        attempts = (
+        model_games = values.pop("games")
+        run_attempts = (
             values["completedRuns"] + values["failedRuns"] + values["cancelledRuns"]
         )
         ranking.append(
             {
                 "model": model,
-                "games": games,
+                "games": model_games,
                 "wins": values["wins"],
                 "averagePlacement": (
-                    round(values.pop("placementTotal") / games, 3) if games else None
+                    round(values.pop("placementTotal") / model_games, 3)
+                    if model_games
+                    else None
                 ),
                 "averageVictoryPoints": (
-                    round(values.pop("victoryPointTotal") / games, 3)
-                    if games
+                    round(values.pop("victoryPointTotal") / model_games, 3)
+                    if model_games
                     else None
                 ),
                 "reliability": (
-                    round(values["completedRuns"] / attempts, 4) if attempts else None
+                    round(values["completedRuns"] / run_attempts, 4)
+                    if run_attempts
+                    else None
                 ),
                 "costUsd": round(values["costUsd"], 6),
                 "completedRuns": values["completedRuns"],
@@ -2115,24 +1826,52 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         for house_counts in model_house_counts.values()
         for count in house_counts.values()
     )
-    provider_attribution_complete = bool(results) and all(
-        (attribution := result.get("providerAttribution"))
-        and int(attribution.get("requestedCount") or 0) > 0
-        and int(attribution.get("unavailableCount") or 0) == 0
-        for result in results
-    )
     comparison_complete = (
-        len(results) >= 12
+        len(results) == TOURNAMENT_GAMES
         and minimum_observations >= required_observations
     )
+    attempt_metrics = _aggregate_run_metrics(
+        [attempt.get("metrics") or {} for attempt in attempts]
+    )
+    attempt_status_counts = Counter(str(attempt.get("status")) for attempt in attempts)
+    attempt_endpoint_provider_counts = Counter(
+        str(attempt["endpointProvider"])
+        for attempt in attempts
+        if attempt.get("endpointProvider")
+    )
+    durations = [
+        float(value)
+        for game in games
+        if (value := game["activeElapsedSeconds"]) is not None
+    ]
     return {
+        "schemaVersion": 2,
+        "harness": TOURNAMENT_HARNESS_ID,
+        "scheduledGames": TOURNAMENT_GAMES,
         "completedGames": len(results),
         "comparisonComplete": comparison_complete,
         "rankingStatus": "complete" if comparison_complete else "provisional",
+        "games": games,
+        "attempts": attempts,
+        "attemptStatusCounts": dict(sorted(attempt_status_counts.items())),
+        "durationSeconds": {
+            "minimum": round(min(durations), 3) if durations else None,
+            "average": round(sum(durations) / len(durations), 3) if durations else None,
+            "maximum": round(max(durations), 3) if durations else None,
+        },
+        "completedGameEndpointProviderCounts": dict(
+            sorted(endpoint_provider_counts.items())
+        ),
+        "attemptEndpointProviderCounts": dict(
+            sorted(attempt_endpoint_provider_counts.items())
+        ),
+        "runStatusCounts": attempt_metrics["statusCounts"],
+        "modelRequests": attempt_metrics["modelRequests"],
+        "tokens": attempt_metrics["tokens"],
+        "costUsd": round(attempt_metrics["costUsd"], 6),
         "requiredObservationsPerModelHouse": required_observations,
         "minimumObservationsPerModelHouse": minimum_observations,
         "modelHouseCoverage": model_house_coverage,
-        "providerAttributionComplete": provider_attribution_complete,
         "ranking": ranking,
         "houseEffects": house_effects,
         "eloMethod": (
@@ -2147,9 +1886,7 @@ def _resolve_output(value: str | None) -> Path:
     return resolve_evaluation_output(value, default_prefix="")
 
 
-def resolve_evaluation_output(
-    value: str | None, *, default_prefix: str
-) -> Path:
+def resolve_evaluation_output(value: str | None, *, default_prefix: str) -> Path:
     root = EVALUATION_ROOT.resolve()
     if value:
         path = Path(value).expanduser()
@@ -2162,9 +1899,7 @@ def resolve_evaluation_output(
     try:
         resolved.relative_to(root)
     except ValueError:
-        raise RuntimeError(
-            f"Evaluation output must be inside {root}"
-        ) from None
+        raise RuntimeError(f"Evaluation output must be inside {root}") from None
     return resolved
 
 
@@ -2181,39 +1916,27 @@ def _now() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run the resumable six-model Raven Harness tournament."
+        description=(
+            "Run or resume one complete sequential game of the fixed 12-game "
+            "six-model Raven Harness tournament."
+        )
     )
-    parser.add_argument(
-        "--output", help="Artifact directory under data/evaluations."
-    )
+    parser.add_argument("--output", help="Artifact directory under data/evaluations.")
     parser.add_argument(
         "--random-seed",
         type=_parse_random_seed,
         default=DEFAULT_RANDOM_SEED,
         help="Base uint32 seed used to derive one stable seed per game (default: 1).",
     )
-    parser.add_argument("--games", type=int, default=12, choices=range(1, 13))
-    parser.add_argument("--start-game", type=int, default=1, choices=range(1, 13))
-    parser.add_argument("--game-port", type=int, default=5101)
-    parser.add_argument(
-        "--concurrent-games",
-        type=int,
-        default=12,
-        choices=range(1, 13),
-        help="Maximum number of independent games to run at once (default: 12).",
-    )
-    parser.add_argument("--max-rounds", type=int, choices=range(1, 11))
+    parser.add_argument("--game-port", type=_parse_port, default=5101)
     parser.add_argument("--poll-seconds", type=float, default=1.0)
     parser.add_argument("--stall-seconds", type=float, default=360.0)
     parser.add_argument("--match-timeout-hours", type=float, default=6.0)
-    parser.add_argument("--continue-on-error", action="store_true")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    if args.start_game > args.games:
-        raise SystemExit("--start-game cannot exceed --games")
     try:
         output = asyncio.run(run_evaluation(args))
     except KeyboardInterrupt:

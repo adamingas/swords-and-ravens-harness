@@ -9,23 +9,22 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
-from raven_harness.agent_store import AgentStore
 from raven_harness.config import Settings
 from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
     MUTABLE_GAME_SAVE_PATH,
+    TOURNAMENT_GAMES,
     TOURNAMENT_HARNESS_ID,
+    TOURNAMENT_MAX_OUTPUT_TOKENS,
     TOURNAMENT_MODELS,
     _build_provenance,
-    _collect_openrouter_generations,
+    _load_manifest,
     _evaluation_schedule,
     _git_provenance,
     _validate_resumable_provenance,
-    _load_manifest,
-    _persisted_response_rows,
-    _preflight_openrouter_models,
     _preflight_openrouter_quota,
     _preflight_model_catalog,
     _progress_signature,
@@ -34,6 +33,7 @@ from raven_harness.evaluation import (
     _start_game_server,
     _terminal_winner,
     _validate_evaluation_schedule,
+    _validate_resumed_agents,
     _validate_winner_house,
     _wait_for_terminal_game_document,
     derive_game_seed,
@@ -43,8 +43,9 @@ from raven_harness.evaluation import (
     resolve_evaluation_output,
     summarize_results,
     user_rotation,
+    build_parser,
 )
-from raven_harness.schemas import AgentCreate
+from raven_harness.schemas import DEFAULT_PROMPT
 
 
 VERIFIED_MODELS = [
@@ -57,15 +58,19 @@ VERIFIED_MODELS = [
     }
     for model in TOURNAMENT_MODELS
 ]
-COMPLETE_PROVIDER_ATTRIBUTION = {
-    "requestedCount": 6,
-    "attributedCount": 6,
-    "modelAttributedCount": 6,
-    "costAttributedCount": 6,
-    "unavailableCount": 0,
-    "providerCounts": {"test": 6},
-    "modelCounts": {model: 1 for model in TOURNAMENT_MODELS},
-}
+
+
+def _test_runtime_provenance(version: str) -> dict:
+    return {
+        "repositories": {
+            "root": {"commit": "root"},
+            "swordsAndRavens": {"commit": "game"},
+        },
+        "harness": {"version": version},
+        "rules": {"sha256": "rules"},
+        "models": {"ids": TOURNAMENT_MODELS},
+        "evaluation": {"randomSeed": 1},
+    }
 
 
 def test_twelve_game_rotation_assigns_each_house_twice() -> None:
@@ -93,6 +98,23 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
 
 
+@pytest.mark.parametrize(
+    "obsolete_option",
+    [
+        "--games",
+        "--start-game",
+        "--concurrent-games",
+        "--max-rounds",
+        "--continue-on-error",
+    ],
+)
+def test_tournament_runner_has_no_partial_or_concurrent_game_options(
+    obsolete_option: str,
+) -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([obsolete_option, "1"])
+
+
 def test_explicit_three_seat_assignments_allow_one_repeated_model() -> None:
     model = "openai/gpt-oss-120b"
 
@@ -109,6 +131,34 @@ def test_explicit_three_seat_assignments_allow_one_repeated_model() -> None:
         "lannister",
         "stark",
     }
+
+
+def test_resumed_agents_must_keep_their_scheduled_models() -> None:
+    assignments = _run_assignments(
+        game_number=1,
+        seat_models=None,
+        seat_houses=None,
+    )
+    records = [
+        SimpleNamespace(
+            name=assignment["model"],
+            model=assignment["model"],
+            system_prompt=DEFAULT_PROMPT,
+            game_server_url="ws://127.0.0.1:5101",
+            game_id="1",
+            user_id=assignment["userId"],
+            auth_token=SecretStr(assignment["userId"]),
+        )
+        for assignment in assignments
+    ]
+    records[0].model = "another/model"
+
+    with pytest.raises(RuntimeError, match="does not match"):
+        _validate_resumed_agents(
+            records=records,
+            assignments=assignments,
+            game_port=5101,
+        )
 
 
 @pytest.mark.asyncio
@@ -170,14 +220,10 @@ def test_evaluation_output_must_stay_in_the_repository_data_directory(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     evaluation_root = tmp_path / "data" / "evaluations"
-    monkeypatch.setattr(
-        "raven_harness.evaluation.EVALUATION_ROOT", evaluation_root
-    )
+    monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
 
     allowed = evaluation_root / "comparison"
-    assert resolve_evaluation_output(
-        str(allowed), default_prefix=""
-    ) == allowed
+    assert resolve_evaluation_output(str(allowed), default_prefix="") == allowed
     with pytest.raises(RuntimeError, match="must be inside"):
         resolve_evaluation_output(str(tmp_path / "outside"), default_prefix="")
 
@@ -198,9 +244,7 @@ async def test_game_server_receives_the_exact_scheduled_seed(
         captured["options"] = options
         return expected_process
 
-    monkeypatch.setattr(
-        "raven_harness.evaluation.GAME_SERVER_DIR", game_server_dir
-    )
+    monkeypatch.setattr("raven_harness.evaluation.GAME_SERVER_DIR", game_server_dir)
     monkeypatch.setattr(asyncio, "create_subprocess_exec", create_subprocess_exec)
     with (tmp_path / "server.log").open("wb") as log:
         process = await _start_game_server(
@@ -215,9 +259,7 @@ async def test_game_server_receives_the_exact_scheduled_seed(
     assert captured["options"]["env"]["HARNESS_RANDOM_SEED"] == "4294967295"
 
 
-def test_load_manifest_rejects_legacy_schema_without_modifying_it(
-    tmp_path, monkeypatch
-) -> None:
+def test_load_manifest_rejects_legacy_schema_without_modifying_it(tmp_path) -> None:
     path = tmp_path / "manifest.json"
     legacy = {
         "schemaVersion": 1,
@@ -226,48 +268,46 @@ def test_load_manifest_rejects_legacy_schema_without_modifying_it(
         "games": _evaluation_schedule(12),
     }
     path.write_text(json.dumps(legacy))
-    monkeypatch.setattr(
-        "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
-    )
-    args = argparse.Namespace(games=12, random_seed=1)
+    args = argparse.Namespace(random_seed=1)
 
     with pytest.raises(RuntimeError, match="unsupported schema version 1"):
         _load_manifest(
             path,
             args,
             tmp_path,
-            Settings(_env_file=None),
-            verified_models=VERIFIED_MODELS,
         )
 
     assert json.loads(path.read_text()) == legacy
 
 
-def test_load_manifest_rejects_schema_four_without_provenance(
-    tmp_path, monkeypatch
+def test_load_manifest_rejects_schema_five_attempt_without_provenance(
+    tmp_path,
 ) -> None:
     path = tmp_path / "manifest.json"
     manifest = {
-        "schemaVersion": 4,
+        "schemaVersion": 5,
+        "experiment": "mixed-model-tournament",
+        "harness": TOURNAMENT_HARNESS_ID,
         "models": TOURNAMENT_MODELS,
-        "modelVerification": {"models": VERIFIED_MODELS},
         "gameCount": 12,
         "randomSeed": 1,
         "games": _evaluation_schedule(12),
     }
+    manifest["games"][0]["attempts"] = [
+        {
+            "number": 1,
+            "status": "failed",
+            "directory": "game-01/attempt-01",
+        }
+    ]
     path.write_text(json.dumps(manifest))
-    monkeypatch.setattr(
-        "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
-    )
-    args = argparse.Namespace(games=12, random_seed=1)
+    args = argparse.Namespace(random_seed=1)
 
-    with pytest.raises(RuntimeError, match="no schema-4 provenance"):
+    with pytest.raises(RuntimeError, match="no runtime provenance"):
         _load_manifest(
             path,
             args,
             tmp_path,
-            Settings(_env_file=None),
-            verified_models=VERIFIED_MODELS,
         )
 
 
@@ -275,14 +315,10 @@ def test_progress_signature_includes_runtime_and_completed_run_progress() -> Non
     records = [SimpleNamespace(id="agent-1")]
     observations = [{"game": {"stateId": "leaf-1", "phase": "planning"}}]
     idle = [
-        SimpleNamespace(
-            status="connected", current_run_id=None, run_started_at=None
-        )
+        SimpleNamespace(status="connected", current_run_id=None, run_started_at=None)
     ]
     running = [
-        SimpleNamespace(
-            status="running", current_run_id="run-1", run_started_at="now"
-        )
+        SimpleNamespace(status="running", current_run_id="run-1", run_started_at="now")
     ]
 
     initial = _progress_signature(
@@ -320,8 +356,6 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     args = argparse.Namespace(
         random_seed=1,
         game_port=5101,
-        concurrent_games=4,
-        max_rounds=None,
         poll_seconds=1.0,
         stall_seconds=360.0,
         match_timeout_hours=6.0,
@@ -332,24 +366,24 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert provenance["repositories"]["root"]["commit"]
     assert provenance["repositories"]["swordsAndRavens"]["commit"]
     assert len(provenance["repositories"]["root"]["worktreeSha256"]) == 64
-    assert len(
-        provenance["repositories"]["swordsAndRavens"]["worktreeSha256"]
-    ) == 64
-    assert provenance["rules"]["sha256"] == hashlib.sha256(
-        rules_path.read_bytes()
-    ).hexdigest()
+    assert len(provenance["repositories"]["swordsAndRavens"]["worktreeSha256"]) == 64
+    assert (
+        provenance["rules"]["sha256"]
+        == hashlib.sha256(rules_path.read_bytes()).hexdigest()
+    )
     assert len(provenance["harness"]["systemPromptSha256"]) == 64
     assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
     assert len(provenance["harness"]["runtimeSha256"]) == 64
     assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
     assert provenance["harness"]["toolChoice"] == "required"
-    assert provenance["harness"]["retryHistoryMode"] == (
-        "current-observation-only"
-    )
+    assert provenance["harness"]["retryHistoryMode"] == ("current-observation-only")
     assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
+    assert provenance["evaluation"]["gameCount"] == TOURNAMENT_GAMES
+    assert provenance["evaluation"]["gamesPerInvocation"] == 1
+    assert provenance["evaluation"]["maxRounds"] is None
     assert "maxConcurrency" not in provenance["harness"]
-    assert provenance["harness"]["maxOutputTokens"] == 16_384
+    assert provenance["harness"]["maxOutputTokens"] == (TOURNAMENT_MAX_OUTPUT_TOKENS)
     serialized = str(provenance)
     assert "do-not-record-this-token" not in serialized
     assert "url-secret" not in serialized
@@ -412,23 +446,20 @@ def test_git_provenance_ignores_runtime_save_but_tracks_source_changes(
 
     child = root / "swords-and-ravens"
     clean_root = _git_provenance(root, ignore_dirty_submodules=True)
-    clean_child = _git_provenance(
-        child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)
-    )
+    clean_child = _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))
     assert clean_root["dirty"] is False
     assert clean_child["dirty"] is False
 
     (child / MUTABLE_GAME_SAVE_PATH).write_text("runtime save\n")
     assert _git_provenance(root, ignore_dirty_submodules=True) == clean_root
     assert (
-        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))
-        == clean_child
+        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)) == clean_child
     )
 
     (child / "source.txt").write_text("changed source\n")
-    assert _git_provenance(
-        child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)
-    )["dirty"] is True
+    assert (
+        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))["dirty"] is True
+    )
     _test_git(child, "add", "source.txt")
     _test_git(child, "commit", "-m", "change child source")
     assert _git_provenance(root, ignore_dirty_submodules=True)["dirty"] is True
@@ -519,9 +550,7 @@ async def test_openrouter_quota_preflight_rejects_exhausted_account_credits() ->
         if request.url.path.endswith("/key"):
             return httpx.Response(
                 200,
-                json={
-                    "data": {"limit": 20, "limit_remaining": 2, "usage": 18}
-                },
+                json={"data": {"limit": 20, "limit_remaining": 2, "usage": 18}},
             )
         return httpx.Response(
             200,
@@ -536,7 +565,9 @@ async def test_openrouter_quota_preflight_rejects_exhausted_account_credits() ->
         _env_file=None,
     )
     try:
-        with pytest.raises(RuntimeError, match="account credits are exhausted") as caught:
+        with pytest.raises(
+            RuntimeError, match="account credits are exhausted"
+        ) as caught:
             await _preflight_openrouter_quota(settings, client=client)
     finally:
         await client.aclose()
@@ -573,13 +604,16 @@ async def test_model_preflight_verifies_exact_ids_tools_and_aliases() -> None:
         _env_file=None,
     )
     try:
-        verified = await _preflight_openrouter_models(settings, client=client)
+        verified = await _preflight_model_catalog(settings, client=client)
     finally:
         await client.aclose()
 
     assert [row["id"] for row in verified] == TOURNAMENT_MODELS
     assert verified[3]["aliasTarget"] == "deepseek/deepseek-v4-flash-0731"
-    assert all(row["supportedParameters"] == ["max_tokens", "tool_choice", "tools"] for row in verified)
+    assert all(
+        row["supportedParameters"] == ["max_tokens", "tool_choice", "tools"]
+        for row in verified
+    )
 
 
 @pytest.mark.asyncio
@@ -599,7 +633,7 @@ async def test_model_preflight_rejects_missing_or_non_tool_models() -> None:
     settings = Settings(openrouter_token="secret", _env_file=None)
     try:
         with pytest.raises(RuntimeError, match="does not list the exact"):
-            await _preflight_openrouter_models(settings, client=client)
+            await _preflight_model_catalog(settings, client=client)
     finally:
         await client.aclose()
 
@@ -646,24 +680,17 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
         assert not output.exists()
         raise RuntimeError("quota rejected")
 
-    monkeypatch.setattr(
-        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
-    )
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
     monkeypatch.setattr(
         "raven_harness.evaluation._preflight_openrouter_quota", reject_quota
     )
     args = argparse.Namespace(
         output=str(output),
         random_seed=1,
-        games=1,
-        start_game=1,
         game_port=5101,
-        concurrent_games=1,
-        max_rounds=1,
         poll_seconds=1.0,
         stall_seconds=360.0,
         match_timeout_hours=6.0,
-        continue_on_error=False,
     )
 
     with pytest.raises(RuntimeError, match="quota rejected"):
@@ -672,7 +699,7 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
 
 
 @pytest.mark.asyncio
-async def test_evaluation_runs_games_concurrently_on_distinct_ports(
+async def test_evaluation_runs_one_full_game_per_invocation_on_one_port(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     evaluation_root = tmp_path / "evaluations"
@@ -686,7 +713,7 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
     )
     active = 0
     peak_active = 0
-    ports: dict[int, int] = {}
+    ports: list[int] = []
 
     async def accept_quota(_settings: Settings) -> None:
         return None
@@ -697,18 +724,28 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
     async def fake_run_game(**arguments):
         nonlocal active, peak_active
         game_number = arguments["game_number"]
-        ports[game_number] = arguments["game_port"]
+        ports.append(arguments["game_port"])
         active += 1
         peak_active = max(peak_active, active)
         try:
+            if game_number == 1:
+                with pytest.raises(RuntimeError, match="runner is already active"):
+                    await run_evaluation(args)
             await asyncio.sleep(0.02)
-            return {"winner": HOUSES[game_number - 1]}
+            result = {
+                "gameNumber": game_number,
+                "randomSeed": arguments["random_seed"],
+                "endpointProvider": "OpenRouter",
+                "winner": HOUSES[(game_number - 1) % len(HOUSES)],
+                "round": 10,
+                "standings": [],
+            }
+            (arguments["attempt_dir"] / "result.json").write_text(json.dumps(result))
+            return result
         finally:
             active -= 1
 
-    monkeypatch.setattr(
-        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
-    )
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
     monkeypatch.setattr(
         "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
     )
@@ -724,27 +761,39 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
     args = argparse.Namespace(
         output=str(output),
         random_seed=1,
-        games=4,
-        start_game=1,
         game_port=5101,
-        concurrent_games=3,
-        max_rounds=1,
         poll_seconds=1.0,
         stall_seconds=360.0,
         match_timeout_hours=6.0,
-        continue_on_error=False,
     )
 
-    assert await run_evaluation(args) == output
-    assert peak_active == 3
-    assert ports == {1: 5101, 2: 5102, 3: 5103, 4: 5104}
+    for expected_game in range(1, TOURNAMENT_GAMES + 1):
+        assert await run_evaluation(args) == output
+        manifest = json.loads((output / "manifest.json").read_text())
+        assert (
+            sum(
+                attempt.get("status") == "completed"
+                for game in manifest["games"]
+                for attempt in game["attempts"]
+            )
+            == expected_game
+        )
+
+    assert peak_active == 1
+    assert ports == [5101] * TOURNAMENT_GAMES
     manifest = json.loads((output / "manifest.json").read_text())
     assert [game["attempts"][0]["status"] for game in manifest["games"]] == [
-        "completed",
-        "completed",
-        "completed",
-        "completed",
-    ]
+        "completed"
+    ] * TOURNAMENT_GAMES
+    assert all(
+        game["attempts"][0]["provenance"] == {"test": True}
+        for game in manifest["games"]
+    )
+    assert "finishedAt" in manifest
+    summary = json.loads((output / "summary.json").read_text())
+    assert summary["completedGames"] == TOURNAMENT_GAMES
+    assert summary["scheduledGames"] == TOURNAMENT_GAMES
+    assert summary["attemptStatusCounts"] == {"completed": TOURNAMENT_GAMES}
 
 
 @pytest.mark.asyncio
@@ -778,9 +827,7 @@ async def test_evaluation_resumes_the_same_durable_attempt(
         assert arguments["resume"] is True
         return {"winner": "stark"}
 
-    monkeypatch.setattr(
-        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
-    )
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
     monkeypatch.setattr(
         "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
     )
@@ -796,15 +843,10 @@ async def test_evaluation_resumes_the_same_durable_attempt(
     args = argparse.Namespace(
         output=str(output),
         random_seed=1,
-        games=1,
-        start_game=1,
         game_port=5101,
-        concurrent_games=1,
-        max_rounds=1,
         poll_seconds=1.0,
         stall_seconds=360.0,
         match_timeout_hours=6.0,
-        continue_on_error=False,
     )
 
     with pytest.raises(RuntimeError, match="operator stopped"):
@@ -822,6 +864,69 @@ async def test_evaluation_resumes_the_same_durable_attempt(
 
 
 @pytest.mark.asyncio
+async def test_evaluation_starts_a_new_attempt_after_runtime_change(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    evaluation_root = tmp_path / "evaluations"
+    output = evaluation_root / "changed-runtime"
+    rules = tmp_path / "rules.json"
+    rules.write_text("{}\n")
+    settings = Settings(rules_path=rules, openrouter_token="secret", _env_file=None)
+    runtime_version = ["first"]
+    calls: list[dict] = []
+
+    async def accept_quota(_settings: Settings) -> None:
+        return None
+
+    async def accept_models(_settings: Settings) -> list[dict]:
+        return VERIFIED_MODELS
+
+    async def fake_run_game(**arguments):
+        calls.append(arguments)
+        if len(calls) == 1:
+            (arguments["attempt_dir"] / "game.json").write_text('{"saved":true}\n')
+            Database(arguments["attempt_dir"] / "harness.db").close()
+            raise RuntimeError("first runtime failed")
+        assert arguments["resume"] is False
+        return {"winner": "stark"}
+
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
+    )
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_model_catalog", accept_models
+    )
+    monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
+    monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._build_provenance",
+        lambda _args, _settings: _test_runtime_provenance(runtime_version[0]),
+    )
+    args = argparse.Namespace(
+        output=str(output),
+        random_seed=1,
+        game_port=5101,
+        poll_seconds=1.0,
+        stall_seconds=360.0,
+        match_timeout_hours=6.0,
+    )
+
+    with pytest.raises(RuntimeError, match="first runtime failed"):
+        await run_evaluation(args)
+    runtime_version[0] = "second"
+    assert await run_evaluation(args) == output
+
+    assert calls[0]["attempt_dir"].name == "attempt-01"
+    assert calls[1]["attempt_dir"].name == "attempt-02"
+    manifest = json.loads((output / "manifest.json").read_text())
+    first, second = manifest["games"][0]["attempts"]
+    assert first["status"] == "superseded"
+    assert "different harness" in first["error"]
+    assert second["status"] == "completed"
+
+
+@pytest.mark.asyncio
 async def test_evaluation_requires_a_configured_model_api_key(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
@@ -831,9 +936,7 @@ async def test_evaluation_requires_a_configured_model_api_key(
         openai_api_key="",
         _env_file=None,
     )
-    monkeypatch.setattr(
-        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
-    )
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
 
     with pytest.raises(RuntimeError, match="Configure an API key"):
         await run_evaluation(argparse.Namespace())
@@ -909,191 +1012,6 @@ def test_sqlite_quick_check_accepts_evaluation_database(tmp_path) -> None:
         database.close()
 
 
-def test_provider_attribution_includes_nested_response_from_failed_parent(
-    tmp_path,
-) -> None:
-    database = Database(tmp_path / "harness.db")
-    store = AgentStore(database)
-    record = store.create_agent(
-        AgentCreate(
-            name="Balanced",
-            model="z-ai/glm-5.3-flash",
-            user_id="1",
-            auth_token="1",
-        )
-    )
-    store.add_run(
-        run_id="failed-parent",
-        agent_id=record.id,
-        status="failed",
-        observation={},
-        response_id=None,
-        raw_usage=[
-            {
-                "scope": "rules-oracle",
-                "response_id": "oracle-generation",
-            }
-        ],
-        error="parent failed",
-        created_at="2026-01-01T00:00:01+00:00",
-    )
-
-    try:
-        assert _persisted_response_rows(database, [record]) == [
-            {
-                "runId": "failed-parent",
-                "agentId": record.id,
-                "requestedModel": "z-ai/glm-5.3-flash",
-                "responseId": "oracle-generation",
-                "responseIndex": 0,
-            }
-        ]
-    finally:
-        database.close()
-
-
-@pytest.mark.asyncio
-async def test_openrouter_generation_attribution_is_best_effort_and_secret_free(
-    tmp_path,
-) -> None:
-    database = Database(tmp_path / "harness.db")
-    store = AgentStore(database)
-    records = [
-        store.create_agent(
-            AgentCreate(
-                name=model,
-                model=model,
-                user_id=str(index + 1),
-                auth_token=str(index + 1),
-            )
-        )
-        for index, model in enumerate(TOURNAMENT_MODELS[:2])
-    ]
-    for index, record in enumerate(records, 1):
-        store.add_run(
-            run_id=f"run-{index}",
-            agent_id=record.id,
-            status="completed",
-            observation={},
-            response_id=f"gen-{index}",
-            created_at=f"2026-01-01T00:00:0{index}+00:00",
-        )
-
-    seen_authorization = []
-
-    async def handler(request: httpx.Request) -> httpx.Response:
-        seen_authorization.append(request.headers.get("authorization"))
-        response_id = request.url.params["id"]
-        if response_id == "gen-1":
-            return httpx.Response(
-                200,
-                json={
-                    "data": {
-                        "provider_name": "Fast Provider",
-                        "model": "z-ai/glm-5.3-flash",
-                        "total_cost": 0.00125,
-                        "latency": 842,
-                    }
-                },
-            )
-        return httpx.Response(503, json={"error": {"message": "try later"}})
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    settings = Settings(
-        openrouter_token="provider-token-must-not-be-recorded",
-        openrouter_base_url="https://openrouter.example/api/v1",
-    )
-    try:
-        artifact = await _collect_openrouter_generations(
-            database=database,
-            records=records,
-            settings=settings,
-            client=client,
-            retries=0,
-        )
-    finally:
-        await client.aclose()
-        database.close()
-
-    assert seen_authorization == [
-        "Bearer provider-token-must-not-be-recorded",
-        "Bearer provider-token-must-not-be-recorded",
-    ]
-    assert artifact["requestedCount"] == 2
-    assert artifact["attributedCount"] == 1
-    assert artifact["modelAttributedCount"] == 1
-    assert artifact["costAttributedCount"] == 1
-    assert artifact["unavailableCount"] == 1
-    assert artifact["providerCounts"] == {"Fast Provider": 1}
-    assert artifact["modelCounts"] == {"z-ai/glm-5.3-flash": 1}
-    assert artifact["generations"][0] == {
-        "runId": "run-1",
-        "agentId": records[0].id,
-        "requestedModel": TOURNAMENT_MODELS[0],
-        "responseId": "gen-1",
-        "responseIndex": 0,
-        "provider": "Fast Provider",
-        "model": "z-ai/glm-5.3-flash",
-        "costUsd": 0.00125,
-        "latencyMs": 842,
-        "error": None,
-    }
-    assert artifact["generations"][1]["requestedModel"] == TOURNAMENT_MODELS[1]
-    assert artifact["generations"][1]["provider"] is None
-    assert artifact["generations"][1]["error"] == "OpenRouter returned HTTP 503"
-    assert "provider-token-must-not-be-recorded" not in str(artifact)
-
-
-@pytest.mark.asyncio
-async def test_openrouter_generation_attribution_has_an_overall_deadline(
-    tmp_path,
-) -> None:
-    database = Database(tmp_path / "harness.db")
-    store = AgentStore(database)
-    record = store.create_agent(
-        AgentCreate(
-            name="Balanced",
-            model="z-ai/glm-5.3-flash",
-            user_id="1",
-            auth_token="1",
-        )
-    )
-    store.add_run(
-        run_id="run-1",
-        agent_id=record.id,
-        status="completed",
-        observation={},
-        response_id="gen-1",
-        created_at="2026-01-01T00:00:01+00:00",
-    )
-
-    async def handler(_request: httpx.Request) -> httpx.Response:
-        await asyncio.sleep(1)
-        return httpx.Response(200, json={"data": {"provider_name": "Too Late"}})
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    settings = Settings(openrouter_token="token", _env_file=None)
-    try:
-        artifact = await _collect_openrouter_generations(
-            database=database,
-            records=[record],
-            settings=settings,
-            client=client,
-            retries=0,
-            deadline_seconds=0.01,
-        )
-    finally:
-        await client.aclose()
-        database.close()
-
-    assert artifact["requestedCount"] == 1
-    assert artifact["attributedCount"] == 0
-    assert artifact["unavailableCount"] == 1
-    assert artifact["generations"][0]["error"] == (
-        "OpenRouter attribution exceeded its deadline"
-    )
-
-
 def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     metrics = {
         "statusCounts": {"completed": 3, "failed": 1},
@@ -1123,9 +1041,11 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
         [
             {
                 "gameNumber": 1,
+                "randomSeed": 1,
+                "round": 10,
+                "endpointProvider": "Example endpoint",
                 "winner": HOUSES[0],
                 "standings": standings,
-                "providerAttribution": COMPLETE_PROVIDER_ATTRIBUTION,
             }
         ]
     )
@@ -1175,9 +1095,11 @@ def test_summary_requires_two_complete_house_rotations() -> None:
         results.append(
             {
                 "gameNumber": game_number,
+                "randomSeed": game_number,
+                "round": 10,
+                "endpointProvider": "Example endpoint",
                 "winner": standings[0]["house"],
                 "standings": standings,
-                "providerAttribution": COMPLETE_PROVIDER_ATTRIBUTION,
             }
         )
 
@@ -1195,3 +1117,38 @@ def test_summary_requires_two_complete_house_rotations() -> None:
         }
         for model in TOURNAMENT_MODELS
     ]
+
+
+def test_summary_keeps_failed_attempt_usage_and_endpoint_attribution() -> None:
+    attempt = {
+        "gameNumber": 1,
+        "attemptNumber": 1,
+        "status": "failed",
+        "activeElapsedSeconds": 12.5,
+        "endpointProvider": "Example endpoint",
+        "error": "request failed",
+        "metrics": {
+            "runCount": 2,
+            "statusCounts": {"completed": 1, "failed": 1},
+            "modelRequests": 3,
+            "tokens": {
+                "input": 100,
+                "output": 20,
+                "total": 120,
+                "cachedInput": 50,
+            },
+            "costUsd": 0.02,
+            "durationMs": {"total": 1000, "maximum": 800},
+        },
+    }
+
+    summary = summarize_results([], attempts=[attempt])
+
+    assert summary["completedGames"] == 0
+    assert summary["attempts"] == [attempt]
+    assert summary["attemptStatusCounts"] == {"failed": 1}
+    assert summary["attemptEndpointProviderCounts"] == {"Example endpoint": 1}
+    assert summary["runStatusCounts"] == {"completed": 1, "failed": 1}
+    assert summary["modelRequests"] == 3
+    assert summary["tokens"]["cachedInput"] == 50
+    assert summary["costUsd"] == 0.02
