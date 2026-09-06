@@ -487,12 +487,18 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
     return actions
 
 
-def available_tools(context: HarnessContext) -> list[FunctionTool]:
+def available_tools(
+    context: HarnessContext,
+    *,
+    action_specs: list[ActionSpec] | None = None,
+) -> list[FunctionTool]:
     """Build the Agents SDK tool list for a particular player observation."""
 
+    if action_specs is None:
+        action_specs = available_action_specs(context)
     tools = [
         _tool_for_action(action)
-        for action in available_action_specs(context)
+        for action in action_specs
     ]
     if context.ingame is not None:
         from .protocol_tools import gameplay_tools_for_context

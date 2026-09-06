@@ -740,10 +740,10 @@ def test_non_six_player_snapshot_exposes_no_protocol_tools() -> None:
     [
         None,
         {},
-        {"playerCount": 6, "vassals": False},
-        {"setupId": "mother-of-dragons", "playerCount": 6, "vassals": False},
-        {"setupId": "base-game", "vassals": False},
-        {"setupId": "base-game", "playerCount": 5, "vassals": False},
+        {"playerCount": 6},
+        {"setupId": "mother-of-dragons", "playerCount": 6},
+        {"setupId": "base-game"},
+        {"setupId": "base-game", "playerCount": 5},
         {"setupId": "base-game", "playerCount": 6, "vassals": True},
     ],
 )
@@ -757,6 +757,13 @@ def test_base_game_detection_fails_closed_for_missing_or_wrong_settings(settings
     assert _is_base_game(snapshot) is False
     context = build_context(snapshot, "2")
     assert gameplay_tools_for_context(context, has_specific_tools=False) == []
+
+
+def test_base_game_detection_accepts_omitted_false_vassal_setting() -> None:
+    snapshot = planning_snapshot()
+    assert "vassals" not in snapshot["gameSettings"]
+
+    assert _is_base_game(snapshot) is True
 
 
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:

@@ -379,10 +379,11 @@ or flag; the raw SDK response still records the model's original tool call.
 
 The canonical harness supports a six-player base game with vassals disabled.
 PBEM mode and the victory-point target remain configurable. It exposes no
-protocol tool when the snapshot omits these variant settings or identifies
-another setup, player count, or vassal mode. The post-action test is a heuristic,
-not a dedicated action acknowledgement. A model can still make a bad attempt.
-A server transition can also make acceptance ambiguous.
+protocol tool when the snapshot omits the setup or player-count identity, or
+identifies another setup, player count, or an explicitly enabled vassal mode.
+The upstream serializer normally omits `vassals: false`. The post-action test is
+a heuristic, not a dedicated action acknowledgement. A model can still make a
+bad attempt. A server transition can also make acceptance ambiguous.
 
 submit_orders sends several protocol messages and is not transactional. A
 failure can occur after the server has already applied part of the draft. More

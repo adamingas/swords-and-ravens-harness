@@ -410,17 +410,6 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(message, _partial_result([], context_filter.manifest()))
 
-        if not tools:
-            message = "No model tool is implemented for the current game state"
-            raise ModelRunError(
-                message, _partial_result([], context_filter.manifest())
-            )
-        if not stop_at_tool_names:
-            message = "No gameplay tool is implemented for the current game state"
-            raise ModelRunError(
-                message, _partial_result([], context_filter.manifest())
-            )
-
         oracle_interactions: list[dict[str, Any]] = []
         try:
             model = OpenAIResponsesModel(

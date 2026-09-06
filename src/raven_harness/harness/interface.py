@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from agents import FunctionTool
@@ -16,8 +16,9 @@ class PreparedTurn:
     observation: dict[str, Any]
     tools: list[FunctionTool]
     instructions: str
+    game_tool_names: list[str]
+    prompt_cache_key: str
     history_id: int | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @runtime_checkable
@@ -28,9 +29,7 @@ class PlayerHarness(Protocol):
         self, record: AgentRecord, context: HarnessContext
     ) -> dict[str, Any]: ...
 
-    def preview_tools(
-        self, record: AgentRecord, context: HarnessContext
-    ) -> list[FunctionTool]: ...
+    def preview_tools(self, context: HarnessContext) -> list[FunctionTool]: ...
 
     def prepare_turn(
         self,

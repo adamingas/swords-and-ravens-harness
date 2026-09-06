@@ -14,6 +14,7 @@ from ..models.openai_agent import ModelRunResult
 from ..rulebook import RULES_ORACLE_DESCRIPTION, RULES_ORACLE_TOOL_NAME
 from ..schemas import AgentRecord
 from .actions import (
+    ActionSpec,
     HarnessRunContext,
     available_action_specs,
     available_tools,
@@ -230,13 +231,14 @@ class StrategicHarness:
         self, record: AgentRecord, context: HarnessContext
     ) -> dict[str, Any]:
         observation = build_observation(context)
-        return self._enrich_observation(record, context, observation)
+        action_specs = available_action_specs(context)
+        return self._enrich_observation(record, observation, action_specs)
 
     def _enrich_observation(
         self,
         record: AgentRecord,
-        context: HarnessContext,
         observation: dict[str, Any],
+        action_specs: list[ActionSpec],
     ) -> dict[str, Any]:
         observation["strategicOverview"] = _strategic_overview(observation)
         observation["strategicMemory"] = self._memory(record).get_notes()
@@ -244,7 +246,7 @@ class StrategicHarness:
         planning = next(
             (
                 action
-                for action in available_action_specs(context)
+                for action in action_specs
                 if action.name == "submit_orders"
             ),
             None,
@@ -286,13 +288,14 @@ class StrategicHarness:
         context: HarnessContext,
         previous_error: str | None,
     ) -> PreparedTurn:
+        action_specs = available_action_specs(context)
+        game_tools = available_tools(context, action_specs=action_specs)
         base_observation = build_observation(context)
         history_id = self.store.record_state(record.id, base_observation)
-        observation = self._enrich_observation(record, context, base_observation)
+        observation = self._enrich_observation(record, base_observation, action_specs)
         if previous_error:
             observation["previousAttemptError"] = previous_error
-        game_tools = available_tools(context)
-        tools = self.preview_tools(record, context)
+        tools = self._tools_for_game(game_tools)
         instructions = record.system_prompt.rstrip() + STRATEGIC_INSTRUCTIONS
         cache_material = json.dumps(
             {
@@ -307,19 +310,17 @@ class StrategicHarness:
             observation=observation,
             tools=tools,
             instructions=instructions,
+            game_tool_names=[tool.name for tool in game_tools],
+            prompt_cache_key=cache_key,
             history_id=history_id,
-            metadata={
-                "gameToolNames": [tool.name for tool in game_tools],
-                "promptCacheKey": cache_key,
-            },
         )
 
-    def preview_tools(
-        self, record: AgentRecord, context: HarnessContext
-    ) -> list[FunctionTool]:
-        del record
+    def preview_tools(self, context: HarnessContext) -> list[FunctionTool]:
+        return self._tools_for_game(available_tools(context))
+
+    def _tools_for_game(self, game_tools: list[FunctionTool]) -> list[FunctionTool]:
         tools = [
-            *available_tools(context),
+            *game_tools,
             *MEMORY_TOOLS,
         ]
         if self.runner.rules_oracle_available:
@@ -341,8 +342,8 @@ class StrategicHarness:
             tools=prepared.tools,
             instructions=prepared.instructions,
             max_turns=AGENT_SDK_MAX_TURNS,
-            stop_at_tool_names=prepared.metadata["gameToolNames"],
-            prompt_cache_key=prepared.metadata["promptCacheKey"],
+            stop_at_tool_names=prepared.game_tool_names,
+            prompt_cache_key=prepared.prompt_cache_key,
             trace_metadata={
                 "agent_id": record.id,
                 "game_id": record.game_id,

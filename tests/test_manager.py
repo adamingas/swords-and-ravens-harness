@@ -129,7 +129,8 @@ class ContextManifestHarness:
             observation={"game": {"phase": "lobby"}},
             tools=[],
             instructions="test instructions",
-            metadata={"gameToolNames": ["choose_house"]},
+            game_tool_names=["choose_house"],
+            prompt_cache_key="test-cache-key",
         )
 
     async def run_turn(self, record, prepared, context, run_id):
@@ -260,22 +261,27 @@ def lobby_manager(tmp_path, returned_settings: dict):
 
 @pytest.mark.asyncio
 async def test_configure_lobby_verifies_all_accepted_settings(tmp_path) -> None:
-    expected = {
+    sent = {
         "setupId": "base-game",
         "playerCount": 6,
         "pbem": False,
         "vassals": False,
-        "victoryPointsCountNeededToWin": 9,
+        "victoryPointsCountNeededToWin": 7,
     }
-    database, manager, agent, client = lobby_manager(tmp_path, expected)
+    serialized = {
+        "setupId": "base-game",
+        "playerCount": 6,
+        "pbem": False,
+    }
+    database, manager, agent, client = lobby_manager(tmp_path, serialized)
 
     result = await manager.configure_lobby(
         agent.id,
-        LobbySetupRequest(pbem=False, victory_points_to_win=9),
+        LobbySetupRequest(pbem=False),
     )
 
-    assert result == expected
-    assert client.sent == [{"type": "change-game-settings", "settings": expected}]
+    assert result == sent
+    assert client.sent == [{"type": "change-game-settings", "settings": sent}]
     database.close()
 
 

@@ -174,13 +174,23 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     tmp_path, monkeypatch
 ) -> None:
     observation_builds = 0
+    action_spec_builds = 0
+    build_action_specs = strategic_module.available_action_specs
 
     def count_observation_build(context):
         nonlocal observation_builds
         observation_builds += 1
         return build_observation(context)
 
+    def count_action_spec_build(context):
+        nonlocal action_spec_builds
+        action_spec_builds += 1
+        return build_action_specs(context)
+
     monkeypatch.setattr(strategic_module, "build_observation", count_observation_build)
+    monkeypatch.setattr(
+        strategic_module, "available_action_specs", count_action_spec_build
+    )
     database = Database(tmp_path / "strategic.db")
     store = AgentStore(database)
     record = store.create_agent(
@@ -200,12 +210,13 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     context = build_context(planning_snapshot(), "2")
     prepared = harness.prepare_turn(record, context, previous_error=None)
     assert observation_builds == 1
+    assert action_spec_builds == 1
     names = [tool.name for tool in prepared.tools]
     assert "submit_orders" in names
     assert "recall_game_state" in names
     assert "remember_strategy" in names
     assert "update_strategic_memory" not in names
-    assert prepared.metadata["promptCacheKey"].startswith("raven-")
+    assert prepared.prompt_cache_key.startswith("raven-")
     assert prepared.observation["strategicMemory"]["revision"] == 0
     assert prepared.observation["strategicMemory"]["roundNumber"] is None
     assert prepared.observation["strategicMemory"]["modelPlan"] == ""
@@ -234,10 +245,11 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
         record, build_context(later_snapshot, "2"), previous_error=None
     )
     assert observation_builds == 2
-    assert later.metadata["promptCacheKey"] == prepared.metadata["promptCacheKey"]
+    assert action_spec_builds == 2
+    assert later.prompt_cache_key == prepared.prompt_cache_key
     submit_orders = next(tool for tool in later.tools if tool.name == "submit_orders")
     assert "winterfell" not in submit_orders.description.lower()
-    assert later.metadata["gameToolNames"] == ["submit_orders"]
+    assert later.game_tool_names == ["submit_orders"]
     database.close()
 
 

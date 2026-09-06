@@ -369,7 +369,7 @@ class AgentManager:
             session.observation = observation
             tools = prepared.tools
             session.current_tools = [tool.name for tool in tools]
-            if not prepared.metadata["gameToolNames"]:
+            if not prepared.game_tool_names:
                 raise RuntimeError(
                     "No model tool is implemented for the current game state"
                 )
@@ -531,7 +531,7 @@ class AgentManager:
             record.user_id,
             list(session.client.recent_events),
         )
-        return describe_tools(self.harness.preview_tools(record, context))
+        return describe_tools(self.harness.preview_tools(context))
 
     def list_monitoring(self) -> list[dict[str, Any]]:
         """Return one compact dashboard record for every configured agent."""
@@ -579,11 +579,20 @@ class AgentManager:
         )
         snapshot = await session.client.sync_snapshot()
         current_settings = snapshot.get("gameSettings", {})
+        normalized_settings = (
+            {
+                "vassals": False,
+                "victoryPointsCountNeededToWin": 7,
+                **current_settings,
+            }
+            if isinstance(current_settings, dict)
+            else {}
+        )
         if (
             not isinstance(current_settings, dict)
             or any(
-                type(current_settings.get(key)) is not type(expected)
-                or current_settings.get(key) != expected
+                type(normalized_settings.get(key)) is not type(expected)
+                or normalized_settings.get(key) != expected
                 for key, expected in settings.items()
             )
         ):

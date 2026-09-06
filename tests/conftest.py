@@ -10,7 +10,7 @@ def lobby_snapshot() -> dict[str, Any]:
         "gameSettings": {
             "setupId": "base-game",
             "playerCount": 6,
-            "vassals": False,
+            "pbem": True,
         },
         "childGameState": {
             "type": "lobby",
@@ -37,7 +37,7 @@ def planning_snapshot() -> dict[str, Any]:
         "gameSettings": {
             "setupId": "base-game",
             "playerCount": 6,
-            "vassals": False,
+            "pbem": True,
         },
         "childGameState": {
             "type": "ingame",
