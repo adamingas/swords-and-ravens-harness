@@ -27,7 +27,7 @@ from .harness.strategic import (
     StrategicModelRunner,
 )
 from .manager import AgentManager
-from .models.openai_agent import OpenAIAgentRunner
+from .models.openai_agent import CONTEXT_POLICY_NAME, OpenAIAgentRunner
 from .rulebook import Rulebook
 from .schemas import AgentCreate, DEFAULT_PROMPT, LobbySetupRequest
 from .telemetry import Telemetry
@@ -1324,6 +1324,8 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             "autoplayRetryBaseSeconds": settings.autoplay_retry_base_seconds,
             "reasoningEffort": "low",
             "toolChoice": {"initial": "auto", "retry": "required"},
+            "contextPolicy": CONTEXT_POLICY_NAME,
+            "retryHistoryMode": "current-observation-only",
             "parallelToolCalls": False,
             "store": False,
             "agentSdkMaxTurns": AGENT_SDK_MAX_TURNS,

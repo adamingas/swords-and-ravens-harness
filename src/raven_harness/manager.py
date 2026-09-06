@@ -732,6 +732,7 @@ class AgentManager:
     async def _reconnect_loop(
         self, agent_id: str, expected_session: AgentSession
     ) -> None:
+        reconnect_task = asyncio.current_task()
         delay = 0.0
         try:
             while self.sessions.get(agent_id) is expected_session:
@@ -769,7 +770,7 @@ class AgentManager:
                 )
                 return
         finally:
-            if expected_session.reconnect_task is asyncio.current_task():
+            if expected_session.reconnect_task is reconnect_task:
                 expected_session.reconnect_task = None
 
     def _schedule_lobby_ready(

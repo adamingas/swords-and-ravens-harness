@@ -291,6 +291,9 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
         "initial": "auto",
         "retry": "required",
     }
+    assert provenance["harness"]["retryHistoryMode"] == (
+        "current-observation-only"
+    )
     assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
     assert provenance["harness"]["maxConcurrency"] == 3

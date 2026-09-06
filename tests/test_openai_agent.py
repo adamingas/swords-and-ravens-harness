@@ -228,6 +228,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     )
     assert result.context_manifest == {
         "policy": CONTEXT_POLICY_NAME,
+        "historyMode": "recent-accepted-actions",
         "sessionHistoryLimit": 32,
         "retrievedHistoryItemCount": 0,
         "discardedPrefixItemCount": 0,
@@ -235,6 +236,8 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
         "removedObservationCharacters": 0,
         "removedSupportToolItemCount": 0,
         "removedSupportToolCharacters": 0,
+        "removedRetryHistoryItemCount": 0,
+        "removedRetryHistoryCharacters": 0,
         "selectedHistoryItems": [],
         "currentInputItemCount": 1,
         "currentInputCharacters": len(fake_model.inputs[0][0]["content"]),
@@ -320,6 +323,51 @@ async def test_retry_requires_a_tool_call(monkeypatch) -> None:
     ).run_once(**arguments)
 
     assert fake_model.model_settings.tool_choice == "required"
+
+
+@pytest.mark.asyncio
+async def test_retry_uses_only_the_current_observation(monkeypatch, tmp_path) -> None:
+    fake_model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    client = FakeClient()
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+        session_database_path=tmp_path / "retry-context.db",
+    )
+
+    await runner.run_once(
+        **turn_arguments(
+            record,
+            HarnessRunContext(client=client, user_id="2", game_password="wolf"),
+        )
+    )
+    retry_arguments = turn_arguments(
+        record,
+        HarnessRunContext(client=client, user_id="2", game_password="wolf"),
+    )
+    retry_arguments["observation"]["previousAttemptError"] = (
+        "The prior action was not accepted"
+    )
+    result = await runner.run_once(**retry_arguments)
+
+    assert len(fake_model.inputs[1]) == 1
+    assert fake_model.inputs[1][0]["role"] == "user"
+    assert fake_model.inputs[1][0]["content"].startswith(OBSERVATION_INPUT_PREFIX)
+    manifest = result.context_manifest
+    assert manifest["historyMode"] == "current-observation-only-retry"
+    assert manifest["retrievedHistoryItemCount"] == 3
+    assert manifest["removedRetryHistoryItemCount"] == 3
+    assert manifest["removedRetryHistoryCharacters"] > 0
+    assert manifest["selectedHistoryItems"] == []
+    assert manifest["modelRequestInputs"][0]["inputItemCount"] == 1
+    await runner.shutdown()
 
 
 @pytest.mark.asyncio

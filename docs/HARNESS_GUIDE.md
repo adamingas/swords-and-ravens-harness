@@ -496,10 +496,12 @@ For this example, the full path is:
    SDK response items, selected arguments, usage, timing, and any error.
 
 If an attempt does not produce an accepted gameplay action, the harness removes
-only that attempt's SDK transcript before retrying. Earlier accepted gameplay
-history remains available. The retry exposes only the required gameplay tools;
-memory and rules-oracle tools return after the decision succeeds. This prevents
-an invalid textual pseudo-call from teaching the next retry to repeat it.
+only that attempt's SDK transcript before retrying. The retry uses only the
+complete current observation. It does not resend earlier accepted action
+history because the observation already contains the authoritative game state.
+The retry exposes only the required gameplay tools; memory and rules-oracle
+tools return after the decision succeeds. This prevents an invalid textual
+pseudo-call or a large old transcript from delaying the next retry.
 
 ## 9. Core protocol gameplay tools
 
@@ -712,11 +714,13 @@ A run detail includes this context manifest:
 | Field | Meaning |
 | --- | --- |
 | policy | Name of the active context-selection policy. |
+| historyMode | `recent-accepted-actions` for an initial attempt, or `current-observation-only-retry` for a retry. |
 | sessionHistoryLimit | Maximum SDK items read from the session. |
 | retrievedHistoryItemCount | Items returned by the session read. |
 | discardedPrefixItemCount | Items discarded before the first complete decision boundary. |
 | removedObservationItemCount; removedObservationCharacters | Old full observations removed from the request. |
 | removedSupportToolItemCount; removedSupportToolCharacters | Old recall, strategy-note, and oracle call/result items removed from the request. |
+| removedRetryHistoryItemCount; removedRetryHistoryCharacters | All old SDK items removed when a retry uses only the current observation. |
 | selectedHistoryItems | History items selected by the harness callback. The SDK can still normalize, deduplicate, or prune these items. |
 | currentInputItemCount; currentInputCharacters; currentInputSha256 | Size and fingerprint of the one current observation input. |
 | modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. The field also fingerprints the instructions. The SDK can still deduplicate items afterward. It is not a hash of tools, settings, metadata, model ID, or provider serialization. |
@@ -896,6 +900,7 @@ hosts by throughput and gives preference to hosts that support the tools. The
 common request uses `tool_choice=auto` on the first attempt so a model can use
 memory or the rules oracle. A reduced-tool retry uses `required`; all six exact
 model IDs accept that request when provider parameter filtering is disabled.
+The retry sends the complete current observation without older SDK history.
 The manager still rejects a response that does not take a game action.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for

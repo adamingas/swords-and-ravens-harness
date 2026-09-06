@@ -35,7 +35,7 @@ OBSERVATION_INPUT_PREFIX = (
     "Earlier tool results are history; you have not acted on this observation. "
     "Choose exactly one available tool for the current decision.\n\n"
 )
-CONTEXT_POLICY_NAME = "current-observation-with-recent-game-actions-v1"
+CONTEXT_POLICY_NAME = "current-observation-with-isolated-retries-v2"
 TRANSIENT_SUPPORT_TOOL_NAMES = {
     "ask_rules_oracle",
     "recall_game_state",
@@ -105,12 +105,15 @@ class ModelRunResult:
 class _SessionContextFilter:
     session_history_limit: int
     current_input: str
+    include_history: bool = True
     retrieved_history_item_count: int = 0
     discarded_prefix_item_count: int = 0
     removed_observation_item_count: int = 0
     removed_observation_characters: int = 0
     removed_support_tool_item_count: int = 0
     removed_support_tool_characters: int = 0
+    removed_retry_history_item_count: int = 0
+    removed_retry_history_characters: int = 0
     selected_history_items: list[dict[str, Any]] = field(default_factory=list)
     model_request_inputs: list[dict[str, Any]] = field(default_factory=list)
 
@@ -120,6 +123,14 @@ class _SessionContextFilter:
         new_items: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         self.retrieved_history_item_count = len(history_items)
+        if not self.include_history:
+            self.removed_retry_history_item_count = len(history_items)
+            self.removed_retry_history_characters = sum(
+                len(_canonical_json(item)) for item in history_items
+            )
+            self.selected_history_items = []
+            return list(new_items)
+
         first_observation_index = next(
             (
                 index
@@ -166,6 +177,11 @@ class _SessionContextFilter:
         current_input_bytes = self.current_input.encode("utf-8")
         return {
             "policy": CONTEXT_POLICY_NAME,
+            "historyMode": (
+                "recent-accepted-actions"
+                if self.include_history
+                else "current-observation-only-retry"
+            ),
             "sessionHistoryLimit": self.session_history_limit,
             "retrievedHistoryItemCount": self.retrieved_history_item_count,
             "discardedPrefixItemCount": self.discarded_prefix_item_count,
@@ -173,6 +189,8 @@ class _SessionContextFilter:
             "removedObservationCharacters": self.removed_observation_characters,
             "removedSupportToolItemCount": self.removed_support_tool_item_count,
             "removedSupportToolCharacters": self.removed_support_tool_characters,
+            "removedRetryHistoryItemCount": self.removed_retry_history_item_count,
+            "removedRetryHistoryCharacters": self.removed_retry_history_characters,
             "selectedHistoryItems": copy.deepcopy(self.selected_history_items),
             "currentInputItemCount": 1,
             "currentInputCharacters": len(self.current_input),
@@ -400,12 +418,12 @@ class OpenAIAgentRunner:
         current_input = OBSERVATION_INPUT_PREFIX + json.dumps(
             observation, separators=(",", ":")
         )
-        parent_tool_choice = (
-            "required" if observation.get("previousAttemptError") else "auto"
-        )
+        is_retry = bool(observation.get("previousAttemptError"))
+        parent_tool_choice = "required" if is_retry else "auto"
         context_filter = _SessionContextFilter(
             session_history_limit=self.session_history_items,
             current_input=current_input,
+            include_history=not is_retry,
         )
         model_input_recorder = _ModelInputRecorder(context_filter.model_request_inputs)
         if not self.api_key:

@@ -237,10 +237,11 @@ fallbacks, allow all listed hosts, and prefer hosts that support the tools. The
 shared request uses `tool_choice=auto` on the first attempt so models can use
 memory or the rules oracle. A reduced-tool retry uses `required`; all six model
 IDs accept that request when provider parameter filtering is disabled. The
-manager still rejects a response with no game action. Stable provider
-prompt-cache keys are sent for player and rules-oracle calls. The harness has no
-local response cache. The summary reports cached input tokens when a provider
-returns them.
+retry sends only the complete current observation, not old action-history
+items. The manager still rejects a response with no game action. Stable
+provider prompt-cache keys are sent for player and rules-oracle calls. The
+harness has no local response cache. The summary reports cached input tokens
+when a provider returns them.
 
 The default is fail-fast. Use `--continue-on-error` to let sibling games
 continue after one game fails. An exact rerun skips completed games and retries
