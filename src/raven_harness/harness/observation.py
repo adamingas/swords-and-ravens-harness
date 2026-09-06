@@ -198,7 +198,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
             or region.get("controlPowerToken")
             or region.get("id") in revealed_orders_by_region
         ]
-        guidance = _action_guidance(context, observation["map"])
+        guidance = _action_guidance(context)
         if guidance:
             observation["actionGuidance"] = guidance
     return observation
@@ -270,9 +270,7 @@ def _revealed_orders(
     return revealed
 
 
-def _action_guidance(
-    context: HarnessContext, map_reference: dict[str, Any]
-) -> dict[str, Any] | None:
+def _action_guidance(context: HarnessContext) -> dict[str, Any] | None:
     """Compute obvious legal IDs omitted by several upstream leaf serializers."""
 
     if context.ingame is None or context.game is None or context.house_id is None:

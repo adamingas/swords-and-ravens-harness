@@ -38,10 +38,6 @@ class Telemetry:
         )
         return cls(provider.get_tracer(service_name), provider)
 
-    @property
-    def enabled(self) -> bool:
-        return self.provider is not None
-
     def shutdown(self) -> None:
         if self.provider is not None:
             self.provider.shutdown()
@@ -49,4 +45,3 @@ class Telemetry:
 
 def provider_cost(raw_usage: list[dict[str, Any]] | None) -> float:
     return sum(float(item.get("cost") or 0) for item in raw_usage or [])
-

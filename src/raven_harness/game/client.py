@@ -27,7 +27,6 @@ class SwordsAndRavensClient:
         game_id: str,
         user_id: str,
         auth_token: str,
-        request_user_id: str | None = None,
         connection_factory: ConnectionFactory = connect,
         on_event: EventHandler | None = None,
     ) -> None:
@@ -35,7 +34,7 @@ class SwordsAndRavensClient:
         self.auth_data = {
             "gameId": game_id,
             "userId": user_id,
-            "requestUserId": request_user_id or user_id,
+            "requestUserId": user_id,
             "authToken": auth_token,
         }
         self.connection_factory = connection_factory

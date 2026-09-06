@@ -7,7 +7,6 @@ from raven_harness.telemetry import Telemetry, provider_cost
 def test_telemetry_is_optional_and_provider_cost_is_aggregated() -> None:
     telemetry = Telemetry.create(endpoint="")
 
-    assert telemetry.enabled is False
     assert provider_cost([{"cost": 0.25}, {"cost": 0.75}, {}]) == 1.0
     telemetry.shutdown()
 

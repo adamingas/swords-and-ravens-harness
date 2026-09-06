@@ -207,7 +207,7 @@ def possible_neutral_force_support(
             ):
                 continue
             for support_id in _supporting_region_ids(
-                context, target_id, regions, static_regions
+                context, target_id, static_regions
             ):
                 controller = _controller(support_id, regions, static_regions)
                 if controller is not None and controller != context.house_id:
@@ -568,7 +568,7 @@ def _neutral_force_attack_strength(
         for destination_id, moved_unit_ids in prior_non_combat_moves
     }
     for support_id in _supporting_region_ids(
-        context, target_region_id, regions, static_regions
+        context, target_region_id, static_regions
     ):
         controller = _controller(support_id, regions, static_regions)
         if controller != context.house_id and controller not in accepted_foreign:
@@ -589,7 +589,6 @@ def _neutral_force_attack_strength(
 def _supporting_region_ids(
     context: HarnessContext,
     target_region_id: str,
-    regions: dict[str, dict[str, Any]],
     static_regions: dict[str, dict[str, Any]],
 ) -> list[str]:
     orders = _orders(context)
