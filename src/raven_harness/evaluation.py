@@ -1667,6 +1667,7 @@ def _build_provenance(
         },
         "harness": {
             "id": TOURNAMENT_HARNESS_ID,
+            "runtimeSha256": _runtime_fingerprint(),
             "systemPromptSha256": _sha256_text(_system_prompt()),
             "effectiveInstructionsSha256": _sha256_text(_effective_instructions()),
             "requestTimeoutSeconds": settings.model_request_timeout_seconds,
@@ -1724,6 +1725,48 @@ def _validate_reproducible_provenance(
                 f"Existing evaluation provenance has different {key}; start a new "
                 "evaluation directory"
             )
+
+
+def _validate_resumable_provenance(
+    existing: dict[str, Any], current: dict[str, Any]
+) -> None:
+    """Require the same runtime for another segment of one saved attempt."""
+
+    for key in ("harness", "rules", "models", "evaluation"):
+        if existing.get(key) != current.get(key):
+            raise RuntimeError(
+                f"Saved attempt provenance has different {key}; start a new "
+                "attempt instead of resuming it"
+            )
+    existing_repositories = existing.get("repositories") or {}
+    current_repositories = current.get("repositories") or {}
+    if existing_repositories.get("swordsAndRavens") != current_repositories.get(
+        "swordsAndRavens"
+    ):
+        raise RuntimeError(
+            "Saved attempt provenance has a different game server; start a new "
+            "attempt instead of resuming it"
+        )
+
+
+def _runtime_fingerprint() -> str:
+    """Hash runtime files without making documentation commits behavior changes."""
+
+    paths = [PROJECT_ROOT / "pyproject.toml", PROJECT_ROOT / "uv.lock"]
+    source_root = PROJECT_ROOT / "src" / "raven_harness"
+    paths.extend(
+        path
+        for path in source_root.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
+    )
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        relative = path.relative_to(PROJECT_ROOT)
+        digest.update(str(relative).encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _git_provenance(

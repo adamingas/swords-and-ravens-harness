@@ -10,6 +10,7 @@ from raven_harness.house_evaluation import (
     HOUSE_TEST_GAMES,
     HOUSE_TEST_INVESTIGATE_AFTER_SECONDS,
     HOUSE_TEST_MODEL,
+    _load_or_create_manifest,
     _require_expected_game_duration,
     build_parser,
     run_house_evaluation,
@@ -151,6 +152,30 @@ def test_house_runner_stops_after_an_unexpectedly_slow_game() -> None:
         )
 
 
+def test_house_runner_rejects_old_manifest_schema(tmp_path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "experiment": "same-model-house-test",
+                "model": HOUSE_TEST_MODEL,
+                "gameCount": HOUSE_TEST_GAMES,
+                "randomSeed": 102,
+                "maxRounds": None,
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="different house-test configuration"):
+        _load_or_create_manifest(
+            manifest_path,
+            provenance={},
+            verified_models=[],
+            args=argparse.Namespace(),
+        )
+
+
 @pytest.mark.asyncio
 async def test_house_runner_uses_five_sequential_unrestricted_isolated_games(
     monkeypatch: pytest.MonkeyPatch, tmp_path
@@ -237,9 +262,15 @@ async def test_house_runner_uses_five_sequential_unrestricted_isolated_games(
     assert all(call["seat_models"] == [HOUSE_TEST_MODEL] * 6 for call in calls)
     assert all(call["seat_houses"] == HOUSES for call in calls)
     manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["schemaVersion"] == 2
     assert manifest["maxRounds"] is None
     assert [game["attempts"][0]["status"] for game in manifest["games"]] == [
         "completed"
     ] * 5
+    assert all(
+        game["attempts"][0]["provenance"]["models"]["ids"]
+        == [HOUSE_TEST_MODEL]
+        for game in manifest["games"]
+    )
     summary = json.loads((output / "summary.json").read_text())
     assert summary["completedGames"] == 5

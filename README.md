@@ -215,6 +215,10 @@ Its summary lists every completed, failed, and cancelled attempt. Request,
 token, and cost totals include partial attempts instead of only finished games.
 If a completed game exceeds two minutes, the command stops before it starts the
 next game so the latency can be investigated.
+Each attempt records its exact runtime provenance. A documentation-only commit
+does not prevent an interrupted attempt from resuming. A runtime, rules, model,
+or game-server change requires a new attempt, while a new sequential game can
+record a newer tested runtime after an investigation.
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
 clients, then completes two rounds with a deterministic policy. It invokes the

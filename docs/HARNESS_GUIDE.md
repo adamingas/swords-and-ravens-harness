@@ -1029,6 +1029,11 @@ model set, model settings, provider routing, the base random seed, and the fixed
 house and user schedule.
 The same-model runner stops before the next sequential game when a completed
 game takes more than 120 seconds. Investigate that latency before resuming.
+Each attempt records its own source, runtime, rules, model, and game-server
+provenance. Documentation commits do not change the runtime fingerprint. An
+interrupted attempt resumes only when its runtime provenance still matches.
+The next sequential game can use a newer runtime after an investigation and
+records that new provenance on its attempt.
 The evaluator derives a distinct uint32 seed for each game and reuses it for
 every attempt of that game. The game result records the exact seed, and the
 verifier checks it against the schedule. Client-only hidden-deck shuffles use a

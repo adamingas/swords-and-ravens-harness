@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import copy
 import hashlib
 import json
 import subprocess
@@ -21,6 +22,7 @@ from raven_harness.evaluation import (
     _collect_openrouter_generations,
     _evaluation_schedule,
     _git_provenance,
+    _validate_resumable_provenance,
     _load_manifest,
     _persisted_response_rows,
     _preflight_openrouter_models,
@@ -338,6 +340,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     ).hexdigest()
     assert len(provenance["harness"]["systemPromptSha256"]) == 64
     assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
+    assert len(provenance["harness"]["runtimeSha256"]) == 64
     assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
     assert provenance["harness"]["toolChoice"] == "required"
     assert provenance["harness"]["retryHistoryMode"] == (
@@ -351,6 +354,28 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert "do-not-record-this-token" not in serialized
     assert "url-secret" not in serialized
     assert "hidden" not in serialized
+
+
+def test_resumable_provenance_ignores_docs_commit_but_rejects_runtime_change() -> None:
+    existing = {
+        "repositories": {
+            "root": {"commit": "before-docs"},
+            "swordsAndRavens": {"commit": "game-server"},
+        },
+        "harness": {"runtimeSha256": "runtime-a"},
+        "rules": {"sha256": "rules"},
+        "models": {"ids": ["model"]},
+        "evaluation": {"randomSeed": 1},
+    }
+    after_docs = copy.deepcopy(existing)
+    after_docs["repositories"]["root"]["commit"] = "after-docs"
+
+    _validate_resumable_provenance(existing, after_docs)
+
+    after_runtime_change = copy.deepcopy(after_docs)
+    after_runtime_change["harness"]["runtimeSha256"] = "runtime-b"
+    with pytest.raises(RuntimeError, match="different harness"):
+        _validate_resumable_provenance(existing, after_runtime_change)
 
 
 def test_git_provenance_ignores_runtime_save_but_tracks_source_changes(

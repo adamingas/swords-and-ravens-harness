@@ -20,7 +20,7 @@ from .evaluation import (
     _preflight_model_catalog,
     _preflight_openrouter_quota,
     _resumable_attempt,
-    _validate_reproducible_provenance,
+    _validate_resumable_provenance,
     _write_json,
     derive_game_seed,
     resolve_evaluation_output,
@@ -115,12 +115,19 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
                 "startedAt": _now(),
                 "resumeCount": 0,
                 "activeElapsedSeconds": 0.0,
+                "provenance": provenance,
             }
             game_entry["attempts"].append(attempt)
             resume = False
             verb = "starting"
         else:
             attempt, attempt_dir = resumable
+            attempt_provenance = attempt.get("provenance")
+            if not isinstance(attempt_provenance, dict):
+                raise RuntimeError(
+                    "Saved house-test attempt has no runtime provenance"
+                )
+            _validate_resumable_provenance(attempt_provenance, provenance)
             attempt_number = int(attempt["number"])
             attempt.setdefault("interruptions", []).append(
                 {
@@ -339,7 +346,7 @@ def _load_or_create_manifest(
         if not isinstance(manifest, dict):
             raise RuntimeError("Saved house-test manifest must be a JSON object")
         if (
-            manifest.get("schemaVersion") != 1
+            manifest.get("schemaVersion") != 2
             or manifest.get("experiment") != "same-model-house-test"
             or manifest.get("model") != HOUSE_TEST_MODEL
             or manifest.get("gameCount") != HOUSE_TEST_GAMES
@@ -349,11 +356,18 @@ def _load_or_create_manifest(
             raise RuntimeError(
                 "Existing output contains a different house-test configuration"
             )
-        _validate_reproducible_provenance(manifest.get("provenance", {}), provenance)
+        if not isinstance(manifest.get("provenance"), dict):
+            raise RuntimeError("Existing house-test manifest has no provenance")
+        for game in manifest.get("games", []):
+            for attempt in game.get("attempts", []):
+                if not isinstance(attempt.get("provenance"), dict):
+                    raise RuntimeError(
+                        "Existing house-test attempt has no runtime provenance"
+                    )
         return manifest
 
     manifest = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "experiment": "same-model-house-test",
         "harness": TOURNAMENT_HARNESS_ID,
         "model": HOUSE_TEST_MODEL,
