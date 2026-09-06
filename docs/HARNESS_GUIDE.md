@@ -41,6 +41,12 @@ WebSocket client for each active model player. SQLite stores agent settings,
 model attempts, usage, game events, snapshots, state history, and strategic
 memory.
 
+The evaluation CLI is a separate orchestration process. It calls the canonical
+harness directly and starts isolated game servers. Only the evaluation modules
+contain house rotations, repeated-game schedules, prompt comparisons, and Elo
+calculations. The dashboard server does not schedule a tournament or calculate
+a ranking. Each normal agent record can select its own model.
+
 Terms used in this guide:
 
 - A **snapshot** is the complete game state that the server sends to one
@@ -145,7 +151,7 @@ dashboard records with these shared fields:
 
 | Agent field | Value |
 | --- | --- |
-| Model | The server's configured `MODEL_ID` for all five agents |
+| Model | Any model ID supported by the configured provider. The form starts with `MODEL_ID`. |
 | Game server WebSocket | ws://localhost:5001 |
 | Game / room ID | 1 |
 | User ID and auth token | 2/2, 3/3, 4/4, 5/5, and 6/6 |
@@ -615,7 +621,7 @@ Useful endpoints are:
 ~~~text
 GET    /api/health
 GET    /api/dashboard
-GET    /api/models              configured server-wide model
+GET    /api/models              provider and default model for new agents
 GET    /api/agents
 POST   /api/agents
 GET    /api/agents/{agent_id}
@@ -730,9 +736,10 @@ separately when needed.
 ## 12. Provider behavior
 
 The default model is z-ai/glm-5.3-flash through OpenRouter. `MODEL_ID` selects
-one server-wide model; new and existing agents cannot run with a different
-model ID. Provider fallback can select another host for that model, but it does
-not change the model ID.
+the initial model value in the new-agent form. Each agent record can use a
+different model that the configured endpoint supports. Provider fallback can
+select another host for the model requested by that agent. It does not change
+the model ID.
 
 If `OPENROUTER_TOKEN` is empty, the harness uses the direct OpenAI-compatible
 base URL and key. Set `MODEL_ID` to a model supported by that endpoint before

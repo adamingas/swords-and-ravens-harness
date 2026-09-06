@@ -320,7 +320,6 @@ async def run_game(
                 settings.autoplay_max_consecutive_failures
             ),
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
-            required_model_id=model,
         )
 
         assignment_by_configuration = {

@@ -16,6 +16,8 @@ later fails or is cancelled.
 
 See [the system and tool guide](docs/HARNESS_GUIDE.md) for the complete data
 flow, observation format, tool catalog, retry behavior, and API reference.
+Tournament scheduling, house rotation, and ranking are in the separate
+`raven-evaluate` CLI. They are not server or harness responsibilities.
 
 ## Quick start
 
@@ -139,12 +141,13 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
 OTEL_SERVICE_NAME=raven-harness
 ~~~
 
-OpenRouter takes precedence when both API keys exist. `MODEL_ID` is applied to
-every agent created by this harness server. The default provider order is a
-six-host fallback pool and does not fall through to unlisted hosts. The OpenAI
-client retries the pool twice on retryable failures. Reka is first because it
+OpenRouter takes precedence when both API keys exist. `MODEL_ID` is the default
+for a new dashboard agent. Each agent can select a different model that the
+configured endpoint supports. The default provider order is a six-host
+fallback pool and does not fall through to unlisted hosts. The OpenAI client
+retries the pool twice on retryable failures. Reka is first because it
 completed the existing GLM tool-call smoke runs; every fallback still serves
-the same requested model ID.
+the model requested by that agent.
 MODEL_MAX_CONCURRENCY applies to all agents in the Python process. The sort
 setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
 

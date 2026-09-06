@@ -73,7 +73,6 @@ def create_app(
                 settings.autoplay_max_consecutive_failures
             ),
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
-            required_model_id=settings.model_id,
         )
         app.state.database = database
         app.state.store = store
@@ -118,7 +117,7 @@ def create_app(
             "ok": True,
             "modelApiConfigured": bool(settings.model_api_key),
             "modelProvider": settings.model_provider,
-            "modelId": settings.model_id,
+            "defaultModelId": settings.model_id,
             "modelMaxConcurrency": settings.model_max_concurrency,
             "modelMaxOutputTokens": settings.model_max_output_tokens,
             "modelSessionHistoryItems": settings.model_session_history_items,
@@ -144,16 +143,13 @@ def create_app(
     async def list_models() -> dict[str, Any]:
         return {
             "provider": settings.model_provider,
-            "models": [{"id": settings.model_id, "name": settings.model_id}],
+            "defaultModelId": settings.model_id,
         }
 
     @app.post("/api/agents", status_code=201)
     async def create_agent(value: AgentCreate, request: Request) -> dict[str, Any]:
-        if "model" in value.model_fields_set and value.model != settings.model_id:
-            raise RuntimeError(
-                f"All agents on this harness must use {settings.model_id}"
-            )
-        value = value.model_copy(update={"model": settings.model_id})
+        if "model" not in value.model_fields_set:
+            value = value.model_copy(update={"model": settings.model_id})
         record = _store(request).create_agent(value)
         agent = AgentPublic.from_record(
             record, _manager(request).get_runtime(record.id)

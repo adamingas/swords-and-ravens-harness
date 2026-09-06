@@ -123,15 +123,10 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
     with TestClient(app) as client:
         assert client.get("/api/models").json() == {
             "provider": "OpenAI",
-            "models": [
-                {
-                    "id": "z-ai/glm-5.3-flash",
-                    "name": "z-ai/glm-5.3-flash",
-                }
-            ],
+            "defaultModelId": "z-ai/glm-5.3-flash",
         }
         health = client.get("/api/health").json()
-        assert health["modelId"] == "z-ai/glm-5.3-flash"
+        assert health["defaultModelId"] == "z-ai/glm-5.3-flash"
         assert health["rulesOracleAvailable"] is False
         response = client.post(
             "/api/agents",
@@ -202,7 +197,7 @@ def test_dashboard_restores_last_saved_player_state_after_restart(tmp_path) -> N
     assert [unit["id"] for unit in monitor["state"]["player"]["units"]] == [1, 2]
 
 
-def test_dashboard_enforces_one_configured_model(tmp_path) -> None:
+def test_dashboard_uses_a_default_and_accepts_per_agent_models(tmp_path) -> None:
     app = create_app(
         Settings(
             database_path=tmp_path / "api.db",
@@ -224,14 +219,12 @@ def test_dashboard_enforces_one_configured_model(tmp_path) -> None:
         assert created.status_code == 201
         assert created.json()["agent"]["model"] == "provider/model-a"
 
-        rejected = client.post(
+        other = client.post(
             "/api/agents",
             json={**base_request, "name": "Other Wolf", "model": "provider/model-b"},
         )
-        assert rejected.status_code == 400
-        assert rejected.json() == {
-            "error": "All agents on this harness must use provider/model-a"
-        }
+        assert other.status_code == 201
+        assert other.json()["agent"]["model"] == "provider/model-b"
 
 
 def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:

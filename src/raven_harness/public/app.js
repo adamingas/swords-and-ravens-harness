@@ -13,7 +13,7 @@ let detailsRunId = null;
 let detailsLoading = false;
 let detailsReloadRequested = false;
 let refreshPromise = null;
-let configuredModel = "";
+let defaultModel = "";
 
 document.querySelector("#new-agent").addEventListener("click", () => agentDialog.showModal());
 document.querySelector("#close-dialog").addEventListener("click", () => agentDialog.close());
@@ -42,7 +42,7 @@ form.addEventListener("submit", async (event) => {
   try {
     await api("/api/agents", { method: "POST", body: JSON.stringify(input) });
     form.reset();
-    form.elements.model.value = configuredModel;
+    form.elements.model.value = defaultModel;
     form.elements.gameServerUrl.value = "ws://localhost:5001";
     form.elements.gameId.value = "1";
     agentDialog.close();
@@ -80,18 +80,10 @@ async function refreshDashboard() {
   if (detailsDialog.open) await loadDetails({ showLoading: false });
 }
 
-async function loadModels() {
-  const { models } = await api("/api/models");
-  if (!models.length) return;
-  configuredModel = models[0].id;
-  const select = form.elements.model;
-  select.replaceChildren(...models.map((model) => {
-    const option = document.createElement("option");
-    option.value = model.id;
-    option.textContent = model.name;
-    return option;
-  }));
-  select.value = configuredModel;
+async function loadModelDefault() {
+  const { defaultModelId } = await api("/api/models");
+  defaultModel = defaultModelId;
+  form.elements.model.value = defaultModel;
 }
 
 function render() {
@@ -950,5 +942,5 @@ function reportDashboardFailure(error) {
   apiStatus.title = error.message;
 }
 
-loadModels().then(refresh).catch(reportDashboardFailure);
+loadModelDefault().then(refresh).catch(reportDashboardFailure);
 setInterval(() => refresh().catch(reportDashboardFailure), 2500);

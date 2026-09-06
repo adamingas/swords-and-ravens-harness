@@ -80,7 +80,6 @@ class AgentManager:
         autoplay_retry_base_seconds: float = 2,
         reconnect_retry_base_seconds: float = 1,
         reconnect_retry_max_seconds: float = 30,
-        required_model_id: str | None = None,
     ) -> None:
         self.store = store
         self.harness = harness
@@ -90,7 +89,6 @@ class AgentManager:
         self.autoplay_retry_base_seconds = autoplay_retry_base_seconds
         self.reconnect_retry_base_seconds = reconnect_retry_base_seconds
         self.reconnect_retry_max_seconds = reconnect_retry_max_seconds
-        self.required_model_id = required_model_id
         self.sessions: dict[str, AgentSession] = {}
 
     def list_agents(self) -> list[AgentPublic]:
@@ -165,10 +163,6 @@ class AgentManager:
                 raise RuntimeError("Agent is already started")
 
         record = self._require_agent(agent_id)
-        if self.required_model_id is not None and record.model != self.required_model_id:
-            raise RuntimeError(
-                f"All agents on this harness must use {self.required_model_id}"
-            )
         session: AgentSession
 
         def on_event(kind: str, payload: dict[str, Any]) -> None:
