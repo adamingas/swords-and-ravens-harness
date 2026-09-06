@@ -1,4 +1,7 @@
+import asyncio
 from collections.abc import AsyncIterator
+import hashlib
+import json
 import sqlite3
 from typing import Any
 
@@ -9,7 +12,15 @@ from openai.types.responses import ResponseFunctionToolCall
 
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.observation import build_observation
-from raven_harness.models.openai_agent import OpenAIAgentRunner
+from raven_harness.harness.strategic import remember_strategy
+from raven_harness.models.openai_agent import (
+    CONTEXT_POLICY_NAME,
+    OBSERVATION_INPUT_PREFIX,
+    ModelRunCancelled,
+    ModelRunError,
+    OpenAIAgentRunner,
+    _SessionContextFilter,
+)
 from raven_harness.schemas import AgentCreate, AgentRecord
 
 from conftest import lobby_snapshot
@@ -35,23 +46,29 @@ class FakeClient:
 
 
 class ToolCallingModel(Model):
-    model_settings: Any = None
+    def __init__(self, expected_tool_names: list[str] | None = None) -> None:
+        self.model_settings: Any = None
+        self.inputs: list[list[dict[str, Any]]] = []
+        self.call_count = 0
+        self.expected_tool_names = expected_tool_names or ["choose_house"]
 
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         tools = kwargs["tools"]
         self.model_settings = kwargs["model_settings"]
-        assert [tool.name for tool in tools] == ["choose_house"]
+        self.inputs.append(kwargs["input"])
+        self.call_count += 1
+        assert [tool.name for tool in tools] == self.expected_tool_names
         return ModelResponse(
             output=[
                 ResponseFunctionToolCall(
                     arguments='{"house_id":"stark"}',
-                    call_id="call-1",
+                    call_id=f"call-{self.call_count}",
                     name="choose_house",
                     type="function_call",
                 )
             ],
             usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
-            response_id="resp-1",
+            response_id=f"resp-{self.call_count}",
         )
 
     async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
@@ -62,6 +79,41 @@ class ToolCallingModel(Model):
 class FailingModel(Model):
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         raise RuntimeError("provider failed")
+
+    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
+        if False:
+            yield None
+
+
+class CancellingModel(Model):
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        raise asyncio.CancelledError
+
+    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
+        if False:
+            yield None
+
+
+class RememberThenFailModel(Model):
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        self.call_count += 1
+        if self.call_count == 2:
+            raise RuntimeError("provider failed after note")
+        return ModelResponse(
+            output=[
+                ResponseFunctionToolCall(
+                    arguments='{"note":"Uncommitted northern plan"}',
+                    call_id="remember-1",
+                    name="remember_strategy",
+                    type="function_call",
+                )
+            ],
+            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
+            response_id="remember-response",
+        )
 
     async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
         if False:
@@ -119,6 +171,39 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     assert result.response_id == "resp-1"
     assert result.usage["totalTokens"] == 25
     assert result.raw_usage == [{"scope": "agent", "response_id": "resp-1"}]
+    request_input = json.dumps(
+        fake_model.inputs[0], ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    )
+    assert result.context_manifest == {
+        "policy": CONTEXT_POLICY_NAME,
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "discardedPrefixItemCount": 0,
+        "removedObservationItemCount": 0,
+        "removedObservationCharacters": 0,
+        "removedSupportToolItemCount": 0,
+        "removedSupportToolCharacters": 0,
+        "selectedHistoryItems": [],
+        "currentInputItemCount": 1,
+        "currentInputCharacters": len(fake_model.inputs[0][0]["content"]),
+        "currentInputSha256": hashlib.sha256(
+            fake_model.inputs[0][0]["content"].encode("utf-8")
+        ).hexdigest(),
+        "modelRequestInputs": [
+            {
+                "requestIndex": 1,
+                "inputItemCount": 1,
+                "inputCharacters": len(request_input),
+                "inputSha256": hashlib.sha256(
+                    request_input.encode("utf-8")
+                ).hexdigest(),
+                "instructionsCharacters": len(record.system_prompt),
+                "instructionsSha256": hashlib.sha256(
+                    record.system_prompt.encode("utf-8")
+                ).hexdigest(),
+            }
+        ],
+    }
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
     assert runner.client.max_retries == 4
@@ -145,17 +230,42 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    with pytest.raises(RuntimeError, match="provider failed"):
+    with pytest.raises(ModelRunError, match="provider failed") as raised:
         await OpenAIAgentRunner(
             api_key="test-key", base_url="https://api.openai.test/v1"
         ).run_once(**turn_arguments(record, context))
 
     assert client.sent == []
     assert context.action_taken is None
+    assert raised.value.partial_result.context_manifest["policy"] == CONTEXT_POLICY_NAME
+    assert raised.value.partial_result.context_manifest["currentInputItemCount"] == 1
 
 
 @pytest.mark.asyncio
-async def test_runner_persists_a_bounded_agent_sdk_conversation(
+async def test_cancelled_model_run_carries_the_context_manifest(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: CancellingModel(),
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    client = FakeClient()
+    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+
+    with pytest.raises(ModelRunCancelled) as raised:
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**turn_arguments(record, context))
+
+    manifest = raised.value.partial_result.context_manifest
+    assert manifest["policy"] == CONTEXT_POLICY_NAME
+    assert manifest["currentInputItemCount"] == 1
+    assert manifest["retrievedHistoryItemCount"] == 0
+
+
+@pytest.mark.asyncio
+async def test_runner_filters_old_observations_without_purging_the_session(
     monkeypatch, tmp_path
 ) -> None:
     fake_model = ToolCallingModel()
@@ -176,12 +286,298 @@ async def test_runner_persists_a_bounded_agent_sdk_conversation(
         session_history_items=12,
     )
 
-    await runner.run_once(**turn_arguments(record, context))
+    first_result = await runner.run_once(**turn_arguments(record, context))
+    first_input = fake_model.inputs[0]
+
+    client.snapshot = lobby_snapshot()
+    second_context = HarnessRunContext(
+        client=client, user_id="2", game_password="wolf"
+    )
+    second_result = await runner.run_once(**turn_arguments(record, second_context))
+    second_input = fake_model.inputs[1]
 
     with sqlite3.connect(database_path) as connection:
         rows = connection.execute(
             "SELECT message_data FROM agent_messages ORDER BY id"
         ).fetchall()
-    assert len(rows) >= 3
-    assert any("current player-scoped game observation" in row[0] for row in rows)
+    stored_items = [json.loads(row[0]) for row in rows]
+
+    assert len(stored_items) == 6
+    assert sum(
+        OBSERVATION_INPUT_PREFIX in item.get("content", "")
+        for item in stored_items
+    ) == 2
+    assert sum(
+        OBSERVATION_INPUT_PREFIX in item.get("content", "") for item in second_input
+    ) == 1
+    assert second_input[0]["type"] == "function_call"
+    assert second_input[0]["call_id"] == "call-1"
+    assert second_input[1]["type"] == "function_call_output"
+    assert second_input[1]["call_id"] == "call-1"
+    assert second_input[2]["role"] == "user"
+    assert second_input[2]["content"].startswith(OBSERVATION_INPUT_PREFIX)
+
+    manifest = second_result.context_manifest
+    assert manifest["policy"] == CONTEXT_POLICY_NAME
+    assert manifest["sessionHistoryLimit"] == 12
+    assert manifest["retrievedHistoryItemCount"] == 3
+    assert manifest["discardedPrefixItemCount"] == 0
+    assert manifest["removedObservationItemCount"] == 1
+    assert manifest["removedObservationCharacters"] == len(first_input[0]["content"])
+    assert manifest["removedSupportToolItemCount"] == 0
+    assert manifest["removedSupportToolCharacters"] == 0
+    assert manifest["selectedHistoryItems"] == second_input[:2]
+    assert manifest["currentInputItemCount"] == 1
+    assert manifest["currentInputCharacters"] == len(second_input[2]["content"])
+    assert manifest["currentInputSha256"] == hashlib.sha256(
+        second_input[2]["content"].encode("utf-8")
+    ).hexdigest()
+    assert "test-key" not in json.dumps(manifest)
+    assert first_result.context_manifest["retrievedHistoryItemCount"] == 0
     await runner.shutdown()
+
+
+def test_session_context_filter_discards_an_orphaned_history_prefix() -> None:
+    old_observation = {
+        "role": "user",
+        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"round":1}}',
+    }
+    orphaned_output = {
+        "type": "function_call_output",
+        "call_id": "orphaned-call",
+        "output": '{"ok":true}',
+    }
+    retained_call = {
+        "type": "function_call",
+        "call_id": "complete-call",
+        "name": "choose_house",
+        "arguments": '{"house_id":"stark"}',
+    }
+    retained_reasoning = {
+        "type": "reasoning",
+        "id": "reasoning-1",
+        "summary": [],
+    }
+    retained_output = {
+        "type": "function_call_output",
+        "call_id": "complete-call",
+        "output": '{"ok":true}',
+    }
+    retained_message = {
+        "type": "message",
+        "role": "assistant",
+        "content": [{"type": "output_text", "text": "Action completed."}],
+    }
+    second_old_observation = {
+        "role": "user",
+        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"round":1,"phase":"action"}}',
+    }
+    current_input = OBSERVATION_INPUT_PREFIX + '{"game":{"round":2}}'
+    new_items = [{"role": "user", "content": current_input}]
+    context_filter = _SessionContextFilter(32, current_input)
+
+    filtered = context_filter(
+        [
+            orphaned_output,
+            old_observation,
+            retained_reasoning,
+            retained_call,
+            retained_output,
+            retained_message,
+            second_old_observation,
+        ],
+        new_items,
+    )
+
+    assert filtered == [
+        retained_reasoning,
+        retained_call,
+        retained_output,
+        retained_message,
+        *new_items,
+    ]
+    manifest = context_filter.manifest()
+    assert manifest["retrievedHistoryItemCount"] == 7
+    assert manifest["discardedPrefixItemCount"] == 1
+    assert manifest["removedObservationItemCount"] == 2
+    assert manifest["removedObservationCharacters"] == (
+        len(old_observation["content"]) + len(second_old_observation["content"])
+    )
+    assert manifest["selectedHistoryItems"] == [
+        retained_reasoning,
+        retained_call,
+        retained_output,
+        retained_message,
+    ]
+
+
+def test_session_context_filter_removes_large_recall_and_support_outputs() -> None:
+    observation = {
+        "role": "user",
+        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"stateId":"old"}}',
+    }
+    recall_call = {
+        "type": "function_call",
+        "call_id": "recall-1",
+        "name": "recall_game_state",
+        "arguments": '{"turns_ago":1}',
+    }
+    recall_output = {
+        "type": "function_call_output",
+        "call_id": "recall-1",
+        "output": json.dumps({"observation": "x" * 30_000}),
+    }
+    oracle_call = {
+        "type": "function_call",
+        "call_id": "oracle-1",
+        "name": "ask_rules_oracle",
+        "arguments": '{"question":"How does supply work?"}',
+    }
+    oracle_output = {
+        "type": "function_call_output",
+        "call_id": "oracle-1",
+        "output": "A concise answer.",
+    }
+    game_call = {
+        "type": "function_call",
+        "call_id": "game-1",
+        "name": "resolve_march",
+        "arguments": '{"starting_region_id":"winterfell","moves":[]}',
+    }
+    game_output = {
+        "type": "function_call_output",
+        "call_id": "game-1",
+        "output": '{"ok":true}',
+    }
+    current_input = OBSERVATION_INPUT_PREFIX + '{"game":{"stateId":"current"}}'
+    context_filter = _SessionContextFilter(32, current_input)
+
+    filtered = context_filter(
+        [
+            observation,
+            recall_call,
+            recall_output,
+            oracle_call,
+            oracle_output,
+            game_call,
+            game_output,
+        ],
+        [{"role": "user", "content": current_input}],
+    )
+
+    serialized = json.dumps(filtered, separators=(",", ":"))
+    assert "x" * 100 not in serialized
+    assert "recall_game_state" not in serialized
+    assert "ask_rules_oracle" not in serialized
+    assert filtered[:2] == [game_call, game_output]
+    manifest = context_filter.manifest()
+    assert manifest["removedSupportToolItemCount"] == 4
+    assert manifest["removedSupportToolCharacters"] > 30_000
+
+
+@pytest.mark.asyncio
+async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
+    monkeypatch, tmp_path
+) -> None:
+    failing_model = RememberThenFailModel()
+    current_model: Model = failing_model
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: current_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    database_path = tmp_path / "failed-note.db"
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+        session_database_path=database_path,
+    )
+    first_context = HarnessRunContext(
+        client=FakeClient(), user_id="2", game_password="wolf"
+    )
+    tools = [
+        *available_tools(first_context.current_game_context()),
+        remember_strategy,
+    ]
+    first_arguments = turn_arguments(record, first_context)
+    first_arguments["tools"] = tools
+    first_arguments["max_turns"] = 3
+
+    with pytest.raises(ModelRunError, match="provider failed after note"):
+        await runner.run_once(**first_arguments)
+
+    successful_model = ToolCallingModel(["choose_house", "remember_strategy"])
+    current_model = successful_model
+    second_context = HarnessRunContext(
+        client=FakeClient(), user_id="2", game_password="wolf"
+    )
+    second_arguments = turn_arguments(record, second_context)
+    second_arguments["tools"] = tools
+    result = await runner.run_once(**second_arguments)
+
+    serialized_input = json.dumps(successful_model.inputs[0], separators=(",", ":"))
+    assert "Uncommitted northern plan" not in serialized_input
+    assert "remember_strategy" not in serialized_input
+    assert result.context_manifest["removedSupportToolItemCount"] == 2
+    await runner.shutdown()
+
+
+def test_session_context_filter_plateaus_across_one_hundred_decisions() -> None:
+    history_limit = 32
+    stored_history: list[dict[str, Any]] = []
+    effective_sizes: list[int] = []
+
+    for decision in range(100):
+        current_input = (
+            OBSERVATION_INPUT_PREFIX
+            + json.dumps(
+                {
+                    "game": {"stateId": f"state-{decision}"},
+                    "board": "x" * 30_000,
+                },
+                separators=(",", ":"),
+            )
+        )
+        new_items = [{"role": "user", "content": current_input}]
+        context_filter = _SessionContextFilter(history_limit, current_input)
+        effective_input = context_filter(stored_history[-history_limit:], new_items)
+
+        serialized_input = json.dumps(effective_input, separators=(",", ":"))
+        effective_sizes.append(len(serialized_input))
+        effective_text = "\n".join(
+            content
+            for item in effective_input
+            if isinstance((content := item.get("content")), str)
+        )
+        assert effective_text.count(OBSERVATION_INPUT_PREFIX) == 1
+        if decision:
+            assert f'"stateId":"state-{decision - 1}"' not in effective_text
+
+        call_id = f"call-{decision}"
+        stored_history.extend(
+            [
+                *new_items,
+                {
+                    "type": "reasoning",
+                    "id": f"reasoning-{decision}",
+                    "summary": [],
+                },
+                {
+                    "type": "function_call",
+                    "call_id": call_id,
+                    "name": "resolve_march",
+                    "arguments": '{"option_id":"march-1"}',
+                },
+                {
+                    "type": "function_call_output",
+                    "call_id": call_id,
+                    "output": '{"ok":true}',
+                },
+            ]
+        )
+
+    assert len(stored_history) == 400
+    assert len(set(effective_sizes[20:])) == 1
+    assert effective_sizes[-1] < 35_000

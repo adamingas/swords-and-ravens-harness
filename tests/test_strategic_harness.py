@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import json
 from typing import Any
@@ -5,6 +6,7 @@ from typing import Any
 import pytest
 from agents import ModelResponse, Usage
 from agents.models.interface import Model
+from agents.tool_context import ToolContext
 from openai.types.responses import ResponseFunctionToolCall
 
 from raven_harness.agent_store import AgentStore
@@ -13,8 +15,8 @@ from raven_harness.harness.actions import HarnessRunContext
 from raven_harness.harness.interface import PlayerHarness
 from raven_harness.harness.observation import build_context, build_observation
 from raven_harness.harness import strategic as strategic_module
-from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.models.openai_agent import OpenAIAgentRunner
+from raven_harness.harness.strategic import StrategicHarness, remember_strategy
+from raven_harness.models.openai_agent import ModelRunResult, OpenAIAgentRunner
 from raven_harness.schemas import AgentCreate
 
 from conftest import lobby_snapshot, planning_snapshot
@@ -95,6 +97,64 @@ class RecallThenActionModel(Model):
             yield None
 
 
+class RememberThenActionModel(Model):
+    def __init__(self, *, fail_after_note: bool = False) -> None:
+        self.calls = 0
+        self.fail_after_note = fail_after_note
+
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        self.calls += 1
+        if self.calls == 1:
+            output = ResponseFunctionToolCall(
+                arguments=json.dumps(
+                    {"note": "  Hold Winterfell, then pressure the eastern castles.  "}
+                ),
+                call_id="remember-1",
+                name="remember_strategy",
+                type="function_call",
+            )
+        elif self.fail_after_note:
+            raise RuntimeError("provider failed after strategy note")
+        else:
+            output = ResponseFunctionToolCall(
+                arguments='{"house_id":"stark"}',
+                call_id="action-after-memory",
+                name="choose_house",
+                type="function_call",
+            )
+        return ModelResponse(
+            output=[output],
+            usage=Usage(requests=1, input_tokens=30, output_tokens=10, total_tokens=40),
+            response_id=f"remember-resp-{self.calls}",
+        )
+
+    async def stream_response(self, *args, **kwargs):
+        if False:
+            yield None
+
+
+class PendingOutcomeRunner(HarnessStubRunner):
+    def __init__(self, outcome: str) -> None:
+        self.outcome = outcome
+
+    async def run_once(self, *, context, **_kwargs) -> ModelRunResult:
+        context.pending_strategy_note = "This must not be persisted."
+        if self.outcome == "cancelled":
+            raise asyncio.CancelledError
+        return ModelRunResult(
+            response_id=None,
+            output_text="",
+            usage={
+                "requests": 0,
+                "inputTokens": 0,
+                "outputTokens": 0,
+                "totalTokens": 0,
+            },
+            response_items=[],
+            raw_usage=[],
+        )
+
+
 def test_strategic_harness_implements_interface_and_prepares_memory(
     tmp_path, monkeypatch
 ) -> None:
@@ -128,10 +188,12 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     names = [tool.name for tool in prepared.tools]
     assert "submit_orders" in names
     assert "recall_game_state" in names
+    assert "remember_strategy" in names
     assert "update_strategic_memory" not in names
     assert prepared.metadata["promptCacheKey"].startswith("raven-")
     assert prepared.observation["strategicMemory"]["revision"] == 0
     assert prepared.observation["strategicMemory"]["roundNumber"] is None
+    assert prepared.observation["strategicMemory"]["modelPlan"] == ""
     assert prepared.observation["strategicOverview"]["round"] == 1
     submit_schema = next(
         tool.params_json_schema for tool in prepared.tools if tool.name == "submit_orders"
@@ -207,4 +269,150 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
     assert automatic_memory["roundNumber"] == 0
     assert "used choose_house" in automatic_memory["commitments"][-1]
     await harness.shutdown()
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_remember_strategy_has_bounded_plain_text_schema() -> None:
+    schema = remember_strategy.params_json_schema
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["note"] == {
+        "description": (
+            "Concise replacement for your durable multi-round strategic plan. "
+            "Use only when the plan materially changes."
+        ),
+        "maxLength": 2_000,
+        "minLength": 1,
+        "title": "Note",
+        "type": "string",
+    }
+
+    client = FakeClient(lobby_snapshot())
+    context = HarnessRunContext(client=client, user_id="2")
+    maximum = json.dumps({"note": "x" * 2_000})
+    accepted = await remember_strategy.on_invoke_tool(
+        ToolContext(
+            context=context,
+            tool_call_id="remember-maximum",
+            tool_name=remember_strategy.name,
+            tool_arguments=maximum,
+        ),
+        maximum,
+    )
+    assert json.loads(accepted)["pending"] is True
+    assert context.pending_strategy_note == "x" * 2_000
+
+    too_long_context = HarnessRunContext(client=client, user_id="2")
+    too_long = json.dumps({"note": "x" * 2_001})
+    await remember_strategy.on_invoke_tool(
+        ToolContext(
+            context=too_long_context,
+            tool_call_id="remember-too-long",
+            tool_name=remember_strategy.name,
+            tool_arguments=too_long,
+        ),
+        too_long,
+    )
+    assert too_long_context.pending_strategy_note is None
+
+
+@pytest.mark.asyncio
+async def test_strategy_note_commits_only_after_accepted_gameplay_action(
+    monkeypatch, tmp_path
+) -> None:
+    fake_model = RememberThenActionModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    database = Database(tmp_path / "strategy-success.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="secret")
+    )
+    client = FakeClient(lobby_snapshot())
+    harness = StrategicHarness(
+        OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1"),
+        store,
+    )
+    prepared = harness.prepare_turn(
+        record, build_context(client.snapshot, "2"), previous_error=None
+    )
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+
+    await harness.run_turn(record, prepared, run_context, "strategy-success")
+
+    assert fake_model.calls == 2
+    assert run_context.action_taken is not None
+    memory = store.get_strategic_memory(record.id)
+    assert memory["modelPlan"] == (
+        "Hold Winterfell, then pressure the eastern castles."
+    )
+    assert memory["revision"] == 1
+    await harness.shutdown()
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_strategy_note_is_not_committed_when_parent_model_fails(
+    monkeypatch, tmp_path
+) -> None:
+    fake_model = RememberThenActionModel(fail_after_note=True)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    database = Database(tmp_path / "strategy-failure.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="secret")
+    )
+    original = store.set_strategic_memory(record.id, {"modelPlan": "Original plan"})
+    client = FakeClient(lobby_snapshot())
+    harness = StrategicHarness(
+        OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1"),
+        store,
+    )
+    prepared = harness.prepare_turn(
+        record, build_context(client.snapshot, "2"), previous_error=None
+    )
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+
+    with pytest.raises(RuntimeError, match="provider failed after strategy note"):
+        await harness.run_turn(record, prepared, run_context, "strategy-failure")
+
+    memory = store.get_strategic_memory(record.id)
+    assert memory["modelPlan"] == "Original plan"
+    assert memory["revision"] == original["revision"]
+    await harness.shutdown()
+    database.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["no-action", "cancelled"])
+async def test_pending_strategy_is_not_committed_without_returned_accepted_action(
+    outcome, tmp_path
+) -> None:
+    database = Database(tmp_path / f"strategy-{outcome}.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="secret")
+    )
+    original = store.set_strategic_memory(record.id, {"modelPlan": "Original plan"})
+    client = FakeClient(lobby_snapshot())
+    harness = StrategicHarness(PendingOutcomeRunner(outcome), store)
+    prepared = harness.prepare_turn(
+        record, build_context(client.snapshot, "2"), previous_error=None
+    )
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+
+    if outcome == "cancelled":
+        with pytest.raises(asyncio.CancelledError):
+            await harness.run_turn(record, prepared, run_context, f"strategy-{outcome}")
+    else:
+        await harness.run_turn(record, prepared, run_context, f"strategy-{outcome}")
+
+    memory = store.get_strategic_memory(record.id)
+    assert memory["modelPlan"] == "Original plan"
+    assert memory["revision"] == original["revision"]
     database.close()

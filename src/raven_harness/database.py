@@ -3,7 +3,7 @@ from pathlib import Path
 from threading import RLock
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 PLAYER_SNAPSHOTS_SCHEMA = """
 CREATE TABLE IF NOT EXISTS player_snapshots (
@@ -48,6 +48,7 @@ CREATE TABLE agent_runs (
   status TEXT NOT NULL,
   model TEXT,
   observation_json TEXT NOT NULL,
+  context_json TEXT,
   instructions TEXT,
   tools_json TEXT,
   tool_name TEXT,
@@ -96,6 +97,7 @@ CREATE INDEX IF NOT EXISTS game_state_history_agent_id_id
 
 MIGRATIONS = {
     1: PLAYER_SNAPSHOTS_SCHEMA,
+    2: "ALTER TABLE agent_runs ADD COLUMN context_json TEXT;",
 }
 
 
@@ -125,9 +127,13 @@ class Database:
                             f"Database schema version {version} is not supported; "
                             f"expected {SCHEMA_VERSION}. Use a new DATABASE_PATH."
                         )
-                    self.connection.executescript(migration)
+                    if version != 2 or not self._has_column(
+                        "agent_runs", "context_json"
+                    ):
+                        self.connection.executescript(migration)
                     version += 1
                     self.connection.execute(f"PRAGMA user_version = {version}")
+                    self.connection.commit()
             elif version != SCHEMA_VERSION:
                 self.connection.close()
                 raise RuntimeError(
@@ -138,3 +144,9 @@ class Database:
     def close(self) -> None:
         with self.lock:
             self.connection.close()
+
+    def _has_column(self, table: str, column: str) -> bool:
+        return any(
+            row["name"] == column
+            for row in self.connection.execute(f"PRAGMA table_info({table})")
+        )

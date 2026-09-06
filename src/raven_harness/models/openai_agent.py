@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -15,11 +17,24 @@ from agents import (
     Runner,
 )
 from agents.memory import Session, SessionSettings, SQLiteSession
+from agents.run_config import CallModelData, ModelInputData
 from openai import APITimeoutError, AsyncOpenAI
 
 from ..harness.actions import HarnessRunContext
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
+
+
+OBSERVATION_INPUT_PREFIX = (
+    "This is your current player-scoped game observation. "
+    "Choose exactly one available tool.\n\n"
+)
+CONTEXT_POLICY_NAME = "current-observation-with-recent-game-actions-v1"
+TRANSIENT_SUPPORT_TOOL_NAMES = {
+    "ask_rules_oracle",
+    "recall_game_state",
+    "remember_strategy",
+}
 
 
 @dataclass(frozen=True)
@@ -29,6 +44,112 @@ class ModelRunResult:
     usage: dict[str, int]
     response_items: list[dict[str, Any]]
     raw_usage: list[dict[str, Any]]
+    context_manifest: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class _SessionContextFilter:
+    session_history_limit: int
+    current_input: str
+    retrieved_history_item_count: int = 0
+    discarded_prefix_item_count: int = 0
+    removed_observation_item_count: int = 0
+    removed_observation_characters: int = 0
+    removed_support_tool_item_count: int = 0
+    removed_support_tool_characters: int = 0
+    selected_history_items: list[dict[str, Any]] = field(default_factory=list)
+    model_request_inputs: list[dict[str, Any]] = field(default_factory=list)
+
+    def __call__(
+        self,
+        history_items: list[dict[str, Any]],
+        new_items: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        self.retrieved_history_item_count = len(history_items)
+        first_observation_index = next(
+            (
+                index
+                for index, item in enumerate(history_items)
+                if _observation_input_text(item) is not None
+            ),
+            len(history_items),
+        )
+        self.discarded_prefix_item_count = first_observation_index
+
+        candidate_items = history_items[first_observation_index:]
+        transient_call_ids = {
+            str(item.get("call_id"))
+            for item in candidate_items
+            if item.get("type") == "function_call"
+            and item.get("name") in TRANSIENT_SUPPORT_TOOL_NAMES
+            and item.get("call_id") is not None
+        }
+        selected: list[dict[str, Any]] = []
+        removed_observation_characters = 0
+        removed_observation_count = 0
+        removed_support_characters = 0
+        removed_support_count = 0
+        for item in candidate_items:
+            observation_text = _observation_input_text(item)
+            if observation_text is not None:
+                removed_observation_count += 1
+                removed_observation_characters += len(observation_text)
+                continue
+            if _is_transient_support_item(item, transient_call_ids):
+                removed_support_count += 1
+                removed_support_characters += len(_canonical_json(item))
+                continue
+            selected.append(item)
+
+        self.removed_observation_item_count = removed_observation_count
+        self.removed_observation_characters = removed_observation_characters
+        self.removed_support_tool_item_count = removed_support_count
+        self.removed_support_tool_characters = removed_support_characters
+        self.selected_history_items = copy.deepcopy(selected)
+        return [*selected, *new_items]
+
+    def manifest(self) -> dict[str, Any]:
+        current_input_bytes = self.current_input.encode("utf-8")
+        return {
+            "policy": CONTEXT_POLICY_NAME,
+            "sessionHistoryLimit": self.session_history_limit,
+            "retrievedHistoryItemCount": self.retrieved_history_item_count,
+            "discardedPrefixItemCount": self.discarded_prefix_item_count,
+            "removedObservationItemCount": self.removed_observation_item_count,
+            "removedObservationCharacters": self.removed_observation_characters,
+            "removedSupportToolItemCount": self.removed_support_tool_item_count,
+            "removedSupportToolCharacters": self.removed_support_tool_characters,
+            "selectedHistoryItems": copy.deepcopy(self.selected_history_items),
+            "currentInputItemCount": 1,
+            "currentInputCharacters": len(self.current_input),
+            "currentInputSha256": hashlib.sha256(current_input_bytes).hexdigest(),
+            "modelRequestInputs": copy.deepcopy(self.model_request_inputs),
+        }
+
+
+@dataclass
+class _ModelInputRecorder:
+    request_inputs: list[dict[str, Any]]
+    parent_agent: Any = None
+
+    def __call__(self, data: CallModelData[Any]) -> ModelInputData:
+        if data.agent is not self.parent_agent:
+            return data.model_data
+        input_json = _canonical_json(data.model_data.input)
+        instructions = data.model_data.instructions or ""
+        self.request_inputs.append(
+            {
+                "requestIndex": len(self.request_inputs) + 1,
+                "inputItemCount": len(data.model_data.input),
+                "inputCharacters": len(input_json),
+                "inputSha256": hashlib.sha256(input_json.encode("utf-8")).hexdigest(),
+                "instructionsCharacters": len(instructions),
+                "instructionsSha256": hashlib.sha256(
+                    instructions.encode("utf-8")
+                ).hexdigest(),
+            }
+        )
+        return data.model_data
 
 
 class ModelRunError(RuntimeError):
@@ -100,138 +221,137 @@ class OpenAIAgentRunner:
         prompt_cache_key: str,
         trace_metadata: dict[str, str],
     ) -> ModelRunResult:
+        current_input = OBSERVATION_INPUT_PREFIX + json.dumps(
+            observation, separators=(",", ":")
+        )
+        context_filter = _SessionContextFilter(
+            session_history_limit=self.session_history_items,
+            current_input=current_input,
+        )
+        model_input_recorder = _ModelInputRecorder(context_filter.model_request_inputs)
         if not self.api_key:
-            raise RuntimeError(
+            message = (
                 "OPENROUTER_TOKEN or OPENAI_API_KEY is not configured on the harness server"
             )
+            raise ModelRunError(message, _partial_result([], context_filter.manifest()))
 
         if not tools:
-            raise RuntimeError(
-                "No model tool is implemented for the current game state"
+            message = "No model tool is implemented for the current game state"
+            raise ModelRunError(
+                message, _partial_result([], context_filter.manifest())
             )
         if not stop_at_tool_names:
-            raise RuntimeError(
-                "No gameplay tool is implemented for the current game state"
+            message = "No gameplay tool is implemented for the current game state"
+            raise ModelRunError(
+                message, _partial_result([], context_filter.manifest())
             )
 
-        model = OpenAIResponsesModel(model=agent_record.model, openai_client=self.client)
         oracle_interactions: list[dict[str, Any]] = []
-        run_config = RunConfig(
-            tracing_disabled=True,
-            workflow_name="Raven Harness action",
-            group_id=agent_record.id,
-            trace_metadata=trace_metadata,
-        )
-        tools = [
-            (
-                self.rulebook.build_oracle_tool(
-                    model=OpenAIResponsesModel(
-                        model=agent_record.model, openai_client=self.client
-                    ),
-                    model_settings=self._model_settings(
-                        max_tokens=900,
-                        prompt_cache_key=(
-                            f"raven-rules-{agent_record.model}-"
-                            f"{self.rulebook.cache_fingerprint}"
-                        ),
-                        metadata=trace_metadata,
-                    ),
-                    interaction_sink=oracle_interactions,
-                    run_config=run_config,
-                )
-                if tool.name == RULES_ORACLE_TOOL_NAME and self.rulebook is not None
-                else tool
+        try:
+            model = OpenAIResponsesModel(
+                model=agent_record.model, openai_client=self.client
             )
-            for tool in tools
-        ]
-        agent = Agent[HarnessRunContext](
-            name=agent_record.name,
-            instructions=instructions,
-            model=model,
-            tools=tools,
-            model_settings=self._model_settings(
-                max_tokens=self.max_output_tokens,
-                prompt_cache_key=prompt_cache_key,
-                metadata=trace_metadata,
-                user=agent_record.id,
-            ),
-            tool_use_behavior={"stop_at_tool_names": stop_at_tool_names},
-            reset_tool_choice=False,
-        )
+            run_config = RunConfig(
+                tracing_disabled=True,
+                workflow_name="Raven Harness action",
+                group_id=agent_record.id,
+                trace_metadata=trace_metadata,
+                session_input_callback=context_filter,
+                call_model_input_filter=model_input_recorder,
+            )
+            tools = [
+                (
+                    self.rulebook.build_oracle_tool(
+                        model=OpenAIResponsesModel(
+                            model=agent_record.model, openai_client=self.client
+                        ),
+                        model_settings=self._model_settings(
+                            max_tokens=900,
+                            prompt_cache_key=(
+                                f"raven-rules-{agent_record.model}-"
+                                f"{self.rulebook.cache_fingerprint}"
+                            ),
+                            metadata=trace_metadata,
+                        ),
+                        interaction_sink=oracle_interactions,
+                        run_config=run_config,
+                    )
+                    if tool.name == RULES_ORACLE_TOOL_NAME
+                    and self.rulebook is not None
+                    else tool
+                )
+                for tool in tools
+            ]
+            agent = Agent[HarnessRunContext](
+                name=agent_record.name,
+                instructions=instructions,
+                model=model,
+                tools=tools,
+                model_settings=self._model_settings(
+                    max_tokens=self.max_output_tokens,
+                    prompt_cache_key=prompt_cache_key,
+                    metadata=trace_metadata,
+                    user=agent_record.id,
+                ),
+                tool_use_behavior={"stop_at_tool_names": stop_at_tool_names},
+                reset_tool_choice=False,
+            )
+            model_input_recorder.parent_agent = agent
+        except Exception as error:
+            raise ModelRunError(
+                str(error),
+                _partial_result(oracle_interactions, context_filter.manifest()),
+            ) from error
         try:
             async with self._run_slots:
                 async with asyncio.timeout(self.run_timeout_seconds):
                     result = await Runner.run(
                         agent,
-                        input=(
-                            "This is your current player-scoped game observation. "
-                            "Choose exactly one available tool.\n\n"
-                            + json.dumps(observation, separators=(",", ":"))
-                        ),
+                        input=current_input,
                         context=context,
                         max_turns=max_turns,
                         run_config=run_config,
                         session=self._session(agent_record.id),
                     )
         except asyncio.CancelledError as error:
-            if oracle_interactions:
-                raise ModelRunCancelled(
-                    _oracle_only_result(oracle_interactions)
-                ) from error
-            raise
+            raise ModelRunCancelled(
+                _partial_result(oracle_interactions, context_filter.manifest())
+            ) from error
         except TimeoutError as error:
-            failure = RuntimeError(
+            message = (
                 f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
             )
-            if oracle_interactions:
-                raise ModelRunError(
-                    str(failure), _oracle_only_result(oracle_interactions)
-                ) from error
-            raise failure from error
+            raise ModelRunError(
+                message,
+                _partial_result(oracle_interactions, context_filter.manifest()),
+            ) from error
         except APITimeoutError as error:
-            failure = RuntimeError(
+            message = (
                 "Model API timed out after "
                 f"{self.request_timeout_seconds:g} seconds per attempt and "
                 f"{self.max_retries} retries"
             )
-            if oracle_interactions:
-                raise ModelRunError(
-                    str(failure), _oracle_only_result(oracle_interactions)
-                ) from error
-            raise failure from error
+            raise ModelRunError(
+                message,
+                _partial_result(oracle_interactions, context_filter.manifest()),
+            ) from error
         except Exception as error:
-            if oracle_interactions:
-                raise ModelRunError(
-                    str(error), _oracle_only_result(oracle_interactions)
-                ) from error
-            raise
+            raise ModelRunError(
+                str(error),
+                _partial_result(oracle_interactions, context_filter.manifest()),
+            ) from error
 
-        total_usage = result.context_wrapper.usage
-        usage = {
-            "requests": total_usage.requests,
-            "inputTokens": total_usage.input_tokens,
-            "outputTokens": total_usage.output_tokens,
-            "totalTokens": total_usage.total_tokens,
-        }
-        response_items = [_jsonable(item.to_input_item()) for item in result.new_items]
-        raw_usage: list[dict[str, Any]] = []
-        for response in result.raw_responses:
-            native_usage = (
-                _jsonable(response.raw_usage)
-                if response.raw_usage is not None
-                else {}
+        try:
+            return _completed_result(
+                result,
+                oracle_interactions,
+                context_filter.manifest(),
             )
-            native_usage["scope"] = "agent"
-            native_usage["response_id"] = response.response_id
-            raw_usage.append(native_usage)
-        _append_oracle_traces(response_items, raw_usage, oracle_interactions)
-        return ModelRunResult(
-            response_id=result.last_response_id,
-            output_text=str(result.final_output or ""),
-            usage=usage,
-            response_items=response_items,
-            raw_usage=raw_usage,
-        )
+        except Exception as error:
+            raise ModelRunError(
+                str(error),
+                _partial_result(oracle_interactions, context_filter.manifest()),
+            ) from error
 
     def _session(self, agent_id: str) -> Session | None:
         if self.session_database_path is None:
@@ -298,6 +418,70 @@ class OpenAIAgentRunner:
         )
 
 
+def _observation_input_text(item: dict[str, Any]) -> str | None:
+    if item.get("role") != "user":
+        return None
+    content = item.get("content")
+    if isinstance(content, str) and content.startswith(OBSERVATION_INPUT_PREFIX):
+        return content
+    return None
+
+
+def _is_transient_support_item(
+    item: dict[str, Any], transient_call_ids: set[str]
+) -> bool:
+    if (
+        item.get("type") == "function_call"
+        and item.get("name") in TRANSIENT_SUPPORT_TOOL_NAMES
+    ):
+        return True
+    return (
+        item.get("type") == "function_call_output"
+        and str(item.get("call_id")) in transient_call_ids
+    )
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+
+
+def _completed_result(
+    result: Any,
+    oracle_interactions: list[dict[str, Any]],
+    context_manifest: dict[str, Any],
+) -> ModelRunResult:
+    total_usage = result.context_wrapper.usage
+    usage = {
+        "requests": total_usage.requests,
+        "inputTokens": total_usage.input_tokens,
+        "outputTokens": total_usage.output_tokens,
+        "totalTokens": total_usage.total_tokens,
+    }
+    response_items = [_jsonable(item.to_input_item()) for item in result.new_items]
+    raw_usage: list[dict[str, Any]] = []
+    for response in result.raw_responses:
+        native_usage = (
+            _jsonable(response.raw_usage) if response.raw_usage is not None else {}
+        )
+        native_usage["scope"] = "agent"
+        native_usage["response_id"] = response.response_id
+        raw_usage.append(native_usage)
+    _append_oracle_traces(response_items, raw_usage, oracle_interactions)
+    return ModelRunResult(
+        response_id=result.last_response_id,
+        output_text=str(result.final_output or ""),
+        usage=usage,
+        response_items=response_items,
+        raw_usage=raw_usage,
+        context_manifest=context_manifest,
+    )
+
+
 def _append_oracle_traces(
     response_items: list[dict[str, Any]],
     raw_usage: list[dict[str, Any]],
@@ -316,7 +500,9 @@ def _append_oracle_traces(
         raw_usage.extend(interaction["rawUsage"])
 
 
-def _oracle_only_result(interactions: list[dict[str, Any]]) -> ModelRunResult:
+def _partial_result(
+    interactions: list[dict[str, Any]], context_manifest: dict[str, Any]
+) -> ModelRunResult:
     response_items: list[dict[str, Any]] = []
     raw_usage: list[dict[str, Any]] = []
     usage = {
@@ -336,6 +522,7 @@ def _oracle_only_result(interactions: list[dict[str, Any]]) -> ModelRunResult:
         usage=usage,
         response_items=response_items,
         raw_usage=raw_usage,
+        context_manifest=context_manifest,
     )
 
 

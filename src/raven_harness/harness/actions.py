@@ -127,6 +127,7 @@ class HarnessRunContext:
     game_password: str = ""
     memory: HarnessMemory | None = None
     action_taken: ActionTaken | None = None
+    pending_strategy_note: str | None = None
 
     def current_game_context(self) -> HarnessContext:
         if self.client.snapshot is None:

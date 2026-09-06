@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -187,6 +188,7 @@ class AgentStore:
         agent_id: str,
         status: str,
         observation: dict[str, Any],
+        context_manifest: dict[str, Any] | None = None,
         tool_name: str | None = None,
         tool_arguments: dict[str, Any] | None = None,
         model_output: str | None = None,
@@ -207,12 +209,12 @@ class AgentStore:
             self.database.connection.execute(
                 """
                 INSERT INTO agent_runs (
-                  id, agent_id, status, model, observation_json,
+                  id, agent_id, status, model, observation_json, context_json,
                   instructions, tools_json, tool_name, tool_arguments_json,
                   model_output, response_id, response_json, usage_json,
                   raw_usage_json, error, created_at, finished_at, duration_ms,
                   history_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -220,6 +222,9 @@ class AgentStore:
                     status,
                     model,
                     json.dumps(observation),
+                    json.dumps(context_manifest)
+                    if context_manifest is not None
+                    else None,
                     instructions,
                     json.dumps(tools) if tools is not None else None,
                     tool_name,
@@ -324,6 +329,7 @@ class AgentStore:
             return {
                 "roundNumber": None,
                 "situationAssessment": "",
+                "modelPlan": "",
                 "objectives": [],
                 "opponentModels": [],
                 "commitments": [],
@@ -393,7 +399,8 @@ class AgentStore:
             row = self.database.connection.execute(
                 """
                 SELECT id, status, model, observation_json,
-                       instructions, tools_json, tool_name, tool_arguments_json,
+                       context_json, instructions, tools_json, tool_name,
+                       tool_arguments_json,
                        model_output, response_id, response_json, usage_json,
                        raw_usage_json, error, created_at, finished_at,
                        duration_ms, history_id
@@ -408,6 +415,7 @@ class AgentStore:
             "status": row["status"],
             "model": row["model"],
             "observation": json.loads(row["observation_json"]),
+            "contextManifest": self._load_optional_json(row["context_json"]),
             "instructions": row["instructions"],
             "tools": self._load_optional_json(row["tools_json"]),
             "tool": row["tool_name"],
@@ -445,7 +453,9 @@ class AgentStore:
         cached_tokens = cache_write_tokens = reasoning_tokens = 0
         cost = 0.0
         durations: list[int] = []
-        max_input_tokens = 0
+        max_input_tokens_in_run = 0
+        request_input_tokens: list[int] = []
+        rules_oracle_request_input_tokens: list[int] = []
         for row in rows:
             status = str(row["status"])
             statuses[status] = statuses.get(status, 0) + 1
@@ -454,7 +464,9 @@ class AgentStore:
             input_tokens += int(usage.get("inputTokens") or 0)
             output_tokens += int(usage.get("outputTokens") or 0)
             total_tokens += int(usage.get("totalTokens") or 0)
-            max_input_tokens = max(max_input_tokens, int(usage.get("inputTokens") or 0))
+            max_input_tokens_in_run = max(
+                max_input_tokens_in_run, int(usage.get("inputTokens") or 0)
+            )
             for native in self._load_optional_json(row["raw_usage_json"]) or []:
                 details = native.get("input_tokens_details") or {}
                 output_details = native.get("output_tokens_details") or {}
@@ -462,9 +474,13 @@ class AgentStore:
                 cache_write_tokens += int(details.get("cache_write_tokens") or 0)
                 reasoning_tokens += int(output_details.get("reasoning_tokens") or 0)
                 cost += float(native.get("cost") or 0)
-                max_input_tokens = max(
-                    max_input_tokens, int(native.get("input_tokens") or 0)
-                )
+                if native.get("input_tokens") is not None:
+                    destination = (
+                        rules_oracle_request_input_tokens
+                        if native.get("scope") == "rules-oracle"
+                        else request_input_tokens
+                    )
+                    destination.append(int(native["input_tokens"]))
             if row["duration_ms"] is not None:
                 durations.append(int(row["duration_ms"]))
 
@@ -479,8 +495,14 @@ class AgentStore:
                 "cachedInput": cached_tokens,
                 "cacheWrite": cache_write_tokens,
                 "reasoning": reasoning_tokens,
-                "maxInputInRun": max_input_tokens,
+                "maxInputInRun": max_input_tokens_in_run,
             },
+            "requestInputTokens": self._input_token_distribution(
+                request_input_tokens
+            ),
+            "rulesOracleRequestInputTokens": self._input_token_distribution(
+                rules_oracle_request_input_tokens
+            ),
             "costUsd": cost,
             "durationMs": {
                 "total": sum(durations),
@@ -493,6 +515,24 @@ class AgentStore:
     @staticmethod
     def _load_optional_json(value: str | None) -> Any:
         return json.loads(value) if value is not None else None
+
+    @staticmethod
+    def _nearest_rank(values: list[int], percentile: float) -> int:
+        if not values:
+            return 0
+        ordered = sorted(values)
+        return ordered[max(0, math.ceil(percentile * len(ordered)) - 1)]
+
+    @classmethod
+    def _input_token_distribution(cls, values: list[int]) -> dict[str, int]:
+        return {
+            "reportedRequests": len(values),
+            "average": round(sum(values) / len(values)) if values else 0,
+            "p50": cls._nearest_rank(values, 0.50),
+            "p90": cls._nearest_rank(values, 0.90),
+            "p99": cls._nearest_rank(values, 0.99),
+            "maximum": max(values, default=0),
+        }
 
     @classmethod
     def _history_row(cls, row: Any, *, include_observation: bool) -> dict[str, Any]:

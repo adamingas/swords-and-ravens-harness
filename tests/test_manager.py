@@ -5,8 +5,15 @@ import pytest
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.game.codec import decode_message, encode_message
+from raven_harness.harness.actions import ActionTaken
+from raven_harness.harness.interface import PreparedTurn
 from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.manager import AgentManager, _monitoring_state
+from raven_harness.manager import AgentManager, AgentSession, _monitoring_state
+from raven_harness.models.openai_agent import (
+    ModelRunCancelled,
+    ModelRunError,
+    ModelRunResult,
+)
 from raven_harness.schemas import AgentCreate
 
 from conftest import lobby_snapshot
@@ -65,6 +72,107 @@ class FakeConnection:
 
     async def close(self) -> None:
         await self.incoming.put(None)
+
+
+class FakeRunClient:
+    status = "connected"
+    snapshot = lobby_snapshot()
+    recent_events: list[dict] = []
+
+
+class ContextManifestHarness:
+    def __init__(self, outcome: str = "completed") -> None:
+        self.outcome = outcome
+        self.manifest = {
+            "mode": "current-observation-and-memory",
+            "items": [{"kind": "observation", "characters": 256}],
+        }
+
+    def prepare_turn(self, record, context, previous_error) -> PreparedTurn:
+        del record, context, previous_error
+        return PreparedTurn(
+            observation={"game": {"phase": "lobby"}},
+            tools=[],
+            instructions="test instructions",
+            metadata={"gameToolNames": ["choose_house"]},
+        )
+
+    async def run_turn(self, record, prepared, context, run_id):
+        del record, prepared, run_id
+        result = ModelRunResult(
+            response_id="response-1",
+            output_text="",
+            usage={
+                "requests": 1,
+                "inputTokens": 100,
+                "outputTokens": 10,
+                "totalTokens": 110,
+            },
+            response_items=[],
+            raw_usage=[],
+            context_manifest=self.manifest,
+        )
+        if self.outcome == "failed":
+            raise ModelRunError("model failed", result)
+        if self.outcome == "cancelled":
+            raise ModelRunCancelled(result)
+        context.action_taken = ActionTaken(
+            name="choose_house",
+            arguments={"house_id": "stark"},
+            messages=[{"type": "choose-house", "house": "stark"}],
+        )
+        return result
+
+
+def manifest_manager(tmp_path, outcome: str = "completed"):
+    database = Database(tmp_path / f"manager-{outcome}.db")
+    store = AgentStore(database)
+    harness = ContextManifestHarness(outcome)
+    manager = AgentManager(store=store, harness=harness)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Manifest Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    manager.sessions[agent.id] = AgentSession(
+        status="connected", client=FakeRunClient()
+    )
+    return database, store, harness, manager, agent
+
+
+@pytest.mark.asyncio
+async def test_manager_persists_effective_context_manifest(tmp_path) -> None:
+    database, store, harness, manager, agent = manifest_manager(tmp_path)
+
+    result = await manager.run_once(agent.id)
+    trace = store.get_run(agent.id, result["runId"])
+
+    assert trace is not None
+    assert trace["contextManifest"] == harness.manifest
+    database.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["failed", "cancelled"])
+async def test_manager_persists_partial_result_context_manifest(
+    tmp_path, outcome
+) -> None:
+    database, store, harness, manager, agent = manifest_manager(tmp_path, outcome)
+    error_type = RuntimeError if outcome == "failed" else asyncio.CancelledError
+
+    with pytest.raises(error_type):
+        await manager._run_once(agent.id)
+
+    trace = store.get_run(agent.id, store.list_runs(agent.id)[0]["id"])
+    assert trace is not None
+    assert trace["status"] == outcome
+    assert trace["contextManifest"] == harness.manifest
+    database.close()
 
 
 @pytest.mark.asyncio

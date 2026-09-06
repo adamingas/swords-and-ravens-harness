@@ -1429,6 +1429,11 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
             "completedRuns": 0,
             "failedRuns": 0,
             "cancelledRuns": 0,
+            "modelRequests": 0,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "totalTokens": 0,
+            "cachedInputTokens": 0,
             "costUsd": 0.0,
         }
         for item in PROMPT_CONFIGURATIONS
@@ -1453,6 +1458,12 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
             values["completedRuns"] += metrics["statusCounts"].get("completed", 0)
             values["failedRuns"] += metrics["statusCounts"].get("failed", 0)
             values["cancelledRuns"] += metrics["statusCounts"].get("cancelled", 0)
+            values["modelRequests"] += int(metrics.get("modelRequests") or 0)
+            tokens = metrics.get("tokens") or {}
+            values["inputTokens"] += int(tokens.get("input") or 0)
+            values["outputTokens"] += int(tokens.get("output") or 0)
+            values["totalTokens"] += int(tokens.get("total") or 0)
+            values["cachedInputTokens"] += int(tokens.get("cachedInput") or 0)
             values["costUsd"] += metrics["costUsd"]
             house_values = houses[standing["house"]]
             house_values["games"] += 1
@@ -1499,6 +1510,11 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
                 "completedRuns": values["completedRuns"],
                 "failedRuns": values["failedRuns"],
                 "cancelledRuns": values["cancelledRuns"],
+                "modelRequests": values["modelRequests"],
+                "inputTokens": values["inputTokens"],
+                "outputTokens": values["outputTokens"],
+                "totalTokens": values["totalTokens"],
+                "cachedInputTokens": values["cachedInputTokens"],
                 "elo": round(ratings[name], 1),
             }
         )

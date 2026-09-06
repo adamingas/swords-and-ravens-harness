@@ -582,6 +582,13 @@ async def test_openrouter_generation_attribution_has_an_overall_deadline(
 def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     metrics = {
         "statusCounts": {"completed": 3, "failed": 1},
+        "modelRequests": 5,
+        "tokens": {
+            "input": 1_000,
+            "output": 200,
+            "total": 1_200,
+            "cachedInput": 300,
+        },
         "costUsd": 0.25,
     }
     standings = [
@@ -612,6 +619,11 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     assert summary["ranking"][0]["elo"] > 1500
     assert summary["ranking"][0]["reliability"] == 0.75
     assert summary["ranking"][0]["costUsd"] == 0.25
+    assert summary["ranking"][0]["modelRequests"] == 5
+    assert summary["ranking"][0]["inputTokens"] == 1_000
+    assert summary["ranking"][0]["outputTokens"] == 200
+    assert summary["ranking"][0]["totalTokens"] == 1_200
+    assert summary["ranking"][0]["cachedInputTokens"] == 300
     assert summary["houseEffects"][0] == {
         "house": "stark",
         "games": 1,

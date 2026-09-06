@@ -331,6 +331,7 @@ function renderOverview() {
   const state = monitor.state;
   if (!state) {
     content.append(section("Connection", textNode("Connect this agent to see its player state.")));
+    content.append(section("Model usage", jsonBlock(monitor.metrics)));
     content.append(section("Recent model runs", runTable(monitor.recentRuns)));
     return;
   }
@@ -368,6 +369,7 @@ function renderOverview() {
   content.append(section("Board", boardTable(state.board || [])));
   content.append(section("Action guidance", structuredValue(state.actionGuidance)));
   content.append(section("Influence tracks", trackList(state.tracks || {})));
+  content.append(section("Model usage", jsonBlock(monitor.metrics)));
   content.append(section("Recent model runs", runTable(monitor.recentRuns)));
   content.append(section("Current decision data", jsonBlock(state.pendingDecision)));
   content.append(section("Recent game events", jsonBlock(state.recentEvents)));
@@ -617,6 +619,12 @@ function renderRunTrace(content, run) {
     costUsd: runCost(run),
     providerUsage: run.rawUsage,
   })));
+  content.append(section(
+    "Effective model context",
+    run.contextManifest == null
+      ? textNode("Not recorded for this run.", "muted-line")
+      : jsonBlock(run.contextManifest),
+  ));
   content.append(section("Model output", textBlock(run.modelOutput)));
   content.append(section("Instructions", textBlock(run.instructions)));
   content.append(section("Observation", jsonBlock(run.observation)));

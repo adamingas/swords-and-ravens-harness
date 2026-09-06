@@ -376,6 +376,9 @@ class AgentManager:
                 agent_id=agent_id,
                 status=status,
                 observation=observation or session.observation or {},
+                context_manifest=model_result.context_manifest
+                if model_result
+                else None,
                 tool_name=action_name,
                 tool_arguments=action_arguments,
                 model_output=output_text,
