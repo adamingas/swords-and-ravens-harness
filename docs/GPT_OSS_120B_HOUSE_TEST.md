@@ -2,8 +2,8 @@
 
 ## Status
 
-This experiment is in progress. Two of five games are complete. Do not use two
-games to estimate house strength.
+This experiment is in progress. Three of five games are complete. Do not use
+three games to estimate house strength.
 
 ## Method
 
@@ -17,9 +17,9 @@ independent asynchronous autoplay task. The harness does not limit concurrent
 model calls. A new game-server snapshot wakes each affected agent.
 
 The source revision for Game 1 is `b4279fb`. The source revision for Game 2 is
-`11a7615`. Each attempt stores its full runtime provenance. The experiment base
-seed is 102. Game 1 uses derived seed 647336519. Game 2 uses derived seed
-2863619190. The artifact root is
+`11a7615`. The source revision for Game 3 is `446b444`. Each attempt stores its
+full runtime provenance. The experiment base seed is 102. The first three
+derived seeds are 647336519, 2863619190, and 2003516222. The artifact root is
 `data/evaluations/gpt-oss-120b-house-test-b4279fb`.
 
 ## Game 1
@@ -93,6 +93,41 @@ the saved run. Therefore, Game 2 used at least 3,954,256 input tokens, 83,753
 output tokens, and $1.446804. The failed-turn accounting now retains completed
 and terminal Responses API payloads for subsequent games.
 
+## Game 3
+
+Greyjoy won at the end of turn 10.
+
+| Place | House | Victory points | Land areas |
+| ---: | --- | ---: | ---: |
+| 1 | Greyjoy | 5 | 6 |
+| 2 | Martell | 4 | 7 |
+| 3 | Stark | 2 | 4 |
+| 4 | Tyrell | 2 | 2 |
+| 5 | Baratheon | 1 | 1 |
+| 6 | Lannister | 0 | 0 |
+
+The game completed in 245.046 seconds. It completed 234 agent runs and failed
+two. Both failures were runaway responses that reached the 16,384-token output
+limit. A fresh turn recovered each decision. There was no game-server, tool, or
+oracle failure.
+
+The metrics record 259 requests, 3,381,429 input tokens, 76,986 output tokens,
+and $1.241240. The event trace contains 259 parent-model request starts and two
+oracle requests, for 261 model-endpoint invocations. The metrics contain all
+257 completed parent responses and both oracle responses. They omit only the
+two incomplete terminal responses because the first terminal-capture fix
+covered a different SDK request path. The recorded tokens and cost are lower
+bounds. The corrected adapter now captures the non-streaming terminal response
+object that this runner uses.
+
+Across the first three games, 694 stored successful parent responses have a
+maximum output of 1,216 tokens and a 99th percentile below 930 tokens. Games 1,
+2, and 3 produced four runaway responses at the 16,384-token limit. Starting
+with Game 4, the house-test runner uses a 4,096-token limit. This retains more
+than three times the largest observed successful response and makes a runaway
+generation fail sooner and at lower cost. The next fresh turn still retries the
+unchanged game decision.
+
 ## Latency investigation
 
 For Game 1, the completed request intervals account for the active runtime as
@@ -141,7 +176,15 @@ march resolution at 79.990 seconds, bidding at 50.622 seconds, and mustering at
 in decisions that the game rules expose one after another. The trace does not
 show a harness-side concurrency limit or a polling delay.
 
-Both games exceeded the expected one-to-two-minute duration. The calls
+Game 3 also reached six concurrent calls. Its 257 completed parent-model calls
+had a mean duration of 1.211 seconds, a median of 1.090 seconds, a 95th
+percentile of 1.877 seconds, and a maximum of 9.302 seconds. At least one
+completed request was active for 204.821 seconds. The game had 36.672 seconds
+between completed request intervals. Its largest accumulated request times were
+order placement at 92.427 seconds, march resolution at 70.399 seconds, bidding
+at 42.494 seconds, and mustering at 38.275 seconds.
+
+All three games exceeded the expected one-to-two-minute duration. The calls
 themselves were fast, but a complete ten-turn game required hundreds of model
 decisions. Removing decisions would change the harness behavior and the model
 comparison.
@@ -150,18 +193,18 @@ comparison.
 
 | House | Wins | Win rate | Average place | Average victory points | Average land areas |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Stark | 0 | 0% | 4.0 | 1.5 | 4.0 |
-| Greyjoy | 0 | 0% | 4.5 | 2.0 | 2.0 |
-| Lannister | 2 | 100% | 1.0 | 5.0 | 7.5 |
-| Tyrell | 0 | 0% | 4.0 | 2.0 | 3.5 |
-| Martell | 0 | 0% | 2.0 | 3.0 | 6.0 |
-| Baratheon | 0 | 0% | 5.5 | 1.0 | 1.0 |
+| Stark | 0 | 0% | 3.667 | 1.667 | 4.0 |
+| Greyjoy | 1 | 33.33% | 3.333 | 3.0 | 3.333 |
+| Lannister | 2 | 66.67% | 2.667 | 3.333 | 5.0 |
+| Tyrell | 0 | 0% | 4.0 | 2.0 | 3.0 |
+| Martell | 0 | 0% | 2.0 | 3.333 | 6.333 |
+| Baratheon | 0 | 0% | 5.333 | 1.0 | 1.0 |
 
-These values are descriptive only. Two games are not enough to make a claim
+These values are descriptive only. Three games are not enough to make a claim
 about house balance.
 
 ## Remaining work
 
-Three more complete games are required. The final report must replace this
+Two more complete games are required. The final report must replace this
 provisional interpretation with five-game house win-rate and placement
 statistics.

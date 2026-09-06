@@ -1033,6 +1033,10 @@ Failed and cancelled turns retain usage from completed parent-model responses,
 oracle responses, and failed or incomplete Responses API terminal payloads.
 This keeps request, token, and cost totals attached to the attempt that incurred
 them.
+The GPT-OSS house test uses a 4,096-token response limit. Its first three games
+used a 16,384-token limit, but no successful response exceeded 1,216 tokens.
+The lower limit stops rare runaway generations sooner without constraining the
+observed successful responses.
 Each attempt records its own source, runtime, rules, model, and game-server
 provenance. Documentation commits do not change the runtime fingerprint. An
 interrupted attempt resumes only when its runtime provenance still matches.

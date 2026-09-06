@@ -33,6 +33,7 @@ HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
 HOUSE_TEST_INVESTIGATE_AFTER_SECONDS = 120
+HOUSE_TEST_MAX_OUTPUT_TOKENS = 4_096
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
@@ -43,6 +44,7 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
         openrouter_allow_unlisted_providers=False,
         openrouter_allow_fallbacks=False,
         openrouter_require_parameters=False,
+        model_max_output_tokens=HOUSE_TEST_MAX_OUTPUT_TOKENS,
     )
     if settings.model_provider != "OpenRouter":
         raise RuntimeError(

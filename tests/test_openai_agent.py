@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from agents import ModelResponse, Usage
+from agents import ModelResponse, ModelSettings, Usage
 from agents.memory import SQLiteSession
 from agents.models.interface import Model
 from openai.types.responses import ResponseFunctionToolCall
@@ -26,7 +26,7 @@ from raven_harness.models.openai_agent import (
     OpenAIAgentRunner,
     PermanentModelError,
     _SessionContextFilter,
-    _capture_terminal_responses,
+    _UsageCapturingResponsesModel,
     _partial_result,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
@@ -85,38 +85,40 @@ class TerminalUsage:
         }
 
 
-class TerminalEventModel:
-    async def _iter_websocket_response_events(self, _create_kwargs):
-        yield SimpleNamespace(type="response.created")
-        yield SimpleNamespace(
-            type="response.incomplete",
-            response=SimpleNamespace(
-                id="incomplete-1",
-                status="incomplete",
-                usage=TerminalUsage(),
-                incomplete_details=SimpleNamespace(reason="max_output_tokens"),
-                output=[],
-            ),
+class TerminalResponses:
+    async def create(self, **_kwargs: Any) -> Any:
+        return SimpleNamespace(
+            id="incomplete-1",
+            status="incomplete",
+            usage=TerminalUsage(),
+            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+            output=[],
         )
 
 
 @pytest.mark.asyncio
 async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
-    model = TerminalEventModel()
     terminal_responses: list[Any] = []
-    _capture_terminal_responses(model, terminal_responses)
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(responses=TerminalResponses()),
+        terminal_response_sink=terminal_responses,
+    )
 
-    events = [
-        event async for event in model._iter_websocket_response_events({})
-    ]
+    with pytest.raises(RuntimeError, match="terminal status incomplete"):
+        await model._fetch_response(
+            None,
+            [],
+            ModelSettings(),
+            [],
+            None,
+            [],
+            stream=False,
+        )
     result = _partial_result(
         [], {}, terminal_responses=terminal_responses
     )
 
-    assert [event.type for event in events] == [
-        "response.created",
-        "response.incomplete",
-    ]
     assert result.usage == {
         "requests": 1,
         "inputTokens": 100,
@@ -309,7 +311,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
 ) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -391,7 +393,7 @@ async def test_runner_does_not_limit_simultaneous_agent_model_calls(
 ) -> None:
     fake_model = ConcurrentToolCallingModel(expected_concurrency=6)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     runner = OpenAIAgentRunner(
@@ -431,7 +433,7 @@ async def test_runner_aborts_stale_gameplay_tool_without_replay(
 ) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -456,7 +458,7 @@ async def test_runner_aborts_stale_gameplay_tool_without_replay(
 async def test_retry_requires_a_tool_call(monkeypatch) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -479,7 +481,7 @@ async def test_retry_requires_a_tool_call(monkeypatch) -> None:
 async def test_retry_uses_only_the_current_observation(monkeypatch, tmp_path) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -526,7 +528,7 @@ async def test_openai_runner_reports_sanitized_request_and_tool_lifecycle(
 ) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -578,7 +580,7 @@ async def test_tool_validation_error_can_be_corrected_in_the_same_run(
 ) -> None:
     fake_model = CorrectingToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -609,7 +611,7 @@ async def test_turn_limit_error_preserves_the_last_tool_validation_error(
 ) -> None:
     fake_model = RepeatingInvalidToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -634,7 +636,7 @@ async def test_turn_limit_error_preserves_the_last_tool_validation_error(
 @pytest.mark.asyncio
 async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: FailingModel(),
     )
     record = AgentRecord.from_create(
@@ -656,7 +658,7 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_quota_error_is_terminal_and_redacted(monkeypatch) -> None:
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: QuotaFailingModel(),
     )
     record = AgentRecord.from_create(
@@ -677,7 +679,7 @@ async def test_quota_error_is_terminal_and_redacted(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_cancelled_model_run_carries_the_context_manifest(monkeypatch) -> None:
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: CancellingModel(),
     )
     record = AgentRecord.from_create(
@@ -703,7 +705,7 @@ async def test_runner_filters_old_observations_without_purging_the_session(
 ) -> None:
     fake_model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
@@ -915,7 +917,7 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     failing_model = RememberThenFailModel()
     current_model: Model = failing_model
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: current_model,
     )
     record = AgentRecord.from_create(
@@ -982,7 +984,7 @@ async def test_runner_restores_session_to_the_pre_model_checkpoint(
 ) -> None:
     model = ToolCallingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: model,
     )
     database_path = tmp_path / "checkpoint.db"

@@ -266,7 +266,7 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
 ) -> None:
     fake_model = RecallThenActionModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database_path = tmp_path / "recall.db"
@@ -366,7 +366,7 @@ async def test_strategy_note_commits_only_after_accepted_gameplay_action(
 ) -> None:
     fake_model = RememberThenActionModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "strategy-success.db")
@@ -403,7 +403,7 @@ async def test_strategy_note_is_not_committed_when_parent_model_fails(
 ) -> None:
     fake_model = RememberThenActionModel(fail_after_note=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "strategy-failure.db")

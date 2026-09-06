@@ -337,25 +337,43 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
         )
 
 
-def _capture_terminal_responses(model: Any, sink: list[Any]) -> None:
-    """Retain failed Responses API terminal payloads before the SDK raises."""
+class _UsageCapturingResponsesModel(OpenAIResponsesModel):
+    """Keep a terminal response that the Agents SDK would otherwise discard."""
 
-    iterate = getattr(model, "_iter_websocket_response_events", None)
-    if not callable(iterate):
-        return
+    def __init__(self, *, terminal_response_sink: list[Any], **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.terminal_response_sink = terminal_response_sink
 
-    async def tracked(create_kwargs: dict[str, Any]):
-        async for event in iterate(create_kwargs):
-            if getattr(event, "type", None) in {
-                "response.failed",
-                "response.incomplete",
-            }:
-                response = getattr(event, "response", None)
-                if response is not None:
-                    sink.append(response)
-            yield event
+    async def _fetch_response(self, *args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return await super()._fetch_response(*args, **kwargs)
 
-    model._iter_websocket_response_events = tracked
+        create_kwargs = self._build_response_create_kwargs(*args, **kwargs)
+        response = await self._get_client().responses.create(**create_kwargs)
+        status = getattr(response, "status", None)
+        if status in {"failed", "incomplete"}:
+            self.terminal_response_sink.append(response)
+            detail = getattr(response, "incomplete_details", None)
+            suffix = f"; incomplete_details={detail}" if detail is not None else ""
+            raise RuntimeError(
+                f"Responses API returned terminal status {status}{suffix}"
+            )
+        return response
+
+
+def _response_model(
+    *,
+    model: str,
+    openai_client: AsyncOpenAI,
+    terminal_response_sink: list[Any] | None = None,
+) -> OpenAIResponsesModel:
+    if terminal_response_sink is None:
+        return OpenAIResponsesModel(model=model, openai_client=openai_client)
+    return _UsageCapturingResponsesModel(
+        model=model,
+        openai_client=openai_client,
+        terminal_response_sink=terminal_response_sink,
+    )
 
 
 def _tool_activity_key(context: Any, tool_name: str, fallback: int) -> str:
@@ -473,10 +491,11 @@ class OpenAIAgentRunner:
         oracle_interactions: list[dict[str, Any]] = []
         terminal_responses: list[Any] = []
         try:
-            model = OpenAIResponsesModel(
-                model=agent_record.model, openai_client=self.client
+            model = _response_model(
+                model=agent_record.model,
+                openai_client=self.client,
+                terminal_response_sink=terminal_responses,
             )
-            _capture_terminal_responses(model, terminal_responses)
             run_config = RunConfig(
                 tracing_disabled=True,
                 workflow_name="Raven Harness action",
@@ -488,7 +507,7 @@ class OpenAIAgentRunner:
             tools = [
                 (
                     self.rulebook.build_oracle_tool(
-                        model=OpenAIResponsesModel(
+                        model=_response_model(
                             model=agent_record.model, openai_client=self.client
                         ),
                         model_settings=self._model_settings(

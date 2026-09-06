@@ -189,7 +189,7 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
 ) -> None:
     fake_model = OracleThenActionModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle.db")
@@ -239,7 +239,7 @@ async def test_rules_oracle_failure_returns_control_to_game_action(
 ) -> None:
     fake_model = OracleThenActionModel(oracle_never_finishes=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle-contained-failure.db")
@@ -284,7 +284,7 @@ async def test_completed_oracle_trace_is_persisted_when_parent_run_fails(
 ) -> None:
     fake_model = OracleThenActionModel(fail_after_oracle=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle-failure.db")
@@ -339,7 +339,7 @@ async def test_completed_oracle_trace_is_persisted_when_parent_run_is_cancelled(
 ) -> None:
     fake_model = OracleThenActionModel(cancel_after_oracle=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        "raven_harness.models.openai_agent._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle-cancelled.db")

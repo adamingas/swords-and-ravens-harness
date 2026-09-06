@@ -9,6 +9,7 @@ from raven_harness.evaluation import HOUSES
 from raven_harness.house_evaluation import (
     HOUSE_TEST_GAMES,
     HOUSE_TEST_INVESTIGATE_AFTER_SECONDS,
+    HOUSE_TEST_MAX_OUTPUT_TOKENS,
     HOUSE_TEST_MODEL,
     _load_or_create_manifest,
     _require_expected_game_duration,
@@ -256,6 +257,9 @@ async def test_house_runner_uses_five_sequential_unrestricted_isolated_games(
     assert await run_house_evaluation(args) == output
 
     assert "model_max_concurrency" not in settings_arguments
+    assert settings_arguments["model_max_output_tokens"] == (
+        HOUSE_TEST_MAX_OUTPUT_TOKENS
+    )
     assert peak_active == 1
     assert [call["game_port"] for call in calls] == list(range(5201, 5206))
     assert all(call["max_rounds"] is None for call in calls)

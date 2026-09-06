@@ -215,6 +215,8 @@ Its summary lists every completed, failed, and cancelled attempt. Request,
 token, and cost totals include partial attempts instead of only finished games.
 If a model run fails after one or more responses, those completed responses and
 the final failed or incomplete Responses API payload remain in the run metrics.
+The GPT-OSS house test limits each response to 4,096 output tokens; successful
+responses in the first three games never exceeded 1,216 tokens.
 If a completed game exceeds two minutes, the command stops before it starts the
 next game so the latency can be investigated.
 Each attempt records its exact runtime provenance. A documentation-only commit
