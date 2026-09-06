@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import json
 from dataclasses import dataclass
 from typing import Annotated, Any, Protocol
@@ -100,9 +99,17 @@ class StrategicModelRunner(Protocol):
         agent_record: AgentRecord,
         observation: dict[str, Any],
         context: HarnessRunContext,
-        tools: list[FunctionTool] | None = None,
-        **options: Any,
+        tools: list[FunctionTool],
+        instructions: str,
+        max_turns: int,
+        stop_at_tool_names: list[str],
+        prompt_cache_key: str,
+        trace_metadata: dict[str, str],
     ) -> ModelRunResult: ...
+
+    async def shutdown(self) -> None: ...
+
+    async def clear_session(self, agent_id: str) -> None: ...
 
 
 @dataclass
@@ -189,6 +196,14 @@ class StrategicHarness:
         self, record: AgentRecord, context: HarnessContext
     ) -> dict[str, Any]:
         observation = build_observation(context)
+        return self._enrich_observation(record, context, observation)
+
+    def _enrich_observation(
+        self,
+        record: AgentRecord,
+        context: HarnessContext,
+        observation: dict[str, Any],
+    ) -> dict[str, Any]:
         observation["strategicOverview"] = _strategic_overview(observation)
         observation["strategicMemory"] = self._memory(record).get_notes()
         observation["historyIndex"] = self._memory(record).list_history(12)
@@ -233,7 +248,7 @@ class StrategicHarness:
     ) -> PreparedTurn:
         base_observation = build_observation(context)
         history_id = self.store.record_state(record.id, base_observation)
-        observation = self.preview_observation(record, context)
+        observation = self._enrich_observation(record, context, base_observation)
         if previous_error:
             observation["previousAttemptError"] = previous_error
         game_tools = available_tools(context)
@@ -301,18 +316,10 @@ class StrategicHarness:
         return result
 
     async def shutdown(self) -> None:
-        shutdown = getattr(self.runner, "shutdown", None)
-        if shutdown is not None:
-            result = shutdown()
-            if inspect.isawaitable(result):
-                await result
+        await self.runner.shutdown()
 
     async def clear_agent_history(self, agent_id: str) -> None:
-        clear_session = getattr(self.runner, "clear_session", None)
-        if clear_session is not None:
-            result = clear_session(agent_id)
-            if inspect.isawaitable(result):
-                await result
+        await self.runner.clear_session(agent_id)
 
 
 def _automatic_notes(

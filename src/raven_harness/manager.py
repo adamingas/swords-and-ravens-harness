@@ -693,6 +693,32 @@ def _monitoring_state(
         }
         for region_id in you.get("controlledRegions", [])
     ]
+    board = [
+        {
+            "id": region.get("id"),
+            "name": map_by_id.get(region.get("id"), {}).get(
+                "name", region.get("id")
+            ),
+            "type": map_by_id.get(region.get("id"), {}).get("type"),
+            "castleLevel": map_by_id.get(region.get("id"), {}).get(
+                "castleLevel", 0
+            ),
+            "supplyIcons": map_by_id.get(region.get("id"), {}).get(
+                "supplyIcons", 0
+            ),
+            "crownIcons": map_by_id.get(region.get("id"), {}).get("crownIcons", 0),
+            "controlPowerToken": region.get("controlPowerToken"),
+            "garrison": region.get("garrison", 0),
+            "units": region.get("units", []),
+        }
+        for region in observation.get("board", [])
+    ]
+    action_guidance = observation.get("actionGuidance")
+    if action_guidance is None and observation.get("planningConstraints") is not None:
+        action_guidance = {
+            "decision": "planning",
+            **observation["planningConstraints"],
+        }
     return {
         "game": observation.get("game", {}),
         "isOwner": bool(
@@ -703,6 +729,9 @@ def _monitoring_state(
         "pendingDecision": observation.get("pendingDecision"),
         "statePath": observation.get("statePath", []),
         "player": {**you, "units": own_units, "controlledRegionDetails": controlled_regions},
+        "standings": observation.get("houses", []),
+        "board": board,
+        "actionGuidance": action_guidance,
         "tracks": observation.get("tracks", {}),
         "recentEvents": observation.get("recentEvents", [])[-6:],
     }

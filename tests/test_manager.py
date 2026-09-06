@@ -6,7 +6,7 @@ from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.game.codec import decode_message, encode_message
 from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.manager import AgentManager
+from raven_harness.manager import AgentManager, _monitoring_state
 from raven_harness.schemas import AgentCreate
 
 from conftest import lobby_snapshot
@@ -15,8 +15,26 @@ from conftest import lobby_snapshot
 class UnusedRunner:
     rules_oracle_available = False
 
-    async def run_once(self, **_kwargs):
+    async def run_once(
+        self,
+        *,
+        agent_record,
+        observation,
+        context,
+        tools,
+        instructions,
+        max_turns,
+        stop_at_tool_names,
+        prompt_cache_key,
+        trace_metadata,
+    ):
         raise AssertionError("The model should not run in this test")
+
+    async def shutdown(self) -> None:
+        pass
+
+    async def clear_session(self, agent_id: str) -> None:
+        del agent_id
 
 
 class FakeConnection:
@@ -113,3 +131,105 @@ async def _wait_for_received_events(
             return
         await asyncio.sleep(0)
     raise AssertionError(f"Expected {expected} received game messages")
+
+
+def test_monitoring_state_exposes_structured_public_game_data() -> None:
+    observation = {
+        "game": {"round": 2, "phase": "action"},
+        "you": {
+            "userId": "2",
+            "houseId": "stark",
+            "controlledRegions": ["winterfell"],
+            "availableHouseCards": [
+                {
+                    "id": "robb-stark",
+                    "name": "Robb Stark",
+                    "strength": 3,
+                    "swords": 0,
+                    "towers": 0,
+                    "ability": "robb-stark",
+                }
+            ],
+        },
+        "houses": [
+            {
+                "id": "stark",
+                "name": "Stark",
+                "currentVictoryPoints": 2,
+                "controlledCastleAreas": 2,
+            }
+        ],
+        "map": {
+            "regions": [
+                {
+                    "id": "winterfell",
+                    "name": "Winterfell",
+                    "type": "land",
+                    "castleLevel": 2,
+                    "supplyIcons": 1,
+                    "crownIcons": 1,
+                }
+            ]
+        },
+        "board": [
+            {
+                "id": "winterfell",
+                "controlPowerToken": "stark",
+                "garrison": 2,
+                "units": [
+                    {
+                        "id": 1,
+                        "type": "footman",
+                        "allegiance": "stark",
+                        "wounded": False,
+                    }
+                ],
+            }
+        ],
+        "actionGuidance": {
+            "decision": "march",
+            "legalOrderRegions": ["winterfell"],
+        },
+        "tracks": {"ironThrone": ["stark"]},
+    }
+
+    state = _monitoring_state(observation, {"ownerUserId": "2"})
+
+    assert state is not None
+    assert state["standings"] == observation["houses"]
+    assert state["board"] == [
+        {
+            "id": "winterfell",
+            "name": "Winterfell",
+            "type": "land",
+            "castleLevel": 2,
+            "supplyIcons": 1,
+            "crownIcons": 1,
+            "controlPowerToken": "stark",
+            "garrison": 2,
+            "units": observation["board"][0]["units"],
+        }
+    ]
+    assert state["actionGuidance"] == observation["actionGuidance"]
+    assert state["player"]["availableHouseCards"][0]["ability"] == "robb-stark"
+    assert state["isOwner"] is True
+
+
+def test_monitoring_state_uses_planning_constraints_as_action_guidance() -> None:
+    observation = {
+        "game": {"phase": "planning"},
+        "you": {"userId": "2", "houseId": "stark"},
+        "planningConstraints": {
+            "legalRegions": ["winterfell"],
+            "requiredOrderCount": 3,
+        },
+    }
+
+    state = _monitoring_state(observation, None)
+
+    assert state is not None
+    assert state["actionGuidance"] == {
+        "decision": "planning",
+        "legalRegions": ["winterfell"],
+        "requiredOrderCount": 3,
+    }

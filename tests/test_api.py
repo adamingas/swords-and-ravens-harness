@@ -11,8 +11,26 @@ from conftest import lobby_snapshot
 class UnusedRunner:
     rules_oracle_available = False
 
-    async def run_once(self, **_kwargs):
+    async def run_once(
+        self,
+        *,
+        agent_record,
+        observation,
+        context,
+        tools,
+        instructions,
+        max_turns,
+        stop_at_tool_names,
+        prompt_cache_key,
+        trace_metadata,
+    ):
         raise AssertionError("The model should not run in this test")
+
+    async def shutdown(self) -> None:
+        pass
+
+    async def clear_session(self, agent_id: str) -> None:
+        del agent_id
 
 
 def test_default_relative_data_paths_are_project_local() -> None:
@@ -41,7 +59,7 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
             "deepinfra",
             "io-net",
             "together",
-            "wafer",
+            "gmicloud",
         ],
         "only": [
             "cloudflare",
@@ -49,7 +67,7 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
             "deepinfra",
             "io-net",
             "together",
-            "wafer",
+            "gmicloud",
         ],
     }
 

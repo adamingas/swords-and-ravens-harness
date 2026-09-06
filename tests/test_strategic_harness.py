@@ -11,7 +11,8 @@ from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.harness.actions import HarnessRunContext
 from raven_harness.harness.interface import PlayerHarness
-from raven_harness.harness.observation import build_context
+from raven_harness.harness.observation import build_context, build_observation
+from raven_harness.harness import strategic as strategic_module
 from raven_harness.harness.strategic import StrategicHarness
 from raven_harness.models.openai_agent import OpenAIAgentRunner
 from raven_harness.schemas import AgentCreate
@@ -40,6 +41,27 @@ class FakeClient:
 
 class HarnessStubRunner:
     rules_oracle_available = False
+
+    async def run_once(
+        self,
+        *,
+        agent_record,
+        observation,
+        context,
+        tools,
+        instructions,
+        max_turns,
+        stop_at_tool_names,
+        prompt_cache_key,
+        trace_metadata,
+    ):
+        raise AssertionError("The model should not run in this test")
+
+    async def shutdown(self) -> None:
+        pass
+
+    async def clear_session(self, agent_id: str) -> None:
+        del agent_id
 
 
 class RecallThenActionModel(Model):
@@ -73,7 +95,17 @@ class RecallThenActionModel(Model):
             yield None
 
 
-def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) -> None:
+def test_strategic_harness_implements_interface_and_prepares_memory(
+    tmp_path, monkeypatch
+) -> None:
+    observation_builds = 0
+
+    def count_observation_build(context):
+        nonlocal observation_builds
+        observation_builds += 1
+        return build_observation(context)
+
+    monkeypatch.setattr(strategic_module, "build_observation", count_observation_build)
     database = Database(tmp_path / "strategic.db")
     store = AgentStore(database)
     record = store.create_agent(
@@ -85,13 +117,14 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
         )
     )
     harness = StrategicHarness(
-        runner=HarnessStubRunner(),  # type: ignore[arg-type]
+        runner=HarnessStubRunner(),
         store=store,
     )
     assert isinstance(harness, PlayerHarness)
 
     context = build_context(planning_snapshot(), "2")
     prepared = harness.prepare_turn(record, context, previous_error=None)
+    assert observation_builds == 1
     names = [tool.name for tool in prepared.tools]
     assert "submit_orders" in names
     assert "recall_game_state" in names
@@ -113,6 +146,7 @@ def test_strategic_harness_implements_interface_and_prepares_memory(tmp_path) ->
     later = harness.prepare_turn(
         record, build_context(later_snapshot, "2"), previous_error=None
     )
+    assert observation_builds == 2
     assert later.metadata["promptCacheKey"] == prepared.metadata["promptCacheKey"]
     submit_orders = next(tool for tool in later.tools if tool.name == "submit_orders")
     assert "winterfell" not in submit_orders.description.lower()

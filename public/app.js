@@ -89,6 +89,7 @@ async function loadModels() {
 function render() {
   grid.replaceChildren();
   emptyState.classList.toggle("hidden", monitors.length !== 0);
+  renderGlobalSummary();
   for (const monitor of monitors) {
     const agent = monitor.agent;
     const state = monitor.state;
@@ -204,6 +205,22 @@ function render() {
     });
     grid.append(node);
   }
+}
+
+function renderGlobalSummary() {
+  const totals = monitors.reduce((result, monitor) => {
+    const metrics = monitor.metrics || {};
+    result.runs += Number(metrics.runCount || 0);
+    result.failures += Number(metrics.statusCounts?.failed || 0);
+    result.tokens += Number(metrics.tokens?.total || 0);
+    result.cost += Number(metrics.costUsd || 0);
+    return result;
+  }, { runs: 0, failures: 0, tokens: 0, cost: 0 });
+  document.querySelector("#summary-agents").textContent = number(monitors.length);
+  document.querySelector("#summary-runs").textContent = number(totals.runs);
+  document.querySelector("#summary-failures").textContent = number(totals.failures);
+  document.querySelector("#summary-tokens").textContent = number(totals.tokens);
+  document.querySelector("#summary-cost").textContent = formatCost(totals.cost);
 }
 
 async function guarded(operation) {
@@ -339,7 +356,7 @@ function renderOverview() {
   );
   content.append(decision);
 
-  content.append(section("House cards", cardList(player.availableHouseCards || [])));
+  content.append(section("Available house cards", cardList(player.availableHouseCards || [])));
   content.append(section("Units", unitTable(player.units || [])));
   content.append(section(
     "Controlled regions",
@@ -347,6 +364,9 @@ function renderOverview() {
       region.name + (region.castleLevel ? " · castle " + region.castleLevel : "")
     )),
   ));
+  content.append(section("Standings", standingsTable(state.standings || [])));
+  content.append(section("Board", boardTable(state.board || [])));
+  content.append(section("Action guidance", structuredValue(state.actionGuidance)));
   content.append(section("Influence tracks", trackList(state.tracks || {})));
   content.append(section("Recent model runs", runTable(monitor.recentRuns)));
   content.append(section("Current decision data", jsonBlock(state.pendingDecision)));
@@ -381,10 +401,96 @@ function cardList(cards) {
           + " swords · " + (card.towers ?? 0) + " towers",
         "muted-line",
       ),
+      textNode(
+        "Ability: " + (card.ability ? label(card.ability) : "None"),
+        "muted-line",
+      ),
     );
     list.append(item);
   });
   return list;
+}
+
+function standingsTable(standings) {
+  if (!standings.length) return textNode("No standings are available.", "muted-line");
+  const ordered = [...standings].sort((left, right) =>
+    Number(right.currentVictoryPoints || 0) - Number(left.currentVictoryPoints || 0)
+      || Number(right.controlledCastleAreas || 0) - Number(left.controlledCastleAreas || 0)
+      || Number(right.controlledLandAreas || 0) - Number(left.controlledLandAreas || 0)
+  );
+  return dataTable(
+    ["House", "Victory", "Castles", "Land", "Power", "Supply", "Supply icons"],
+    ordered.map((house) => [
+      house.name || label(house.id),
+      house.currentVictoryPoints ?? "—",
+      house.controlledCastleAreas ?? "—",
+      house.controlledLandAreas ?? "—",
+      house.powerTokens ?? "—",
+      house.supply ?? "—",
+      house.controlledSupplyIcons ?? "—",
+    ]),
+  );
+}
+
+function boardTable(board) {
+  if (!board.length) return textNode("No occupied or controlled regions.", "muted-line");
+  const ordered = [...board].sort((left, right) =>
+    String(left.name || left.id).localeCompare(String(right.name || right.id))
+  );
+  return dataTable(
+    ["Region", "Type", "Units", "Control", "Garrison", "Castle", "Supply", "Crowns"],
+    ordered.map((region) => [
+      region.name || label(region.id),
+      label(region.type),
+      formatUnits(region.units || []),
+      region.controlPowerToken ? label(region.controlPowerToken) : "—",
+      region.garrison || "—",
+      region.castleLevel || "—",
+      region.supplyIcons || "—",
+      region.crownIcons || "—",
+    ]),
+  );
+}
+
+function formatUnits(units) {
+  if (!units.length) return "—";
+  return units.map((unit) => {
+    const wounded = unit.wounded ? " (wounded)" : "";
+    return label(unit.allegiance) + " " + label(unit.type) + " #" + unit.id + wounded;
+  }).join(", ");
+}
+
+function structuredValue(value) {
+  if (value == null) return textNode("No derived guidance for this state.", "muted-line");
+  if (Array.isArray(value)) {
+    if (!value.length) return textNode("None", "muted-line");
+    if (value.every((item) => item == null || typeof item !== "object")) {
+      return pillList(value.map(displayValue));
+    }
+    const list = document.createElement("div");
+    list.className = "structured-list";
+    value.forEach((item) => list.append(structuredValue(item)));
+    return list;
+  }
+  if (typeof value === "object") {
+    const object = document.createElement("div");
+    object.className = "structured-object";
+    Object.entries(value).forEach(([name, child]) => {
+      const row = document.createElement("div");
+      row.className = "structured-row";
+      row.append(textNode(label(name), "structured-name"), structuredValue(child));
+      object.append(row);
+    });
+    return object;
+  }
+  return textNode(displayValue(value), "structured-value");
+}
+
+function displayValue(value) {
+  if (value == null) return "None";
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  return String(value);
 }
 
 function unitTable(units) {
@@ -609,6 +715,7 @@ function label(value) {
   return String(value || "unknown")
     .replaceAll("_", " ")
     .replaceAll("-", " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 

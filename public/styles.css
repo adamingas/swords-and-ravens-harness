@@ -83,6 +83,20 @@ main { padding: 38px 0 80px; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
 .toolbar p { margin-bottom: 0; }
 
+.global-summary {
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--line);
+}
+.global-summary div { padding: 13px; display: grid; gap: 5px; background: var(--panel); }
+.global-summary span { color: var(--muted); font-size: .65rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.global-summary strong { font: 500 1.15rem Georgia, serif; }
+
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 
@@ -306,6 +320,11 @@ textarea { resize: vertical; line-height: 1.45; }
 .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .item-card { padding: 11px; border: 1px solid var(--line); border-radius: 4px; background: #11130f; }
 .item-name { margin-bottom: 4px; font-size: .82rem; font-weight: 750; }
+.structured-list { display: grid; gap: 8px; }
+.structured-object { display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 5px; background: var(--line); }
+.structured-row { padding: 9px 10px; display: grid; grid-template-columns: minmax(130px, .35fr) 1fr; gap: 12px; align-items: start; background: #11130f; }
+.structured-name { color: var(--muted); font-size: .7rem; font-weight: 750; }
+.structured-value { color: #d9d2bd; font-size: .78rem; overflow-wrap: anywhere; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 5px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 .data-table th {
@@ -341,11 +360,13 @@ pre {
   .site-header { min-height: 200px; padding-top: 35px; align-items: flex-start; flex-direction: column; }
   main, .site-header { width: min(100% - 24px, 1180px); }
   .toolbar { align-items: flex-start; flex-direction: column; }
+  .global-summary { grid-template-columns: repeat(2, 1fr); }
   .agent-grid { grid-template-columns: 1fr; }
   .agent-card { padding: 17px; }
   dialog form, .details-dialog { padding: 18px; }
   .overview-stats { grid-template-columns: repeat(2, 1fr); }
   .tracks > div { grid-template-columns: 1fr; gap: 5px; }
+  .structured-row { grid-template-columns: 1fr; gap: 5px; }
   .form-grid { grid-template-columns: 1fr; }
   .wide { grid-column: auto; }
 }

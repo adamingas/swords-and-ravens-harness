@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import subprocess
 from types import SimpleNamespace
 
 import httpx
@@ -12,11 +13,14 @@ from raven_harness.config import Settings
 from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
+    MUTABLE_GAME_SAVE_PATH,
     PROMPT_CONFIGURATIONS,
     _build_provenance,
     _collect_openrouter_generations,
     _evaluation_schedule,
+    _git_provenance,
     _persisted_response_rows,
+    _preflight_openrouter_quota,
     _progress_signature,
     _require_sqlite_quick_check,
     _terminal_winner,
@@ -24,6 +28,7 @@ from raven_harness.evaluation import (
     _validate_winner_house,
     _wait_for_terminal_game_document,
     house_rotation,
+    run_evaluation,
     summarize_results,
     user_rotation,
 )
@@ -150,6 +155,188 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert "do-not-record-this-token" not in serialized
     assert "url-secret" not in serialized
     assert "hidden" not in serialized
+
+
+def test_git_provenance_ignores_runtime_save_but_tracks_source_changes(
+    tmp_path,
+) -> None:
+    child_source = tmp_path / "child-source"
+    child_source.mkdir()
+    _test_git(child_source, "init")
+    _configure_test_git(child_source)
+    (child_source / "source.txt").write_text("original source\n")
+    save = child_source / MUTABLE_GAME_SAVE_PATH
+    save.parent.mkdir(parents=True)
+    save.write_text("original save\n")
+    _test_git(child_source, "add", ".")
+    _test_git(child_source, "commit", "-m", "initial child")
+
+    root = tmp_path / "root"
+    root.mkdir()
+    _test_git(root, "init")
+    _configure_test_git(root)
+    (root / "README.md").write_text("root source\n")
+    _test_git(root, "add", "README.md")
+    _test_git(root, "commit", "-m", "initial root")
+    _test_git(
+        root,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        str(child_source),
+        "swords-and-ravens",
+    )
+    _test_git(root, "commit", "-am", "add submodule")
+
+    child = root / "swords-and-ravens"
+    clean_root = _git_provenance(root, ignore_dirty_submodules=True)
+    clean_child = _git_provenance(
+        child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)
+    )
+    assert clean_root["dirty"] is False
+    assert clean_child["dirty"] is False
+
+    (child / MUTABLE_GAME_SAVE_PATH).write_text("runtime save\n")
+    assert _git_provenance(root, ignore_dirty_submodules=True) == clean_root
+    assert (
+        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))
+        == clean_child
+    )
+
+    (child / "source.txt").write_text("changed source\n")
+    assert _git_provenance(
+        child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)
+    )["dirty"] is True
+    _test_git(child, "add", "source.txt")
+    _test_git(child, "commit", "-m", "change child source")
+    assert _git_provenance(root, ignore_dirty_submodules=True)["dirty"] is True
+
+    _test_git(root, "add", "swords-and-ravens")
+    _test_git(root, "commit", "-m", "advance submodule")
+    (root / "README.md").write_text("changed root source\n")
+    assert _git_provenance(root, ignore_dirty_submodules=True)["dirty"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "data",
+    [
+        {},
+        {"limit": None, "usage": 1_000_000},
+        {"limit": 10, "usage": 9.5},
+        {"limit": 10},
+    ],
+)
+async def test_openrouter_quota_preflight_tolerates_available_or_unlimited_keys(
+    data,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": data})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(
+        openrouter_token="quota-key-must-stay-secret",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        _env_file=None,
+    )
+    try:
+        assert await _preflight_openrouter_quota(settings, client=client) is None
+    finally:
+        await client.aclose()
+
+    assert len(requests) == 1
+    assert str(requests[0].url) == "https://openrouter.example/api/v1/key"
+    assert requests[0].headers["authorization"] == (
+        "Bearer quota-key-must-stay-secret"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"limit": 10, "limit_remaining": 0, "usage": 9},
+        {"limit": 10, "usage": 10},
+        {"limit": 0},
+    ],
+)
+async def test_openrouter_quota_preflight_rejects_explicitly_exhausted_key(
+    data,
+) -> None:
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": data})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    secret = "exhausted-key-must-stay-secret"
+    settings = Settings(
+        openrouter_token=secret,
+        openrouter_base_url="https://openrouter.example/api/v1",
+        _env_file=None,
+    )
+    try:
+        with pytest.raises(RuntimeError, match="spending limit is exhausted") as caught:
+            await _preflight_openrouter_quota(settings, client=client)
+    finally:
+        await client.aclose()
+
+    assert secret not in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_quota_preflight_runs_before_evaluation_output_is_created(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    output = tmp_path / "must-not-exist"
+    rules = tmp_path / "rules.json"
+    rules.write_text("{}\n")
+    settings = Settings(
+        rules_path=rules,
+        openrouter_token="secret",
+        _env_file=None,
+    )
+
+    async def reject_quota(_settings: Settings) -> None:
+        assert not output.exists()
+        raise RuntimeError("quota rejected")
+
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_quota", reject_quota
+    )
+    args = argparse.Namespace(
+        output=str(output),
+        model="z-ai/glm-5.3-flash",
+        games=1,
+        start_game=1,
+        game_port=5101,
+        max_rounds=1,
+        poll_seconds=1.0,
+        stall_seconds=360.0,
+        match_timeout_hours=6.0,
+        continue_on_error=False,
+    )
+
+    with pytest.raises(RuntimeError, match="quota rejected"):
+        await run_evaluation(args)
+    assert not output.exists()
+
+
+def _test_git(directory, *arguments: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(directory), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _configure_test_git(directory) -> None:
+    _test_git(directory, "config", "user.name", "Raven Test")
+    _test_git(directory, "config", "user.email", "raven@example.test")
 
 
 def _terminal_game(winner: str) -> dict:

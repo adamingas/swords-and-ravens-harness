@@ -34,6 +34,9 @@ from .telemetry import Telemetry
 
 HOUSES = ["stark", "greyjoy", "lannister", "tyrell", "martell", "baratheon"]
 GAME_SERVER_DIR = PROJECT_ROOT / "swords-and-ravens" / "agot-bg-game-server"
+MUTABLE_GAME_SAVE_PATH = (
+    "agot-bg-game-server/src/server/website-client/local-entire-game.json"
+)
 
 
 class PromptConfiguration(BaseModel):
@@ -139,6 +142,7 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
         raise RuntimeError(
             "Rules oracle data is required for evaluation; run uv run raven-prepare-rules"
         )
+    await _preflight_openrouter_quota(settings)
     output = _resolve_output(args.output)
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / "manifest.json"
@@ -701,6 +705,63 @@ def _require_sqlite_quick_check(database: Database) -> None:
         raise RuntimeError(f"SQLite quick_check failed: {messages}")
 
 
+async def _preflight_openrouter_quota(
+    settings: Settings,
+    *,
+    client: httpx.AsyncClient | None = None,
+) -> None:
+    """Reject a key whose explicit OpenRouter spending limit is exhausted."""
+
+    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
+        return
+    endpoint = settings.openrouter_base_url.rstrip("/") + "/key"
+    owns_client = client is None
+    active_client = client or httpx.AsyncClient(timeout=10)
+    try:
+        try:
+            response = await active_client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {settings.openrouter_token}"},
+            )
+        except httpx.HTTPError as error:
+            raise RuntimeError(
+                "OpenRouter quota preflight request failed "
+                f"({type(error).__name__})"
+            ) from error
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"OpenRouter quota preflight returned HTTP {response.status_code}"
+            )
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "OpenRouter quota preflight returned an invalid response"
+            ) from error
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise RuntimeError("OpenRouter quota preflight returned an invalid response")
+
+        limit = _optional_number(data.get("limit"))
+        if limit is None:
+            return
+        remaining = _optional_number(data.get("limit_remaining"))
+        usage = _optional_number(data.get("usage"))
+        exhausted = limit <= 0
+        if remaining is not None:
+            exhausted = exhausted or remaining <= 0
+        elif usage is not None:
+            exhausted = exhausted or usage >= limit
+        if exhausted:
+            raise RuntimeError(
+                "OpenRouter API key spending limit is exhausted; increase or reset "
+                "the limit before starting a new evaluation attempt"
+            )
+    finally:
+        if owns_client:
+            await active_client.aclose()
+
+
 async def _collect_openrouter_generations(
     *,
     database: Database,
@@ -1113,8 +1174,14 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
     rules_path = settings.resolved_rules_path
     return {
         "repositories": {
-            "root": _git_provenance(PROJECT_ROOT),
-            "swordsAndRavens": _git_provenance(PROJECT_ROOT / "swords-and-ravens"),
+            "root": _git_provenance(
+                PROJECT_ROOT,
+                ignore_dirty_submodules=True,
+            ),
+            "swordsAndRavens": _git_provenance(
+                PROJECT_ROOT / "swords-and-ravens",
+                ignored_paths=(MUTABLE_GAME_SAVE_PATH,),
+            ),
         },
         "prompts": [
             {
@@ -1181,11 +1248,37 @@ def _validate_reproducible_provenance(
             )
 
 
-def _git_provenance(directory: Path) -> dict[str, Any]:
+def _git_provenance(
+    directory: Path,
+    *,
+    ignored_paths: tuple[str, ...] = (),
+    ignore_dirty_submodules: bool = False,
+) -> dict[str, Any]:
     commit = _run_git(directory, "rev-parse", "HEAD")
-    status = _run_git(directory, "status", "--porcelain", "--untracked-files=normal")
-    diff = _run_git(directory, "diff", "--no-ext-diff", "--binary", "HEAD", "--", ".")
-    untracked = _hash_untracked_files(directory)
+    submodule_option = (
+        ("--ignore-submodules=dirty",) if ignore_dirty_submodules else ()
+    )
+    pathspec = (".", *(f":(exclude){path}" for path in ignored_paths))
+    status = _run_git(
+        directory,
+        "status",
+        "--porcelain",
+        "--untracked-files=normal",
+        *submodule_option,
+        "--",
+        *pathspec,
+    )
+    diff = _run_git(
+        directory,
+        "diff",
+        "--no-ext-diff",
+        "--binary",
+        *submodule_option,
+        "HEAD",
+        "--",
+        *pathspec,
+    )
+    untracked = _hash_untracked_files(directory, ignored_paths=ignored_paths)
     worktree_fingerprint = (
         _sha256_text(f"{status}\0{diff}\0{untracked}")
         if status is not None and diff is not None and untracked is not None
@@ -1198,7 +1291,9 @@ def _git_provenance(directory: Path) -> dict[str, Any]:
     }
 
 
-def _hash_untracked_files(directory: Path) -> str | None:
+def _hash_untracked_files(
+    directory: Path, *, ignored_paths: tuple[str, ...] = ()
+) -> str | None:
     listing = _run_git(
         directory,
         "ls-files",
@@ -1209,7 +1304,10 @@ def _hash_untracked_files(directory: Path) -> str | None:
     if listing is None:
         return None
     digest = hashlib.sha256()
-    for relative_name in sorted(name for name in listing.split("\0") if name):
+    ignored = set(ignored_paths)
+    for relative_name in sorted(
+        name for name in listing.split("\0") if name and name not in ignored
+    ):
         digest.update(relative_name.encode(errors="surrogateescape"))
         path = directory / relative_name
         try:
@@ -1474,6 +1572,8 @@ def main() -> None:
         output = asyncio.run(run_evaluation(args))
     except KeyboardInterrupt:
         raise SystemExit(130) from None
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from None
     print(f"Evaluation artifacts: {output}")
 
 

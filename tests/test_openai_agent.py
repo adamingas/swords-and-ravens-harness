@@ -7,8 +7,8 @@ from agents import ModelResponse, Usage
 from agents.models.interface import Model
 from openai.types.responses import ResponseFunctionToolCall
 
-from raven_harness.harness.actions import HarnessRunContext
-from raven_harness.harness.observation import build_context, build_observation
+from raven_harness.harness.actions import HarnessRunContext, available_tools
+from raven_harness.harness.observation import build_observation
 from raven_harness.models.openai_agent import OpenAIAgentRunner
 from raven_harness.schemas import AgentCreate, AgentRecord
 
@@ -68,6 +68,27 @@ class FailingModel(Model):
             yield None
 
 
+def turn_arguments(
+    record: AgentRecord, context: HarnessRunContext
+) -> dict[str, Any]:
+    game_context = context.current_game_context()
+    return {
+        "agent_record": record,
+        "observation": build_observation(game_context),
+        "context": context,
+        "tools": available_tools(game_context),
+        "instructions": record.system_prompt,
+        "max_turns": 1,
+        "stop_at_tool_names": ["choose_house"],
+        "prompt_cache_key": "test-cache-key",
+        "trace_metadata": {
+            "agent_id": record.id,
+            "game_id": record.game_id,
+            "run_id": "test-run",
+        },
+    }
+
+
 @pytest.mark.asyncio
 async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     monkeypatch,
@@ -82,7 +103,6 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    observation = build_observation(build_context(client.snapshot, "2"))
 
     runner = OpenAIAgentRunner(
         api_key="test-key",
@@ -94,9 +114,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
             "require_parameters": False,
         },
     )
-    result = await runner.run_once(
-        agent_record=record, observation=observation, context=context
-    )
+    result = await runner.run_once(**turn_arguments(record, context))
 
     assert result.response_id == "resp-1"
     assert result.usage["totalTokens"] == 25
@@ -130,11 +148,7 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     with pytest.raises(RuntimeError, match="provider failed"):
         await OpenAIAgentRunner(
             api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(
-            agent_record=record,
-            observation=build_observation(build_context(client.snapshot, "2")),
-            context=context,
-        )
+        ).run_once(**turn_arguments(record, context))
 
     assert client.sent == []
     assert context.action_taken is None
@@ -162,11 +176,7 @@ async def test_runner_persists_a_bounded_agent_sdk_conversation(
         session_history_items=12,
     )
 
-    await runner.run_once(
-        agent_record=record,
-        observation=build_observation(build_context(client.snapshot, "2")),
-        context=context,
-    )
+    await runner.run_once(**turn_arguments(record, context))
 
     with sqlite3.connect(database_path) as connection:
         rows = connection.execute(

@@ -17,7 +17,7 @@ from agents import (
 from agents.memory import Session, SessionSettings, SQLiteSession
 from openai import APITimeoutError, AsyncOpenAI
 
-from ..harness.actions import HarnessRunContext, available_tools
+from ..harness.actions import HarnessRunContext
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
 
@@ -93,23 +93,25 @@ class OpenAIAgentRunner:
         agent_record: AgentRecord,
         observation: dict[str, Any],
         context: HarnessRunContext,
-        tools: list[FunctionTool] | None = None,
-        instructions: str | None = None,
-        max_turns: int = 1,
-        stop_at_tool_names: list[str] | None = None,
-        prompt_cache_key: str | None = None,
-        trace_metadata: dict[str, str] | None = None,
+        tools: list[FunctionTool],
+        instructions: str,
+        max_turns: int,
+        stop_at_tool_names: list[str],
+        prompt_cache_key: str,
+        trace_metadata: dict[str, str],
     ) -> ModelRunResult:
         if not self.api_key:
             raise RuntimeError(
                 "OPENROUTER_TOKEN or OPENAI_API_KEY is not configured on the harness server"
             )
 
-        if tools is None:
-            tools = available_tools(context.current_game_context())
         if not tools:
             raise RuntimeError(
                 "No model tool is implemented for the current game state"
+            )
+        if not stop_at_tool_names:
+            raise RuntimeError(
+                "No gameplay tool is implemented for the current game state"
             )
 
         model = OpenAIResponsesModel(model=agent_record.model, openai_client=self.client)
@@ -144,7 +146,7 @@ class OpenAIAgentRunner:
         ]
         agent = Agent[HarnessRunContext](
             name=agent_record.name,
-            instructions=instructions or agent_record.system_prompt,
+            instructions=instructions,
             model=model,
             tools=tools,
             model_settings=self._model_settings(
@@ -153,12 +155,8 @@ class OpenAIAgentRunner:
                 metadata=trace_metadata,
                 user=agent_record.id,
             ),
-            tool_use_behavior=(
-                {"stop_at_tool_names": stop_at_tool_names}
-                if stop_at_tool_names
-                else "stop_on_first_tool"
-            ),
-            reset_tool_choice=not bool(stop_at_tool_names),
+            tool_use_behavior={"stop_at_tool_names": stop_at_tool_names},
+            reset_tool_choice=False,
         )
         try:
             async with self._run_slots:
