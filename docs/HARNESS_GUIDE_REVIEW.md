@@ -4,7 +4,7 @@ This record shows how independent reviewers checked `HARNESS_GUIDE.md`. The
 guide remains the stand-alone system description. This file records the review
 method, findings, and corrections.
 
-## Review basis
+## Initial review basis
 
 The reviewers inspected root commit `590a7ed` and the matching upstream commit
 `12269cc`. They compared the guide with the Python source, model-visible tool
@@ -13,6 +13,11 @@ and dashboard.
 
 Each reviewer inspected the source and guide independently and returned
 evidence with exact file and line references.
+
+The current review used root commit `6a7e5bb`, upstream commit `1a1c4434`, and
+the exact proposed changes that became root commit `fdda17d`. Independent Sol
+and Luna reviewers compared those changes with the source, tests, saved trace
+evidence, API behavior, and dashboard code. Neither reviewer used Terra.
 
 ## Reviewer 1: documentation and operator view
 
@@ -75,6 +80,46 @@ turn metadata with required fields, and derive legal actions once per decision.
 The real TypeScript server omits false and default-valued settings, so the
 harness normalizes only those documented serializer defaults before it checks
 the lobby response.
+
+## Reviewer 4: saved state and evidence
+
+This reviewer checked the saved-state dashboard design and the evidence for the
+rules oracle. The first proposed implementation could combine an old in-memory
+observation with a different stored snapshot after a connection failure. It
+could also report the wrong game-owner status. The evidence report contained
+correct counts, but its first SQL example selected unrelated failed runs and
+did not explain player pseudonyms.
+
+Commit `fdda17d` makes every non-live monitor view use one complete stored
+snapshot. It adds `stateStatus.actionable`, which is false for saved state. It
+also adds a reconnecting-session test. The tracked evidence JSON now contains
+the seven sanitized source rows. The report contains the exact SQL filter and
+the deterministic pseudonym procedure. A test checks the evidence categories
+and counts.
+
+The same review found that the guide listed an old provider order. The guide,
+configuration, README, and environment example now put Reka first. A test
+derives that sentence from the configured default. The reviewer found no
+remaining medium- or high-severity issue after these corrections.
+
+## Reviewer 5: dashboard and tracing
+
+This reviewer checked the saved-state user interface and OpenTelemetry proof.
+The dashboard labels a stopped agent's state as saved and does not highlight an
+old required decision as actionable. The Available tools tab now tells the
+operator to reconnect instead of presenting an empty saved-state tool list as
+current legality.
+
+The review requested tests for successful and failed decision spans. The tests
+now use an in-memory OpenTelemetry exporter. They verify agent, game, model,
+run, action, token, cost, and failure-status data. Decision spans now include
+sanitized model-run, provider-request, and tool lifecycle events. They do not
+include prompts, observations, tool arguments, tool results, or credentials.
+The reviewer found no high-severity issue.
+
+The in-app browser still could not initialize for this revision. Automated
+desktop and narrow-width visual verification remains incomplete. Static
+JavaScript checks, API tests, and responsive-source review passed.
 
 ## Continuing contract
 
