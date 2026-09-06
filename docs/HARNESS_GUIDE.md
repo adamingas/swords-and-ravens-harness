@@ -50,6 +50,10 @@ Terms used in this guide:
   machine. It identifies the current decision.
 - An **SDK item** is one persisted Agents SDK input, model output, tool call, or
   tool result.
+- An **effective-context manifest** records what the harness selected from SDK
+  history. At the SDK call-model filter, it records fingerprints for the
+  parent input list and instructions. It does not hash the complete provider
+  request or repeat the complete current observation.
 
 The default SQLite file is ./data/harness.db. Relative data paths resolve from
 the harness repository, even when you start the command elsewhere. Tests use
@@ -200,28 +204,45 @@ action.
 3. The harness creates a clean observation from the latest snapshot.
 4. The harness selects tools for the active leaf state. It does not fall back
    to a recognized parent when the leaf is unknown.
-5. The harness adds the history-recall tool and, when available, the rules oracle.
+5. The harness adds the history-recall and strategy-note tools. It also adds
+   the rules oracle when prepared rules data is available.
 6. The harness starts one Agents SDK run with the selected model and the
-   player's recent persisted conversation. The SDK can make more than one
-   provider request inside that run.
-7. The model can recall an older decision state or ask the oracle.
+   player's recent model and tool items. It appends one complete current
+   observation. The SDK can make more than one provider request inside that
+   run.
+7. The model can recall an older decision state, replace its durable plan, or
+   ask the oracle.
 8. The model must call exactly one gameplay tool.
 9. Pydantic validates the tool arguments.
 10. The tool checks the latest state again and sends typed server messages.
 11. The harness requests a fresh player-scoped snapshot with sync-game.
 12. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
-13. The harness updates the compact notebook when the SDK run returns. It then
-    saves the attempt and links an accepted action to its source state.
+13. The harness updates the automatic notebook when the SDK run returns. If
+    the model queued a plan and the game action was accepted, the harness also
+    saves that plan. It then saves the attempt and links the action to its
+    source state.
 
 Each decision is a new `Runner.run` invocation, but it is not a new
 conversation. The Agents SDK stores the player's input messages, function
-calls, function results, and model items in SQLite. The next decision receives
-the latest 32 items by default. It also receives the complete current
-observation, the automatic strategic notebook, and a state-history index. The
-explicit window prevents the provider input from growing without limit. The
-structured notebook and `recall_game_state` preserve information beyond that
-recent window.
+calls, function results, and model items in SQLite. By default, it reads the
+latest 32 stored items before a decision. The harness removes every old full
+observation from that window. It keeps later assistant and reasoning items,
+plus gameplay function calls and results. It removes only old recall,
+strategy-note, and rules-oracle calls and their matching results. These
+support results remain available during the current SDK run, but they are not
+replayed in a later decision. The harness then appends exactly one complete
+current observation. The automatic strategic notebook and state-history index
+are inside that observation.
+
+The filter also discards an incomplete prefix when the 32-item window starts
+in the middle of an older decision. The raw SDK rows remain in SQLite. Thus,
+the audit history is complete while repeated board states do not inflate the
+provider request. The 32-item setting bounds recent model and tool continuity;
+it is not a token limit. Tool schemas, instructions, the current observation,
+and several provider requests inside one SDK run can still use many tokens.
+The structured notebook and `recall_game_state` preserve selected information
+beyond the recent window.
 
 This hybrid design gives the model conversational continuity and keeps each
 attempt inspectable from local data. It does not guarantee deterministic replay
@@ -299,7 +320,8 @@ automatic notebook, and up to 12 history entries.
   "strategicMemory": {
     "roundNumber": 0,
     "situationAssessment": "",
-    "objectives": []
+    "objectives": [],
+    "modelPlan": ""
   },
   "historyIndex": [{"stateId": "leaf-2", "phase": "place-orders"}],
   "planningConstraints": {"requiredAssignmentCount": 2, "maxStarredOrders": 1}
@@ -455,11 +477,11 @@ the full local Supply validator.
 
 ## 10. Private support tools
 
-Support tools do not end the required gameplay decision. The history tool is
-available in every model run. The rules oracle is available only when the
-prepared rules data is loaded. The harness updates `strategicMemory`
-automatically after each model run that returns normally; the model does not
-write it.
+Support tools do not end the required gameplay decision. The two memory tools
+are available in every model run. The rules oracle is available only when the
+prepared rules data is loaded. The harness rebuilds the factual fields in
+`strategicMemory` after an accepted action. The model can write only the
+`modelPlan` text through `remember_strategy`.
 
 ### recall_game_state(turns_ago)
 
@@ -467,6 +489,14 @@ This tool returns one earlier stored base observation and the action selected
 from it. `turns_ago` is from 1 through 50. The current observation already
 contains a 12-entry history index, including the present recorded state, so use
 recall only when exact old data can change the decision.
+
+### remember_strategy(note)
+
+This tool queues a private replacement for `strategicMemory.modelPlan`. The
+note is plain text from 1 through 2,000 characters. Use it only when the
+durable multi-round plan changes. The harness saves the note only after the
+same SDK run completes an accepted gameplay action. A failed, cancelled, or
+no-action run does not change the stored plan.
 
 ### ask_rules_oracle(question)
 
@@ -502,7 +532,7 @@ tables when the first session-backed run starts:
 | --- | --- |
 | agents | Agent identity, model, prompt, connection settings, and credentials. Treat this local file as sensitive. |
 | agent_events | Compact connection, protocol, autoplay, and run events. Authentication tokens are redacted from event payloads. |
-| agent_runs | One model attempt: observation, instructions, tool definitions, serialized Agents SDK result items, returned usage, action, error, and timing. Nested-oracle records are appended to those items. |
+| agent_runs | One model attempt: observation, effective-context manifest, instructions, tool definitions, serialized Agents SDK result items, returned usage, action, error, and timing. Nested-oracle records are appended to those items. |
 | game_state_history | One player-scoped base observation per distinct state at which a model run was prepared, plus the accepted action selected from that state. |
 | strategic_memories | Current private notebook and revision number for each agent. |
 | player_snapshots | Each distinct player-scoped WebSocket snapshot. Each row contains the complete serialized snapshot. |
@@ -515,10 +545,14 @@ keeps each oracle interaction that completed before the failure. A provider
 exception can still prevent the SDK from returning partial parent response
 items or parent usage. The harness always stores the error and elapsed time.
 
-The database uses schema version 2. The server upgrades a version 1 database to
-version 2. It rejects other versions. Use another `DATABASE_PATH` when the
-schema is incompatible. Deleting an agent permanently removes its events,
-runs, snapshots, history, memory, and SDK conversation.
+The database uses schema version 3. The server upgrades version 1 to version 2
+and then version 3. Version 3 lets a model attempt store an effective-context
+manifest. The manifest is present when an attempt reaches the model runner,
+including runner errors and cancellations. It is null for a failure during
+observation or tool preparation and for a row migrated from version 2. The
+database rejects newer or unsupported versions. Use another `DATABASE_PATH`
+when the schema is incompatible. Deleting an agent permanently removes its
+events, runs, snapshots, history, memory, and SDK conversation.
 
 Useful endpoints are:
 
@@ -557,15 +591,49 @@ endpoint or query the database for experiment export.
 The dashboard header totals the agent count, model runs, failures, tokens, and
 provider-reported cost. Open an agent to see its available house cards and
 card abilities, units, controlled regions, public standings, occupied board
-regions, current action guidance, influence tracks, run traces, snapshots, and
-memory. Board rows are intentionally sparse: they contain only occupied,
-garrisoned, or controlled regions.
+regions, current action guidance, influence tracks, model usage, run traces,
+snapshots, and memory. Board rows are intentionally sparse: they contain only
+occupied, garrisoned, or controlled regions.
 
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
-token counts. Recorded duration begins before observation preparation and
-includes time waiting for the process-wide model semaphore. The 300-second
-model-run timeout begins only after that semaphore is acquired.
+token counts. Per-agent metrics report request-input distributions separately
+for the gameplay agent and rules oracle. This separates one provider request
+from an SDK run that can contain several requests.
+
+The metrics response has these groups:
+
+| Key | Meaning |
+| --- | --- |
+| runCount; statusCounts | Attempt total and completed, failed, or cancelled totals. |
+| modelRequests | Accumulated standard SDK request count for a gameplay run, including nested oracle requests. |
+| tokens.input; output; total | Standard accumulated token counts. |
+| tokens.cachedInput; cacheWrite; reasoning | Provider-native detailed token counts when reported. |
+| tokens.maxInputInRun | Largest accumulated standard input count for one SDK run, including nested oracle work. |
+| requestInputTokens | Reported request count and average, p50, p90, p99, and maximum input for gameplay-agent provider requests. |
+| rulesOracleRequestInputTokens | The same distribution for rules-oracle provider requests. |
+| costUsd | Sum of provider-native cost fields. |
+| durationMs | Total, average, and maximum attempt duration. |
+| historicalStates | Number of distinct stored decision states. |
+
+A run detail includes this context manifest:
+
+| Field | Meaning |
+| --- | --- |
+| policy | Name of the active context-selection policy. |
+| sessionHistoryLimit | Maximum SDK items read from the session. |
+| retrievedHistoryItemCount | Items returned by the session read. |
+| discardedPrefixItemCount | Items discarded before the first complete decision boundary. |
+| removedObservationItemCount; removedObservationCharacters | Old full observations removed from the request. |
+| removedSupportToolItemCount; removedSupportToolCharacters | Old recall, strategy-note, and oracle call/result items removed from the request. |
+| selectedHistoryItems | History items selected by the harness callback. The SDK can still normalize, deduplicate, or prune these items. |
+| currentInputItemCount; currentInputCharacters; currentInputSha256 | Size and fingerprint of the one current observation input. |
+| modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. It also fingerprints the instructions. The SDK can still deduplicate items afterward. This is not a hash of tools, settings, metadata, model ID, or provider serialization. |
+
+The current observation itself is stored beside the manifest. The manifest
+does not store API keys. Recorded duration begins before observation
+preparation and includes time waiting for the process-wide model semaphore.
+The 300-second model-run timeout begins only after that semaphore is acquired.
 
 A zero cost value can mean that a provider omitted its cost field. It does not
 always mean that the request was free. Git ignores root `data/*.db`,
@@ -593,11 +661,13 @@ MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
 MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
 MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
+The harness filters old observation inputs from that window before the model
+request. It does not delete them from SQLite.
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Cloudflare, Reka, DeepInfra, IO.net, Together, and GMICloud.
+defaults to Cloudflare, CoreWeave, Fireworks, Together, DeepInfra, and Reka.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -722,8 +792,9 @@ upstream source, or the recorded submodule commit.
 
 Completion requires a matching terminal winner in the live observation and
 the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
-`summary.json` reports wins, placement, victory points, reliability, cost,
-house effects, and a stated pairwise Elo calculation.
+`summary.json` reports wins, placement, victory points, reliability, provider
+requests, input/output/total/cached token counts, cost, house effects, and a
+stated pairwise Elo calculation.
 
 ## 16. Verify changes
 

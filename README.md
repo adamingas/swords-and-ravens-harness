@@ -6,11 +6,13 @@ observation, phase-specific tools, private strategic memory, and an optional
 official-rules oracle.
 
 The project uses one canonical harness. Each model decision receives the
-complete current observation, a bounded persisted Agents SDK conversation,
-and automatic structured long-term memory. SQLite stores every distinct
-player snapshot, model attempt, accepted game action, error, and duration. It
-also keeps completed rules-oracle work when the parent model call later fails
-or is cancelled.
+complete current observation, recent model and tool items, and structured
+long-term memory. Old full observations stay in SQLite for audit, but the
+harness removes them from the next provider request. SQLite stores every
+distinct player snapshot, model attempt, accepted game action, error, and
+duration. Attempts that reach the model runner also store an effective-context
+manifest. SQLite keeps completed rules-oracle work when the parent model call
+later fails or is cancelled.
 
 See [the system and tool guide](docs/HARNESS_GUIDE.md) for the complete data
 flow, observation format, tool catalog, retry behavior, and API reference.
@@ -113,7 +115,7 @@ MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
 AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=cloudflare,reka,deepinfra,io-net,together,gmicloud
+OPENROUTER_PROVIDER_ORDER=cloudflare,coreweave,fireworks,together,deepinfra,reka
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -142,7 +144,7 @@ uvx arize-phoenix serve
 
 Set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:6006/v1/traces` and
 restart the harness. SQLite remains the canonical local trace store; failed SDK
-runs can lack partial response items and usage.
+runs can lack partial parent response items and provider-returned parent usage.
 
 ## Verification
 
