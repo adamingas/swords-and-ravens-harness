@@ -885,7 +885,32 @@ dirty. Do not commit a saved game that contains private state.
 The local saved-game JSON is written only after a game starts and can contain
 private player state. Treat it as sensitive.
 
-## 15. Six-model tournament
+## 15. Same-model house test
+
+Run five complete games with GPT-OSS-120B in all six seats:
+
+~~~bash
+uv run raven-evaluate-houses \
+  --output data/evaluations/gpt-oss-120b-house-test
+~~~
+
+The command uses `strategic-v1` for every seat, requests the Cerebras backend,
+and disables backend fallback. It starts five independent games on ports 5121
+through 5125 by default. The command has no round-limit option. Each game ends
+only at the normal victory condition or the normal final round.
+
+Each game has its own saved game, agent database, trace, seed, and result. The
+manifest records active elapsed time separately for each game. If the command
+stops, run the same command again. It reconnects each incomplete game to its
+saved game and restores every agent to its last pre-call or post-action
+checkpoint. `summary.json` reports house wins, average placement, average
+victory points, average controlled land areas, tokens, cost, failures, and
+whether all five complete games took less than one minute.
+
+Backend attribution is optional reporting data. Game completion does not wait
+for a backend metadata service and does not require an attribution artifact.
+
+## 16. Six-model tournament
 
 `raven-evaluate` runs isolated six-player games. Each game contains these exact
 model IDs as understood by the configured OpenAI-compatible endpoint:
@@ -1025,7 +1050,7 @@ each model-house pair. A ranking is `provisional` until 12 games are complete,
 and every pair has two games. Optional provider attribution has its own
 `providerAttributionComplete` status and does not control `comparisonComplete`.
 
-## 16. Verify changes
+## 17. Verify changes
 
 Run the Python checks from the repository root:
 

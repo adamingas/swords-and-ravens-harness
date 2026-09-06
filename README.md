@@ -188,11 +188,14 @@ HARNESS_TEST_MAX_TURNS=1. Omit that variable for normal games.
 
 The evaluation runner starts an isolated game server, stores its database and
 game JSON below `data/evaluations/`, and puts the six tournament models in the
-six seats. Every seat uses the same `strategic-v1` harness configuration. Run a
-one-round smoke before the complete 12-game tournament:
+six seats. Every seat uses the same `strategic-v1` harness configuration. Run
+the five-game GPT-OSS house test without a round limit, then run a one-round
+mixed-model smoke before the complete 12-game tournament:
 
 ~~~bash
 uv run raven-protocol-smoke
+uv run raven-evaluate-houses \
+  --output data/evaluations/gpt-oss-120b-house-test
 uv run raven-evaluate --games 1 --max-rounds 1 \
   --output data/evaluations/model-tournament-smoke
 uv run raven-evaluate --games 12 \
@@ -200,6 +203,12 @@ uv run raven-evaluate --games 12 \
   --concurrent-games 12 \
   --output data/evaluations/model-tournament
 ~~~
+
+`raven-evaluate-houses` runs five complete games concurrently with
+`openai/gpt-oss-120b` in all six seats. It has no round-limit option. The
+command requests the Cerebras backend with fallback disabled and records each
+game's active elapsed time. Reusing its output directory resumes incomplete
+games from their saved game and agent checkpoints.
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness
 clients, then completes two rounds with a deterministic policy. It invokes the

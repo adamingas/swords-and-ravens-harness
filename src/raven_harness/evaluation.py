@@ -925,6 +925,7 @@ async def _preflight_openrouter_models(
     settings: Settings,
     *,
     client: httpx.AsyncClient | None = None,
+    model_ids: list[str] | tuple[str, ...] = tuple(TOURNAMENT_MODELS),
 ) -> list[dict[str, Any]]:
     """Verify the exact tournament IDs and required tool parameters."""
 
@@ -965,7 +966,7 @@ async def _preflight_openrouter_models(
             for row in rows
             if isinstance(row, dict) and isinstance(row.get("id"), str)
         }
-        missing = [model for model in TOURNAMENT_MODELS if model not in by_id]
+        missing = [model for model in model_ids if model not in by_id]
         if missing:
             raise RuntimeError(
                 "OpenRouter does not list the exact tournament model IDs: "
@@ -974,7 +975,7 @@ async def _preflight_openrouter_models(
         required_parameters = {"tools", "tool_choice"}
         unsupported = []
         verified = []
-        for model in TOURNAMENT_MODELS:
+        for model in model_ids:
             row = by_id[model]
             supported = row.get("supported_parameters")
             parameters = {
@@ -1014,11 +1015,14 @@ async def _preflight_model_catalog(
     settings: Settings,
     *,
     client: httpx.AsyncClient | None = None,
+    model_ids: list[str] | tuple[str, ...] = tuple(TOURNAMENT_MODELS),
 ) -> list[dict[str, Any]]:
     """Verify tournament IDs through the configured endpoint's model catalog."""
 
     if settings.model_provider == "OpenRouter":
-        return await _preflight_openrouter_models(settings, client=client)
+        return await _preflight_openrouter_models(
+            settings, client=client, model_ids=model_ids
+        )
 
     endpoint = settings.model_base_url.rstrip("/") + "/models"
     owns_client = client is None
@@ -1051,14 +1055,14 @@ async def _preflight_model_catalog(
             for row in rows
             if isinstance(row, dict) and isinstance(row.get("id"), str)
         }
-        missing = [model for model in TOURNAMENT_MODELS if model not in by_id]
+        missing = [model for model in model_ids if model not in by_id]
         if missing:
             raise RuntimeError(
                 "The configured model endpoint does not list the exact tournament "
                 "model IDs: " + ", ".join(missing)
             )
         verified = []
-        for model in TOURNAMENT_MODELS:
+        for model in model_ids:
             row = by_id[model]
             advertised = row.get("supported_parameters")
             parameters = (
@@ -1585,7 +1589,12 @@ def _load_manifest(
     return manifest
 
 
-def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str, Any]:
+def _build_provenance(
+    args: argparse.Namespace,
+    settings: Settings,
+    *,
+    model_ids: list[str] | tuple[str, ...] = tuple(TOURNAMENT_MODELS),
+) -> dict[str, Any]:
     rules_path = settings.resolved_rules_path
     return {
         "repositories": {
@@ -1627,7 +1636,7 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             "sha256": _sha256_file(rules_path) if rules_path.is_file() else None,
         },
         "models": {
-            "ids": TOURNAMENT_MODELS,
+            "ids": list(model_ids),
             "provider": settings.model_provider,
             "baseUrl": _sanitized_base_url(settings.model_base_url),
             "baseUrlSha256": _sha256_text(settings.model_base_url),

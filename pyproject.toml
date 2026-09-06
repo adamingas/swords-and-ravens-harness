@@ -20,6 +20,7 @@ dependencies = [
 raven-harness = "raven_harness.__main__:main"
 raven-prepare-rules = "raven_harness.rulebook:main"
 raven-evaluate = "raven_harness.evaluation:main"
+raven-evaluate-houses = "raven_harness.house_evaluation:main"
 raven-protocol-smoke = "raven_harness.protocol_smoke:main"
 raven-verify-evaluation = "raven_harness.evaluation_verifier:main"
 
