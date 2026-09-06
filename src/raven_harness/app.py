@@ -56,6 +56,7 @@ def create_app(
             max_output_tokens=settings.model_max_output_tokens,
             session_database_path=settings.resolved_database_path,
             session_history_items=settings.model_session_history_items,
+            checkpoint_store=store,
             provider_routing=(
                 settings.openrouter_provider_routing
                 if settings.model_provider == "OpenRouter"

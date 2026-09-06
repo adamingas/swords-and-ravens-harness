@@ -7,9 +7,12 @@ from typing import Any
 
 import pytest
 from agents import ModelResponse, Usage
+from agents.memory import SQLiteSession
 from agents.models.interface import Model
 from openai.types.responses import ResponseFunctionToolCall
 
+from raven_harness.agent_store import AgentStore
+from raven_harness.database import Database
 from raven_harness.game.client import GameConnectionLost
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.observation import build_observation
@@ -783,6 +786,75 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     assert result.context_manifest["retrievedHistoryItemCount"] == 0
     assert result.context_manifest["removedSupportToolItemCount"] == 0
     await runner.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_runner_restores_session_to_the_pre_model_checkpoint(
+    monkeypatch, tmp_path
+) -> None:
+    model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: model,
+    )
+    database_path = tmp_path / "checkpoint.db"
+    database = Database(database_path)
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    session = SQLiteSession(
+        session_id=f"raven-agent-{record.id}", db_path=database_path
+    )
+    kept_items = [
+        {"role": "assistant", "content": f"keep-{index}"}
+        for index in range(40)
+    ]
+    await session.add_items(kept_items)
+    store.set_agent_checkpoint(
+        agent_id=record.id,
+        state_id="leaf-1",
+        observation={
+            "game": {"stateId": "leaf-1"},
+            "recoveryMarker": "exact saved observation",
+        },
+        session_item_count=len(kept_items),
+        run_id="interrupted-run",
+        phase="before-model",
+    )
+    await session.add_items(
+        [{"role": "user", "content": "discard interrupted model input"}]
+    )
+    session.close()
+
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+        session_database_path=database_path,
+        checkpoint_store=store,
+    )
+    context = HarnessRunContext(
+        client=FakeClient(), user_id="2", game_password="wolf"
+    )
+    await runner.run_once(**turn_arguments(record, context))
+
+    with sqlite3.connect(database_path) as connection:
+        persisted_items = "\n".join(
+            row[0]
+            for row in connection.execute(
+                "SELECT message_data FROM agent_messages ORDER BY id"
+            )
+        )
+    assert "keep-0" in persisted_items
+    assert "keep-39" in persisted_items
+    assert "discard interrupted model input" not in persisted_items
+    assert "exact saved observation" in json.dumps(model.inputs[0])
+    checkpoint = store.get_agent_checkpoint(record.id)
+    assert checkpoint is not None
+    assert checkpoint["phase"] == "after-action"
+    assert checkpoint["sessionItemCount"] > len(kept_items)
+    await runner.shutdown()
+    database.close()
 
 
 def test_session_context_filter_plateaus_across_one_hundred_decisions() -> None:

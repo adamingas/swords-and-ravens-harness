@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import monotonic
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agents import (
     Agent,
@@ -29,6 +29,9 @@ from ..game.client import GameConnectionLost
 from ..harness.actions import HarnessRunContext
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
+
+if TYPE_CHECKING:
+    from ..agent_store import AgentStore
 
 
 OBSERVATION_INPUT_PREFIX = (
@@ -378,6 +381,7 @@ class OpenAIAgentRunner:
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
         session_history_items: int = 32,
+        checkpoint_store: AgentStore | None = None,
         provider_routing: dict[str, Any] | None = None,
         rulebook: Rulebook | None = None,
     ) -> None:
@@ -389,7 +393,9 @@ class OpenAIAgentRunner:
         self.max_output_tokens = max_output_tokens
         self.session_database_path = session_database_path
         self.session_history_items = session_history_items
+        self.checkpoint_store = checkpoint_store
         self._sessions: dict[str, SQLiteSession] = {}
+        self._restored_session_ids: set[str] = set()
         self.provider_routing = provider_routing
         self.rulebook = rulebook
         self.client = AsyncOpenAI(
@@ -416,6 +422,15 @@ class OpenAIAgentRunner:
         prompt_cache_key: str,
         trace_metadata: dict[str, str],
     ) -> ModelRunResult:
+        session = self._session(agent_record.id)
+        recovered = await self._restore_agent_session(agent_record.id, session)
+        current_state_id = str(observation.get("game", {}).get("stateId") or "unknown")
+        if (
+            recovered is not None
+            and recovered["phase"] == "before-model"
+            and recovered["stateId"] == current_state_id
+        ):
+            observation = copy.deepcopy(recovered["observation"])
         current_input = OBSERVATION_INPUT_PREFIX + json.dumps(
             observation, separators=(",", ":")
         )
@@ -433,8 +448,7 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(message, _partial_result([], context_filter.manifest()))
 
-        session = self._session(agent_record.id)
-        session_item_count = len(await session.get_items()) if session is not None else 0
+        session_item_count = await _session_item_count(session)
 
         oracle_interactions: list[dict[str, Any]] = []
         try:
@@ -497,6 +511,13 @@ class OpenAIAgentRunner:
         try:
             async with self._run_slots:
                 async with asyncio.timeout(self.run_timeout_seconds):
+                    self._save_agent_checkpoint(
+                        agent_record=agent_record,
+                        observation=observation,
+                        session_item_count=session_item_count,
+                        run_id=trace_metadata["run_id"],
+                        phase="before-model",
+                    )
                     result = await Runner.run(
                         agent,
                         input=current_input,
@@ -576,7 +597,65 @@ class OpenAIAgentRunner:
         await _rollback_unaccepted_session(
             session, session_item_count, context=context
         )
+        if context.action_taken is not None:
+            self._save_agent_checkpoint(
+                agent_record=agent_record,
+                observation=observation,
+                session_item_count=await _session_item_count(session),
+                run_id=trace_metadata["run_id"],
+                phase="after-action",
+            )
         return completed
+
+    async def _restore_agent_session(
+        self, agent_id: str, session: Session | None
+    ) -> dict[str, Any] | None:
+        """Discard an interrupted turn back to its last durable boundary."""
+
+        if (
+            session is None
+            or self.checkpoint_store is None
+            or agent_id in self._restored_session_ids
+        ):
+            return None
+        checkpoint = self.checkpoint_store.get_agent_checkpoint(agent_id)
+        if checkpoint is not None:
+            expected_count = int(checkpoint["sessionItemCount"])
+            current_count = await _session_item_count(session)
+            if current_count < expected_count:
+                raise RuntimeError(
+                    f"Agent session {agent_id} has {current_count} items but its "
+                    f"checkpoint requires {expected_count}"
+                )
+            for _ in range(current_count - expected_count):
+                if await session.pop_item() is None:
+                    raise RuntimeError(
+                        f"Agent session {agent_id} could not be restored to its "
+                        "checkpoint"
+                    )
+        self._restored_session_ids.add(agent_id)
+        return checkpoint
+
+    def _save_agent_checkpoint(
+        self,
+        *,
+        agent_record: AgentRecord,
+        observation: dict[str, Any],
+        session_item_count: int,
+        run_id: str,
+        phase: str,
+    ) -> None:
+        if self.checkpoint_store is None:
+            return
+        state_id = str(observation.get("game", {}).get("stateId") or "unknown")
+        self.checkpoint_store.set_agent_checkpoint(
+            agent_id=agent_record.id,
+            state_id=state_id,
+            observation=observation,
+            session_item_count=session_item_count,
+            run_id=run_id,
+            phase=phase,
+        )
 
     def _session(self, agent_id: str) -> Session | None:
         if self.session_database_path is None:
@@ -610,6 +689,7 @@ class OpenAIAgentRunner:
             await session.clear_session()
         finally:
             session.close()
+            self._restored_session_ids.discard(agent_id)
 
     def _model_settings(
         self,
@@ -655,7 +735,7 @@ async def _rollback_unaccepted_session(
     if session is None or context.action_taken is not None:
         return
     try:
-        current_item_count = len(await session.get_items())
+        current_item_count = await _session_item_count(session)
         for _ in range(max(0, current_item_count - original_item_count)):
             if await session.pop_item() is None:
                 break
@@ -666,6 +746,14 @@ async def _rollback_unaccepted_session(
             await session.clear_session()
         except Exception:
             pass
+
+
+async def _session_item_count(session: Session | None) -> int:
+    if session is None:
+        return 0
+    # SQLiteSession uses -1 as an explicit unlimited query. Calling get_items()
+    # would apply the model-context history limit and is not a durable row count.
+    return len(await session.get_items(limit=-1))
 
 
 def _observation_input_text(item: dict[str, Any]) -> str | None:

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from time import monotonic
 from typing import Any
 from uuid import uuid4
@@ -80,6 +82,7 @@ class AgentManager:
         autoplay_retry_base_seconds: float = 2,
         reconnect_retry_base_seconds: float = 1,
         reconnect_retry_max_seconds: float = 30,
+        durable_game_path: Path | None = None,
     ) -> None:
         self.store = store
         self.harness = harness
@@ -89,6 +92,7 @@ class AgentManager:
         self.autoplay_retry_base_seconds = autoplay_retry_base_seconds
         self.reconnect_retry_base_seconds = reconnect_retry_base_seconds
         self.reconnect_retry_max_seconds = reconnect_retry_max_seconds
+        self.durable_game_path = durable_game_path
         self.sessions: dict[str, AgentSession] = {}
 
     def list_agents(self) -> list[AgentPublic]:
@@ -368,6 +372,12 @@ class AgentManager:
             session.recent_activity = [*session.recent_activity, activity][-8:]
 
         try:
+            if self.durable_game_path is not None:
+                await session.client.sync_snapshot()
+                if session.client.snapshot is None:
+                    raise RuntimeError(
+                        "Game checkpoint sync returned without a player snapshot"
+                    )
             game_context = build_context(
                 session.client.snapshot,
                 record.user_id,
@@ -379,6 +389,20 @@ class AgentManager:
                 raise RuntimeError(
                     "This player is not responsible for the current decision"
                 )
+            checkpoint = self.store.get_agent_checkpoint(agent_id)
+            current_state_id = str(
+                game_context.snapshot.get("leafStateId") or "unknown"
+            )
+            if (
+                checkpoint is not None
+                and checkpoint["phase"] == "before-model"
+                and checkpoint["stateId"] == current_state_id
+            ):
+                checkpoint_error = checkpoint["observation"].get(
+                    "previousAttemptError"
+                )
+                if isinstance(checkpoint_error, str) and checkpoint_error:
+                    previous_error = checkpoint_error
             prepared = harness.prepare_turn(record, game_context, previous_error)
             observation = prepared.observation
             session.observation = observation
@@ -387,6 +411,11 @@ class AgentManager:
             if not prepared.game_tool_names:
                 raise RuntimeError(
                     "No model tool is implemented for the current game state"
+                )
+            if self.durable_game_path is not None:
+                await _wait_for_durable_game_state(
+                    self.durable_game_path,
+                    str(observation["game"].get("stateId") or "unknown"),
                 )
             record_activity(
                 "model-run-started",
@@ -1040,6 +1069,42 @@ def _next_reconnect_delay(current: float, base: float, maximum: float) -> float:
     """Advance capped reconnect backoff without an unbounded exponent."""
 
     return min(maximum, base if current <= 0 else current * 2)
+
+
+async def _wait_for_durable_game_state(
+    path: Path,
+    state_id: str,
+    *,
+    timeout: float = 10,
+    poll_seconds: float = 0.02,
+) -> None:
+    """Fence a model call behind the matching atomic game-server save."""
+
+    deadline = monotonic() + timeout
+    last_problem = "the save does not exist"
+    while monotonic() < deadline:
+        try:
+            saved = json.loads(path.read_text())
+        except FileNotFoundError:
+            last_problem = "the save does not exist"
+        except (OSError, json.JSONDecodeError) as error:
+            last_problem = safe_error_text(error)
+        else:
+            if not isinstance(saved, dict):
+                last_problem = "the save is not a JSON object"
+            elif "harnessRandomState" not in saved:
+                last_problem = "the save has no random-stream checkpoint"
+            elif str(saved.get("leafStateId") or "unknown") != state_id:
+                last_problem = (
+                    f"saved state {saved.get('leafStateId')!r} does not match "
+                    f"agent state {state_id!r}"
+                )
+            else:
+                return
+        await asyncio.sleep(poll_seconds)
+    raise RuntimeError(
+        f"Game state was not durably saved before the model call: {last_problem}"
+    )
 
 
 def _monitoring_state(

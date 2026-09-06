@@ -83,12 +83,26 @@ def test_fresh_database_uses_current_schema(tmp_path) -> None:
         for row in database.connection.execute("PRAGMA table_info(agent_runs)")
     }
 
-    assert version == SCHEMA_VERSION == 3
+    checkpoint_columns = {
+        row["name"]
+        for row in database.connection.execute("PRAGMA table_info(agent_checkpoints)")
+    }
+
+    assert version == SCHEMA_VERSION == 4
     assert "context_json" in run_columns
+    assert checkpoint_columns == {
+        "agent_id",
+        "state_id",
+        "observation_json",
+        "session_item_count",
+        "run_id",
+        "phase",
+        "updated_at",
+    }
     database.close()
 
 
-@pytest.mark.parametrize("version", [0, 1, 2, 4])
+@pytest.mark.parametrize("version", [0, 1, 2, 3, 5])
 def test_database_rejects_every_non_current_existing_schema(tmp_path, version) -> None:
     path = tmp_path / f"schema-{version}.db"
     connection = sqlite3.connect(path)
@@ -126,6 +140,21 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
     first_id = store.record_state(agent.id, first)
     store.record_history_action(first_id, "submit_orders", {"assignments": []})
     store.record_state(agent.id, second)
+    checkpoint = store.set_agent_checkpoint(
+        agent_id=agent.id,
+        state_id="leaf-2",
+        observation=second,
+        session_item_count=7,
+        run_id="run-pending",
+        phase="before-model",
+    )
+
+    assert checkpoint == store.get_agent_checkpoint(agent.id)
+    assert checkpoint["stateId"] == "leaf-2"
+    assert checkpoint["observation"] == second
+    assert checkpoint["sessionItemCount"] == 7
+    assert checkpoint["runId"] == "run-pending"
+    assert checkpoint["phase"] == "before-model"
 
     recalled = store.recall_state(agent.id, 1)
     assert recalled is not None

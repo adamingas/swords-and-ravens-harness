@@ -99,6 +99,7 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
     manifest = _load_manifest(
         manifest_path, args, output, settings, verified_models=verified_models
     )
+    manifest.pop("finishedAt", None)
 
     last_port = args.game_port + args.games - 1
     if last_port > 65_535:
@@ -131,25 +132,52 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
             return
 
         async with semaphore:
-            attempt_number = len(game_entry["attempts"]) + 1
-            attempt_dir = (
-                output
-                / f"game-{game_number:02d}"
-                / f"attempt-{attempt_number:02d}"
-            )
-            attempt_dir.mkdir(parents=True, exist_ok=False)
-            attempt = {
-                "number": attempt_number,
-                "status": "running",
-                "directory": str(attempt_dir.relative_to(output)),
-                "startedAt": _now(),
-            }
-            game_entry["attempts"].append(attempt)
+            resumable = _resumable_attempt(output, game_entry)
+            if resumable is None:
+                attempt_number = len(game_entry["attempts"]) + 1
+                attempt_dir = (
+                    output
+                    / f"game-{game_number:02d}"
+                    / f"attempt-{attempt_number:02d}"
+                )
+                attempt_dir.mkdir(parents=True, exist_ok=False)
+                attempt = {
+                    "number": attempt_number,
+                    "status": "running",
+                    "directory": str(attempt_dir.relative_to(output)),
+                    "startedAt": _now(),
+                    "resumeCount": 0,
+                }
+                game_entry["attempts"].append(attempt)
+                resume = False
+                message = "starting"
+            else:
+                attempt, attempt_dir = resumable
+                attempt_number = int(attempt["number"])
+                interruptions = attempt.setdefault("interruptions", [])
+                interruptions.append(
+                    {
+                        key: attempt[key]
+                        for key in ("status", "finishedAt", "error")
+                        if key in attempt
+                    }
+                )
+                for key in ("finishedAt", "error", "winner"):
+                    attempt.pop(key, None)
+                attempt.update(
+                    {
+                        "status": "running",
+                        "resumedAt": _now(),
+                        "resumeCount": int(attempt.get("resumeCount", 0)) + 1,
+                    }
+                )
+                resume = True
+                message = "resuming"
             async with write_lock:
                 _write_json(manifest_path, manifest)
             game_port = args.game_port + game_number - 1
             print(
-                f"Game {game_number}: starting attempt {attempt_number} "
+                f"Game {game_number}: {message} attempt {attempt_number} "
                 f"on port {game_port}"
             )
             try:
@@ -163,6 +191,7 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
                     stall_seconds=args.stall_seconds,
                     match_timeout_seconds=args.match_timeout_hours * 3_600,
                     settings=settings,
+                    resume=resume,
                 )
                 attempt.update(
                     {
@@ -212,6 +241,34 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
     return output
 
 
+def _resumable_attempt(
+    output: Path, game_entry: dict[str, Any]
+) -> tuple[dict[str, Any], Path] | None:
+    """Return the latest incomplete attempt when both durable stores exist."""
+
+    attempts = game_entry.get("attempts")
+    if not isinstance(attempts, list) or not attempts:
+        return None
+    attempt = attempts[-1]
+    if not isinstance(attempt, dict) or attempt.get("status") == "completed":
+        return None
+    game_number = int(game_entry["number"])
+    attempt_number = attempt.get("number")
+    if not isinstance(attempt_number, int) or isinstance(attempt_number, bool):
+        raise RuntimeError(f"Game {game_number} has an invalid latest attempt")
+    relative = f"game-{game_number:02d}/attempt-{attempt_number:02d}"
+    if attempt.get("directory") != relative:
+        raise RuntimeError(
+            f"Game {game_number} attempt {attempt_number} has an invalid directory"
+        )
+    attempt_dir = output / relative
+    if not (attempt_dir / "game.json").is_file() or not (
+        attempt_dir / "harness.db"
+    ).is_file():
+        return None
+    return attempt, attempt_dir
+
+
 async def run_game(
     *,
     game_number: int,
@@ -224,6 +281,7 @@ async def run_game(
     match_timeout_seconds: float,
     settings: Settings,
     model_runner: StrategicModelRunner | None = None,
+    resume: bool = False,
 ) -> dict[str, Any]:
     if await _port_is_open(game_port):
         raise RuntimeError(f"Game-server port {game_port} is already in use")
@@ -233,7 +291,7 @@ async def run_game(
     server_log_path = attempt_dir / "game-server.log"
     rotation = house_rotation(game_number)
     users = user_rotation(game_number)
-    assignments = [
+    expected_assignments = [
         {
             "model": model,
             "house": rotation[model],
@@ -243,7 +301,17 @@ async def run_game(
         }
         for model in TOURNAMENT_MODELS
     ]
-    _write_json(attempt_dir / "assignments.json", assignments)
+    assignment_path = attempt_dir / "assignments.json"
+    if resume:
+        try:
+            assignments = json.loads(assignment_path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError("Saved assignments cannot be loaded") from error
+        if assignments != expected_assignments:
+            raise RuntimeError("Saved assignments do not match the scheduled game")
+    else:
+        assignments = expected_assignments
+        _write_json(assignment_path, assignments)
 
     server_log: BinaryIO | None = None
     process: asyncio.subprocess.Process | None = None
@@ -256,7 +324,7 @@ async def run_game(
     game_mtime_ns: int | None = None
     quick_check_error: Exception | None = None
     try:
-        server_log = server_log_path.open("wb")
+        server_log = server_log_path.open("ab" if resume else "wb")
         process = await _start_game_server(
             game_path=game_path,
             port=game_port,
@@ -284,6 +352,7 @@ async def run_game(
                 max_output_tokens=settings.model_max_output_tokens,
                 session_database_path=database_path,
                 session_history_items=settings.model_session_history_items,
+                checkpoint_store=store,
                 provider_routing=(
                     settings.openrouter_provider_routing
                     if settings.model_provider == "OpenRouter"
@@ -300,43 +369,53 @@ async def run_game(
                 settings.autoplay_max_consecutive_failures
             ),
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
+            durable_game_path=game_path,
         )
 
         assignment_by_model = {
             assignment["model"]: assignment for assignment in assignments
         }
-        for model in TOURNAMENT_MODELS:
-            user_id = assignment_by_model[model]["userId"]
-            records.append(
-                store.create_agent(
-                    AgentCreate(
-                        name=model,
-                        model=model,
-                        system_prompt=DEFAULT_PROMPT,
-                        game_server_url=f"ws://127.0.0.1:{game_port}",
-                        game_id="1",
-                        user_id=user_id,
-                        auth_token=user_id,
+        if resume:
+            records = store.list_agents()
+            _validate_resumed_agents(
+                records=records,
+                assignments=assignment_by_model,
+                game_port=game_port,
+            )
+        else:
+            for model in TOURNAMENT_MODELS:
+                user_id = assignment_by_model[model]["userId"]
+                records.append(
+                    store.create_agent(
+                        AgentCreate(
+                            name=model,
+                            model=model,
+                            system_prompt=DEFAULT_PROMPT,
+                            game_server_url=f"ws://127.0.0.1:{game_port}",
+                            game_id="1",
+                            user_id=user_id,
+                            auth_token=user_id,
+                        )
                     )
                 )
-            )
 
         for record in records:
             await manager.start(record.id)
-        owner = next(record for record in records if record.user_id == "1")
-        await manager.configure_lobby(
-            owner.id,
-            LobbySetupRequest(
-                setup_id="base-game",
-                player_count=6,
-                pbem=True,
-                vassals=False,
-                victory_points_to_win=7,
-            ),
-        )
-        for record in records:
-            await manager.choose_lobby_house(record.id, rotation[record.model])
-        await manager.launch_game(owner.id)
+        if not resume:
+            owner = next(record for record in records if record.user_id == "1")
+            await manager.configure_lobby(
+                owner.id,
+                LobbySetupRequest(
+                    setup_id="base-game",
+                    player_count=6,
+                    pbem=True,
+                    vassals=False,
+                    victory_points_to_win=7,
+                ),
+            )
+            for record in records:
+                await manager.choose_lobby_house(record.id, rotation[record.model])
+            await manager.launch_game(owner.id)
         await _wait_for_game_start(manager, records, timeout=30)
         for record in records:
             manager.set_autoplay(record.id, True)
@@ -403,6 +482,34 @@ async def run_game(
                 "sqliteQuickCheck": "ok",
             }
             _write_json(attempt_dir / "result.json", completed_result)
+
+
+def _validate_resumed_agents(
+    *,
+    records: list[Any],
+    assignments: dict[str, dict[str, str]],
+    game_port: int,
+) -> None:
+    if len(records) != len(TOURNAMENT_MODELS):
+        raise RuntimeError("Saved attempt does not contain exactly six agents")
+    by_model = {record.model: record for record in records}
+    if len(by_model) != len(records) or set(by_model) != set(TOURNAMENT_MODELS):
+        raise RuntimeError("Saved attempt agents do not match tournament models")
+    expected_url = f"ws://127.0.0.1:{game_port}"
+    for model in TOURNAMENT_MODELS:
+        record = by_model[model]
+        assignment = assignments[model]
+        if (
+            record.name != model
+            or record.system_prompt != DEFAULT_PROMPT
+            or record.game_server_url != expected_url
+            or record.game_id != "1"
+            or record.user_id != assignment["userId"]
+            or record.auth_token.get_secret_value() != assignment["userId"]
+        ):
+            raise RuntimeError(
+                f"Saved agent {model!r} does not match its tournament assignment"
+            )
 
 
 async def _start_game_server(

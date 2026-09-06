@@ -649,6 +649,80 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
 
 
 @pytest.mark.asyncio
+async def test_evaluation_resumes_the_same_durable_attempt(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    evaluation_root = tmp_path / "evaluations"
+    output = evaluation_root / "resumable"
+    rules = tmp_path / "rules.json"
+    rules.write_text("{}\n")
+    settings = Settings(
+        rules_path=rules,
+        openrouter_token="secret",
+        _env_file=None,
+    )
+    calls: list[dict] = []
+
+    async def accept_quota(_settings: Settings) -> None:
+        return None
+
+    async def accept_models(_settings: Settings) -> list[dict]:
+        return VERIFIED_MODELS
+
+    async def fake_run_game(**arguments):
+        calls.append(arguments)
+        attempt_dir = arguments["attempt_dir"]
+        if len(calls) == 1:
+            (attempt_dir / "game.json").write_text('{"saved":true}\n')
+            Database(attempt_dir / "harness.db").close()
+            raise RuntimeError("operator stopped the process")
+        assert arguments["resume"] is True
+        return {"winner": "stark"}
+
+    monkeypatch.setattr(
+        "raven_harness.evaluation.Settings", lambda **_kwargs: settings
+    )
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
+    )
+    monkeypatch.setattr(
+        "raven_harness.evaluation._preflight_openrouter_models", accept_models
+    )
+    monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
+    monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._build_provenance",
+        lambda _args, _settings: {"test": True},
+    )
+    args = argparse.Namespace(
+        output=str(output),
+        random_seed=1,
+        games=1,
+        start_game=1,
+        game_port=5101,
+        concurrent_games=1,
+        max_rounds=1,
+        poll_seconds=1.0,
+        stall_seconds=360.0,
+        match_timeout_hours=6.0,
+        continue_on_error=False,
+    )
+
+    with pytest.raises(RuntimeError, match="operator stopped"):
+        await run_evaluation(args)
+    assert calls[0]["resume"] is False
+
+    assert await run_evaluation(args) == output
+    assert calls[1]["attempt_dir"] == calls[0]["attempt_dir"]
+    manifest = json.loads((output / "manifest.json").read_text())
+    attempts = manifest["games"][0]["attempts"]
+    assert len(attempts) == 1
+    assert attempts[0]["status"] == "completed"
+    assert attempts[0]["resumeCount"] == 1
+    assert attempts[0]["interruptions"][0]["status"] == "failed"
+
+
+@pytest.mark.asyncio
 async def test_evaluation_requires_openrouter_even_with_direct_openai_key(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:

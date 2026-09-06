@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import json
 import socket
 import sqlite3
@@ -6,13 +7,17 @@ from dataclasses import replace
 
 import pytest
 
+from raven_harness.agent_store import AgentStore
 from raven_harness.harness.actions import HarnessRunContext, available_tools
+from raven_harness.config import Settings
+from raven_harness.database import Database
 from raven_harness.harness.observation import build_context
 from raven_harness.game.client import OrderSubmission
 from raven_harness.evaluation import (
     GAME_SERVER_DIR,
     TOURNAMENT_HARNESS_ID,
     TOURNAMENT_MODELS,
+    run_game,
 )
 from raven_harness.protocol_smoke import (
     REQUIRED_TOOL_COVERAGE,
@@ -77,6 +82,23 @@ class FakeClient:
             },
             snapshot=self.snapshot,
         )
+
+
+class BlockingProtocolRunner:
+    rules_oracle_available = False
+
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+
+    async def run_once(self, **_arguments):
+        self.started.set()
+        await asyncio.Event().wait()
+
+    async def shutdown(self) -> None:
+        return None
+
+    async def clear_session(self, agent_id: str) -> None:
+        del agent_id
 
 
 def test_safe_planning_arguments_use_dynamic_action_order_plan() -> None:
@@ -252,3 +274,74 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(
         "completed": len(smoke["toolCoverage"]["sequence"]),
     }
     assert provider_requests == 0
+
+
+@pytest.mark.asyncio
+async def test_real_server_resumes_saved_game_with_the_same_agents(tmp_path) -> None:
+    if not (GAME_SERVER_DIR / "node_modules" / ".bin" / "ts-node").is_file():
+        pytest.skip("upstream game-server dependencies are not installed")
+    with socket.socket() as reservation:
+        reservation.bind(("127.0.0.1", 0))
+        game_port = int(reservation.getsockname()[1])
+
+    attempt_dir = tmp_path / "resumed-game"
+    attempt_dir.mkdir()
+    settings = Settings(
+        openrouter_token="",
+        openai_api_key="",
+        otel_exporter_otlp_traces_endpoint="",
+        autoplay_max_consecutive_failures=1,
+        autoplay_retry_base_seconds=0.1,
+        _env_file=None,
+    )
+    blocking_runner = BlockingProtocolRunner()
+    interrupted = asyncio.create_task(
+        run_game(
+            game_number=1,
+            attempt_dir=attempt_dir,
+            random_seed=123,
+            game_port=game_port,
+            max_rounds=1,
+            poll_seconds=0.1,
+            stall_seconds=30,
+            match_timeout_seconds=60,
+            settings=settings,
+            model_runner=blocking_runner,
+        )
+    )
+    await asyncio.wait_for(blocking_runner.started.wait(), timeout=30)
+    interrupted.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await interrupted
+
+    saved_game = json.loads((attempt_dir / "game.json").read_text())
+    assert isinstance(saved_game["harnessRandomState"], int)
+    database = Database(attempt_dir / "harness.db")
+    before_agent_ids = [record.id for record in AgentStore(database).list_agents()]
+    database.close()
+    assert len(before_agent_ids) == 6
+
+    result = await asyncio.wait_for(
+        run_game(
+            game_number=1,
+            attempt_dir=attempt_dir,
+            random_seed=123,
+            game_port=game_port,
+            max_rounds=1,
+            poll_seconds=0.1,
+            stall_seconds=30,
+            match_timeout_seconds=60,
+            settings=settings,
+            model_runner=ScriptedProtocolRunner(),
+            resume=True,
+        ),
+        timeout=60,
+    )
+
+    database = Database(attempt_dir / "harness.db")
+    after_agent_ids = [record.id for record in AgentStore(database).list_agents()]
+    database.close()
+    assert after_agent_ids == before_agent_ids
+    assert result["winner"] in {assignment["house"] for assignment in json.loads(
+        (attempt_dir / "assignments.json").read_text()
+    )}

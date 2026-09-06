@@ -12,7 +12,8 @@ harness removes them from the next provider request. SQLite stores every
 distinct player snapshot, model attempt, accepted game action, error, and
 duration. Attempts that reach the model runner also store an effective-context
 manifest. SQLite keeps completed rules-oracle work when the parent model call
-later fails or is cancelled.
+later fails or is cancelled. It checkpoints each agent session immediately
+before a provider call and after an accepted action.
 
 See [the system and tool guide](docs/HARNESS_GUIDE.md) for the complete data
 flow, observation format, tool catalog, retry behavior, and API reference.
@@ -73,9 +74,10 @@ NODE_ENV=development PORT=5001 ./node_modules/.bin/ts-node -T src/server/server.
 
 A valid
 `swords-and-ravens/agot-bg-game-server/src/server/website-client/local-entire-game.json`
-resumes the saved game. For a fresh lobby, stop the server and move that file
-to a private backup path before restarting it. Do not commit saved private game
-state to the submodule.
+resumes the saved game. Saves created before random-stream checkpoints are not
+supported. For a fresh lobby, stop the server and move that file to a private
+backup path before restarting it. Do not commit saved private game state to the
+submodule.
 
 Set `LOCAL_GAME_PATH` to an absolute or project-relative JSON path when a run
 needs an isolated save file. The evaluation command does this automatically.
@@ -219,9 +221,14 @@ games are complete. Each model-house pair must have two completed games. Every
 provider response must also have model, provider, and cost attribution.
 
 The evaluator derives one game seed from `--random-seed` and the game number.
-It records that seed and reuses it for every retry of that game. Reusing an
-output directory skips completed games and preserves failed attempts. The
-manifest rejects changes to the model set, harness prompt, seed, schedule,
+It records that seed, and each saved game also records the current deterministic
+random-stream state. Reusing an output directory skips completed games. An
+incomplete attempt with both `game.json` and `harness.db` resumes in place with
+the same agent IDs, model sessions, memories, and game state. If shutdown
+interrupts a model call, its partial SDK items are discarded back to the saved
+pre-call boundary. An attempt that failed before those durable files existed
+starts a new numbered attempt. The manifest rejects changes to the model set,
+harness prompt, seed, schedule,
 source commits, rules, or runtime settings. Independent games run concurrently.
 Each game uses one port. The first game uses `--game-port`, and later games use
 the next ports. The default starts all 12 games at the same time. This uses
@@ -244,6 +251,6 @@ harness has no local response cache. The summary reports cached input tokens
 when a provider returns them.
 
 The default is fail-fast. Use `--continue-on-error` to let sibling games
-continue after one game fails. An exact rerun skips completed games and retries
+continue after one game fails. An exact rerun skips completed games and resumes
 incomplete games. Use the same source, rules, game count, seed, ports,
 concurrency, timeouts, and model settings when you resume.

@@ -128,7 +128,8 @@ Start the local game server on port 5001:
 NODE_ENV=development PORT=5001 ./node_modules/.bin/ts-node -T src/server/server.ts
 ~~~
 
-If `local-entire-game.json` contains a saved game, the server resumes it. For a
+If `local-entire-game.json` contains a saved game with a random-stream
+checkpoint, the server resumes it. Older save formats are not supported. For a
 fresh game, stop the server and move that file to a private backup path before
 you start the server again.
 
@@ -226,22 +227,28 @@ action.
    to a recognized parent when the leaf is unknown.
 5. The harness adds the history-recall and strategy-note tools. It also adds
    the rules oracle when prepared rules data is available.
-6. The harness starts one Agents SDK run with the selected model and the
+6. For an evaluation, the harness requests a fresh player snapshot. The local
+   game server atomically saves the game before it replies. The harness waits
+   until `game.json` contains the same leaf-state ID and a random-stream
+   checkpoint.
+7. The harness saves the current observation and exact SDK session length as
+   the agent's pre-call checkpoint.
+8. The harness starts one Agents SDK run with the selected model and the
    player's recent model and tool items. It appends one complete current
    observation. The SDK can make more than one provider request inside that
    run.
-7. The model can recall an older decision state, replace its durable plan, or
+9. The model can recall an older decision state, replace its durable plan, or
    ask the oracle.
-8. The model must call exactly one gameplay tool.
-9. Pydantic validates the tool arguments.
-10. The tool checks the latest state again and sends typed server messages.
-11. The harness requests a fresh player-scoped snapshot with sync-game.
-12. The harness infers acceptance from a changed leaf state, changed turn
+10. The model must call exactly one gameplay tool.
+11. Pydantic validates the tool arguments.
+12. The tool checks the latest state again and sends typed server messages.
+13. The harness requests a fresh player-scoped snapshot with sync-game.
+14. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
-13. The harness updates the automatic notebook when the SDK run returns. If
+15. The harness updates the automatic notebook when the SDK run returns. If
     the model queued a plan and the game action was accepted, the harness also
-    saves that plan. It then saves the attempt and links the action to its
-    source state.
+    saves that plan. It saves the post-action SDK session length, saves the
+    attempt, and links the action to its source state.
 
 Each decision is a new `Runner.run` invocation, but it is not a new
 conversation. The Agents SDK stores the player's input messages, function
@@ -599,7 +606,7 @@ cancelled.
 
 ## 11. Persistence and traces
 
-The harness schema has six core tables. The Agents SDK adds two conversation
+The harness schema has seven core tables. The Agents SDK adds two conversation
 tables when the first session-backed run starts:
 
 | Table | Stored data |
@@ -610,6 +617,7 @@ tables when the first session-backed run starts:
 | game_state_history | One player-scoped base observation per distinct state at which a model run was prepared, plus the accepted action selected from that state. |
 | strategic_memories | Current private notebook and revision number for each agent. |
 | player_snapshots | Each distinct player-scoped WebSocket snapshot. Each row contains the complete serialized snapshot. |
+| agent_checkpoints | The observation, run ID, phase, and exact SDK session length immediately before a model call or after its accepted action. |
 | agent_sessions | One persisted Agents SDK conversation identity per player. |
 | agent_messages | The input, model, tool-call, and tool-result items used for recent conversational continuity. |
 
@@ -619,7 +627,13 @@ keeps each oracle interaction that completed before the failure. A provider
 exception can still prevent the SDK from returning partial parent response
 items or parent usage. The harness always stores the error and elapsed time.
 
-The database uses schema version 3. The server creates only this schema and
+On the first decision after a process restart, the runner removes SDK items
+beyond the saved session length. If the game still has the checkpoint's leaf
+state, it reuses the exact saved observation. If the game has advanced, it uses
+the new authoritative observation and retains only the last committed SDK
+session state.
+
+The database uses schema version 4. The server creates only this schema and
 rejects every other existing version. It does not migrate old databases. Use a
 new `DATABASE_PATH` when the schema is incompatible. A model attempt stores an
 effective-context manifest when it reaches the model runner, including runner
@@ -982,16 +996,20 @@ every attempt of that game. The game result records the exact seed, and the
 verifier checks it against the schedule. Client-only hidden-deck shuffles use a
 separate secure source, so connects and reconnects do not consume the gameplay
 random stream. API keys are not recorded. Reusing the same output directory
-preserves failed and cancelled attempts. The default is fail-fast: one failed
+preserves completed attempts. An incomplete attempt resumes in the same
+directory when its saved game and SQLite database exist. The evaluator reloads
+the saved game, reopens the agent database, reuses the six agent identities,
+reconnects their clients, restores each model session to its last checkpoint,
+and enables autoplay. A model request that was active at shutdown is run again
+from its pre-call state. If the game or database was never created, the
+evaluator starts a new numbered attempt. The default is fail-fast: one failed
 game cancels unfinished sibling games. Use `--continue-on-error` to keep those
-games running. An exact rerun skips completed games and starts a new attempt
-for each incomplete game. A resume must use the same source, rules, game count,
-seed, port, concurrency, round limit, polling values, timeouts, and model
-settings.
+games running. A resume must use the same source, rules, game count, seed, port,
+concurrency, round limit, polling values, timeouts, and model settings.
 
-The seed makes fresh game-server randomness reproducible. It does not make the
-model provider deterministic. Restoring an arbitrary mid-game save also does
-not restore the process-local random-generator position.
+The saved game includes the deterministic random-generator cursor. A resumed
+game therefore continues the same gameplay random stream. This does not make
+the model provider deterministic.
 
 The provenance check ignores only the upstream local saved-game JSON because
 normal play changes that file. It still rejects changes to harness source,
