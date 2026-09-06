@@ -174,7 +174,7 @@ async def test_pydantic_rejects_bad_order_category_before_sending() -> None:
     with pytest.raises(ValidationError):
         OrderAssignment(
             region_id="winterfell",
-            order="teleport",
+            preferred_order="teleport",
             starred_preference="avoid",
             priority=50,
         )
@@ -192,13 +192,13 @@ async def test_pydantic_rejects_bad_order_category_before_sending() -> None:
             "assignments": [
                 {
                     "region_id": "winterfell",
-                    "order": "teleport",
+                    "preferred_order": "teleport",
                     "starred_preference": "avoid",
                     "priority": 50,
                 },
                 {
                     "region_id": "white-harbor",
-                    "order": "march",
+                    "preferred_order": "march",
                     "starred_preference": "avoid",
                     "priority": 50,
                 },
@@ -231,13 +231,13 @@ async def test_submit_orders_replaces_complete_draft_atomically() -> None:
             "assignments": [
                 {
                     "region_id": "winterfell",
-                    "order": "defense",
+                    "preferred_order": "defense",
                     "starred_preference": "avoid",
                     "priority": 80,
                 },
                 {
                     "region_id": "white-harbor",
-                    "order": "defense",
+                    "preferred_order": "defense",
                     "starred_preference": "avoid",
                     "priority": 20,
                 },
@@ -307,7 +307,7 @@ async def test_submit_orders_reports_server_rejection_without_taking_action() ->
             "assignments": [
                 {
                     "region_id": region_id,
-                    "order": "defense",
+                    "preferred_order": "defense",
                     "starred_preference": "avoid",
                     "priority": 50,
                 }
@@ -342,7 +342,7 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
     assert "$defs" not in tool.params_json_schema
     assert "$ref" not in json.dumps(tool.params_json_schema)
 
-    assert assignment_schema["properties"]["order"]["enum"] == [
+    assert assignment_schema["properties"]["preferred_order"]["enum"] == [
         "march",
         "defense",
         "support",
@@ -351,7 +351,7 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
     ]
     assert set(assignment_schema["required"]) == {
         "region_id",
-        "order",
+        "preferred_order",
         "starred_preference",
         "priority",
     }
@@ -361,13 +361,13 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
             "assignments": [
                 {
                     "region_id": "winterfell",
-                    "order": "march",
+                    "preferred_order": "march",
                     "starred_preference": "prefer",
                     "priority": 20,
                 },
                 {
                     "region_id": "white-harbor",
-                    "order": "consolidate_power",
+                    "preferred_order": "consolidate_power",
                     "starred_preference": "prefer",
                     "priority": 80,
                 },
@@ -402,7 +402,7 @@ async def test_submit_orders_respects_restriction_on_only_starred_family_member(
     tool = available_tools(build_context(snapshot, "2"))[0]
     order_values = tool.params_json_schema["properties"]["assignments"]["items"][
         "properties"
-    ]["order"]["enum"]
+    ]["preferred_order"]["enum"]
 
     assert "march" in order_values
     arguments = json.dumps(
@@ -410,13 +410,13 @@ async def test_submit_orders_respects_restriction_on_only_starred_family_member(
             "assignments": [
                 {
                     "region_id": "winterfell",
-                    "order": "march",
+                    "preferred_order": "march",
                     "starred_preference": "prefer",
                     "priority": 100,
                 },
                 {
                     "region_id": "white-harbor",
-                    "order": "march",
+                    "preferred_order": "march",
                     "starred_preference": "prefer",
                     "priority": 10,
                 },
@@ -441,7 +441,7 @@ async def test_submit_orders_respects_restriction_on_only_starred_family_member(
 
 
 @pytest.mark.asyncio
-async def test_submit_orders_rejects_active_westeros_restriction() -> None:
+async def test_submit_orders_substitutes_for_active_westeros_restriction() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["game"]["starredOrderRestrictions"] = [3]
     planning = snapshot["childGameState"]["childGameState"]
@@ -450,20 +450,20 @@ async def test_submit_orders_rejects_active_westeros_restriction() -> None:
     run_context = HarnessRunContext(client=client, user_id="2")
     tool = available_tools(build_context(snapshot, "2"))[0]
     assignment_schema = tool.params_json_schema["properties"]["assignments"]["items"]
-    assert "defense" not in assignment_schema["properties"]["order"]["enum"]
+    assert "defense" in assignment_schema["properties"]["preferred_order"]["enum"]
     assert tool.params_json_schema["properties"]["assignments"]["minItems"] == 2
     arguments = json.dumps(
         {
             "assignments": [
                 {
                     "region_id": "winterfell",
-                    "order": "defense",
+                    "preferred_order": "defense",
                     "starred_preference": "avoid",
                     "priority": 50,
                 },
                 {
                     "region_id": "white-harbor",
-                    "order": "support",
+                    "preferred_order": "support",
                     "starred_preference": "avoid",
                     "priority": 50,
                 },
@@ -481,8 +481,8 @@ async def test_submit_orders_rejects_active_westeros_restriction() -> None:
         arguments,
     )
 
-    assert "active Westeros restrictions" in result
-    assert client.sent == []
+    assert json.loads(result)["accepted"] is True
+    assert all(order["orderId"] not in {4, 5, 6} for order in client.sent[0]["orders"])
 
 
 @pytest.mark.asyncio
@@ -504,7 +504,7 @@ async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() 
     tool = available_tools(build_context(snapshot, "2"))[0]
     order_values = tool.params_json_schema["properties"]["assignments"]["items"][
         "properties"
-    ]["order"]["enum"]
+    ]["preferred_order"]["enum"]
     assert "defense" in order_values
     orders = [
         "march",
@@ -522,7 +522,7 @@ async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() 
             "assignments": [
                 {
                     "region_id": f"region-{index}",
-                    "order": order,
+                    "preferred_order": order,
                     "starred_preference": "avoid",
                     "priority": 100 - index,
                 }
@@ -549,7 +549,56 @@ async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() 
 
 
 @pytest.mark.asyncio
-async def test_submit_orders_never_treats_excess_star_as_a_fallback() -> None:
+async def test_submit_orders_repairs_globally_impossible_category_preferences() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    game = ingame["game"]
+    game["starredOrderRestrictions"] = [0]
+    game["world"]["regions"] = [
+        {
+            "id": f"region-{index}",
+            "units": [{"id": index, "type": "footman", "allegiance": "stark"}],
+        }
+        for index in range(1, 10)
+    ]
+    ingame["childGameState"]["planningRestrictions"] = ["no-defense-order"]
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps(
+        {
+            "assignments": [
+                {
+                    "region_id": f"region-{index}",
+                    "preferred_order": "march",
+                    "starred_preference": "avoid",
+                    "priority": 100 - index,
+                }
+                for index in range(1, 10)
+            ]
+        }
+    )
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-global-order-repair",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert json.loads(result)["accepted"] is True
+    order_ids = [order["orderId"] for order in client.sent[0]["orders"]]
+    assert len(set(order_ids)) == 9
+    assert sum(order_id in {3, 4, 5, 6, 9, 12, 15} for order_id in order_ids) == 1
+    assert run_context.action_taken is not None
+    assert len(run_context.action_taken.arguments["applied_orders"]) == 9
+
+
+@pytest.mark.asyncio
+async def test_submit_orders_substitutes_to_respect_star_limit() -> None:
     snapshot = planning_snapshot()
     ingame = snapshot["childGameState"]
     game = ingame["game"]
@@ -581,7 +630,7 @@ async def test_submit_orders_never_treats_excess_star_as_a_fallback() -> None:
             "assignments": [
                 {
                     "region_id": f"region-{index}",
-                    "order": order,
+                    "preferred_order": order,
                     "starred_preference": "avoid",
                     "priority": 100 - index,
                 }
@@ -600,12 +649,15 @@ async def test_submit_orders_never_treats_excess_star_as_a_fallback() -> None:
         arguments,
     )
 
-    assert "limit of 1 starred orders" in result
-    assert client.sent == []
+    assert json.loads(result)["accepted"] is True
+    assert sum(
+        order["orderId"] in {3, 6, 9, 12, 15}
+        for order in client.sent[0]["orders"]
+    ) <= 1
 
 
 @pytest.mark.asyncio
-async def test_submit_orders_rejects_more_than_three_of_one_category() -> None:
+async def test_submit_orders_substitutes_more_than_three_of_one_category() -> None:
     snapshot = planning_snapshot()
     ingame = snapshot["childGameState"]
     ingame["game"]["starredOrderRestrictions"] = [3]
@@ -624,7 +676,7 @@ async def test_submit_orders_rejects_more_than_three_of_one_category() -> None:
             "assignments": [
                 {
                     "region_id": f"region-{index}",
-                    "order": "raid",
+                    "preferred_order": "raid",
                     "starred_preference": "avoid",
                     "priority": 50,
                 }
@@ -643,8 +695,8 @@ async def test_submit_orders_rejects_more_than_three_of_one_category() -> None:
         arguments,
     )
 
-    assert "raid may be assigned to at most 3 regions" in result
-    assert client.sent == []
+    assert json.loads(result)["accepted"] is True
+    assert sum(order["orderId"] in {13, 14, 15} for order in client.sent[0]["orders"]) == 3
 
 
 @pytest.mark.asyncio
@@ -710,7 +762,7 @@ async def test_submit_orders_leaves_regions_empty_when_usable_tokens_run_out() -
             "assignments": [
                 {
                     "region_id": f"region-{index}",
-                    "order": order,
+                    "preferred_order": order,
                     "starred_preference": "prefer" if index == 1 else "avoid",
                     "priority": 101 - index,
                 }

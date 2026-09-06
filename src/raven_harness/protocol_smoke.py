@@ -385,11 +385,9 @@ def _safe_order_arguments(
     )
     assignment_properties = assignment_schema.get("properties", {})
     region_ids = assignment_properties.get("region_id", {}).get("enum")
-    order_ids = assignment_properties.get("order", {}).get("enum")
+    order_ids = assignment_properties.get("preferred_order", {}).get("enum")
     assignments_schema = schema.get("properties", {}).get("assignments", {})
     required_count = assignments_schema.get("minItems")
-    constraints = observation.get("planningConstraints", {})
-    capacities = constraints.get("maxAssignmentsByOrderCategory", {})
     if (
         not isinstance(region_ids, list)
         or not all(isinstance(item, str) for item in region_ids)
@@ -397,11 +395,10 @@ def _safe_order_arguments(
         or not isinstance(required_count, int)
         or required_count < 0
         or len(region_ids) < required_count
-        or not isinstance(capacities, dict)
     ):
         raise UnsupportedSmokeDecision(
-            "submit_orders did not expose the expected dynamic region, count, and "
-            "category-capacity constraints"
+            "submit_orders did not expose the expected dynamic region and count "
+            "constraints"
         )
 
     if required_count == 0:
@@ -436,8 +433,6 @@ def _safe_order_arguments(
             first_category = "support"
     if (
         first_category not in order_ids
-        or not isinstance(capacities.get(first_category), int)
-        or capacities[first_category] < 1
     ):
         fallback_categories = (
             ("defense", "consolidate_power", "raid")
@@ -449,8 +444,6 @@ def _safe_order_arguments(
                 category
                 for category in fallback_categories
                 if category in order_ids
-                and isinstance(capacities.get(category), int)
-                and capacities[category] > 0
             ),
             "",
         )
@@ -465,8 +458,6 @@ def _safe_order_arguments(
         for item in ORDER_PLAN
         if item != first_category
         and item in order_ids
-        and isinstance(capacities.get(item), int)
-        and capacities[item] > 0
     ]
     for category in remaining_categories:
         if not remaining_regions:
@@ -485,28 +476,17 @@ def _safe_order_arguments(
         selected.append((region_id, category))
         remaining_regions.remove(region_id)
     selected = selected[:required_count]
-    selected_categories = [category for _region_id, category in selected]
-    if len(selected_categories) != required_count:
+    if len(selected) != required_count:
         raise UnsupportedSmokeDecision(
             "The current planning state has more regions than the deterministic "
             "base-game order plan covers"
-        )
-    counts = Counter(selected_categories)
-    if any(
-        category not in order_ids
-        or not isinstance(capacities.get(category), int)
-        or count > capacities[category]
-        for category, count in counts.items()
-    ):
-        raise UnsupportedSmokeDecision(
-            "The deterministic base-game order plan exceeds a dynamic category capacity"
         )
 
     return {
         "assignments": [
             {
                 "region_id": region_id,
-                "order": category,
+                "preferred_order": category,
                 "starred_preference": (
                     "prefer" if category == "consolidate_power" else "avoid"
                 ),

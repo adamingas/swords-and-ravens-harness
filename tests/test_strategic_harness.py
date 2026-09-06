@@ -221,15 +221,6 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     assert prepared.observation["strategicMemory"]["roundNumber"] is None
     assert prepared.observation["strategicMemory"]["modelPlan"] == ""
     assert prepared.observation["strategicOverview"]["round"] == 1
-    assert prepared.observation["planningConstraints"][
-        "maxAssignmentsByOrderCategory"
-    ] == {
-        "march": 2,
-        "defense": 2,
-        "support": 2,
-        "consolidate_power": 2,
-        "raid": 2,
-    }
     assert prepared.observation["planningConstraints"]["eligibleRegionIds"] == [
         "winterfell",
         "white-harbor",
@@ -240,7 +231,9 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     assignment = submit_schema["properties"]["assignments"]["items"]["properties"]
     assert "$defs" not in submit_schema
     assert assignment["region_id"]["enum"] == ["winterfell", "white-harbor"]
-    assert "defense=2" in assignment["order"]["description"]
+    assert "restricted categories are none" in assignment["preferred_order"][
+        "description"
+    ]
     assert store.recall_state(record.id, 0)["stateId"] == "leaf-2"  # type: ignore[index]
 
     later_snapshot = copy.deepcopy(planning_snapshot())

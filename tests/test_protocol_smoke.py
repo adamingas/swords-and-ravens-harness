@@ -106,12 +106,7 @@ def test_safe_planning_arguments_use_dynamic_action_order_plan() -> None:
     context = build_context(snapshot, "2")
     submit_orders = available_tools(context)[0]
     observation = {
-        "planningConstraints": {
-            "maxAssignmentsByOrderCategory": {
-                "march": 2,
-                "raid": 2,
-            }
-        }
+        "planningConstraints": {}
     }
 
     arguments = _safe_tool_arguments(submit_orders, observation)
@@ -120,13 +115,13 @@ def test_safe_planning_arguments_use_dynamic_action_order_plan() -> None:
         "assignments": [
             {
                 "region_id": "winterfell",
-                "order": "march",
+                "preferred_order": "march",
                 "starred_preference": "avoid",
                 "priority": 2,
             },
             {
                 "region_id": "white-harbor",
-                "order": "raid",
+                "preferred_order": "raid",
                 "starred_preference": "avoid",
                 "priority": 1,
             },
@@ -141,7 +136,7 @@ def test_safe_planning_arguments_support_empty_order_state() -> None:
 
     assert _safe_tool_arguments(
         tool,
-        {"planningConstraints": {"maxAssignmentsByOrderCategory": {}}},
+        {"planningConstraints": {}},
     ) == {"assignments": []}
 
 
@@ -155,12 +150,7 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
     tool = tools[0]
     observation = {
         "statePath": ["ingame", "planning", "place-orders"],
-        "planningConstraints": {
-            "maxAssignmentsByOrderCategory": {
-                "march": 2,
-                "raid": 2,
-            }
-        },
+        "planningConstraints": {},
     }
 
     result = await ScriptedProtocolRunner().run_once(

@@ -366,14 +366,7 @@ automatic notebook, and up to 12 history entries.
   "planningConstraints": {
     "eligibleRegionIds": ["winterfell", "white-harbor"],
     "requiredAssignmentCount": 2,
-    "maxStarredOrders": 1,
-    "maxAssignmentsByOrderCategory": {
-      "march": 3,
-      "defense": 3,
-      "support": 3,
-      "consolidate_power": 3,
-      "raid": 3
-    }
+    "maxStarredOrders": 1
   }
 }
 ~~~
@@ -434,17 +427,23 @@ These tools use state-specific schemas and local legality checks.
 | declare_support(house_id) | Support the attacker or defender, or use none to refuse. |
 | submit_orders(assignments) | Planning. Set the requested number of semantic orders in distinct eligible regions, replace any partial draft, and mark the house ready. |
 
-Each `submit_orders` assignment has `region_id`, `order`,
+Each `submit_orders` assignment has `region_id`, `preferred_order`,
 `starred_preference`, and `priority`. Valid order categories are `march`,
 `defense`, `support`, `consolidate_power`, and `raid`. Set
 `starred_preference` to `prefer` or `avoid`, and use `priority` from 0 through
 100 to rank the importance of that region relative to the other assignments.
 
-The tool enforces the three-token inventory for each category, the King's
-Court starred-order limit, and active Westeros restrictions. The harness
-allocates concrete modifiers and physical token IDs deterministically. It gives
-scarce starred tokens and stronger March modifiers to preferred,
-higher-priority assignments first. `planningConstraints.requiredAssignmentCount`
+The model's category is a preference. The harness computes one globally legal
+physical-token allocation across all regions. It preserves the largest possible
+number of category preferences. If a substitution is necessary, it changes a
+lower-priority preference first. It then gives scarce starred tokens and stronger
+March modifiers to preferred, higher-priority assignments. The accepted action
+trace records both the submitted preferences and the applied category and token
+for each region.
+
+The allocator enforces the three-token inventory for each category, the King's
+Court starred-order limit, and active Westeros restrictions.
+`planningConstraints.requiredAssignmentCount`
 is normally the number of occupied regions. If the house has more occupied
 regions than usable base-game tokens, it is smaller and the model chooses which
 regions receive no order. When normal tokens are exhausted, the server permits
@@ -453,8 +452,6 @@ tokens before those forced dummy orders.
 `planningConstraints.eligibleRegionIds` lists the exact occupied regions that
 can receive an order. This list can be smaller than `you.controlledRegions`
 because a house can control an empty region with a power token.
-`planningConstraints.maxAssignmentsByOrderCategory` and the state-specific
-tool description give the usable maximum for each family in the current state.
 
 This allocator covers the 15 standard player order tokens used by the base
 game. Optional sea-order and Iron Bank order tokens are not yet model-facing.
@@ -471,19 +468,19 @@ Example:
   "assignments": [
     {
       "region_id": "winterfell",
-      "order": "march",
+      "preferred_order": "march",
       "starred_preference": "prefer",
       "priority": 90
     },
     {
       "region_id": "white-harbor",
-      "order": "support",
+      "preferred_order": "support",
       "starred_preference": "avoid",
       "priority": 70
     },
     {
       "region_id": "the-shivering-sea",
-      "order": "raid",
+      "preferred_order": "raid",
       "starred_preference": "avoid",
       "priority": 40
     }
