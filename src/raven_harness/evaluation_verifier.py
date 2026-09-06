@@ -44,7 +44,14 @@ def verify_evaluation(
         )
 
     manifest = _read_json_object(root / "manifest.json", "manifest")
-    models, game_count, games, prompt_hash, aliases = _validate_manifest(manifest)
+    (
+        models,
+        game_count,
+        games,
+        prompt_hash,
+        aliases,
+        canonical_slugs,
+    ) = _validate_manifest(manifest)
     completed_results: list[dict[str, Any]] = []
     assignment_models: set[str] = set()
     status_counts: Counter[str] = Counter()
@@ -145,6 +152,7 @@ def verify_evaluation(
             game_number=game_number,
             manifest_models=models,
             aliases=aliases,
+            canonical_slugs=canonical_slugs,
             database_responses=database_responses,
         )
         provider_counts.update(
@@ -233,6 +241,7 @@ def _validate_provider_attribution(
     game_number: int,
     manifest_models: list[str],
     aliases: dict[str, str | None],
+    canonical_slugs: dict[str, str],
     database_responses: dict[tuple[str, str], str],
 ) -> tuple[dict[str, Any], set[str]]:
     generations = artifact.get("generations")
@@ -293,7 +302,10 @@ def _validate_provider_attribution(
         if resolved_model is None:
             continue
         if not isinstance(resolved_model, str) or not _resolved_model_matches(
-            str(requested_model), resolved_model, alias=aliases.get(str(requested_model))
+            str(requested_model),
+            resolved_model,
+            alias=aliases.get(str(requested_model)),
+            canonical_slug=canonical_slugs.get(str(requested_model)),
         ):
             raise EvaluationVerificationError(
                 f"Game {game_number} provider resolved unexpected model "
@@ -318,11 +330,19 @@ def _validate_provider_attribution(
 
 
 def _resolved_model_matches(
-    requested: str, resolved: str, *, alias: str | None = None
+    requested: str,
+    resolved: str,
+    *,
+    alias: str | None = None,
+    canonical_slug: str | None = None,
 ) -> bool:
-    """Accept an exact ID, immutable revision, or verified latest-alias family."""
+    """Accept IDs derived from the catalog row for the exact requested model."""
 
-    candidates = [requested, *([alias] if alias else [])]
+    candidates = [
+        requested,
+        *([canonical_slug] if canonical_slug else []),
+        *([alias] if alias else []),
+    ]
     if any(
         resolved == candidate
         or bool(re.fullmatch(re.escape(candidate) + r"-\d{8}", resolved))
@@ -339,7 +359,14 @@ def _resolved_model_matches(
 
 def _validate_manifest(
     manifest: dict[str, Any],
-) -> tuple[list[str], int, list[dict[str, Any]], str, dict[str, str | None]]:
+) -> tuple[
+    list[str],
+    int,
+    list[dict[str, Any]],
+    str,
+    dict[str, str | None],
+    dict[str, str],
+]:
     schema_version = manifest.get("schemaVersion")
     if schema_version != 4:
         raise EvaluationVerificationError(
@@ -384,6 +411,7 @@ def _validate_manifest(
             "Manifest model verification does not match the tournament models"
         )
     aliases: dict[str, str | None] = {}
+    canonical_slugs: dict[str, str] = {}
     for row in verified_rows:
         parameters = row.get("supportedParameters")
         if not isinstance(parameters, list) or not {
@@ -399,6 +427,12 @@ def _validate_manifest(
                 f"Verified model {row.get('id')!r} has an invalid alias target"
             )
         aliases[str(row["id"])] = alias
+        canonical_slug = row.get("canonicalSlug")
+        if not isinstance(canonical_slug, str) or not canonical_slug:
+            raise EvaluationVerificationError(
+                f"Verified model {row.get('id')!r} has no canonical slug"
+            )
+        canonical_slugs[str(row["id"])] = canonical_slug
 
     provenance = manifest.get("provenance")
     if not isinstance(provenance, dict) or any(
@@ -438,7 +472,7 @@ def _validate_manifest(
     except (AttributeError, RuntimeError, TypeError, ValueError) as error:
         raise EvaluationVerificationError(str(error)) from None
     assert isinstance(games, list)
-    return models, game_count, games, effective_hash, aliases
+    return models, game_count, games, effective_hash, aliases, canonical_slugs
 
 
 def _validate_completed_game(

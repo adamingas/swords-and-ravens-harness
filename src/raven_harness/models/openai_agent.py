@@ -31,8 +31,9 @@ from ..schemas import AgentRecord
 
 
 OBSERVATION_INPUT_PREFIX = (
-    "This is your current player-scoped game observation. "
-    "Choose exactly one available tool.\n\n"
+    "A new decision starts with this current player-scoped game observation. "
+    "Earlier tool results are history; you have not acted on this observation. "
+    "Choose exactly one available tool for the current decision.\n\n"
 )
 CONTEXT_POLICY_NAME = "current-observation-with-recent-game-actions-v1"
 TRANSIENT_SUPPORT_TOOL_NAMES = {

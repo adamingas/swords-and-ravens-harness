@@ -925,8 +925,9 @@ uv run raven-verify-evaluation --require-complete \
 
 The verifier checks stored catalog data, seeds, rotations, assignments, and
 results. It checks the terminal saved winner and the integrity of each SQLite
-file. It also checks requested and resolved model IDs, the common harness
-prompt, provider and cost attribution, and the recomputed summary. A valid
+file. It also checks exact requested IDs and provider-resolved IDs against the
+stored canonical slugs and aliases, the common harness prompt, provider and
+cost attribution, and the recomputed summary. A valid
 partial run exits successfully and reports `provisional`. `--require-complete`
 exits with status 2 until 12 games are complete. Each model-house pair must
 have two completed games. Every provider response must have model, provider,

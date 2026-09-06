@@ -819,11 +819,16 @@ async def _preflight_openrouter_models(
             if not required_parameters <= parameters:
                 unsupported.append(model)
             alias = row.get("alias_target")
+            canonical_slug = row.get("canonical_slug")
+            if not isinstance(canonical_slug, str) or not canonical_slug:
+                raise RuntimeError(
+                    f"OpenRouter returned no canonical slug for {model!r}"
+                )
             verified.append(
                 {
                     "id": model,
                     "name": row.get("name"),
-                    "canonicalSlug": row.get("canonical_slug"),
+                    "canonicalSlug": canonical_slug,
                     "aliasTarget": (
                         alias.get("slug") if isinstance(alias, dict) else None
                     ),

@@ -52,6 +52,11 @@ def test_resolved_model_accepts_the_verified_deepseek_alias_target() -> None:
         "deepseek/deepseek-v4-pro-0813",
         alias="deepseek/deepseek-v4-flash-0731",
     )
+    assert _resolved_model_matches(
+        "qwen/qwen3-235b-a22b-2507",
+        "qwen/qwen3-235b-a22b-07-25",
+        canonical_slug="qwen/qwen3-235b-a22b-07-25",
+    )
 
 
 def _verified_models() -> list[dict]:
