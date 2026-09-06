@@ -203,17 +203,16 @@ def create_app(
     ) -> dict[str, Any]:
         return {"settings": await _manager(request).configure_lobby(agent_id, value)}
 
-    @app.post("/api/agents/{agent_id}/lobby/house", status_code=202)
+    @app.post("/api/agents/{agent_id}/lobby/house")
     async def choose_lobby_house(
         agent_id: str, value: LobbyHouseRequest, request: Request
     ) -> dict[str, bool]:
         await _manager(request).choose_lobby_house(agent_id, value.house_id)
         return {"accepted": True}
 
-    @app.post("/api/agents/{agent_id}/lobby/launch", status_code=202)
+    @app.post("/api/agents/{agent_id}/lobby/launch")
     async def launch_game(agent_id: str, request: Request) -> dict[str, bool]:
-        await _manager(request).launch_game(agent_id)
-        return {"accepted": True}
+        return {"accepted": True, **await _manager(request).launch_game(agent_id)}
 
     @app.get("/api/agents/{agent_id}/observation")
     async def observation(agent_id: str, request: Request) -> dict[str, Any]:

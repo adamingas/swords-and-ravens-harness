@@ -306,6 +306,79 @@ async def test_configure_lobby_rejects_partially_applied_settings(tmp_path) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("child_state", "expected"),
+    [
+        ({"type": "ingame"}, {"started": True, "readyCheck": False}),
+        (
+            {"type": "lobby", "readyUsers": []},
+            {"started": False, "readyCheck": True},
+        ),
+    ],
+)
+async def test_launch_game_verifies_authoritative_result(
+    tmp_path, child_state, expected
+) -> None:
+    database, manager, agent, client = lobby_manager(tmp_path, {})
+    client.synced_snapshot["childGameState"] = child_state
+
+    result = await manager.launch_game(agent.id)
+
+    assert result == expected
+    assert client.sent == [{"type": "launch-game"}]
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_launch_game_rejects_unchanged_lobby(tmp_path) -> None:
+    database, manager, agent, client = lobby_manager(tmp_path, {})
+
+    with pytest.raises(RuntimeError, match="did not accept"):
+        await manager.launch_game(agent.id)
+
+    assert client.sent == [{"type": "launch-game"}]
+    database.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "child_state",
+    [
+        {"type": "lobby", "readyUsers": ["1"]},
+        {"type": "ingame"},
+    ],
+)
+async def test_lobby_ready_verifies_authoritative_result(
+    tmp_path, child_state
+) -> None:
+    database, manager, agent, client = lobby_manager(tmp_path, {})
+    client.synced_snapshot["childGameState"] = child_state
+    session = manager.sessions[agent.id]
+
+    await manager._confirm_lobby_ready(agent.id, session, agent.user_id)
+
+    assert client.sent == [{"type": "ready"}]
+    assert manager.store.list_events(agent.id)[-1].kind == "lobby-ready-accepted"
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_lobby_ready_records_rejected_response(tmp_path) -> None:
+    database, manager, agent, client = lobby_manager(tmp_path, {})
+    client.synced_snapshot["childGameState"] = {
+        "type": "lobby",
+        "readyUsers": [],
+    }
+    session = manager.sessions[agent.id]
+
+    await manager._confirm_lobby_ready(agent.id, session, agent.user_id)
+
+    assert session.last_error == "The game server did not accept the ready response"
+    assert manager.store.list_events(agent.id)[-1].kind == "lobby-ready-failed"
+    database.close()
+
+
+@pytest.mark.asyncio
 async def test_manager_persists_effective_context_manifest(tmp_path) -> None:
     database, store, harness, manager, agent = manifest_manager(tmp_path)
 

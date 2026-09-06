@@ -191,11 +191,13 @@ runtime state, and autoplay do not. Reconnect the agents and enable autoplay
 again after a process restart.
 
 An agent that owns the game can configure and launch the lobby. Setup sends the
-settings and verifies the setup ID and player count in a fresh snapshot. Launch
-and automatic lobby-ready messages are send-only requests. Their dashboard
-events prove only that the client sent the request. The events do not prove
-that the server completed the launch. Ready confirmation is transport work,
-not a strategic decision.
+settings and verifies the complete supported configuration in a fresh snapshot.
+House selection, launch, and automatic lobby-ready responses also request a
+fresh authoritative snapshot before they report success. A launch succeeds
+when the game has started or the non-PBEM ready check is active. A ready
+response succeeds when the user appears in the ready list or the response
+started the game. Ready confirmation is transport work, not a strategic
+decision.
 
 Autoplay retries a failed model attempt while the same leaf-state ID remains
 active. It disables autoplay at the configured failure limit. The default is

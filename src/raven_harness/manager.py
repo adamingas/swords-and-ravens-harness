@@ -639,8 +639,8 @@ class AgentManager:
             raise RuntimeError("The game server did not accept the house selection")
         self.store.add_event(agent_id, "lobby-house-selected", {"houseId": house_id})
 
-    async def launch_game(self, agent_id: str) -> None:
-        """Ask the upstream server to launch the configured lobby."""
+    async def launch_game(self, agent_id: str) -> dict[str, bool]:
+        """Launch the lobby and verify the server's resulting state."""
 
         record, session = self._require_connected_session(agent_id)
         snapshot = session.client.snapshot
@@ -650,7 +650,18 @@ class AgentManager:
         if str(snapshot.get("ownerUserId")) != record.user_id:
             raise RuntimeError("Only the game owner can launch the game")
         await session.client.send({"type": "launch-game"})
-        self.store.add_event(agent_id, "lobby-launch-requested", {})
+        snapshot = await session.client.sync_snapshot()
+        child_state = snapshot.get("childGameState", {})
+        started = child_state.get("type") == "ingame"
+        ready_check = (
+            child_state.get("type") == "lobby"
+            and isinstance(child_state.get("readyUsers"), list)
+        )
+        if not started and not ready_check:
+            raise RuntimeError("The game server did not accept the launch request")
+        result = {"started": started, "readyCheck": ready_check}
+        self.store.add_event(agent_id, "lobby-launch-accepted", result)
+        return result
 
     async def stop_all(self) -> None:
         for agent_id in list(self.sessions):
@@ -739,15 +750,33 @@ class AgentManager:
             return
         if session.ready_task is None or session.ready_task.done():
             session.ready_task = asyncio.create_task(
-                self._confirm_lobby_ready(agent_id, session)
+                self._confirm_lobby_ready(agent_id, session, record.user_id)
             )
 
     async def _confirm_lobby_ready(
-        self, agent_id: str, expected_session: AgentSession
+        self,
+        agent_id: str,
+        expected_session: AgentSession,
+        user_id: str,
     ) -> None:
         try:
             await expected_session.client.send({"type": "ready"})
-            self.store.add_event(agent_id, "lobby-ready-confirmed", {})
+            snapshot = await expected_session.client.sync_snapshot()
+            child_state = snapshot.get("childGameState", {})
+            started = child_state.get("type") == "ingame"
+            ready_users = child_state.get("readyUsers")
+            confirmed = (
+                child_state.get("type") == "lobby"
+                and isinstance(ready_users, list)
+                and user_id in {str(ready_user_id) for ready_user_id in ready_users}
+            )
+            if not started and not confirmed:
+                raise RuntimeError("The game server did not accept the ready response")
+            self.store.add_event(
+                agent_id,
+                "lobby-ready-accepted",
+                {"startedGame": started},
+            )
         except Exception as error:
             message = safe_error_text(error)
             expected_session.last_error = message
