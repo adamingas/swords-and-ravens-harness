@@ -373,10 +373,11 @@ active state controls when each tool is visible.
 
 `UnitMove` has `destination_region_id` and a non-empty `unit_ids` list.
 `RegionUnits` has `region_id` and a non-empty `unit_ids` list. A recruitment
-has `unit_type`, `region_id`, and `source_unit_id`. `source_unit_id` is required
-by the strict tool schema but is nullable: set it to the unit being upgraded or
-null for a new unit. `muster_units` requires a non-empty `musters` list. Each
-muster group has `mustering_region_id` and a non-empty `recruitments` list.
+has `unit_type`, `region_id`, and `upgrade_from_footman`. Set the boolean when
+the target unit should replace an existing Footman; the harness selects the
+engine-compatible Footman internally. `muster_units` requires a non-empty
+`musters` list. Each muster group has `mustering_region_id` and a non-empty
+`recruitments` list.
 
 ## 10. Additional protocol gameplay tools
 

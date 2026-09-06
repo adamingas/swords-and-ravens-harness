@@ -220,12 +220,12 @@ def legal_mustering_options(context: HarnessContext) -> dict[str, Any]:
                     "regionId": destination_id,
                     "type": destination_static.get("type"),
                     "newUnitTypes": unit_types,
-                    "upgradeableFootmanIds": [
-                        int(unit["id"])
+                    "upgradeableFootmen": sum(
+                        1
                         for unit in target.get("units", [])
                         if unit.get("allegiance") == context.house_id
                         and unit.get("type") == "footman"
-                    ],
+                    ),
                 }
             )
         origins.append(
@@ -304,7 +304,8 @@ def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
     if invalid_origins:
         raise ValueError(f"mustering_region_id is not legal: {invalid_origins}")
 
-    used_upgrade_ids: set[int] = set()
+    upgrades_by_region: dict[str, int] = {}
+    upgrade_count = 0
     created = {unit_type: 0 for unit_type in _available_pieces(context)}
     points = {origin_id: 0 for origin_id in origin_ids}
     additions: dict[str, int] = {}
@@ -321,7 +322,7 @@ def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
                 )
             if recruitment.unit_type not in destination["newUnitTypes"]:
                 raise ValueError("unit_type cannot be mustered in this region")
-            if recruitment.source_unit_id is None:
+            if not recruitment.upgrade_from_footman:
                 cost = 1 if recruitment.unit_type in {"footman", "ship"} else 2
                 created[recruitment.unit_type] = (
                     created.get(recruitment.unit_type, 0) + 1
@@ -331,16 +332,16 @@ def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
                 )
             else:
                 if recruitment.unit_type not in {"knight", "siege-engine"}:
-                    raise ValueError("a Footman can upgrade only to knight or siege-engine")
-                if recruitment.source_unit_id not in destination[
-                    "upgradeableFootmanIds"
-                ]:
                     raise ValueError(
-                        "source_unit_id must be an available Footman in the recruitment region"
+                        "a Footman can upgrade only to knight or siege-engine"
                     )
-                if recruitment.source_unit_id in used_upgrade_ids:
-                    raise ValueError("each source_unit_id may be upgraded at most once")
-                used_upgrade_ids.add(recruitment.source_unit_id)
+                used = upgrades_by_region.get(recruitment.region_id, 0)
+                if used >= int(destination["upgradeableFootmen"]):
+                    raise ValueError(
+                        "no unused Footman is available to upgrade in the recruitment region"
+                    )
+                upgrades_by_region[recruitment.region_id] = used + 1
+                upgrade_count += 1
                 created[recruitment.unit_type] = (
                     created.get(recruitment.unit_type, 0) + 1
                 )
@@ -351,7 +352,7 @@ def validate_musterings(context: HarnessContext, musters: list[Any]) -> None:
 
     availability = _available_pieces(context)
     for unit_type, count in created.items():
-        extra = len(used_upgrade_ids) if unit_type == "footman" else 0
+        extra = upgrade_count if unit_type == "footman" else 0
         if count > availability.get(unit_type, 0) + extra:
             raise ValueError(f"not enough {unit_type} pieces remain")
     _validate_supply_after_recruitment(context, additions)

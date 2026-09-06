@@ -40,9 +40,11 @@ class Recruitment(ToolInput):
     region_id: str = Field(
         description="Region where the resulting unit will be placed."
     )
-    source_unit_id: int | None = Field(
-        default=None,
-        description="Existing unit to upgrade, or null when recruiting a new unit.",
+    upgrade_from_footman: bool = Field(
+        description=(
+            "Whether to upgrade an existing Footman instead of creating a new unit. "
+            "Only knight and siege-engine upgrades are valid."
+        ),
     )
 
 
@@ -282,17 +284,70 @@ async def muster_units(
                     muster.mustering_region_id,
                     [
                         {
-                            "from": recruitment.source_unit_id,
+                            "from": source_unit_id,
                             "to": recruitment.unit_type,
                             "region": recruitment.region_id,
                         }
-                        for recruitment in muster.recruitments
+                        for recruitment, source_unit_id in zip(
+                            muster.recruitments,
+                            source_unit_ids,
+                            strict=True,
+                        )
                     ],
                 ]
-                for muster in musters
+                for muster, source_unit_ids in zip(
+                    musters,
+                    _canonical_mustering_source_ids(context, musters),
+                    strict=True,
+                )
             ],
         },
     )
+
+
+def _canonical_mustering_source_ids(
+    context: Any, musters: list[MusterGroup]
+) -> list[list[int | None]]:
+    """Choose upgrade pieces exactly as the upstream game client does.
+
+    Swords & Ravens treats same-type units as interchangeable and only accepts
+    the first unused matching unit in the region's internal order. Keeping this
+    engine detail out of the model-facing tool avoids advertising choices the
+    server will silently reject.
+    """
+
+    regions = {
+        str(region["id"]): region
+        for region in (context.game or {}).get("world", {}).get("regions", [])
+    }
+    available_by_region = {
+        region_id: [
+            int(unit["id"])
+            for unit in region.get("units", [])
+            if unit.get("allegiance") == context.house_id
+            and unit.get("type") == "footman"
+        ]
+        for region_id, region in regions.items()
+    }
+    used_by_region: dict[str, int] = {}
+    result: list[list[int | None]] = []
+    for muster in musters:
+        group: list[int | None] = []
+        for recruitment in muster.recruitments:
+            if not recruitment.upgrade_from_footman:
+                group.append(None)
+                continue
+            region_id = recruitment.region_id
+            used = used_by_region.get(region_id, 0)
+            candidates = available_by_region.get(region_id, [])
+            if used >= len(candidates):
+                raise ValueError(
+                    f"no unused Footman is available to upgrade in {region_id}"
+                )
+            group.append(candidates[used])
+            used_by_region[region_id] = used + 1
+        result.append(group)
+    return result
 
 
 @function_tool

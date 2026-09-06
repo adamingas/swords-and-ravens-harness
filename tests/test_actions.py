@@ -976,17 +976,17 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
                         {
                             "unit_type": "footman",
                             "region_id": "winterfell",
-                            "source_unit_id": None,
+                            "upgrade_from_footman": False,
                         },
                         {
                             "unit_type": "ship",
                             "region_id": "bay-of-ice",
-                            "source_unit_id": None,
+                            "upgrade_from_footman": False,
                         },
                         {
                             "unit_type": "ship",
                             "region_id": "the-shivering-sea",
-                            "source_unit_id": None,
+                            "upgrade_from_footman": False,
                         },
                     ],
                 }
@@ -1014,12 +1014,12 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
                         {
                             "unit_type": "footman",
                             "region_id": "winterfell",
-                            "source_unit_id": None,
+                            "upgrade_from_footman": False,
                         },
                         {
                             "unit_type": "ship",
                             "region_id": "bay-of-ice",
-                            "source_unit_id": None,
+                            "upgrade_from_footman": False,
                         },
                     ],
                 }
@@ -1044,6 +1044,111 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
                     [
                         {"from": None, "to": "footman", "region": "winterfell"},
                         {"from": None, "to": "ship", "region": "bay-of-ice"},
+                    ],
+                ]
+            ],
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_mustering_upgrade_uses_engine_canonical_footman_order() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    house = ingame["game"]["houses"][0]
+    house["unitLimits"] = [
+        ["footman", 10],
+        ["knight", 5],
+        ["ship", 6],
+        ["siege-engine", 2],
+    ]
+    ingame["game"]["supplyRestrictions"] = [[2, 2], [3, 2], [3, 2, 2]]
+    winterfell = next(
+        region
+        for region in ingame["game"]["world"]["regions"]
+        if region["id"] == "winterfell"
+    )
+    winterfell["units"].append(
+        {
+            "id": 31,
+            "type": "footman",
+            "allegiance": "stark",
+            "wounded": False,
+        }
+    )
+    ingame["childGameState"] = {
+        "type": "westeros",
+        "childGameState": {
+            "type": "mustering",
+            "childGameState": {
+                "type": "player-mustering",
+                "house": "stark",
+                "musteringType": 0,
+            },
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    context = build_context(snapshot, "2")
+    tool = next(
+        item for item in available_tools(context) if item.name == "muster_units"
+    )
+    recruitment_schema = tool.params_json_schema["$defs"]["Recruitment"]
+
+    assert "source_unit_id" not in recruitment_schema["properties"]
+    assert "upgrade_from_footman" in recruitment_schema["required"]
+    assert context.game is not None
+    winterfell_guidance = next(
+        origin
+        for origin in build_observation(context)["actionGuidance"]["origins"]
+        if origin["regionId"] == "winterfell"
+    )
+    assert winterfell_guidance["destinations"][0]["upgradeableFootmen"] == 2
+
+    arguments = json.dumps(
+        {
+            "musters": [
+                {
+                    "mustering_region_id": "winterfell",
+                    "recruitments": [
+                        {
+                            "unit_type": "knight",
+                            "region_id": "winterfell",
+                            "upgrade_from_footman": True,
+                        },
+                        {
+                            "unit_type": "siege-engine",
+                            "region_id": "winterfell",
+                            "upgrade_from_footman": True,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-upgrade-muster",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {
+            "type": "muster",
+            "units": [
+                [
+                    "winterfell",
+                    [
+                        {"from": 1, "to": "knight", "region": "winterfell"},
+                        {
+                            "from": 31,
+                            "to": "siege-engine",
+                            "region": "winterfell",
+                        },
                     ],
                 ]
             ],
