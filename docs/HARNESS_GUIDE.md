@@ -554,6 +554,13 @@ Use the snapshot-detail endpoint for one complete snapshot. This avoids large
 repeated dashboard responses. SQLite retains older rows. Use the run-detail
 endpoint or query the database for experiment export.
 
+The dashboard header totals the agent count, model runs, failures, tokens, and
+provider-reported cost. Open an agent to see its available house cards and
+card abilities, units, controlled regions, public standings, occupied board
+regions, current action guidance, influence tracks, run traces, snapshots, and
+memory. Board rows are intentionally sparse: they contain only occupied,
+garrisoned, or controlled regions.
+
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
 token counts. Recorded duration begins before observation preparation and
@@ -590,7 +597,7 @@ AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Cloudflare, Reka, DeepInfra, IO.net, Together, and Wafer.
+defaults to Cloudflare, Reka, DeepInfra, IO.net, Together, and GMICloud.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -681,6 +688,10 @@ Local user IDs rotate too, so each configuration owns two lobbies.
 Evaluation requires prepared rules data. Run `uv run raven-prepare-rules`
 before the smoke game.
 
+Before it creates a new attempt, the runner checks the OpenRouter key. It stops
+when OpenRouter reports that the key's spending limit is exhausted. This check
+does not write the key to an artifact or create an empty attempt directory.
+
 Start with a one-round smoke:
 
 ~~~bash
@@ -704,6 +715,10 @@ prompt and rules hashes, model settings, provider routing, and the fixed house
 and user schedule. API keys are not recorded. Reusing the same output directory
 preserves failed attempts, skips completed games, and starts a new attempt for
 the next incomplete game.
+
+The provenance check ignores only the upstream local saved-game JSON because
+normal play changes that file. It still rejects changes to harness source,
+upstream source, or the recorded submodule commit.
 
 Completion requires a matching terminal winner in the live observation and
 the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.

@@ -113,7 +113,7 @@ MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
 AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=cloudflare,reka,deepinfra,io-net,together,wafer
+OPENROUTER_PROVIDER_ORDER=cloudflare,reka,deepinfra,io-net,together,gmicloud
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -176,4 +176,6 @@ uv run raven-evaluate --games 12 \
 
 Reusing an output directory skips completed games and preserves failed
 attempts. The manifest rejects changes to the model, prompts, schedule, source
-commits, rules, or runtime settings.
+commits, rules, or runtime settings. Before it creates a new attempt, the
+runner stops if OpenRouter reports that the configured key has exhausted its
+spending limit.
