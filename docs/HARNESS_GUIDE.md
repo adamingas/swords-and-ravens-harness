@@ -982,12 +982,13 @@ game uses the next port. A 12-game run uses ports 5101 through 5112. The
 12 calls across the evaluator. Reduce `--concurrent-games` when the machine or
 provider cannot support this load.
 
-A completed attempt contains `game.json`, `harness.db`, assignments,
-`provider-generations.json`, a server log, and a result. Progress data is
-written during a long game. A failed or cancelled attempt can contain fewer
-files because failure can occur at any stage. The manifest always records the
-attempt status and known error. Provider data is collected when the database
-exists. The
+A completed attempt contains `game.json`, `harness.db`, assignments, a server
+log, and a result. Progress data is written during a long game. A failed or
+cancelled attempt can contain fewer files because failure can occur at any
+stage. The manifest always records the attempt status and known error. Game
+completion never performs a provider-specific metadata request. Response IDs
+in `harness.db` allow a separate reporting process to add optional endpoint
+metadata later without replaying or reopening the completed game. The
 manifest records source commits, harness prompt and rules hashes, the exact
 model set, model settings, provider routing, the base random seed, and the fixed
 house and user schedule.

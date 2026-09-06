@@ -123,14 +123,6 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
             None,
         )
         if completed_attempt is not None:
-            refreshed = await _refresh_completed_provider_attribution(
-                output=output,
-                attempt=completed_attempt,
-                settings=settings,
-            )
-            if refreshed:
-                async with write_lock:
-                    _write_summary(output, manifest)
             print(f"Game {game_number}: already completed")
             return
 
@@ -450,23 +442,6 @@ async def run_game(
         if telemetry is not None:
             telemetry.shutdown()
         if database is not None:
-            try:
-                provider_generations = await _collect_provider_metadata(
-                    database=database,
-                    records=records,
-                    settings=settings,
-                )
-            except Exception as error:
-                provider_generations = _failed_provider_attribution(
-                    error, provider=settings.model_provider
-                )
-            _write_json(
-                attempt_dir / "provider-generations.json", provider_generations
-            )
-            if completed_result is not None:
-                completed_result["providerAttribution"] = (
-                    _provider_attribution_summary(provider_generations)
-                )
             try:
                 if completed_result is not None:
                     _require_sqlite_quick_check(database)

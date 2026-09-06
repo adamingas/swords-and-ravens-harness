@@ -423,12 +423,35 @@ def test_verifier_rejects_corrupt_harness_database(tmp_path) -> None:
         verify_evaluation(root)
 
 
-def test_verifier_rejects_missing_provider_attribution(tmp_path) -> None:
-    root = tmp_path / "missing-provider-attribution"
+def test_verifier_accepts_completed_game_without_optional_provider_attribution(
+    tmp_path,
+) -> None:
+    root = tmp_path / "no-provider-attribution"
+    _evaluation(root, game_count=1, completed_games=1)
+    (root / "game-01/attempt-01/provider-generations.json").unlink()
+    result_path = root / "game-01/attempt-01/result.json"
+    result = json.loads(result_path.read_text())
+    result.pop("providerAttribution")
+    _write_json(result_path, result)
+    _write_json(root / "summary.json", summarize_results([result]))
+
+    report = verify_evaluation(root)
+
+    assert report["status"] == "valid"
+    assert report["providerAttributionComplete"] is False
+    assert report["providerAttribution"]["unavailableCount"] == len(
+        TOURNAMENT_MODELS
+    )
+
+
+def test_verifier_rejects_attribution_claim_without_its_optional_artifact(
+    tmp_path,
+) -> None:
+    root = tmp_path / "dangling-provider-attribution"
     _evaluation(root, game_count=1, completed_games=1)
     (root / "game-01/attempt-01/provider-generations.json").unlink()
 
-    with pytest.raises(EvaluationVerificationError, match="provider attribution"):
+    with pytest.raises(EvaluationVerificationError, match="claims provider attribution"):
         verify_evaluation(root)
 
 

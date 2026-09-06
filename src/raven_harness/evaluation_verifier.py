@@ -143,18 +143,34 @@ def verify_evaluation(
             game_number=game_number,
             manifest_models=models,
         )
-        provider_summary, game_resolved_models = _validate_provider_attribution(
-            artifact=_read_json_object(
-                attempt_dir / "provider-generations.json",
-                f"game {game_number} provider attribution",
-            ),
-            result=result,
-            game_number=game_number,
-            manifest_models=models,
-            aliases=aliases,
-            canonical_slugs=canonical_slugs,
-            database_responses=database_responses,
-        )
+        provider_path = attempt_dir / "provider-generations.json"
+        if provider_path.is_file():
+            provider_summary, game_resolved_models = _validate_provider_attribution(
+                artifact=_read_json_object(
+                    provider_path,
+                    f"game {game_number} provider attribution",
+                ),
+                result=result,
+                game_number=game_number,
+                manifest_models=models,
+                aliases=aliases,
+                canonical_slugs=canonical_slugs,
+                database_responses=database_responses,
+            )
+        elif result.get("providerAttribution") is not None:
+            raise EvaluationVerificationError(
+                f"Game {game_number} result claims provider attribution but its "
+                "optional provider artifact is missing"
+            )
+        else:
+            provider_summary = {
+                "requestedCount": 0,
+                "attributedCount": 0,
+                "modelAttributedCount": 0,
+                "costAttributedCount": 0,
+                "unavailableCount": len(database_responses),
+            }
+            game_resolved_models = set()
         provider_counts.update(
             {
                 "requested": provider_summary["requestedCount"],
