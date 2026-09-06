@@ -46,12 +46,15 @@ The codebase must:
 
 
 ### 2. Run a model tournament
-#### 2.1 same model
+#### 2.1 same model — complete
 
-Run a six player/agents tournament with the same exact harness version and model, gpt oss 102b (served by cerebras).
-Run it 5 times.
-Produce statistics on the win rate of each house. This way we can know which house is easier, or with which house the models struggle with.
-each game should take less than a minute. produce a report on this.
+- [x] Run six players with the same `strategic-v1` harness and exact
+  `openai/gpt-oss-120b` model, served by Cerebras.
+- [x] Run five games.
+- [x] Produce win-rate and placement statistics for every house.
+- [x] Complete every game within one minute.
+- [x] Record the method, performance, cost, failure, and interpretation in
+  `docs/GPT_OSS_120B_HOUSE_TEST.md`.
 
 #### 2.2 different models
 The tournament must:
