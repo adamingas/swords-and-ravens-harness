@@ -350,7 +350,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert provenance["models"]["ids"] == TOURNAMENT_MODELS
     assert provenance["evaluation"]["randomSeed"] == 1
     assert provenance["harness"]["maxConcurrency"] == 3
-    assert provenance["harness"]["maxOutputTokens"] == 4_096
+    assert provenance["harness"]["maxOutputTokens"] == 16_384
     serialized = str(provenance)
     assert "do-not-record-this-token" not in serialized
     assert "url-secret" not in serialized

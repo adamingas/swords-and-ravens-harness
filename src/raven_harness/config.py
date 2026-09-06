@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_ID = "z-ai/glm-5.3-flash"
-DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 4_096
+DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 16_384
 
 
 def _source_checkout_root() -> Path | None:

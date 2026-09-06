@@ -781,9 +781,9 @@ MODEL_REQUEST_TIMEOUT_SECONDS limits one provider attempt.
 MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
 MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
-MODEL_MAX_OUTPUT_TOKENS limits one model response. The 4,096-token default is
-large enough for a tool decision and avoids reserving unaffordable unused
-output capacity at the provider.
+MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
+allows reasoning models to complete a tool decision. A 4,096-token limit caused
+repeated incomplete responses from supported tournament models.
 MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
 The harness filters old observation inputs from that window before the model
 request. It does not delete them from SQLite.
