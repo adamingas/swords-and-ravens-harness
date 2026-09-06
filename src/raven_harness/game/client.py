@@ -143,6 +143,9 @@ class SwordsAndRavensClient:
             snapshot = await asyncio.wait_for(future, timeout)
             self._require_generation(expected_generation)
             return snapshot
+        except asyncio.CancelledError:
+            await self._disconnect(connection)
+            raise
         except TimeoutError as error:
             await self._disconnect(connection)
             raise GameConnectionLost(

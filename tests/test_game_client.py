@@ -149,6 +149,38 @@ async def test_normal_socket_eof_disconnects_and_fails_pending_sync() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cancelled_sync_retires_ambiguous_connection() -> None:
+    connection = FakeConnection(answer_sync=False)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+    sync = asyncio.create_task(client.sync_snapshot(timeout=10))
+    for _ in range(100):
+        if any(message["type"] == "sync-game" for message in connection.sent):
+            break
+        await asyncio.sleep(0)
+
+    sync.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await sync
+
+    assert client.status == "disconnected"
+    assert client.connection is None
+    assert client.snapshot is None
+    assert client._sync_requests == {}
+    await client.close()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("accepted", [True, False])
 async def test_submit_orders_waits_for_private_response_and_fresh_snapshot(
     accepted: bool,
