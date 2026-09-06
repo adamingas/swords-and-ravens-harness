@@ -1,36 +1,13 @@
 import copy
 import sqlite3
 
+import pytest
+
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import SCHEMA_VERSION, Database
 from raven_harness.schemas import AgentCreate, AgentPublic
 
 from conftest import lobby_snapshot
-
-
-LEGACY_AGENT_RUNS_SCHEMA = """
-CREATE TABLE agent_runs (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  status TEXT NOT NULL,
-  model TEXT,
-  observation_json TEXT NOT NULL,
-  instructions TEXT,
-  tools_json TEXT,
-  tool_name TEXT,
-  tool_arguments_json TEXT,
-  model_output TEXT,
-  response_id TEXT,
-  response_json TEXT,
-  usage_json TEXT,
-  raw_usage_json TEXT,
-  error TEXT,
-  created_at TEXT NOT NULL,
-  finished_at TEXT,
-  duration_ms INTEGER,
-  history_id INTEGER
-);
-"""
 
 
 def test_agent_configuration_persists_without_exposing_credentials(tmp_path) -> None:
@@ -106,76 +83,25 @@ def test_fresh_database_uses_current_schema(tmp_path) -> None:
     database.close()
 
 
-def test_database_migrates_version_one_through_current_schema(tmp_path) -> None:
-    path = tmp_path / "version-one.db"
+@pytest.mark.parametrize("version", [0, 1, 2, 4])
+def test_database_rejects_every_non_current_existing_schema(tmp_path, version) -> None:
+    path = tmp_path / f"schema-{version}.db"
     connection = sqlite3.connect(path)
-    connection.execute("CREATE TABLE agents (id TEXT PRIMARY KEY)")
-    connection.executescript(LEGACY_AGENT_RUNS_SCHEMA)
-    connection.execute("PRAGMA user_version = 1")
+    connection.execute("CREATE TABLE existing_data (value TEXT)")
+    connection.execute("INSERT INTO existing_data VALUES ('preserve me')")
+    connection.execute(f"PRAGMA user_version = {version}")
     connection.commit()
     connection.close()
 
-    database = Database(path)
+    with pytest.raises(RuntimeError, match=f"schema version {version} is not supported"):
+        Database(path)
 
-    version = database.connection.execute("PRAGMA user_version").fetchone()[0]
-    table = database.connection.execute(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_snapshots'"
-    ).fetchone()
-    run_columns = {
-        row["name"]
-        for row in database.connection.execute("PRAGMA table_info(agent_runs)")
-    }
-    assert version == SCHEMA_VERSION == 3
-    assert table is not None
-    assert "context_json" in run_columns
-    database.close()
-
-
-def test_database_migrates_version_two_runs_with_null_context(tmp_path) -> None:
-    path = tmp_path / "version-two.db"
     connection = sqlite3.connect(path)
-    connection.executescript(LEGACY_AGENT_RUNS_SCHEMA)
-    connection.execute(
-        """
-        INSERT INTO agent_runs (
-          id, agent_id, status, observation_json, created_at
-        ) VALUES (?, ?, ?, ?, ?)
-        """,
-        ("old-run", "old-agent", "completed", "{}", "2026-01-01T00:00:00Z"),
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == version
+    assert connection.execute("SELECT value FROM existing_data").fetchone()[0] == (
+        "preserve me"
     )
-    connection.execute("PRAGMA user_version = 2")
-    connection.commit()
     connection.close()
-
-    database = Database(path)
-    trace = AgentStore(database).get_run("old-agent", "old-run")
-
-    assert database.connection.execute("PRAGMA user_version").fetchone()[0] == 3
-    assert trace is not None
-    assert trace["contextManifest"] is None
-    database.close()
-
-
-def test_database_recovers_when_version_two_already_has_context_column(
-    tmp_path,
-) -> None:
-    path = tmp_path / "interrupted-version-two.db"
-    connection = sqlite3.connect(path)
-    connection.executescript(LEGACY_AGENT_RUNS_SCHEMA)
-    connection.execute("ALTER TABLE agent_runs ADD COLUMN context_json TEXT")
-    connection.execute("PRAGMA user_version = 2")
-    connection.commit()
-    connection.close()
-
-    database = Database(path)
-
-    columns = [
-        row["name"]
-        for row in database.connection.execute("PRAGMA table_info(agent_runs)")
-    ]
-    assert database.connection.execute("PRAGMA user_version").fetchone()[0] == 3
-    assert columns.count("context_json") == 1
-    database.close()
 
 
 def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:

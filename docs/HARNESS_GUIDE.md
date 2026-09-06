@@ -595,14 +595,13 @@ keeps each oracle interaction that completed before the failure. A provider
 exception can still prevent the SDK from returning partial parent response
 items or parent usage. The harness always stores the error and elapsed time.
 
-The database uses schema version 3. The server upgrades version 1 to version 2
-and then version 3. Version 3 lets a model attempt store an effective-context
-manifest. The manifest is present when an attempt reaches the model runner,
-including runner errors and cancellations. It is null for a failure during
-observation or tool preparation and for a row migrated from version 2. The
-database rejects newer or unsupported versions. Use another `DATABASE_PATH`
-when the schema is incompatible. Deleting an agent permanently removes its
-events, runs, snapshots, history, memory, and SDK conversation.
+The database uses schema version 3. The server creates only this schema and
+rejects every other existing version. It does not migrate old databases. Use a
+new `DATABASE_PATH` when the schema is incompatible. A model attempt stores an
+effective-context manifest when it reaches the model runner, including runner
+errors and cancellations. The field is null when observation or tool
+preparation fails first. Deleting an agent permanently removes its events,
+runs, snapshots, history, memory, and SDK conversation.
 
 Useful endpoints are:
 
