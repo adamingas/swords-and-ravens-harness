@@ -7,7 +7,7 @@ from time import monotonic
 from typing import Any
 from uuid import uuid4
 
-from opentelemetry.trace import Status, StatusCode
+from opentelemetry.trace import Status, StatusCode, get_current_span
 
 from .agent_store import AgentStore
 from .errors import safe_error_text
@@ -318,6 +318,9 @@ class AgentManager:
         previous_error = session.last_error
         session.last_error = None
         run_id = str(uuid4())
+        active_span = get_current_span()
+        if active_span.is_recording():
+            active_span.set_attribute("raven.run.id", run_id)
         created_at = datetime.now(timezone.utc).isoformat()
         session.current_run_id = run_id
         session.run_started_at = created_at
@@ -348,6 +351,11 @@ class AgentManager:
                 **sanitized,
             }
             self.store.add_event(agent_id, kind, event_payload)
+            if active_span.is_recording():
+                active_span.add_event(
+                    f"raven.{kind}",
+                    _telemetry_activity_attributes(run_id, kind, sanitized),
+                )
             activity = {"kind": kind, **event_payload}
             session.current_activity = activity
             session.recent_activity = [*session.recent_activity, activity][-8:]
@@ -537,16 +545,41 @@ class AgentManager:
         """Return one compact dashboard record for every configured agent."""
 
         records = []
-        for agent in self.list_agents():
-            session = self.sessions.get(agent.id)
+        for agent_record in self.store.list_agents():
+            session = self.sessions.get(agent_record.id)
+            runtime = self.get_runtime(agent_record.id)
+            agent = AgentPublic.from_record(agent_record, runtime)
             observation = session.observation if session else None
+            snapshot = session.client.snapshot if session else None
+            live = bool(
+                observation is not None
+                and session is not None
+                and session.status in {"connected", "running"}
+            )
+            state_status: dict[str, Any] = {
+                "source": "live" if live else None,
+                "capturedAt": None,
+            }
+            if not live:
+                stored = self.store.get_latest_snapshot(agent_record.id)
+                if stored is not None:
+                    snapshot = stored["snapshot"]
+                    context = build_context(snapshot, agent_record.user_id)
+                    observation = self.harness.preview_observation(
+                        agent_record, context
+                    )
+                    state_status = {
+                        "source": "saved",
+                        "capturedAt": stored["createdAt"],
+                    }
+            state_status["actionable"] = bool(
+                live and observation and observation.get("isYourTurn")
+            )
             records.append(
                 {
                     "agent": agent.model_dump(by_alias=True),
-                    "state": _monitoring_state(
-                        observation,
-                        session.client.snapshot if session else None,
-                    ),
+                    "state": _monitoring_state(observation, snapshot),
+                    "stateStatus": state_status,
                     "metrics": self.store.get_run_metrics(agent.id),
                     "recentRuns": self.store.list_runs(agent.id, limit=6),
                 }
@@ -952,6 +985,47 @@ def _optional_nonnegative_int(value: Any) -> int | None:
     if value is None:
         return None
     return _nonnegative_int(value)
+
+
+def _telemetry_activity_attributes(
+    run_id: str, kind: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Flatten sanitized activity fields into OpenTelemetry event attributes."""
+
+    attributes: dict[str, Any] = {
+        "raven.run.id": run_id,
+        "raven.activity.kind": kind,
+    }
+    mappings = {
+        "model": "raven.model",
+        "phase": "raven.phase",
+        "tool": "raven.tool",
+        "responseId": "gen_ai.response.id",
+        "requestIndex": "gen_ai.request.index",
+        "sequence": "raven.tool.sequence",
+        "inputItemCount": "gen_ai.request.input_items",
+        "outputItemCount": "gen_ai.response.output_items",
+        "durationMs": "raven.duration.ms",
+    }
+    for source, target in mappings.items():
+        value = payload.get(source)
+        if isinstance(value, (str, int, float, bool)):
+            attributes[target] = value
+    tools = payload.get("tools")
+    if isinstance(tools, list) and all(isinstance(value, str) for value in tools):
+        attributes["raven.tools"] = tuple(tools)
+    usage = payload.get("usage")
+    if isinstance(usage, dict):
+        for source, target in (
+            ("requests", "gen_ai.usage.requests"),
+            ("inputTokens", "gen_ai.usage.input_tokens"),
+            ("outputTokens", "gen_ai.usage.output_tokens"),
+            ("totalTokens", "gen_ai.usage.total_tokens"),
+        ):
+            value = usage.get(source)
+            if isinstance(value, int) and not isinstance(value, bool):
+                attributes[target] = max(0, value)
+    return attributes
 
 
 def _next_reconnect_delay(current: float, base: float, maximum: float) -> float:

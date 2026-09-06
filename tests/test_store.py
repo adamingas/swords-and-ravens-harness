@@ -63,9 +63,14 @@ def test_player_snapshots_are_append_only_and_deduplicated(tmp_path) -> None:
     assert newest[0]["leafStateId"] == "leaf-1"
     assert len(newest[0]["contentSha256"]) == 64
     assert store.get_snapshot(agent.id, second_id)["snapshot"] == changed
+    latest = store.get_latest_snapshot(agent.id)
+    assert latest is not None
+    assert latest["id"] == second_id
+    assert latest["snapshot"] == changed
 
     assert store.delete_agent(agent.id) is True
     assert store.list_snapshots(agent.id) == []
+    assert store.get_latest_snapshot(agent.id) is None
     database.close()
 
 

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "sourceDatabases": [
+    {
+      "purpose": "pre-oracle planning failures",
+      "path": "data/match.db",
+      "sha256": "d1d6dad70485645b0c8ccffd499443c9bc9924b552c24e05eaff2ea70fd69ee9"
+    },
+    {
+      "purpose": "supply-chart oracle test",
+      "path": "data/evaluations/glm-5.3-flash-evaluation-v2/game-01/attempt-01/harness.db",
+      "sha256": "f87ffdf7e768e66d0906dd7f8b0af1bd8d07e8b8329280b79e533826062b0fe6"
+    }
+  ],
+  "preOraclePlanningFailures": [
+    {
+      "runId": "9af93a74-2776-420a-9fdd-c7c61db7a88e",
+      "player": "player-a",
+      "createdAt": "2026-09-05T11:20:16.372119+00:00",
+      "stateId": "a0f92669-73fd-443a-9a9c-25288e8b6d3c",
+      "phase": "place-orders",
+      "ruleFailure": "active Westeros restrictions prohibit order values defense_plus_two"
+    },
+    {
+      "runId": "ab587988-7b7a-4282-86be-a0ff9cf0f7c4",
+      "player": "player-a",
+      "createdAt": "2026-09-05T11:20:36.187348+00:00",
+      "stateId": "a0f92669-73fd-443a-9a9c-25288e8b6d3c",
+      "phase": "place-orders",
+      "ruleFailure": "active Westeros restrictions prohibit order values defense_plus_two"
+    },
+    {
+      "runId": "58c72b3e-1f98-4bf8-adb4-efe1df45ae8b",
+      "player": "player-a",
+      "createdAt": "2026-09-05T11:20:40.677695+00:00",
+      "stateId": "a0f92669-73fd-443a-9a9c-25288e8b6d3c",
+      "phase": "place-orders",
+      "ruleFailure": "active Westeros restrictions prohibit order values defense_plus_two"
+    },
+    {
+      "runId": "a2745966-9261-418f-9be0-b54bf41e8eac",
+      "player": "player-a",
+      "createdAt": "2026-09-05T11:26:27.038371+00:00",
+      "stateId": "554ae438-e877-4dee-b4a9-aeca9f8e9773",
+      "phase": "place-orders",
+      "ruleFailure": "assignments may contain at most 1 starred orders"
+    },
+    {
+      "runId": "9b89b09c-32b4-4556-b35d-10df1822d62f",
+      "player": "player-b",
+      "createdAt": "2026-09-05T12:16:41.998202+00:00",
+      "stateId": "39431f77-49d3-4c74-915e-f2ba4aee27df",
+      "phase": "place-orders",
+      "ruleFailure": "order defense may be used at most 2 times"
+    },
+    {
+      "runId": "a1aee9c4-7f69-49c4-bf1a-d229b42b363d",
+      "player": "player-b",
+      "createdAt": "2026-09-05T12:17:10.264529+00:00",
+      "stateId": "39431f77-49d3-4c74-915e-f2ba4aee27df",
+      "phase": "place-orders",
+      "ruleFailure": "assignments may contain at most 1 starred orders"
+    },
+    {
+      "runId": "6b6f43db-a7bc-4bce-b9b4-1b7c1179e811",
+      "player": "player-a",
+      "createdAt": "2026-09-05T12:30:39.759609+00:00",
+      "stateId": "0e4534c7-7f71-47fc-b536-29a7b70ed1b5",
+      "phase": "place-orders",
+      "ruleFailure": "order defense may be used at most 2 times"
+    }
+  ],
+  "supplyChartOracleTest": {
+    "runId": "8d918ac8-e4c5-4d35-8f0c-6fdcd30ebae1",
+    "createdAt": "2026-09-06T03:00:15.603409+00:00",
+    "stateId": "29c6e6bd-24bb-4779-a92f-b901dfe9a4dd",
+    "phase": "player-mustering",
+    "question": "With a supply track position of 1, what army limit applies during mustering?",
+    "sectionIds": [
+      "supply-and-mustering",
+      "faq-movement-supply-ports"
+    ],
+    "incorrectClaim": "Supply 1 permits two armies of size two.",
+    "verifiedChartValue": "Supply 1 permits three armies of size two."
+  }
+}

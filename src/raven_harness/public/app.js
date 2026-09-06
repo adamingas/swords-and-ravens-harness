@@ -101,6 +101,7 @@ function render() {
   for (const monitor of monitors) {
     const agent = monitor.agent;
     const state = monitor.state;
+    const stateStatus = monitor.stateStatus || {};
     const player = state?.player || {};
     const metrics = monitor.metrics;
     const latest = monitor.recentRuns[0];
@@ -111,9 +112,10 @@ function render() {
     node.querySelector(".agent-name").textContent = agent.name;
     node.querySelector(".model-name").textContent = agent.model;
     node.querySelector(".game-id").textContent = agent.gameId;
-    node.querySelector(".seat").textContent = agent.runtime.houseId || "user " + agent.userId;
-    node.querySelector(".phase").textContent = agent.runtime.phase || "—";
-    node.querySelector(".sigil").textContent = (agent.runtime.houseId || "R")[0].toUpperCase();
+    const houseId = agent.runtime.houseId || player.houseId;
+    node.querySelector(".seat").textContent = houseId || "user " + agent.userId;
+    node.querySelector(".phase").textContent = agent.runtime.phase || state?.game?.phase || "—";
+    node.querySelector(".sigil").textContent = (houseId || "R")[0].toUpperCase();
 
     node.querySelector(".victory").textContent = player.currentVictoryPoints == null
       ? "—"
@@ -141,7 +143,14 @@ function render() {
         : "Model is choosing an action";
       decisionPathLabel.textContent = "Available tools: ";
       decisionPathValue.textContent = (agent.runtime.currentTools || []).join(" · ") || "None";
-    } else if (state?.isYourTurn) {
+    } else if (stateStatus.source === "saved") {
+      turnFlag.textContent = "Saved state";
+      decisionName.textContent = label(state.pendingDecision?.type || state.game.phase);
+      decisionPathLabel.textContent = stateStatus.capturedAt ? "Saved: " : "Last state: ";
+      decisionPathValue.textContent = stateStatus.capturedAt
+        ? new Date(stateStatus.capturedAt).toLocaleString()
+        : (state.statePath || []).join(" › ");
+    } else if (stateStatus.actionable) {
       turnFlag.textContent = "Action required";
       turnFlag.classList.add("active");
       decisionName.textContent = label(state.pendingDecision?.type || state.game.phase);
@@ -342,6 +351,12 @@ async function loadDetailsOnce({ showLoading }) {
     if (!isCurrentDetails(agentId, tab, runId)) return;
     if (tab === "runs") {
       renderRuns(content, data.runs);
+    } else if (tab === "tools" && data.tools.length === 0) {
+      const monitor = monitors.find((candidate) => candidate.agent.id === agentId);
+      const message = monitor?.stateStatus?.source === "saved"
+        ? "Connect this agent to calculate the current legal tools. Saved state is for monitoring only."
+        : "No tools are available in the current state.";
+      content.replaceChildren(textNode(message, "muted-line"));
     } else {
       renderJson(content, data[tab]);
     }
@@ -394,12 +409,25 @@ function renderOverview() {
   content.append(stats);
 
   const decision = document.createElement("div");
-  decision.className = "overview-decision " + (state.isYourTurn ? "active" : "");
+  const stateIsLive = monitor.stateStatus?.source === "live";
+  const stateIsActionable = monitor.stateStatus?.actionable === true;
+  decision.className = "overview-decision " + (stateIsActionable ? "active" : "");
   decision.append(
-    textNode(state.isYourTurn ? "ACTION REQUIRED" : "CURRENT STATE", "eyebrow"),
+    textNode(
+      stateIsActionable
+        ? "ACTION REQUIRED"
+        : stateIsLive ? "CURRENT STATE" : "LAST SAVED STATE",
+      "eyebrow",
+    ),
     textNode(label(state.pendingDecision?.type || state.game.phase), "overview-title"),
     textNode((state.statePath || []).join(" › "), "muted-line"),
   );
+  if (!stateIsLive && monitor.stateStatus?.capturedAt) {
+    decision.append(textNode(
+      "Saved " + new Date(monitor.stateStatus.capturedAt).toLocaleString(),
+      "muted-line",
+    ));
+  }
   content.append(decision);
 
   content.append(section(

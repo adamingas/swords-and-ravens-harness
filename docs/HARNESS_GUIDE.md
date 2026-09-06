@@ -185,10 +185,11 @@ decision only if the fresh snapshot still requires one.
 The retry loop stops if the game server rejects authentication and marks the
 session as banned. Correct the saved user ID or token, then reconnect manually.
 
-This recovery applies while the harness process remains running. Agent records
-and trace rows survive a Python harness restart, but WebSocket connections,
-runtime state, and autoplay do not. Reconnect the agents and enable autoplay
-again after a process restart.
+This recovery applies while the harness process remains running. Agent records,
+trace rows, and player-scoped snapshots survive a Python harness restart. The
+dashboard shows the latest saved state and labels it as saved until the agent
+reconnects. WebSocket connections, runtime state, and autoplay do not survive.
+Reconnect the agents and enable autoplay again after a process restart.
 
 An agent that owns the game can configure and launch the lobby. Setup sends the
 settings and verifies the complete supported configuration in a fresh snapshot.
@@ -565,15 +566,13 @@ oracle sees a catalog of 14 rulebook and FAQ sections. Its private
 the focused question. The parent player never receives that internal tool. The
 oracle must not choose strategy or a game action.
 
-The oracle exists because recorded games showed a repeated rules problem. In
-`data/evaluations/glm-5.3-flash-evaluation-v2/game-01/attempt-01/harness.db`,
-agent-message rows 387 and 388 asked for the Supply 1 army limits. PDF text
-extraction omitted the graphical Supply chart, and the oracle answered with
-the wrong limits. The harness now appends a verified transcription of the
-official page 8 chart to the Supply section. This reasoning error was separate
-from the earlier mustering wire-format bug. That bug concerned which Footman
-unit ID the server accepted for an upgrade; the harness now selects that ID
-internally.
+The oracle exists because recorded games showed repeated rules problems. Seven
+planning runs repeated order-restriction, starred-order, and physical-token
+errors before the oracle was added. Later testing also showed that extracted
+PDF text omitted the graphical Supply chart. The harness now appends a verified
+text transcription of that chart to the Supply section. See
+[Evidence for the rules oracle](RULES_ORACLE_EVIDENCE.md) for the bounded trace
+evidence and source database digests.
 
 The parent model receives the answer and must still call one gameplay tool.
 The trace stores each completed oracle question, answer, section read, child
@@ -652,6 +651,15 @@ regions, public standings, occupied board regions, currently revealed orders,
 current action guidance, influence tracks, model usage, run traces, snapshots,
 and memory. Board rows are intentionally sparse: they contain only occupied,
 garrisoned, controlled, or currently ordered regions.
+
+The dashboard distinguishes a live state from the latest saved state. A saved
+state includes its capture time. It is useful after a harness restart, but it
+does not mean that the agent still has the turn. Each dashboard record contains
+`stateStatus.actionable`; it is true only for a live state that requires this
+player to act. Reconnect the agent before you run a model action or enable
+autoplay. The observation endpoint returns only a live session observation and
+reports an error while the agent is stopped. The dashboard alone reconstructs
+its compact monitor view from the latest saved snapshot.
 
 While a run is active, the agent card shows whether the harness waits for a
 model response or invokes a tool. It also shows the last five lifecycle steps.
@@ -750,7 +758,7 @@ stop autoplay for all running agents immediately. Persisted and API-visible
 error text redacts credential assignments, sensitive URL parameters, and
 provider key-management identifiers.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Cloudflare, CoreWeave, Fireworks, DeepInfra, Together, and Reka.
+defaults to Reka, Cloudflare, CoreWeave, Fireworks, DeepInfra, and Together.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
 by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
@@ -782,14 +790,19 @@ player. Rotate houses and user IDs between games.
 ## 13. Optional OpenTelemetry export
 
 SQLite is the authoritative local trace store. The harness can also export one
-coarse span per `run_once` invocation to any OTLP/HTTP trace collector. Every
-span starts with agent, game, and model identifiers. A successful decision adds
-its run ID, chosen action, input/output token totals, and cost, using zero when
-the provider omitted cost. A failed invocation records a sanitized exception
-and error status, but can fail before a run ID exists. Spans intentionally do
-not export prompts, observations, credentials, or response bodies as attributes. Failed
-spans do include exception events, and a sanitized exception message can
-contain model output. Treat the OTLP collector as sensitive.
+span per `run_once` invocation to any OTLP/HTTP trace collector. Every span
+starts with agent, game, and model identifiers. After a run starts, the span
+also records its run ID and sanitized lifecycle events for the model run,
+provider requests, and tool calls. These events contain indexes, tool names,
+durations, item counts, and token totals. A successful decision adds its chosen
+action, input/output token totals, and cost. Cost is zero when the provider
+omits it. A failed invocation records a sanitized exception and error status.
+An invocation that fails before model-run setup can lack a run ID.
+
+Spans do not export prompts, observations, credentials, tool arguments, tool
+results, or response bodies as attributes. Failed spans include exception
+events, and a sanitized exception message can contain model output. Treat the
+OTLP collector as sensitive.
 
 For a local Phoenix viewer, start Phoenix in a separate terminal:
 

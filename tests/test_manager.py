@@ -1,6 +1,13 @@
 import asyncio
+import copy
 
 import pytest
+from opentelemetry.trace import StatusCode
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+    InMemorySpanExporter,
+)
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
@@ -8,6 +15,7 @@ from raven_harness.game.client import GameConnectionLost
 from raven_harness.game.codec import decode_message, encode_message
 from raven_harness.harness.actions import ActionTaken
 from raven_harness.harness.interface import PreparedTurn
+from raven_harness.harness.observation import build_context
 from raven_harness.harness.strategic import StrategicHarness
 from raven_harness.manager import (
     AgentManager,
@@ -22,6 +30,7 @@ from raven_harness.models.openai_agent import (
     PermanentModelError,
 )
 from raven_harness.schemas import AgentCreate, LobbySetupRequest
+from raven_harness.telemetry import Telemetry
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -387,6 +396,67 @@ async def test_manager_persists_effective_context_manifest(tmp_path) -> None:
 
     assert trace is not None
     assert trace["contextManifest"] == harness.manifest
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_manager_exports_complete_decision_span(tmp_path) -> None:
+    database, _store, _harness, manager, agent = manifest_manager(tmp_path)
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    manager.telemetry = Telemetry(provider.get_tracer("test-harness"), provider)
+
+    result = await manager.run_once(agent.id)
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    span = spans[0]
+    assert span.name == "raven.agent.decision"
+    assert span.attributes["raven.agent.id"] == agent.id
+    assert span.attributes["raven.agent.name"] == "Manifest Wolf"
+    assert span.attributes["raven.game.id"] == "1"
+    assert span.attributes["raven.model"] == "test-model"
+    assert span.attributes["raven.run.id"] == result["runId"]
+    assert span.attributes["raven.action"] == "choose_house"
+    assert span.attributes["gen_ai.usage.input_tokens"] == 100
+    assert span.attributes["gen_ai.usage.output_tokens"] == 10
+    assert span.attributes["raven.cost.usd"] == 0.0
+    events = {event.name: event for event in span.events}
+    assert events["raven.model-run-started"].attributes["raven.run.id"] == result[
+        "runId"
+    ]
+    assert events["raven.model-run-started"].attributes["raven.model"] == "test-model"
+    assert events["raven.model-run-completed"].attributes["raven.tool"] == (
+        "choose_house"
+    )
+    assert events["raven.game.action"].attributes["raven.action"] == "choose_house"
+
+    manager.telemetry.shutdown()
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_manager_exports_failed_decision_span(tmp_path) -> None:
+    database, _store, _harness, manager, agent = manifest_manager(tmp_path, "failed")
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    manager.telemetry = Telemetry(provider.get_tracer("test-harness"), provider)
+
+    with pytest.raises(ModelRunError, match="model failed"):
+        await manager.run_once(agent.id)
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    span = spans[0]
+    assert span.status.status_code == StatusCode.ERROR
+    assert span.attributes["raven.run.id"]
+    events = {event.name: event for event in span.events}
+    assert "raven.model-run-failed" in events
+    assert events["exception"].attributes["exception.message"] == "model failed"
+
+    manager.telemetry.shutdown()
     database.close()
 
 
@@ -831,6 +901,83 @@ async def _wait_for_received_events(
             return
         await asyncio.sleep(0)
     raise AssertionError(f"Expected {expected} received game messages")
+
+
+def test_non_live_monitoring_uses_one_saved_snapshot_source(tmp_path) -> None:
+    database = Database(tmp_path / "saved-monitoring.db")
+    store = AgentStore(database)
+    manager = AgentManager(
+        store=store,
+        harness=StrategicHarness(UnusedRunner(), store),
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Saved Wolf",
+            model="test-model",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    saved = copy.deepcopy(planning_snapshot())
+    saved["ownerUserId"] = "2"
+    store.record_snapshot(agent.id, saved)
+    disconnected_client = FakeRunClient()
+    disconnected_client.snapshot = None
+    manager.sessions[agent.id] = AgentSession(
+        status="reconnecting",
+        client=disconnected_client,
+        observation={
+            "game": {"stateId": "stale-memory", "phase": "lobby"},
+            "you": {"userId": "2", "houseId": None},
+            "isYourTurn": False,
+        },
+    )
+
+    monitor = manager.list_monitoring()[0]
+
+    assert monitor["stateStatus"]["source"] == "saved"
+    assert monitor["stateStatus"]["actionable"] is False
+    assert monitor["state"]["game"]["stateId"] == "leaf-2"
+    assert monitor["state"]["player"]["houseId"] == "stark"
+    assert monitor["state"]["isOwner"] is True
+    database.close()
+
+
+def test_live_monitoring_marks_a_required_turn_actionable(tmp_path) -> None:
+    database = Database(tmp_path / "live-monitoring.db")
+    store = AgentStore(database)
+    harness = StrategicHarness(UnusedRunner(), store)
+    manager = AgentManager(store=store, harness=harness)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Live Wolf",
+            model="test-model",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    snapshot = planning_snapshot()
+    client = FakeRunClient()
+    client.snapshot = snapshot
+    observation = harness.preview_observation(
+        agent,
+        build_context(snapshot, agent.user_id),
+    )
+    manager.sessions[agent.id] = AgentSession(
+        status="connected",
+        client=client,
+        observation=observation,
+    )
+
+    monitor = manager.list_monitoring()[0]
+
+    assert monitor["stateStatus"] == {
+        "source": "live",
+        "capturedAt": None,
+        "actionable": True,
+    }
+    assert monitor["state"]["isYourTurn"] is True
+    database.close()
 
 
 def test_monitoring_state_exposes_structured_public_game_data() -> None:

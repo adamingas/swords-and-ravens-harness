@@ -184,6 +184,28 @@ class AgentStore:
             ).fetchone()
         if row is None:
             return None
+        return self._snapshot_row(row)
+
+    def get_latest_snapshot(self, agent_id: str) -> dict[str, Any] | None:
+        """Return the newest complete player snapshot for one agent."""
+
+        with self.database.lock:
+            row = self.database.connection.execute(
+                """
+                SELECT id, leaf_state_id, content_sha256, snapshot_json, created_at
+                FROM player_snapshots
+                WHERE agent_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (agent_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._snapshot_row(row)
+
+    @staticmethod
+    def _snapshot_row(row: Any) -> dict[str, Any]:
         return {
             "id": int(row["id"]),
             "leafStateId": row["leaf_state_id"],

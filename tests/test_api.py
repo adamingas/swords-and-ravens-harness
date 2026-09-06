@@ -8,7 +8,7 @@ from raven_harness.app import create_app
 from raven_harness.config import PROJECT_ROOT, Settings
 from raven_harness.schemas import LobbySetupRequest
 
-from conftest import lobby_snapshot
+from conftest import lobby_snapshot, planning_snapshot
 
 
 class UnusedRunner:
@@ -61,20 +61,20 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
         "allow_fallbacks": True,
         "require_parameters": False,
         "order": [
+            "reka",
             "cloudflare",
             "coreweave",
             "fireworks",
             "deepinfra",
             "together",
-            "reka",
         ],
         "only": [
+            "reka",
             "cloudflare",
             "coreweave",
             "fireworks",
             "deepinfra",
             "together",
-            "reka",
         ],
     }
 
@@ -155,11 +155,51 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
         dashboard = client.get("/api/dashboard").json()["agents"]
         assert dashboard[0]["agent"]["id"] == agent["id"]
         assert dashboard[0]["state"] is None
+        assert dashboard[0]["stateStatus"] == {
+            "source": None,
+            "capturedAt": None,
+            "actionable": False,
+        }
         assert dashboard[0]["metrics"]["runCount"] == 0
         assert dashboard[0]["recentRuns"] == []
         assert client.get("/").status_code == 200
 
         assert client.get("/api/harnesses").status_code == 404
+
+
+def test_dashboard_restores_last_saved_player_state_after_restart(tmp_path) -> None:
+    settings = Settings(
+        database_path=tmp_path / "persistent-dashboard.db",
+        openrouter_token="",
+        openai_api_key="",
+    )
+    app = create_app(settings, runner=UnusedRunner())
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/agents",
+            json={
+                "name": "Wolf",
+                "gameServerUrl": "ws://localhost:5000",
+                "gameId": "1",
+                "userId": "2",
+                "authToken": "secret",
+            },
+        )
+        agent_id = response.json()["agent"]["id"]
+        client.app.state.store.record_snapshot(agent_id, planning_snapshot())
+
+    restarted = create_app(settings, runner=UnusedRunner())
+    with TestClient(restarted) as client:
+        monitor = client.get("/api/dashboard").json()["agents"][0]
+
+    assert monitor["agent"]["runtime"]["status"] == "stopped"
+    assert monitor["stateStatus"]["source"] == "saved"
+    assert monitor["stateStatus"]["capturedAt"]
+    assert monitor["stateStatus"]["actionable"] is False
+    assert monitor["state"]["game"]["stateId"] == "leaf-2"
+    assert monitor["state"]["player"]["houseId"] == "stark"
+    assert monitor["state"]["player"]["powerTokens"] == 5
+    assert [unit["id"] for unit in monitor["state"]["player"]["units"]] == [1, 2]
 
 
 def test_dashboard_enforces_one_configured_model(tmp_path) -> None:

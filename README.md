@@ -97,7 +97,8 @@ agent, launch the game,
 run one decision, and enable autoplay. Humans continue to use the original
 browser client. Agent cards show live model-request and tool activity. The
 detail view keeps the recent activity timeline, complete run traces, player
-state, token use, and provider cost.
+state, token use, and provider cost. After a Python-server restart, it displays
+the latest persisted player state with a saved-state label until reconnection.
 
 After an established game WebSocket drops, the harness keeps autoplay enabled
 and reauthenticates with capped exponential backoff. The authentication response
@@ -128,7 +129,7 @@ MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
 AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=cloudflare,coreweave,fireworks,deepinfra,together,reka
+OPENROUTER_PROVIDER_ORDER=reka,cloudflare,coreweave,fireworks,deepinfra,together
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
