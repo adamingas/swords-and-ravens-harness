@@ -121,6 +121,20 @@ The in-app browser still could not initialize for this revision. Automated
 desktop and narrow-width visual verification remains incomplete. Static
 JavaScript checks, API tests, and responsive-source review passed.
 
+## Reviewer 6: deterministic evaluation seeds
+
+An independent Sol reviewer checked root commit `7377514` and upstream commit
+`99f68768`. The manifest, verifier, per-game seed derivation, retry reuse,
+same-model enforcement, provider fallback, and private-save exclusion were
+consistent. The reviewer found that two presentation paths still consumed the
+seeded gameplay stream: the Westeros deck broadcast and Iron Bank client
+serialization. A follow-up source audit found the same issue in the Iron Bank
+update broadcast.
+
+Upstream commit `1f5e9671` sends all three concealment-only shuffles through
+the secure random source. Gameplay shuffles remain on the seeded stream. The
+reviewer used Sol, not Terra.
+
 ## Continuing contract
 
 `tests/test_documentation.py` derives the expected names from all four
