@@ -117,6 +117,12 @@ sanitized model-run, provider-request, and tool lifecycle events. They do not
 include prompts, observations, tool arguments, tool results, or credentials.
 The reviewer found no high-severity issue.
 
+The initial test used an in-memory provider and did not prove application
+lifecycle wiring. The production-path test now starts the FastAPI lifespan
+with an OTLP/HTTP endpoint, emits a decision span through the manager's tracer,
+and exits the lifespan. A local collector verifies the flushed protobuf, the
+service and project resource attributes, the span name, and its action.
+
 The in-app browser still could not initialize for this revision. Automated
 desktop and narrow-width visual verification remains incomplete. Static
 JavaScript checks, API tests, and responsive-source review passed.
