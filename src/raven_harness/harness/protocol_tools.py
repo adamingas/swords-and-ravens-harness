@@ -386,25 +386,28 @@ async def resolve_track_ties(
     """Resolve influence-track ties by ordering each tied group from highest to lowest.
 
     Args:
-        ranked_tie_groups: One ordered list of house IDs for every serialized bid
-            group, including one-house groups. Preserve the displayed group order.
+        ranked_tie_groups: One ordered list of house IDs for each tied bid group.
+            Preserve the displayed outer group order.
     """
     leaf = ctx.context.current_game_context().leaf or {}
-    expected = [list(houses) for _bid, houses in leaf.get("bidResults", [])]
+    expected = [
+        list(houses)
+        for _bid, houses in leaf.get("bidResults", [])
+        if len(houses) > 1
+    ]
     if len(ranked_tie_groups) != len(expected) or any(
         len(group) != len(set(group)) or set(group) != set(expected[index])
         for index, group in enumerate(ranked_tie_groups)
     ):
         raise ValueError(
-            "ranked_tie_groups must contain every serialized bid group exactly once, "
-            "including one-house groups"
+            "ranked_tie_groups must contain each tied bid group exactly once in "
+            "displayed order"
         )
-    resolved_ties = [group for group in ranked_tie_groups if len(group) > 1]
     return await _send(
         ctx,
         "resolve_track_ties",
         {"ranked_tie_groups": ranked_tie_groups},
-        {"type": "resolve-ties", "resolvedTies": resolved_ties},
+        {"type": "resolve-ties", "resolvedTies": ranked_tie_groups},
     )
 
 
@@ -787,13 +790,14 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         groups = [
             list(houses)
             for _bid, houses in (context.leaf or {}).get("bidResults", [])
+            if len(houses) > 1
         ]
         field = properties["ranked_tie_groups"]
         field["minItems"] = len(groups)
         field["maxItems"] = len(groups)
         field["description"] = (
-            "Return every serialized bid group in this exact outer order, including "
-            f"one-house groups. Reorder only within a group: {groups}."
+            "Return each tied bid group in this exact outer order. Reorder only "
+            f"within a group: {groups}."
         )
         field["items"]["items"]["enum"] = sorted(
             {house for group in groups for house in group}

@@ -30,12 +30,14 @@ HOUSE_TEST_MODEL = "openai/gpt-oss-120b"
 HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
+HOUSE_TEST_AGENT_CONCURRENCY = len(HOUSES)
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
     """Run complete games with one model in all six seats."""
 
     settings = Settings(
+        model_max_concurrency=HOUSE_TEST_AGENT_CONCURRENCY,
         openrouter_provider_order=HOUSE_TEST_PROVIDER,
         openrouter_allow_unlisted_providers=False,
         openrouter_allow_fallbacks=False,

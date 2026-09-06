@@ -351,6 +351,7 @@ def _safe_tool_arguments(
                 for _bid, houses in observation.get("pendingDecision", {}).get(
                     "bidResults", []
                 )
+                if len(houses) > 1
             ]
         }
     if tool.name == "choose_option":

@@ -903,6 +903,9 @@ and disables backend fallback. It starts five independent games on ports 5121
 through 5125 by default. The command has no round-limit option. Each game ends
 only at the normal victory condition or the normal final round.
 
+The runner permits six model requests at a time within each game. Thus, agents
+that have simultaneous decisions do not wait for the other agents' requests.
+
 Each game has its own saved game, agent database, trace, seed, and result. The
 manifest records active elapsed time separately for each game. If the command
 stops, run the same command again. It reconnects each incomplete game to its

@@ -7,6 +7,7 @@ import pytest
 from raven_harness.config import Settings
 from raven_harness.evaluation import HOUSES
 from raven_harness.house_evaluation import (
+    HOUSE_TEST_AGENT_CONCURRENCY,
     HOUSE_TEST_GAMES,
     HOUSE_TEST_MODEL,
     run_house_evaluation,
@@ -94,6 +95,7 @@ async def test_house_runner_uses_five_unrestricted_isolated_games(
         openrouter_token="secret",
         _env_file=None,
     )
+    settings_arguments: dict = {}
     calls: list[dict] = []
     active = 0
     peak_active = 0
@@ -119,9 +121,11 @@ async def test_house_runner_uses_five_unrestricted_isolated_games(
         assert model_ids == [HOUSE_TEST_MODEL]
         return [{"id": HOUSE_TEST_MODEL}]
 
-    monkeypatch.setattr(
-        "raven_harness.house_evaluation.Settings", lambda **_kwargs: settings
-    )
+    def configured_settings(**kwargs):
+        settings_arguments.update(kwargs)
+        return settings
+
+    monkeypatch.setattr("raven_harness.house_evaluation.Settings", configured_settings)
     monkeypatch.setattr(
         "raven_harness.house_evaluation._preflight_openrouter_quota", accept_quota
     )
@@ -157,6 +161,7 @@ async def test_house_runner_uses_five_unrestricted_isolated_games(
 
     assert await run_house_evaluation(args) == output
 
+    assert settings_arguments["model_max_concurrency"] == HOUSE_TEST_AGENT_CONCURRENCY
     assert peak_active == 5
     assert [call["game_port"] for call in calls] == list(range(5201, 5206))
     assert all(call["max_rounds"] is None for call in calls)

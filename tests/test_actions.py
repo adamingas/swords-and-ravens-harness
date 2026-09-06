@@ -1856,8 +1856,7 @@ async def test_supply_reconciliation_computes_minimal_legal_removals() -> None:
 
 
 @pytest.mark.asyncio
-async def test_track_ties_accepts_serialized_singletons_and_filters_server_message(
-) -> None:
+async def test_track_ties_only_requires_actual_tie_groups() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
         "type": "westeros",
@@ -1880,15 +1879,13 @@ async def test_track_ties_accepts_serialized_singletons_and_filters_server_messa
     field = tool.params_json_schema["properties"]["ranked_tie_groups"]
 
     assert tool.name == "resolve_track_ties"
-    assert field["minItems"] == field["maxItems"] == 4
-    assert "including one-house groups" in field["description"]
+    assert field["minItems"] == field["maxItems"] == 2
+    assert "each tied bid group" in field["description"]
     arguments = json.dumps(
         {
             "ranked_tie_groups": [
-                ["greyjoy"],
                 ["lannister", "martell"],
                 ["baratheon", "stark"],
-                ["tyrell"],
             ]
         }
     )
