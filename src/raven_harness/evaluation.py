@@ -83,7 +83,7 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
         openrouter_allow_unlisted_providers=True,
         openrouter_provider_sort="throughput",
         openrouter_allow_fallbacks=True,
-        openrouter_require_parameters=True,
+        openrouter_require_parameters=False,
     )
     if not settings.openrouter_token:
         raise RuntimeError("Set OPENROUTER_TOKEN before starting an evaluation")
@@ -1318,7 +1318,7 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             ),
             "autoplayRetryBaseSeconds": settings.autoplay_retry_base_seconds,
             "reasoningEffort": "low",
-            "toolChoice": "required",
+            "toolChoice": "auto",
             "parallelToolCalls": False,
             "store": False,
             "agentSdkMaxTurns": AGENT_SDK_MAX_TURNS,

@@ -571,7 +571,7 @@ class OpenAIAgentRunner:
         user: str | None = None,
     ) -> ModelSettings:
         return ModelSettings(
-            tool_choice="required",
+            tool_choice="auto",
             parallel_tool_calls=False,
             max_tokens=max_tokens,
             reasoning={"effort": "low"},

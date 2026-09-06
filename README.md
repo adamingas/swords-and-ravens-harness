@@ -233,7 +233,10 @@ The command checks the OpenRouter quota and model catalog once before it
 schedules attempts. It verifies the exact six IDs and tool-call support. The
 tournament ignores `MODEL_ID`. It also replaces the dashboard provider
 allow-list with one common tournament policy: select by throughput, allow
-fallbacks, and allow all listed hosts. Stable provider prompt-cache keys are
+fallbacks, allow all listed hosts, and prefer hosts that support the tools. The
+shared request uses `tool_choice=auto` because Qwen 3.7 does not accept
+`required`. The harness instruction still requires one game action, and the
+manager rejects a response with no action. Stable provider prompt-cache keys are
 sent for player and rules-oracle calls. The harness has no local response
 cache. The summary reports cached input tokens when a provider returns them.
 
