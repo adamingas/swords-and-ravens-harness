@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     port: int = 8787
     database_path: Path = Path("./data/harness.db")
     rules_path: Path = Path("./data/rules.json")
+    model_id: str = Field(default="z-ai/glm-5.3-flash", min_length=1, max_length=100)
     openrouter_token: str = Field(default="", repr=False)
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)
@@ -32,8 +33,10 @@ class Settings(BaseSettings):
     model_max_concurrency: int = Field(default=1, ge=1, le=32)
     model_max_output_tokens: int = Field(default=16_384, ge=256, le=65_536)
     model_session_history_items: int = Field(default=32, ge=4, le=1_000)
+    autoplay_max_consecutive_failures: int = Field(default=5, ge=1, le=20)
+    autoplay_retry_base_seconds: float = Field(default=2, gt=0, le=60)
     openrouter_provider_order: str = (
-        "nextbit,reka,io-net,deepinfra,cloudflare,together,wafer"
+        "cloudflare,reka,deepinfra,io-net,together,wafer"
     )
     openrouter_allow_unlisted_providers: bool = False
     openrouter_provider_sort: str = Field(

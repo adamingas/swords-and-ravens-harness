@@ -96,6 +96,7 @@ HOST=127.0.0.1
 PORT=8787
 DATABASE_PATH=./data/harness.db
 RULES_PATH=./data/rules.json
+MODEL_ID=z-ai/glm-5.3-flash
 
 OPENROUTER_TOKEN=
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
@@ -108,8 +109,10 @@ MODEL_API_MAX_RETRIES=2
 MODEL_MAX_CONCURRENCY=1
 MODEL_MAX_OUTPUT_TOKENS=16384
 MODEL_SESSION_HISTORY_ITEMS=32
+AUTOPLAY_MAX_CONSECUTIVE_FAILURES=5
+AUTOPLAY_RETRY_BASE_SECONDS=2
 
-OPENROUTER_PROVIDER_ORDER=nextbit,reka,io-net,deepinfra,cloudflare,together,wafer
+OPENROUTER_PROVIDER_ORDER=cloudflare,reka,deepinfra,io-net,together,wafer
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -119,10 +122,10 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
 OTEL_SERVICE_NAME=raven-harness
 ~~~
 
-OpenRouter takes precedence when both API keys exist. The default provider
-order uses seven hosts that passed the GLM planning-tool schema smoke test, but
-does not fall through to unlisted hosts. Host fallback is enabled within that
-list, and the OpenAI client retries the pool twice on retryable failures.
+OpenRouter takes precedence when both API keys exist. `MODEL_ID` is applied to
+every agent created by this harness server. The default provider order is a
+six-host fallback pool and does not fall through to unlisted hosts. The OpenAI
+client retries the pool twice on retryable failures.
 MODEL_MAX_CONCURRENCY applies to all agents in the Python process. The sort
 setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
 

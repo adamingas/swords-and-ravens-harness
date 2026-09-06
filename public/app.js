@@ -7,7 +7,7 @@ const form = document.querySelector("#agent-form");
 let monitors = [];
 let detailsAgentId = null;
 let detailsTab = "overview";
-const defaultModel = "z-ai/glm-5.3-flash";
+let configuredModel = "z-ai/glm-5.3-flash";
 
 document.querySelector("#new-agent").addEventListener("click", () => agentDialog.showModal());
 document.querySelector("#close-dialog").addEventListener("click", () => agentDialog.close());
@@ -30,7 +30,7 @@ form.addEventListener("submit", async (event) => {
   try {
     await api("/api/agents", { method: "POST", body: JSON.stringify(input) });
     form.reset();
-    form.elements.model.value = defaultModel;
+    form.elements.model.value = configuredModel;
     form.elements.gameServerUrl.value = "ws://localhost:5001";
     form.elements.gameId.value = "1";
     agentDialog.close();
@@ -61,17 +61,15 @@ async function refresh() {
 async function loadModels() {
   const { models } = await api("/api/models");
   if (!models.length) return;
+  configuredModel = models[0].id;
   const select = form.elements.model;
   select.replaceChildren(...models.map((model) => {
     const option = document.createElement("option");
     option.value = model.id;
-    option.textContent = model.name + " — $" + model.promptPricePerMillion
-      + "/$" + model.completionPricePerMillion + " per M";
+    option.textContent = model.name;
     return option;
   }));
-  select.value = models.some((model) => model.id === defaultModel)
-    ? defaultModel
-    : models[0].id;
+  select.value = configuredModel;
 }
 
 function render() {

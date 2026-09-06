@@ -25,24 +25,25 @@ def test_default_relative_data_paths_are_project_local() -> None:
 def test_openrouter_routing_prefers_compatible_hosts() -> None:
     settings = Settings(_env_file=None)
 
+    assert settings.autoplay_max_consecutive_failures == 5
+    assert settings.autoplay_retry_base_seconds == 2
+    assert settings.model_id == "z-ai/glm-5.3-flash"
     assert settings.openrouter_provider_routing == {
         "allow_fallbacks": True,
         "require_parameters": False,
         "order": [
-            "nextbit",
-            "reka",
-            "io-net",
-            "deepinfra",
             "cloudflare",
+            "reka",
+            "deepinfra",
+            "io-net",
             "together",
             "wafer",
         ],
         "only": [
-            "nextbit",
-            "reka",
-            "io-net",
-            "deepinfra",
             "cloudflare",
+            "reka",
+            "deepinfra",
+            "io-net",
             "together",
             "wafer",
         ],
@@ -65,15 +66,31 @@ def test_openrouter_routing_uses_sort_when_order_is_empty() -> None:
 
 def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
     app = create_app(
-        Settings(database_path=tmp_path / "api.db", openai_api_key=""),
+        Settings(
+            database_path=tmp_path / "api.db",
+            openrouter_token="",
+            openai_api_key="",
+        ),
         runner=UnusedRunner(),
     )
     with TestClient(app) as client:
+        assert client.get("/api/models").json() == {
+            "provider": "OpenAI",
+            "models": [
+                {
+                    "id": "z-ai/glm-5.3-flash",
+                    "name": "z-ai/glm-5.3-flash",
+                }
+            ],
+        }
+        assert client.get("/api/health").json()["modelId"] == (
+            "z-ai/glm-5.3-flash"
+        )
         response = client.post(
             "/api/agents",
             json={
                 "name": "Wolf",
-                "model": "gpt-5",
+                "model": "z-ai/glm-5.3-flash",
                 "gameServerUrl": "ws://localhost:5000",
                 "gameId": "1",
                 "userId": "2",
@@ -98,9 +115,45 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
         assert client.get("/api/harnesses").status_code == 404
 
 
+def test_dashboard_enforces_one_configured_model(tmp_path) -> None:
+    app = create_app(
+        Settings(
+            database_path=tmp_path / "api.db",
+            model_id="provider/model-a",
+            openrouter_token="",
+            openai_api_key="",
+        ),
+        runner=UnusedRunner(),
+    )
+    base_request = {
+        "name": "Wolf",
+        "gameServerUrl": "ws://localhost:5000",
+        "gameId": "1",
+        "userId": "2",
+        "authToken": "secret",
+    }
+    with TestClient(app) as client:
+        created = client.post("/api/agents", json=base_request)
+        assert created.status_code == 201
+        assert created.json()["agent"]["model"] == "provider/model-a"
+
+        rejected = client.post(
+            "/api/agents",
+            json={**base_request, "name": "Other Wolf", "model": "provider/model-b"},
+        )
+        assert rejected.status_code == 400
+        assert rejected.json() == {
+            "error": "All agents on this harness must use provider/model-a"
+        }
+
+
 def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
     app = create_app(
-        Settings(database_path=tmp_path / "api.db", openai_api_key=""),
+        Settings(
+            database_path=tmp_path / "api.db",
+            openrouter_token="",
+            openai_api_key="",
+        ),
         runner=UnusedRunner(),
     )
     with TestClient(app) as client:
@@ -108,7 +161,7 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
             "/api/agents",
             json={
                 "name": "Remembering Wolf",
-                "model": "gpt-5",
+                "model": "z-ai/glm-5.3-flash",
                 "harnessId": "strategic-v1",
                 "gameServerUrl": "ws://localhost:5000",
                 "gameId": "1",
@@ -122,7 +175,7 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
             "/api/agents",
             json={
                 "name": "Remembering Wolf",
-                "model": "gpt-5",
+                "model": "z-ai/glm-5.3-flash",
                 "gameServerUrl": "ws://localhost:5000",
                 "gameId": "1",
                 "userId": "2",

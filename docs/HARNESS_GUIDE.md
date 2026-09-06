@@ -295,22 +295,27 @@ These tools use state-specific schemas and local legality checks.
 | submit_bid(amount) | A bidding prompt. Submit zero through the player's current power-token limit. |
 | select_orders(region_ids) | Select the exact required count of distinct offered regions. |
 | declare_support(house_id) | Support the attacker or defender, or use none to refuse. |
-| submit_orders(assignments) | Planning. Set one semantic order for every region that contains the player's units, replace any partial draft, and mark the house ready. |
+| submit_orders(assignments) | Planning. Set the requested number of semantic orders in distinct eligible regions, replace any partial draft, and mark the house ready. |
 
-Each submit_orders assignment has region_id and order. Valid semantic orders
-are:
+Each `submit_orders` assignment has `region_id`, `order`,
+`starred_preference`, and `priority`. Valid order categories are `march`,
+`defense`, `support`, `consolidate_power`, and `raid`. Set
+`starred_preference` to `prefer` or `avoid`, and use `priority` from 0 through
+100 to rank the importance of that region relative to the other assignments.
 
-- march_minus_one, march, and march_plus_one;
-- defense and defense_plus_two;
-- support and support_plus_one;
-- consolidate_power and consolidate_power_starred;
-- raid and raid_starred.
+The tool enforces the three-token inventory for each category, the King's
+Court starred-order limit, and active Westeros restrictions. The harness
+allocates concrete modifiers and physical token IDs deterministically. It gives
+scarce starred tokens and stronger March modifiers to preferred,
+higher-priority assignments first. `planningConstraints.requiredAssignmentCount`
+is normally the number of occupied regions. If the house has more occupied
+regions than usable base-game tokens, it is smaller and the model chooses which
+regions receive no order. When normal tokens are exhausted, the server permits
+the minimum necessary restricted tokens; the harness sends normally legal
+tokens before those forced dummy orders.
 
-The tool enforces token inventory, the King's Court starred-order limit, and
-active Westeros restrictions. If normal tokens cannot cover all regions, the
-server permits the minimum necessary restricted tokens. The harness identifies
-that exception and sends normal tokens first. It converts semantic orders to
-unused physical token IDs before it sends them.
+This allocator covers the 15 standard player order tokens used by the base
+game. Optional sea-order and Iron Bank order tokens are not yet model-facing.
 
 When `maxStarredOrders` is greater than zero, the normal starred limit is
 strict. When it is zero and normal inventory is exhausted, the upstream server
@@ -322,9 +327,24 @@ Example:
 ~~~json
 {
   "assignments": [
-    {"region_id": "winterfell", "order": "march_plus_one"},
-    {"region_id": "white-harbor", "order": "support"},
-    {"region_id": "the-shivering-sea", "order": "raid"}
+    {
+      "region_id": "winterfell",
+      "order": "march",
+      "starred_preference": "prefer",
+      "priority": 90
+    },
+    {
+      "region_id": "white-harbor",
+      "order": "support",
+      "starred_preference": "avoid",
+      "priority": 70
+    },
+    {
+      "region_id": "the-shivering-sea",
+      "order": "raid",
+      "starred_preference": "avoid",
+      "priority": 40
+    }
   ]
 }
 ~~~
@@ -455,7 +475,7 @@ Useful endpoints are:
 ~~~text
 GET    /api/health
 GET    /api/dashboard
-GET    /api/models
+GET    /api/models              configured server-wide model
 GET    /api/agents
 POST   /api/agents
 GET    /api/agents/{agent_id}
@@ -494,15 +514,14 @@ separately when needed.
 
 ## 13. Provider behavior
 
-The default model is z-ai/glm-5.3-flash through OpenRouter. The harness uses the
-exact model ID in the agent record. Provider fallback can select another host
-for that model, but it does not change the model ID.
+The default model is z-ai/glm-5.3-flash through OpenRouter. `MODEL_ID` selects
+one server-wide model; new and existing agents cannot run with a different
+model ID. Provider fallback can select another host for that model, but it does
+not change the model ID.
 
 If `OPENROUTER_TOKEN` is empty, the harness uses the direct OpenAI-compatible
-base URL and key. In that mode, `/api/models` returns an empty catalog. The
-browser form retains its hard-coded GLM placeholder, which is not an OpenAI
-model. Create agents through the API with a model ID that the configured
-endpoint supports.
+base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
+creating agents.
 
 MODEL_API_MAX_RETRIES controls OpenAI-client retries for connection failures and
 selected transient HTTP responses. The default two means two retries after the
@@ -513,10 +532,13 @@ MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
 MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
 MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
+AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
+game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
+the delay is capped at 30 seconds.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to NextBit, Reka, Io Net, DeepInfra, Cloudflare, Together, and Wafer.
-Each accepted the GLM planning-tool schema in a live smoke test. OpenRouter
-tries those hosts in order and uses the same list as an allow-list by default.
+defaults to Cloudflare, Reka, DeepInfra, Io Net, Together, and Wafer.
+OpenRouter tries those hosts in order and uses the same list as an allow-list
+by default.
 Host fallback remains enabled within that list, and the OpenAI client retries
 the ordered pool on retryable failures. Set
 `OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit other same-model hosts.
@@ -619,8 +641,10 @@ uv run raven-evaluate --games 12 \
 ~~~
 
 The runner starts one isolated TypeScript server at port 5101 for each game.
-Each attempt contains `game.json`, `harness.db`, assignments, progress, a server
-log, and a result or failure record. The manifest records source commits,
+Each attempt contains `game.json`, `harness.db`, assignments, progress,
+`provider-generations.json`, a server log, and a result or failure record. The
+provider artifact is collected best-effort for completed and failed games. The
+manifest records source commits,
 prompt and rules hashes, model settings, provider routing, and the fixed house
 and user schedule. API keys are not recorded. Reusing the same output directory
 preserves failed attempts, skips completed games, and starts a new attempt for

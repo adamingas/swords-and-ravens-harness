@@ -218,9 +218,22 @@ class StrategicHarness:
         )
         if planning is not None:
             observation["planningConstraints"] = {
+                "eligibleRegionCount": len(planning.legal_values["region_ids"]),
+                "requiredAssignmentCount": planning.legal_values[
+                    "assignment_count"
+                ],
                 "maxStarredOrders": planning.legal_values["max_starred"],
-                "restrictedOrderValues": [
-                    order.value for order in planning.legal_values["restricted_orders"]
+                "restrictedOrderCategories": [
+                    order.value
+                    for order in planning.legal_values[
+                        "restricted_order_categories"
+                    ]
+                ],
+                "restrictedStarredOrderCategories": [
+                    order.value
+                    for order in planning.legal_values[
+                        "restricted_starred_categories"
+                    ]
                 ],
                 "requiredRestrictedOrders": planning.legal_values[
                     "required_restricted"

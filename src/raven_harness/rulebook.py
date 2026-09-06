@@ -320,8 +320,11 @@ class Rulebook:
                 response_items.extend(_jsonable(item) for item in response.output)
                 if response.raw_usage is not None:
                     usage = _jsonable(response.raw_usage)
-                    usage["scope"] = "rules-oracle"
-                    raw_usage.append(usage)
+                else:
+                    usage = {}
+                usage["scope"] = "rules-oracle"
+                usage["response_id"] = response.response_id
+                raw_usage.append(usage)
             interaction_sink.append(
                 {
                     "question": current_question,

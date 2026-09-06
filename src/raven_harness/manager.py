@@ -45,11 +45,17 @@ class AgentManager:
         harness: PlayerHarness,
         connection_factory: ConnectionFactory | None = None,
         telemetry: Telemetry | None = None,
+        autoplay_max_consecutive_failures: int = 5,
+        autoplay_retry_base_seconds: float = 2,
+        required_model_id: str | None = None,
     ) -> None:
         self.store = store
         self.harness = harness
         self.connection_factory = connection_factory
         self.telemetry = telemetry or Telemetry.create(endpoint="")
+        self.autoplay_max_consecutive_failures = autoplay_max_consecutive_failures
+        self.autoplay_retry_base_seconds = autoplay_retry_base_seconds
+        self.required_model_id = required_model_id
         self.sessions: dict[str, AgentSession] = {}
 
     def list_agents(self) -> list[AgentPublic]:
@@ -92,6 +98,10 @@ class AgentManager:
                 raise RuntimeError("Agent is already started")
 
         record = self._require_agent(agent_id)
+        if self.required_model_id is not None and record.model != self.required_model_id:
+            raise RuntimeError(
+                f"All agents on this harness must use {self.required_model_id}"
+            )
         session: AgentSession
 
         def on_event(kind: str, payload: dict[str, Any]) -> None:
@@ -152,13 +162,18 @@ class AgentManager:
     async def stop(self, agent_id: str) -> AgentPublic | None:
         session = self.sessions.pop(agent_id, None)
         if session is not None:
+            pending_tasks: list[asyncio.Task[None]] = []
             if (
                 session.autoplay_task
                 and session.autoplay_task is not asyncio.current_task()
             ):
                 session.autoplay_task.cancel()
+                pending_tasks.append(session.autoplay_task)
             if session.ready_task and session.ready_task is not asyncio.current_task():
                 session.ready_task.cancel()
+                pending_tasks.append(session.ready_task)
+            if pending_tasks:
+                await asyncio.gather(*pending_tasks, return_exceptions=True)
             await session.client.close()
             self.store.add_event(agent_id, "connection-status", {"status": "stopped"})
         return self.get_agent(agent_id)
@@ -596,7 +611,17 @@ class AgentManager:
                 else:
                     expected_session.failure_leaf_id = current_leaf_id
                     expected_session.consecutive_failures = 1
-                expected_session.autoplay = expected_session.consecutive_failures < 3
+                expected_session.autoplay = (
+                    expected_session.consecutive_failures
+                    < self.autoplay_max_consecutive_failures
+                )
+                if expected_session.autoplay:
+                    delay = min(
+                        30,
+                        self.autoplay_retry_base_seconds
+                        * 2 ** (expected_session.consecutive_failures - 1),
+                    )
+                    await asyncio.sleep(delay)
 
     def _require_agent(self, agent_id: str) -> AgentRecord:
         record = self.store.get_agent(agent_id)

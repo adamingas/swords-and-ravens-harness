@@ -1,16 +1,20 @@
 import argparse
+import asyncio
 import hashlib
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
+from raven_harness.agent_store import AgentStore
 from raven_harness.config import Settings
 from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
     PROMPT_CONFIGURATIONS,
     _build_provenance,
+    _collect_openrouter_generations,
     _evaluation_schedule,
     _progress_signature,
     _require_sqlite_quick_check,
@@ -22,6 +26,7 @@ from raven_harness.evaluation import (
     summarize_results,
     user_rotation,
 )
+from raven_harness.schemas import AgentCreate
 
 
 def test_twelve_game_rotation_assigns_each_house_twice() -> None:
@@ -125,6 +130,10 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
 
     assert provenance["repositories"]["root"]["commit"]
     assert provenance["repositories"]["swordsAndRavens"]["commit"]
+    assert len(provenance["repositories"]["root"]["worktreeSha256"]) == 64
+    assert len(
+        provenance["repositories"]["swordsAndRavens"]["worktreeSha256"]
+    ) == 64
     assert provenance["rules"]["sha256"] == hashlib.sha256(
         rules_path.read_bytes()
     ).hexdigest()
@@ -196,6 +205,147 @@ def test_sqlite_quick_check_accepts_evaluation_database(tmp_path) -> None:
         _require_sqlite_quick_check(database)
     finally:
         database.close()
+
+
+@pytest.mark.asyncio
+async def test_openrouter_generation_attribution_is_best_effort_and_secret_free(
+    tmp_path,
+) -> None:
+    database = Database(tmp_path / "harness.db")
+    store = AgentStore(database)
+    records = [
+        store.create_agent(
+            AgentCreate(
+                name=name,
+                model="z-ai/glm-5.3-flash",
+                user_id=str(index + 1),
+                auth_token=str(index + 1),
+            )
+        )
+        for index, name in enumerate(("Balanced", "Expansion"))
+    ]
+    for index, record in enumerate(records, 1):
+        store.add_run(
+            run_id=f"run-{index}",
+            agent_id=record.id,
+            status="completed",
+            observation={},
+            response_id=f"gen-{index}",
+            created_at=f"2026-01-01T00:00:0{index}+00:00",
+        )
+
+    seen_authorization = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen_authorization.append(request.headers.get("authorization"))
+        response_id = request.url.params["id"]
+        if response_id == "gen-1":
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "provider_name": "Fast Provider",
+                        "model": "z-ai/glm-5.3-flash",
+                        "total_cost": 0.00125,
+                        "latency": 842,
+                    }
+                },
+            )
+        return httpx.Response(503, json={"error": {"message": "try later"}})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(
+        openrouter_token="provider-token-must-not-be-recorded",
+        openrouter_base_url="https://openrouter.example/api/v1",
+    )
+    try:
+        artifact = await _collect_openrouter_generations(
+            database=database,
+            records=records,
+            settings=settings,
+            client=client,
+            retries=0,
+        )
+    finally:
+        await client.aclose()
+        database.close()
+
+    assert seen_authorization == [
+        "Bearer provider-token-must-not-be-recorded",
+        "Bearer provider-token-must-not-be-recorded",
+    ]
+    assert artifact["requestedCount"] == 2
+    assert artifact["attributedCount"] == 1
+    assert artifact["modelAttributedCount"] == 1
+    assert artifact["unavailableCount"] == 1
+    assert artifact["providerCounts"] == {"Fast Provider": 1}
+    assert artifact["modelCounts"] == {"z-ai/glm-5.3-flash": 1}
+    assert artifact["generations"][0] == {
+        "runId": "run-1",
+        "agentId": records[0].id,
+        "configuration": "Balanced",
+        "responseId": "gen-1",
+        "responseIndex": 0,
+        "provider": "Fast Provider",
+        "model": "z-ai/glm-5.3-flash",
+        "costUsd": 0.00125,
+        "latencyMs": 842,
+        "error": None,
+    }
+    assert artifact["generations"][1]["configuration"] == "Expansion"
+    assert artifact["generations"][1]["provider"] is None
+    assert artifact["generations"][1]["error"] == "OpenRouter returned HTTP 503"
+    assert "provider-token-must-not-be-recorded" not in str(artifact)
+
+
+@pytest.mark.asyncio
+async def test_openrouter_generation_attribution_has_an_overall_deadline(
+    tmp_path,
+) -> None:
+    database = Database(tmp_path / "harness.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(
+            name="Balanced",
+            model="z-ai/glm-5.3-flash",
+            user_id="1",
+            auth_token="1",
+        )
+    )
+    store.add_run(
+        run_id="run-1",
+        agent_id=record.id,
+        status="completed",
+        observation={},
+        response_id="gen-1",
+        created_at="2026-01-01T00:00:01+00:00",
+    )
+
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(1)
+        return httpx.Response(200, json={"data": {"provider_name": "Too Late"}})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(openrouter_token="token", _env_file=None)
+    try:
+        artifact = await _collect_openrouter_generations(
+            database=database,
+            records=[record],
+            settings=settings,
+            client=client,
+            retries=0,
+            deadline_seconds=0.01,
+        )
+    finally:
+        await client.aclose()
+        database.close()
+
+    assert artifact["requestedCount"] == 1
+    assert artifact["attributedCount"] == 0
+    assert artifact["unavailableCount"] == 1
+    assert artifact["generations"][0]["error"] == (
+        "OpenRouter attribution exceeded its deadline"
+    )
 
 
 def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:

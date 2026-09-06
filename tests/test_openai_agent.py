@@ -100,6 +100,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
 
     assert result.response_id == "resp-1"
     assert result.usage["totalTokens"] == 25
+    assert result.raw_usage == [{"scope": "agent", "response_id": "resp-1"}]
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
     assert runner.client.max_retries == 4

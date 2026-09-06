@@ -17,7 +17,6 @@ from .game.client import ConnectionFactory
 from .harness.strategic import StrategicHarness, StrategicModelRunner
 from .manager import AgentManager
 from .models.openai_agent import OpenAIAgentRunner
-from .models.catalog import OpenRouterModelCatalog
 from .rulebook import Rulebook
 from .schemas import (
     AgentCreate,
@@ -73,14 +72,15 @@ def create_app(
             harness=harness,
             connection_factory=connection_factory,
             telemetry=telemetry,
+            autoplay_max_consecutive_failures=(
+                settings.autoplay_max_consecutive_failures
+            ),
+            autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
+            required_model_id=settings.model_id,
         )
         app.state.database = database
         app.state.store = store
         app.state.manager = manager
-        app.state.model_catalog = OpenRouterModelCatalog(
-            base_url=settings.openrouter_base_url,
-            api_key=settings.openrouter_token,
-        )
         try:
             yield
         finally:
@@ -120,6 +120,7 @@ def create_app(
             "ok": True,
             "modelApiConfigured": bool(settings.model_api_key),
             "modelProvider": settings.model_provider,
+            "modelId": settings.model_id,
             "modelMaxConcurrency": settings.model_max_concurrency,
             "modelMaxOutputTokens": settings.model_max_output_tokens,
             "modelSessionHistoryItems": settings.model_session_history_items,
@@ -140,16 +141,19 @@ def create_app(
         return {"agents": [_public(agent) for agent in _manager(request).list_agents()]}
 
     @app.get("/api/models")
-    async def list_models(request: Request) -> dict[str, Any]:
-        if settings.model_provider != "OpenRouter":
-            return {"provider": settings.model_provider, "models": []}
+    async def list_models() -> dict[str, Any]:
         return {
             "provider": settings.model_provider,
-            "models": await request.app.state.model_catalog.list_cheap_tool_models(),
+            "models": [{"id": settings.model_id, "name": settings.model_id}],
         }
 
     @app.post("/api/agents", status_code=201)
     async def create_agent(value: AgentCreate, request: Request) -> dict[str, Any]:
+        if "model" in value.model_fields_set and value.model != settings.model_id:
+            raise RuntimeError(
+                f"All agents on this harness must use {settings.model_id}"
+            )
+        value = value.model_copy(update={"model": settings.model_id})
         record = _store(request).create_agent(value)
         agent = AgentPublic.from_record(
             record, _manager(request).get_runtime(record.id)

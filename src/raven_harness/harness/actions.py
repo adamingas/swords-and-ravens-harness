@@ -4,6 +4,7 @@ import json
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from enum import Enum
+from itertools import combinations, product
 from typing import Annotated, Any, Protocol
 
 from agents import FunctionTool, RunContextWrapper, function_tool
@@ -14,49 +15,50 @@ from .observation import HarnessContext, build_context, is_waiting_for_player
 Message = dict[str, Any]
 
 
-class PlanningOrder(str, Enum):
-    MARCH_MINUS_ONE = "march_minus_one"
+class OrderCategory(str, Enum):
     MARCH = "march"
-    MARCH_PLUS_ONE = "march_plus_one"
     DEFENSE = "defense"
-    DEFENSE_PLUS_TWO = "defense_plus_two"
     SUPPORT = "support"
-    SUPPORT_PLUS_ONE = "support_plus_one"
     CONSOLIDATE_POWER = "consolidate_power"
-    CONSOLIDATE_POWER_STARRED = "consolidate_power_starred"
     RAID = "raid"
-    RAID_STARRED = "raid_starred"
+
+
+class StarredPreference(str, Enum):
+    PREFER = "prefer"
+    AVOID = "avoid"
 
 
 ORDER_TOKENS = {
-    PlanningOrder.MARCH_MINUS_ONE: [1],
-    PlanningOrder.MARCH: [2],
-    PlanningOrder.MARCH_PLUS_ONE: [3],
-    PlanningOrder.DEFENSE: [4, 5],
-    PlanningOrder.DEFENSE_PLUS_TWO: [6],
-    PlanningOrder.SUPPORT: [7, 8],
-    PlanningOrder.SUPPORT_PLUS_ONE: [9],
-    PlanningOrder.CONSOLIDATE_POWER: [10, 11],
-    PlanningOrder.CONSOLIDATE_POWER_STARRED: [12],
-    PlanningOrder.RAID: [13, 14],
-    PlanningOrder.RAID_STARRED: [15],
+    OrderCategory.MARCH: [1, 2, 3],
+    OrderCategory.DEFENSE: [4, 5, 6],
+    OrderCategory.SUPPORT: [7, 8, 9],
+    OrderCategory.CONSOLIDATE_POWER: [10, 11, 12],
+    OrderCategory.RAID: [13, 14, 15],
 }
-STARRED_PLANNING_ORDERS = {
-    PlanningOrder.MARCH_PLUS_ONE,
-    PlanningOrder.DEFENSE_PLUS_TWO,
-    PlanningOrder.SUPPORT_PLUS_ONE,
-    PlanningOrder.CONSOLIDATE_POWER_STARRED,
-    PlanningOrder.RAID_STARRED,
+STARRED_ORDER_TOKENS = {3, 6, 9, 12, 15}
+PLANNING_RESTRICTED_TOKENS = {
+    "no-march-plus-one-order": {3},
+    "no-defense-order": {4, 5, 6},
+    "no-support-order": {7, 8, 9},
+    "no-consolidate-power-order": {10, 11, 12},
+    "no-raid-order": {13, 14, 15},
 }
-PLANNING_RESTRICTED_ORDERS = {
-    "no-march-plus-one-order": {PlanningOrder.MARCH_PLUS_ONE},
-    "no-defense-order": {PlanningOrder.DEFENSE, PlanningOrder.DEFENSE_PLUS_TWO},
-    "no-support-order": {PlanningOrder.SUPPORT, PlanningOrder.SUPPORT_PLUS_ONE},
-    "no-consolidate-power-order": {
-        PlanningOrder.CONSOLIDATE_POWER,
-        PlanningOrder.CONSOLIDATE_POWER_STARRED,
-    },
-    "no-raid-order": {PlanningOrder.RAID, PlanningOrder.RAID_STARRED},
+ORDER_TOKEN_STRENGTH = {
+    1: -1,
+    2: 0,
+    3: 1,
+    4: 1,
+    5: 1,
+    6: 2,
+    7: 0,
+    8: 0,
+    9: 1,
+    10: 0,
+    11: 0,
+    12: 1,
+    13: 0,
+    14: 0,
+    15: 1,
 }
 
 
@@ -89,12 +91,23 @@ class OrderAssignment(BaseModel):
     region_id: str = Field(
         min_length=1, description="ID of a region containing your units."
     )
-    order: PlanningOrder = Field(
+    order: OrderCategory = Field(
         description=(
-            "Semantic order. The harness allocates a matching physical token and "
-            "translates it to the upstream server protocol. Obey the current "
-            "planningConstraints.maxStarredOrders value."
+            "Order category. The harness chooses the concrete modifier and physical "
+            "token within this family."
         ),
+    )
+    starred_preference: StarredPreference = Field(
+        description=(
+            "Prefer a starred token when it is legal and available, or avoid one "
+            "unless the order inventory forces it."
+        )
+    )
+    priority: Annotated[int, Field(ge=0, le=100)] = Field(
+        description=(
+            "Relative importance from 0 to 100. Higher-priority regions receive "
+            "scarce starred tokens and stronger March modifiers first."
+        )
     )
 
 
@@ -367,41 +380,62 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
                 unit.get("allegiance") == house_id for unit in region.get("units", [])
             )
         ]
-        if regions:
-            kings_court = context.game.get("kingsCourtTrack", [])
-            starred_restrictions = context.game.get("starredOrderRestrictions", [])
-            track_position = (
-                kings_court.index(house_id) if house_id in kings_court else -1
-            )
-            max_starred = (
-                int(starred_restrictions[track_position])
-                if 0 <= track_position < len(starred_restrictions)
-                else 0
-            )
-            active_restrictions = context.planning.get("planningRestrictions", [])
-            restricted_orders = sorted(
-                {
-                    order
-                    for restriction in active_restrictions
-                    for order in PLANNING_RESTRICTED_ORDERS.get(restriction, set())
-                },
-                key=lambda order: order.value,
-            )
-            normal_capacity = _normal_order_capacity(
-                set(restricted_orders), max_starred
-            )
-            required_restricted = max(0, len(regions) - normal_capacity)
-            actions.append(
-                ActionSpec(
-                    "submit_orders",
-                    {
-                        "region_ids": regions,
-                        "max_starred": max_starred,
-                        "restricted_orders": restricted_orders,
-                        "required_restricted": required_restricted,
-                    },
+        kings_court = context.game.get("kingsCourtTrack", [])
+        starred_restrictions = context.game.get("starredOrderRestrictions", [])
+        track_position = (
+            kings_court.index(house_id) if house_id in kings_court else -1
+        )
+        max_starred = (
+            int(starred_restrictions[track_position])
+            if 0 <= track_position < len(starred_restrictions)
+            else 0
+        )
+        active_restrictions = context.planning.get("planningRestrictions", [])
+        restricted_token_ids = {
+            token_id
+            for restriction in active_restrictions
+            for token_id in PLANNING_RESTRICTED_TOKENS.get(restriction, set())
+        }
+        normal_capacity = _normal_order_capacity(restricted_token_ids, max_starred)
+        assignment_count = min(
+            len(regions), _usable_order_capacity(max_starred)
+        )
+        required_restricted = max(0, assignment_count - normal_capacity)
+        restricted_order_categories = sorted(
+            (
+                category
+                for category, token_ids in ORDER_TOKENS.items()
+                if set(token_ids) <= restricted_token_ids
+            ),
+            key=lambda category: category.value,
+        )
+        restricted_starred_categories = sorted(
+            (
+                category
+                for category, token_ids in ORDER_TOKENS.items()
+                if next(
+                    token_id
+                    for token_id in token_ids
+                    if token_id in STARRED_ORDER_TOKENS
                 )
+                in restricted_token_ids
+            ),
+            key=lambda category: category.value,
+        )
+        actions.append(
+            ActionSpec(
+                "submit_orders",
+                {
+                    "region_ids": regions,
+                    "assignment_count": assignment_count,
+                    "max_starred": max_starred,
+                    "restricted_token_ids": restricted_token_ids,
+                    "restricted_order_categories": restricted_order_categories,
+                    "restricted_starred_categories": restricted_starred_categories,
+                    "required_restricted": required_restricted,
+                },
             )
+        )
 
     return actions
 
@@ -455,18 +489,18 @@ def _tool_for_action(action: ActionSpec) -> FunctionTool:
         properties["region_ids"]["maxItems"] = legal["count"]
     elif action.name == "submit_orders":
         assignments = properties["assignments"]
-        assignments["minItems"] = len(legal["region_ids"])
-        assignments["maxItems"] = len(legal["region_ids"])
+        assignments["minItems"] = legal["assignment_count"]
+        assignments["maxItems"] = legal["assignment_count"]
         assignment_properties = schema["$defs"]["OrderAssignment"]["properties"]
         assignment_properties["region_id"]["enum"] = legal["region_ids"]
-        restricted = set(legal["restricted_orders"])
+        restricted = set(legal["restricted_order_categories"])
         allowed_orders = [
             order.value
-            for order in PlanningOrder
+            for order in OrderCategory
             if legal["required_restricted"] > 0 or order not in restricted
         ]
         assignment_properties["order"]["enum"] = allowed_orders
-        schema["$defs"]["PlanningOrder"]["enum"] = allowed_orders
+        schema["$defs"]["OrderCategory"]["enum"] = allowed_orders
 
     return replace(tool, params_json_schema=schema)
 
@@ -644,70 +678,33 @@ async def submit_orders(
 ) -> str:
     """Place all planning orders and mark the house ready.
 
-    Use at most the number of starred orders in
-    planningConstraints.maxStarredOrders. Token capacities are: one each for
-    march_minus_one, march, march_plus_one, defense_plus_two, support_plus_one,
-    consolidate_power_starred, and raid_starred; two each for defense, support,
-    consolidate_power, and raid.
+    Choose only the order category for each region. The harness assigns concrete
+    modifiers and physical tokens deterministically. Each category can be used in
+    at most three regions. Star preferences are soft: scarce legal starred tokens
+    go to preferred, higher-priority regions first, while unavoidable starred or
+    restricted tokens are allocated only when the physical inventory requires them.
 
     Args:
-        assignments: One region/order-token assignment for every required region.
+        assignments: The exact requested number of semantic order assignments.
+            Region IDs must be distinct. When there are fewer usable tokens than
+            occupied regions, choose which regions receive no order.
     """
     spec = _require_action(ctx.context.current_game_context(), "submit_orders")
     expected_regions = spec.legal_values["region_ids"]
+    assignment_count = spec.legal_values["assignment_count"]
     supplied_regions = [assignment.region_id for assignment in assignments]
-    if len(set(supplied_regions)) != len(supplied_regions) or set(
-        supplied_regions
-    ) != set(expected_regions):
-        raise ValueError("region_id must contain every required region exactly once")
-    order_counts = {
-        order: sum(assignment.order == order for assignment in assignments)
-        for order in PlanningOrder
-    }
-    overused = [
-        order
-        for order, count in order_counts.items()
-        if count > len(ORDER_TOKENS[order])
-    ]
-    if overused:
-        order = overused[0]
-        raise ValueError(
-            f"order {order.value} may be used at most {len(ORDER_TOKENS[order])} times"
-        )
-    restricted_orders = set(spec.legal_values["restricted_orders"])
-    starred_count = sum(
-        assignment.order in STARRED_PLANNING_ORDERS for assignment in assignments
-    )
-    if spec.legal_values["max_starred"] > 0 and starred_count > spec.legal_values[
-        "max_starred"
-    ]:
-        raise ValueError(
-            f"assignments may contain at most {spec.legal_values['max_starred']} "
-            "starred orders"
-        )
-    normal_assignments, restricted_assignments = _partition_order_assignments(
+    if len(assignments) != assignment_count:
+        raise ValueError(f"assignments must contain exactly {assignment_count} items")
+    if len(set(supplied_regions)) != len(supplied_regions):
+        raise ValueError("region_id values must be distinct")
+    if not set(supplied_regions) <= set(expected_regions):
+        raise ValueError("region_id must be one of the currently eligible regions")
+    allocated_assignments = _allocate_order_tokens(
         assignments,
-        restricted_orders,
-        spec.legal_values["max_starred"],
+        restricted_token_ids=set(spec.legal_values["restricted_token_ids"]),
+        max_starred=spec.legal_values["max_starred"],
+        required_restricted=spec.legal_values["required_restricted"],
     )
-    required_restricted = spec.legal_values["required_restricted"]
-    if len(restricted_assignments) != required_restricted:
-        used_restricted = sorted(
-            {
-                assignment.order.value
-                for assignment in restricted_assignments
-                if assignment.order in restricted_orders
-            }
-        )
-        if required_restricted == 0 and used_restricted:
-            raise ValueError(
-                "active Westeros restrictions prohibit order values "
-                f"{_choices(used_restricted)}"
-            )
-        raise ValueError(
-            f"assignments require exactly {required_restricted} restricted orders "
-            "after all normally legal physical tokens are used"
-        )
     arguments = {
         "assignments": [
             assignment.model_dump(mode="json") for assignment in assignments
@@ -717,14 +714,16 @@ async def submit_orders(
         {"type": "place-order", "regionId": region_id, "orderId": None}
         for region_id in expected_regions
     ]
-    ordered_assignments = [*normal_assignments, *restricted_assignments]
-    allocated_counts = {order: 0 for order in PlanningOrder}
-    allocated_assignments = []
-    for assignment in ordered_assignments:
-        physical_tokens = ORDER_TOKENS[assignment.order]
-        token_index = allocated_counts[assignment.order]
-        allocated_counts[assignment.order] += 1
-        allocated_assignments.append((assignment, physical_tokens[token_index]))
+    fallback_tokens = set(spec.legal_values["restricted_token_ids"])
+    if spec.legal_values["max_starred"] == 0:
+        fallback_tokens.update(STARRED_ORDER_TOKENS)
+    ordered_assignments = sorted(
+        allocated_assignments,
+        key=lambda item: (
+            item[1] in fallback_tokens,
+            expected_regions.index(item[0].region_id),
+        ),
+    )
     messages.extend(
         [
             {
@@ -732,7 +731,7 @@ async def submit_orders(
                 "regionId": assignment.region_id,
                 "orderId": order_id,
             }
-            for assignment, order_id in allocated_assignments
+            for assignment, order_id in ordered_assignments
         ]
     )
     messages.append({"type": "ready"})
@@ -740,38 +739,156 @@ async def submit_orders(
 
 
 def _normal_order_capacity(
-    restricted_orders: set[PlanningOrder], max_starred: int
+    restricted_token_ids: set[int], max_starred: int
 ) -> int:
     unstarred = sum(
-        len(ORDER_TOKENS[order])
-        for order in PlanningOrder
-        if order not in restricted_orders and order not in STARRED_PLANNING_ORDERS
+        token_id not in restricted_token_ids
+        for token_ids in ORDER_TOKENS.values()
+        for token_id in token_ids
+        if token_id not in STARRED_ORDER_TOKENS
     )
     starred = sum(
-        len(ORDER_TOKENS[order])
-        for order in STARRED_PLANNING_ORDERS
-        if order not in restricted_orders
+        token_id not in restricted_token_ids for token_id in STARRED_ORDER_TOKENS
     )
     return unstarred + min(max_starred, starred)
 
 
-def _partition_order_assignments(
+def _usable_order_capacity(max_starred: int) -> int:
+    if max_starred == 0:
+        return sum(len(token_ids) for token_ids in ORDER_TOKENS.values())
+    unstarred = sum(
+        token_id not in STARRED_ORDER_TOKENS
+        for token_ids in ORDER_TOKENS.values()
+        for token_id in token_ids
+    )
+    return unstarred + min(max_starred, len(STARRED_ORDER_TOKENS))
+
+
+def _allocate_order_tokens(
     assignments: list[OrderAssignment],
-    restricted_orders: set[PlanningOrder],
+    *,
+    restricted_token_ids: set[int],
     max_starred: int,
-) -> tuple[list[OrderAssignment], list[OrderAssignment]]:
-    normal: list[OrderAssignment] = []
-    fallback: list[OrderAssignment] = []
-    for assignment in assignments:
-        if assignment.order in restricted_orders or (
-            max_starred == 0 and assignment.order in STARRED_PLANNING_ORDERS
+    required_restricted: int,
+) -> list[tuple[OrderAssignment, int]]:
+    """Allocate physical tokens without exposing their inventory to the model."""
+
+    indexed_groups: dict[OrderCategory, list[tuple[int, OrderAssignment]]] = {
+        category: [] for category in OrderCategory
+    }
+    for index, assignment in enumerate(assignments):
+        indexed_groups[assignment.order].append((index, assignment))
+
+    for category, group in indexed_groups.items():
+        capacity = len(ORDER_TOKENS[category])
+        if len(group) > capacity:
+            raise ValueError(
+                f"order {category.value} may be assigned to at most {capacity} regions"
+            )
+
+    fallback_token_ids = set(restricted_token_ids)
+    if max_starred == 0:
+        fallback_token_ids.update(STARRED_ORDER_TOKENS)
+
+    category_options: list[
+        tuple[OrderCategory, list[tuple[int, ...]]]
+    ] = []
+    for category in OrderCategory:
+        count = len(indexed_groups[category])
+        category_options.append(
+            (category, list(combinations(ORDER_TOKENS[category], count)))
+        )
+
+    candidates: list[
+        tuple[tuple[int, int, tuple[int, ...]], list[tuple[OrderAssignment, int]]]
+    ] = []
+    for option_set in product(*(options for _category, options in category_options)):
+        chosen_tokens = [token_id for option in option_set for token_id in option]
+        if (
+            sum(token_id in fallback_token_ids for token_id in chosen_tokens)
+            != required_restricted
         ):
-            fallback.append(assignment)
-        elif assignment.order in STARRED_PLANNING_ORDERS:
-            normal.append(assignment)
-        else:
-            normal.append(assignment)
-    return normal, fallback
+            continue
+        starred_count = sum(
+            token_id in STARRED_ORDER_TOKENS for token_id in chosen_tokens
+        )
+        if max_starred > 0 and starred_count > max_starred:
+            continue
+
+        allocated: list[tuple[int, OrderAssignment, int]] = []
+        for (category, _options), token_ids in zip(
+            category_options, option_set, strict=True
+        ):
+            allocated.extend(
+                _assign_category_tokens(indexed_groups[category], token_ids)
+            )
+        allocated.sort(key=lambda item: item[1].region_id)
+
+        starred_utility = sum(
+            (
+                1_000_000 + assignment.priority
+                if assignment.starred_preference == StarredPreference.PREFER
+                else -1_000_000 + assignment.priority
+            )
+            for _index, assignment, token_id in allocated
+            if token_id in STARRED_ORDER_TOKENS
+        )
+        strength_utility = sum(
+            (assignment.priority + 1) * ORDER_TOKEN_STRENGTH[token_id]
+            for _index, assignment, token_id in allocated
+        )
+        token_vector = tuple(-token_id for _index, _assignment, token_id in allocated)
+        candidates.append(
+            (
+                (starred_utility, strength_utility, token_vector),
+                [(assignment, token_id) for _index, assignment, token_id in allocated],
+            )
+        )
+
+    if not candidates:
+        raise ValueError(
+            "order categories cannot be allocated within the active Westeros "
+            f"restrictions, the limit of {max_starred} starred orders, and the "
+            "three-token capacity of each order family"
+        )
+
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def _assign_category_tokens(
+    indexed_assignments: list[tuple[int, OrderAssignment]],
+    token_ids: tuple[int, ...],
+) -> list[tuple[int, OrderAssignment, int]]:
+    remaining = list(indexed_assignments)
+    result: list[tuple[int, OrderAssignment, int]] = []
+    starred_token = next(
+        (token_id for token_id in token_ids if token_id in STARRED_ORDER_TOKENS),
+        None,
+    )
+    if starred_token is not None:
+        chosen = min(
+            remaining,
+            key=lambda item: (
+                item[1].starred_preference != StarredPreference.PREFER,
+                -item[1].priority,
+                item[1].region_id,
+            ),
+        )
+        remaining.remove(chosen)
+        result.append((*chosen, starred_token))
+
+    remaining_tokens = sorted(
+        (token_id for token_id in token_ids if token_id != starred_token),
+        key=lambda token_id: (-ORDER_TOKEN_STRENGTH[token_id], token_id),
+    )
+    remaining.sort(key=lambda item: (-item[1].priority, item[1].region_id))
+    result.extend(
+        (index, assignment, token_id)
+        for (index, assignment), token_id in zip(
+            remaining, remaining_tokens, strict=True
+        )
+    )
+    return result
 
 
 _TOOL_CATALOG: dict[str, FunctionTool] = {

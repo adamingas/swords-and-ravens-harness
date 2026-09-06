@@ -7,12 +7,14 @@ import json
 import os
 import signal
 import subprocess
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
 from typing import Any, BinaryIO
 from urllib.parse import urlsplit
 
+import httpx
 from pydantic import BaseModel, ConfigDict
 
 from .agent_store import AgentStore
@@ -141,7 +143,22 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
 
     for game_number in range(args.start_game, args.games + 1):
         game_entry = _game_entry(manifest, game_number)
-        if any(attempt.get("status") == "completed" for attempt in game_entry["attempts"]):
+        completed_attempt = next(
+            (
+                attempt
+                for attempt in game_entry["attempts"]
+                if attempt.get("status") == "completed"
+            ),
+            None,
+        )
+        if completed_attempt is not None:
+            refreshed = await _refresh_completed_provider_attribution(
+                output=output,
+                attempt=completed_attempt,
+                settings=settings,
+            )
+            if refreshed:
+                _write_summary(output, manifest)
             print(f"Game {game_number}: already completed")
             continue
         attempt_number = len(game_entry["attempts"]) + 1
@@ -238,6 +255,7 @@ async def run_game(
     manager: AgentManager | None = None
     telemetry: Telemetry | None = None
     runner: OpenAIAgentRunner | None = None
+    records: list[Any] = []
     completed_result: dict[str, Any] | None = None
     game_mtime_ns: int | None = None
     quick_check_error: Exception | None = None
@@ -276,9 +294,17 @@ async def run_game(
             rulebook=rulebook,
         )
         harness = StrategicHarness(runner, store, rules_available=rulebook is not None)
-        manager = AgentManager(store=store, harness=harness, telemetry=telemetry)
+        manager = AgentManager(
+            store=store,
+            harness=harness,
+            telemetry=telemetry,
+            autoplay_max_consecutive_failures=(
+                settings.autoplay_max_consecutive_failures
+            ),
+            autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
+            required_model_id=model,
+        )
 
-        records = []
         assignment_by_configuration = {
             assignment["configuration"]: assignment for assignment in assignments
         }
@@ -347,6 +373,21 @@ async def run_game(
         if telemetry is not None:
             telemetry.shutdown()
         if database is not None:
+            try:
+                provider_generations = await _collect_openrouter_generations(
+                    database=database,
+                    records=records,
+                    settings=settings,
+                )
+            except Exception as error:
+                provider_generations = _failed_provider_attribution(error)
+            _write_json(
+                attempt_dir / "provider-generations.json", provider_generations
+            )
+            if completed_result is not None:
+                completed_result["providerAttribution"] = (
+                    _provider_attribution_summary(provider_generations)
+                )
             try:
                 if completed_result is not None:
                     _require_sqlite_quick_check(database)
@@ -470,11 +511,19 @@ async def _wait_for_game_end(
             last_signature = signature
             last_change = monotonic()
 
+        terminal_winner: str | None = None
         for observation in observations:
             path = (observation or {}).get("statePath", [])
             if path and path[-1] == "game-ended":
                 winner = (observation or {}).get("pendingDecision", {}).get("winner")
-                return _validate_winner_house(winner, source="terminal observation")
+                terminal_winner = _validate_winner_house(
+                    winner, source="terminal observation"
+                )
+                break
+        if terminal_winner is not None and all(
+            runtime.current_run_id is None for runtime in runtimes
+        ):
+            return terminal_winner
 
         blocked = [
             {
@@ -649,6 +698,286 @@ def _require_sqlite_quick_check(database: Database) -> None:
         raise RuntimeError(f"SQLite quick_check failed: {messages}")
 
 
+async def _collect_openrouter_generations(
+    *,
+    database: Database,
+    records: list[Any],
+    settings: Settings,
+    client: httpx.AsyncClient | None = None,
+    retries: int = 2,
+    retry_delay_seconds: float = 0.25,
+    deadline_seconds: float = 60,
+) -> dict[str, Any]:
+    """Fetch non-textual routing metadata for every persisted model response."""
+
+    response_rows = _persisted_response_rows(database, records)
+    if not response_rows:
+        return _provider_generation_artifact([])
+    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
+        generations = [
+            {
+                **row,
+                "provider": None,
+                "model": None,
+                "costUsd": None,
+                "latencyMs": None,
+                "error": "OpenRouter attribution is not configured",
+            }
+            for row in response_rows
+        ]
+        return _provider_generation_artifact(generations)
+
+    endpoint = settings.openrouter_base_url.rstrip("/") + "/generation"
+    owns_client = client is None
+    active_client = client or httpx.AsyncClient(timeout=10)
+    semaphore = asyncio.Semaphore(4)
+
+    def unavailable(row: dict[str, Any], error: str) -> dict[str, Any]:
+        return {
+            **row,
+            "provider": None,
+            "model": None,
+            "costUsd": None,
+            "latencyMs": None,
+            "error": error,
+        }
+
+    async def collect(row: dict[str, Any]) -> dict[str, Any]:
+        try:
+            async with semaphore:
+                metadata, error = await _fetch_openrouter_generation(
+                    client=active_client,
+                    endpoint=endpoint,
+                    api_key=settings.openrouter_token,
+                    response_id=row["responseId"],
+                    retries=retries,
+                    retry_delay_seconds=retry_delay_seconds,
+                )
+            return {
+                **row,
+                "provider": metadata.get("provider_name") if metadata else None,
+                "model": metadata.get("model") if metadata else None,
+                "costUsd": _optional_number(metadata.get("total_cost"))
+                if metadata
+                else None,
+                "latencyMs": _optional_number(metadata.get("latency"))
+                if metadata
+                else None,
+                "error": error,
+            }
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            return unavailable(
+                row,
+                f"OpenRouter attribution failed ({type(error).__name__})",
+            )
+
+    tasks = [asyncio.create_task(collect(row)) for row in response_rows]
+    try:
+        done, pending = await asyncio.wait(tasks, timeout=deadline_seconds)
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        generations = [
+            task.result()
+            if task in done
+            else unavailable(row, "OpenRouter attribution exceeded its deadline")
+            for row, task in zip(response_rows, tasks, strict=True)
+        ]
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        if owns_client:
+            await active_client.aclose()
+    return _provider_generation_artifact(generations)
+
+
+def _persisted_response_rows(
+    database: Database, records: list[Any]
+) -> list[dict[str, Any]]:
+    configurations = {record.id: record.name for record in records}
+    with database.lock:
+        rows = database.connection.execute(
+            """
+            SELECT id, agent_id, response_id, raw_usage_json
+            FROM agent_runs
+            WHERE response_id IS NOT NULL AND response_id != ''
+            ORDER BY created_at ASC, id ASC
+            """
+        ).fetchall()
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        raw_usage = json.loads(row["raw_usage_json"] or "[]")
+        response_ids = [
+            str(item["response_id"])
+            for item in raw_usage
+            if isinstance(item, dict) and item.get("response_id")
+        ]
+        response_ids.append(str(row["response_id"]))
+        for response_index, response_id in enumerate(dict.fromkeys(response_ids)):
+            result.append(
+                {
+                    "runId": str(row["id"]),
+                    "agentId": str(row["agent_id"]),
+                    "configuration": configurations.get(
+                        str(row["agent_id"]), "unknown"
+                    ),
+                    "responseId": response_id,
+                    "responseIndex": response_index,
+                }
+            )
+    return result
+
+
+async def _fetch_openrouter_generation(
+    *,
+    client: httpx.AsyncClient,
+    endpoint: str,
+    api_key: str,
+    response_id: str,
+    retries: int,
+    retry_delay_seconds: float,
+) -> tuple[dict[str, Any] | None, str | None]:
+    problem = "OpenRouter attribution is unavailable"
+    for attempt in range(retries + 1):
+        transient = False
+        try:
+            response = await client.get(
+                endpoint,
+                params={"id": response_id},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            if response.status_code == 200:
+                payload = response.json()
+                data = payload.get("data") if isinstance(payload, dict) else None
+                if isinstance(data, dict):
+                    return data, None
+                problem = "OpenRouter returned an invalid generation document"
+            else:
+                problem = f"OpenRouter returned HTTP {response.status_code}"
+                transient = response.status_code in {404, 408, 409, 425, 429} or (
+                    response.status_code >= 500
+                )
+        except httpx.HTTPError as error:
+            problem = f"OpenRouter request failed ({type(error).__name__})"
+            transient = True
+        except (TypeError, ValueError):
+            problem = "OpenRouter returned an invalid generation document"
+
+        if not transient or attempt == retries:
+            break
+        await asyncio.sleep(retry_delay_seconds * (2**attempt))
+    return None, problem
+
+
+def _provider_generation_artifact(
+    generations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "generatedAt": _now(),
+        "source": "OpenRouter GET /generation",
+        "generations": generations,
+        **_provider_attribution_summary({"generations": generations}),
+    }
+
+
+def _provider_attribution_summary(value: dict[str, Any]) -> dict[str, Any]:
+    generations = value.get("generations", [])
+    provider_counts = Counter(
+        item["provider"] for item in generations if item.get("provider")
+    )
+    model_counts = Counter(item["model"] for item in generations if item.get("model"))
+    attributed = sum(1 for item in generations if item.get("provider"))
+    model_attributed = sum(1 for item in generations if item.get("model"))
+    return {
+        "requestedCount": len(generations),
+        "attributedCount": attributed,
+        "modelAttributedCount": model_attributed,
+        "unavailableCount": len(generations) - attributed,
+        "providerCounts": dict(sorted(provider_counts.items())),
+        "modelCounts": dict(sorted(model_counts.items())),
+    }
+
+
+def _failed_provider_attribution(error: Exception) -> dict[str, Any]:
+    return {
+        "generatedAt": _now(),
+        "source": "OpenRouter GET /generation",
+        "generations": [],
+        "collectionError": (
+            "Provider attribution was temporarily unavailable "
+            f"({type(error).__name__})"
+        ),
+        "requestedCount": 0,
+        "attributedCount": 0,
+        "modelAttributedCount": 0,
+        "unavailableCount": 0,
+        "providerCounts": {},
+        "modelCounts": {},
+    }
+
+
+async def _refresh_completed_provider_attribution(
+    *, output: Path, attempt: dict[str, Any], settings: Settings
+) -> bool:
+    """Retry missing provider metadata without replaying a completed game."""
+
+    attempt_dir = output / str(attempt["directory"])
+    artifact_path = attempt_dir / "provider-generations.json"
+    try:
+        existing = (
+            json.loads(artifact_path.read_text()) if artifact_path.is_file() else None
+        )
+    except (OSError, json.JSONDecodeError):
+        existing = None
+    if (
+        isinstance(existing, dict)
+        and not existing.get("collectionError")
+        and int(existing.get("unavailableCount") or 0) == 0
+    ):
+        return False
+
+    database_path = attempt_dir / "harness.db"
+    result_path = attempt_dir / "result.json"
+    if not database_path.is_file() or not result_path.is_file():
+        return False
+
+    database: Database | None = None
+    try:
+        database = Database(database_path)
+        records = AgentStore(database).list_agents()
+        artifact = await _collect_openrouter_generations(
+            database=database,
+            records=records,
+            settings=settings,
+        )
+        result = json.loads(result_path.read_text())
+        result["providerAttribution"] = _provider_attribution_summary(artifact)
+        _write_json(artifact_path, artifact)
+        _write_json(result_path, result)
+        return True
+    except Exception:
+        return False
+    finally:
+        if database is not None:
+            database.close()
+
+
+def _optional_number(value: Any) -> int | float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 async def _stop_process(process: asyncio.subprocess.Process) -> None:
     if process.returncode is not None:
         return
@@ -809,6 +1138,10 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             "maxConcurrency": settings.model_max_concurrency,
             "maxOutputTokens": settings.model_max_output_tokens,
             "sessionHistoryItems": settings.model_session_history_items,
+            "autoplayMaxConsecutiveFailures": (
+                settings.autoplay_max_consecutive_failures
+            ),
+            "autoplayRetryBaseSeconds": settings.autoplay_retry_base_seconds,
             "reasoningEffort": "low",
             "toolChoice": "required",
             "parallelToolCalls": False,
@@ -846,10 +1179,48 @@ def _validate_reproducible_provenance(
 def _git_provenance(directory: Path) -> dict[str, Any]:
     commit = _run_git(directory, "rev-parse", "HEAD")
     status = _run_git(directory, "status", "--porcelain", "--untracked-files=normal")
+    diff = _run_git(directory, "diff", "--no-ext-diff", "--binary", "HEAD", "--", ".")
+    untracked = _hash_untracked_files(directory)
+    worktree_fingerprint = (
+        _sha256_text(f"{status}\0{diff}\0{untracked}")
+        if status is not None and diff is not None and untracked is not None
+        else None
+    )
     return {
         "commit": commit or None,
         "dirty": bool(status) if status is not None else None,
+        "worktreeSha256": worktree_fingerprint,
     }
+
+
+def _hash_untracked_files(directory: Path) -> str | None:
+    listing = _run_git(
+        directory,
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "-z",
+    )
+    if listing is None:
+        return None
+    digest = hashlib.sha256()
+    for relative_name in sorted(name for name in listing.split("\0") if name):
+        digest.update(relative_name.encode(errors="surrogateescape"))
+        path = directory / relative_name
+        try:
+            if path.is_symlink():
+                digest.update(b"symlink\0")
+                digest.update(os.readlink(path).encode(errors="surrogateescape"))
+            elif path.is_file():
+                digest.update(b"file\0")
+                with path.open("rb") as source:
+                    while chunk := source.read(1024 * 1024):
+                        digest.update(chunk)
+            else:
+                digest.update(b"other\0")
+        except OSError as error:
+            digest.update(f"error:{type(error).__name__}".encode())
+    return digest.hexdigest()
 
 
 def _run_git(directory: Path, *arguments: str) -> str | None:

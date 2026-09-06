@@ -176,8 +176,14 @@ class OpenAIAgentRunner:
         response_items = [_jsonable(item.to_input_item()) for item in result.new_items]
         raw_usage: list[dict[str, Any]] = []
         for response in result.raw_responses:
-            if response.raw_usage is not None:
-                raw_usage.append(_jsonable(response.raw_usage))
+            native_usage = (
+                _jsonable(response.raw_usage)
+                if response.raw_usage is not None
+                else {}
+            )
+            native_usage["scope"] = "agent"
+            native_usage["response_id"] = response.response_id
+            raw_usage.append(native_usage)
         for interaction in oracle_interactions:
             response_items.append(
                 {
