@@ -7,6 +7,8 @@ from time import monotonic
 from typing import Any
 from uuid import uuid4
 
+from opentelemetry.trace import Status, StatusCode
+
 from .agent_store import AgentStore
 from .game.client import ConnectionFactory, SwordsAndRavensClient
 from .harness.actions import HarnessRunContext, describe_tools
@@ -14,6 +16,7 @@ from .harness.interface import PlayerHarness, PreparedTurn
 from .harness.observation import build_context, is_waiting_for_player
 from .models.openai_agent import ModelRunResult
 from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
+from .telemetry import Telemetry, provider_cost
 
 
 @dataclass
@@ -29,6 +32,9 @@ class AgentSession:
     ready_task: asyncio.Task[None] | None = None
     failure_leaf_id: str | None = None
     consecutive_failures: int = 0
+    current_run_id: str | None = None
+    run_started_at: str | None = None
+    current_tools: list[str] | None = None
 
 
 class AgentManager:
@@ -38,10 +44,12 @@ class AgentManager:
         store: AgentStore,
         harness: PlayerHarness,
         connection_factory: ConnectionFactory | None = None,
+        telemetry: Telemetry | None = None,
     ) -> None:
         self.store = store
         self.harness = harness
         self.connection_factory = connection_factory
+        self.telemetry = telemetry or Telemetry.create(endpoint="")
         self.sessions: dict[str, AgentSession] = {}
 
     def list_agents(self) -> list[AgentPublic]:
@@ -70,6 +78,9 @@ class AgentManager:
             last_error=session.last_error,
             connected_at=session.connected_at,
             autoplay=session.autoplay,
+            current_run_id=session.current_run_id,
+            run_started_at=session.run_started_at,
+            current_tools=session.current_tools or [],
         )
 
     async def start(self, agent_id: str) -> AgentPublic:
@@ -154,6 +165,43 @@ class AgentManager:
 
     async def run_once(self, agent_id: str) -> dict[str, Any]:
         record = self._require_agent(agent_id)
+        with self.telemetry.tracer.start_as_current_span(
+            "raven.agent.decision",
+            attributes={
+                "raven.agent.id": record.id,
+                "raven.agent.name": record.name,
+                "raven.game.id": record.game_id,
+                "raven.model": record.model,
+            },
+        ) as span:
+            try:
+                result = await self._run_once(agent_id)
+            except Exception as error:
+                span.record_exception(error)
+                span.set_status(Status(StatusCode.ERROR, str(error)))
+                raise
+            decision = result["decision"]
+            usage = decision["usage"]
+            trace_run = self.store.get_run(agent_id, result["runId"])
+            span.set_attributes(
+                {
+                    "raven.run.id": result["runId"],
+                    "raven.action": decision["name"],
+                    "gen_ai.usage.input_tokens": usage["inputTokens"],
+                    "gen_ai.usage.output_tokens": usage["outputTokens"],
+                    "raven.cost.usd": provider_cost(
+                        trace_run.get("rawUsage") if trace_run else None
+                    ),
+                }
+            )
+            span.add_event(
+                "raven.game.action",
+                {"raven.action": decision["name"]},
+            )
+            return result
+
+    async def _run_once(self, agent_id: str) -> dict[str, Any]:
+        record = self._require_agent(agent_id)
         session = self.sessions.get(agent_id)
         if (
             session is None
@@ -170,6 +218,9 @@ class AgentManager:
         session.last_error = None
         run_id = str(uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
+        session.current_run_id = run_id
+        session.run_started_at = created_at
+        session.current_tools = []
         observation: dict[str, Any] = {}
         action_name: str | None = None
         action_arguments: dict[str, Any] | None = None
@@ -197,7 +248,8 @@ class AgentManager:
             observation = prepared.observation
             session.observation = observation
             tools = prepared.tools
-            if not tools:
+            session.current_tools = [tool.name for tool in tools]
+            if not prepared.metadata["gameToolNames"]:
                 raise RuntimeError(
                     "No model tool is implemented for the current game state"
                 )
@@ -317,6 +369,9 @@ class AgentManager:
             )
             session.running = False
             session.status = session.client.status
+            session.current_run_id = None
+            session.run_started_at = None
+            session.current_tools = []
 
     def set_autoplay(self, agent_id: str, enabled: bool) -> AgentPublic:
         session = self.sessions.get(agent_id)
@@ -348,6 +403,26 @@ class AgentManager:
             list(session.client.recent_events),
         )
         return describe_tools(self.harness.preview_tools(record, context))
+
+    def list_monitoring(self) -> list[dict[str, Any]]:
+        """Return one compact dashboard record for every configured agent."""
+
+        records = []
+        for agent in self.list_agents():
+            session = self.sessions.get(agent.id)
+            observation = session.observation if session else None
+            records.append(
+                {
+                    "agent": agent.model_dump(by_alias=True),
+                    "state": _monitoring_state(
+                        observation,
+                        session.client.snapshot if session else None,
+                    ),
+                    "metrics": self.store.get_run_metrics(agent.id),
+                    "recentRuns": self.store.list_runs(agent.id, limit=6),
+                }
+            )
+        return records
 
     async def configure_lobby(
         self, agent_id: str, setup: LobbySetupRequest
@@ -514,3 +589,44 @@ def _summarize_message(message: dict[str, Any]) -> dict[str, Any]:
         if key in message:
             summary[key] = message[key]
     return summary
+
+
+def _monitoring_state(
+    observation: dict[str, Any] | None,
+    snapshot: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if observation is None:
+        return None
+    you = observation.get("you", {})
+    house_id = you.get("houseId")
+    own_units = [
+        {"regionId": region.get("id"), **unit}
+        for region in observation.get("board", [])
+        for unit in region.get("units", [])
+        if unit.get("allegiance") == house_id
+    ]
+    map_by_id = {
+        region.get("id"): region for region in observation.get("map", {}).get("regions", [])
+    }
+    controlled_regions = [
+        {
+            "id": region_id,
+            "name": map_by_id.get(region_id, {}).get("name", region_id),
+            "type": map_by_id.get(region_id, {}).get("type"),
+            "castleLevel": map_by_id.get(region_id, {}).get("castleLevel", 0),
+        }
+        for region_id in you.get("controlledRegions", [])
+    ]
+    return {
+        "game": observation.get("game", {}),
+        "isOwner": bool(
+            snapshot
+            and str(snapshot.get("ownerUserId")) == str(you.get("userId"))
+        ),
+        "isYourTurn": observation.get("isYourTurn", False),
+        "pendingDecision": observation.get("pendingDecision"),
+        "statePath": observation.get("statePath", []),
+        "player": {**you, "units": own_units, "controlledRegionDetails": controlled_regions},
+        "tracks": observation.get("tracks", {}),
+        "recentEvents": observation.get("recentEvents", [])[-6:],
+    }

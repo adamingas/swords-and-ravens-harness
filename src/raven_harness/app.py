@@ -20,6 +20,7 @@ from .models.openai_agent import OpenAIAgentRunner
 from .models.catalog import OpenRouterModelCatalog
 from .rulebook import Rulebook
 from .schemas import AgentCreate, AgentPublic, AutoplayRequest, LobbySetupRequest
+from .telemetry import Telemetry
 
 
 def create_app(
@@ -35,6 +36,10 @@ def create_app(
         database = Database(settings.resolved_database_path)
         store = AgentStore(database)
         rulebook = Rulebook.load_optional(settings.resolved_rules_path)
+        telemetry = Telemetry.create(
+            endpoint=settings.otel_exporter_otlp_traces_endpoint,
+            service_name=settings.otel_service_name,
+        )
         model_runner = runner or OpenAIAgentRunner(
             api_key=settings.model_api_key,
             base_url=settings.model_base_url,
@@ -63,6 +68,7 @@ def create_app(
             store=store,
             harness=harness,
             connection_factory=connection_factory,
+            telemetry=telemetry,
         )
         app.state.database = database
         app.state.store = store
@@ -75,6 +81,7 @@ def create_app(
             yield
         finally:
             await manager.stop_all()
+            telemetry.shutdown()
             database.close()
 
     app = FastAPI(title="Raven Harness", version="0.1.0", lifespan=lifespan)
@@ -113,7 +120,14 @@ def create_app(
             "databasePath": str(settings.resolved_database_path),
             "rulesPath": str(settings.resolved_rules_path),
             "rulesOracleAvailable": settings.resolved_rules_path.is_file(),
+            "telemetryExportConfigured": bool(
+                settings.otel_exporter_otlp_traces_endpoint.strip()
+            ),
         }
+
+    @app.get("/api/dashboard")
+    async def dashboard(request: Request) -> dict[str, Any]:
+        return {"agents": _manager(request).list_monitoring()}
 
     @app.get("/api/agents")
     async def list_agents(request: Request) -> dict[str, Any]:

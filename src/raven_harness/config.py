@@ -4,6 +4,16 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _project_path(path: Path) -> Path:
+    expanded = path.expanduser()
+    if expanded.is_absolute():
+        return expanded.resolve()
+    return (PROJECT_ROOT / expanded).resolve()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -25,14 +35,16 @@ class Settings(BaseSettings):
     )
     openrouter_allow_fallbacks: bool = True
     openrouter_require_parameters: bool = False
+    otel_exporter_otlp_traces_endpoint: str = ""
+    otel_service_name: str = "raven-harness"
 
     @property
     def resolved_database_path(self) -> Path:
-        return self.database_path.expanduser().resolve()
+        return _project_path(self.database_path)
 
     @property
     def resolved_rules_path(self) -> Path:
-        return self.rules_path.expanduser().resolve()
+        return _project_path(self.rules_path)
 
     @property
     def model_api_key(self) -> str:

@@ -20,7 +20,7 @@
       <section class="toolbar">
         <div>
           <h2>Agents</h2>
-          <p>Create a player, connect it to a game, then let the model take one legal action.</p>
+          <p>Connect model players, watch each decision, and inspect every recorded run.</p>
         </div>
         <button id="new-agent" class="button primary">New agent</button>
       </section>
@@ -96,7 +96,8 @@
         <button type="button" class="icon-button" id="close-details" aria-label="Close">×</button>
       </div>
       <div class="detail-tabs">
-        <button class="tab active" data-tab="observation">Observation</button>
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="observation">Observation</button>
         <button class="tab" data-tab="tools">Available tools</button>
         <button class="tab" data-tab="memory">Memory</button>
         <button class="tab" data-tab="history">History</button>
@@ -104,7 +105,7 @@
         <button class="tab" data-tab="runs">Runs</button>
         <button class="tab" data-tab="events">Events</button>
       </div>
-      <pre id="details-content">Loading…</pre>
+      <div id="details-content" class="details-content">Loading…</div>
     </dialog>
 
     <template id="agent-template">
@@ -121,6 +122,21 @@
           <div><dt>Seat</dt><dd class="seat"></dd></div>
           <div><dt>Phase</dt><dd class="phase"></dd></div>
         </dl>
+        <div class="live-stats" aria-label="Player resources">
+          <div><span>Victory</span><strong class="victory">—</strong></div>
+          <div><span>Power</span><strong class="power">—</strong></div>
+          <div><span>Supply</span><strong class="supply">—</strong></div>
+          <div><span>Units</span><strong class="units">—</strong></div>
+        </div>
+        <div class="decision-panel">
+          <span class="turn-flag">Waiting for state</span>
+          <strong class="decision-name">No current decision</strong>
+          <small class="decision-path"></small>
+        </div>
+        <div class="run-strip">
+          <span class="latest-run">No model runs</span>
+          <span class="run-totals">0 tokens · $0.0000</span>
+        </div>
         <p class="card-error hidden"></p>
         <div class="card-actions">
           <button class="button connect">Connect</button>

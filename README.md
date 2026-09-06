@@ -1,211 +1,150 @@
 # Raven Harness
 
-Raven Harness seats model-driven players in a Swords & Ravens game while humans
-continue to use the original game UI. Each agent has its own authenticated game
-connection, model, prompt, player-scoped state, and Pydantic-defined tools.
+Raven Harness lets language-model players and human players share one
+*Swords & Ravens* game. The Python server gives each model a player-scoped
+observation, phase-specific tools, private strategic memory, and an optional
+official-rules oracle.
 
-The working vertical slice includes:
+The project uses one canonical harness. Each model decision starts with a fresh
+Agents SDK run and receives the complete current observation plus persisted
+memory. SQLite stores every attempt, accepted game action, error, and duration.
+It stores provider response items and usage when the SDK returns them; a timeout
+can occur before those partial values are available.
 
-- a FastAPI dashboard for creating any number of agents;
-- SQLite persistence for configurations, events, and model runs;
-- a model picker populated from OpenRouter's inexpensive tool-capable models;
-- one isolated Swords & Ravens WebSocket connection per agent;
-- OpenAI Agents SDK execution through the OpenRouter Responses API;
-- phase-specific tools plus typed protocol-tool coverage for the broader game;
-- authoritative turn ownership supplied by the patched game server;
-- manual single actions and continuous autoplay;
-- owner controls for a three-player base-game lobby.
-- interchangeable `legacy` and `strategic-v1` harness implementations;
-- persistent per-seat strategic notebooks and decision journals, exact
-  historical-state recall, cache routing, and replayable local traces.
+See [the system and tool guide](docs/HARNESS_GUIDE.md) for the complete data
+flow, observation format, tool catalog, retry behavior, and API reference.
 
-## Run the harness
+## Quick start
 
-Initialize the upstream game submodule, install Python dependencies, and create
-your local configuration:
+Initialize the game-server submodule and Python environment:
 
-```bash
+~~~bash
 git submodule update --init --recursive
 uv sync
-cp .env.example .env
-```
+test -e .env || cp .env.example .env
+~~~
 
-Put `OPENROUTER_TOKEN` in `.env`, then start the harness:
+Add an OpenRouter token to .env. The default model is
+z-ai/glm-5.3-flash. The default database is stored at data/harness.db in this
+repository unless `DATABASE_PATH` selects another
+project-relative or absolute path. OpenRouter retries retryable HTTP and
+connection failures and can try another provider for the same exact model ID.
 
-```bash
+Prepare the optional rules oracle:
+
+~~~bash
+uv run raven-prepare-rules
+~~~
+
+Start the Python harness:
+
+~~~bash
 uv run raven-harness
-```
+~~~
 
-Open <http://127.0.0.1:8787>. The default model is
-`z-ai/glm-5.3-flash`; the dashboard also fetches other inexpensive models that
-advertise both `tools` and `tool_choice` support.
+Open <http://127.0.0.1:8787>.
 
-Configuration:
+## Start Swords & Ravens
 
-```text
-HOST=127.0.0.1
-PORT=8787
-DATABASE_PATH=./data/harness.db
-OPENROUTER_TOKEN=
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-MODEL_REQUEST_TIMEOUT_SECONDS=45
-MODEL_RUN_TIMEOUT_SECONDS=150
-MODEL_API_MAX_RETRIES=2
-MODEL_MAX_OUTPUT_TOKENS=8192
-OPENROUTER_PROVIDER_SORT=throughput
-OPENROUTER_ALLOW_FALLBACKS=true
-OPENROUTER_REQUIRE_PARAMETERS=false
-OPENAI_API_KEY=
-OPENAI_BASE_URL=https://api.openai.com/v1
-```
+Install and prepare the upstream application:
 
-`OPENAI_API_KEY` is an optional direct-OpenAI fallback. OpenRouter takes
-precedence when both credentials are present.
-
-OpenRouter requests retry transient HTTP failures up to two times and may
-fail over between providers serving the same selected model. They do not fall
-back to a different model, so every player in a comparison can use the exact
-same model ID. `MODEL_REQUEST_TIMEOUT_SECONDS` applies to each transport
-attempt; `MODEL_RUN_TIMEOUT_SECONDS` bounds the complete Agents SDK run across
-provider retries and any memory-tool calls.
-
-## Run the local game and human UI
-
-The local game uses port 5001 because macOS commonly reserves port 5000 for
-AirPlay. Install the upstream dependencies and generate its protocol schema:
-
-```bash
+~~~bash
 cd swords-and-ravens/agot-bg-game-server
 npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts
 npm install --no-save --package-lock=false --ignore-scripts --legacy-peer-deps sass@1.77.8
-npx --yes yarn@1.22.22 generate-json-schemas
-```
+npm run generate-json-schemas
+~~~
 
-Start the game server:
+Start its server in a separate terminal:
 
-```bash
+~~~bash
 NODE_ENV=development PORT=5001 ./node_modules/.bin/ts-node -T src/server/server.ts
-```
+~~~
 
-In another terminal, start the human client:
+A valid
+`swords-and-ravens/agot-bg-game-server/src/server/website-client/local-entire-game.json`
+resumes the saved game. For a fresh lobby, stop the server and move that file
+to a private backup path before restarting it. Do not commit saved private game
+state to the submodule.
 
-```bash
+Start its human browser client in another terminal:
+
+~~~bash
 NODE_ENV=development \
 GAME_SERVER_WEBSOCKET_URL=ws://localhost:5001 \
 ./node_modules/.bin/webpack-dev-server \
   --config webpack.client.dev.js --mode=development
-```
+~~~
 
-Open <http://localhost:8080/static/#1> for local user 1. Change the hash to
-`#2`, `#3`, and so on for other development users; in the local server their
-auth token is the same as their user ID. The harness defaults to game ID `1`
-and `ws://localhost:5001`.
+Open <http://localhost:8080/static/#1>. Local development user IDs and
+authentication tokens are equal. Give every human or model player a different
+user ID.
 
-The upstream submodule is patched in four narrow places:
+The harness dashboard can create and connect agents, ask a model to choose a
+house, configure a six-player lobby through an owner agent, launch the game,
+run one decision, and enable autoplay. Humans continue to use the original
+browser client.
 
-- the browser client's WebSocket URL can come from
-  `GAME_SERVER_WEBSOCKET_URL`;
-- each state change includes the engine's authoritative waited-user IDs;
-- full in-game snapshots contain that same waited-user list;
-- development servers accept `HARNESS_TEST_MAX_TURNS` for lifecycle smoke tests.
+## Configuration
 
-Without `HARNESS_TEST_MAX_TURNS`, games keep their normal turn limit. To run a
-one-round end-to-end smoke game, start the server with:
+~~~text
+HOST=127.0.0.1
+PORT=8787
+DATABASE_PATH=./data/harness.db
+RULES_PATH=./data/rules.json
 
-```bash
-NODE_ENV=development HARNESS_TEST_MAX_TURNS=1 PORT=5001 \
-  ./node_modules/.bin/ts-node -T src/server/server.ts
-```
+OPENROUTER_TOKEN=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
 
-The local game server persists its current game at
-`src/server/website-client/local-entire-game.json`. Move that file aside before
-starting if you need a fresh lobby.
+MODEL_REQUEST_TIMEOUT_SECONDS=45
+MODEL_RUN_TIMEOUT_SECONDS=150
+MODEL_API_MAX_RETRIES=2
+MODEL_MAX_CONCURRENCY=1
+MODEL_MAX_OUTPUT_TOKENS=2048
 
-## Playing
+OPENROUTER_PROVIDER_SORT=throughput
+OPENROUTER_ALLOW_FALLBACKS=true
+OPENROUTER_REQUIRE_PARAMETERS=false
 
-Create one harness agent per game user and connect each one. On the owner agent,
-`3-player setup` selects the base game with Baratheon, Lannister, and Stark.
-Agents can choose their houses with `Take one action`; humans can instead choose
-seats in the original game UI. Once all seats are occupied, use `Launch game`
-on the owner and enable `Autoplay` for model-controlled seats.
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
+OTEL_SERVICE_NAME=raven-harness
+~~~
 
-Each player selects a harness independently:
+OpenRouter takes precedence when both API keys exist. Provider fallback does
+not substitute another model. MODEL_MAX_CONCURRENCY applies to all agents in
+the Python process.
 
-- `legacy` preserves the original behavior: one stateless model call for each
-  required game action.
-- `strategic-v1` injects a durable structured strategy notebook and recent
-  decision journal, provides exact `recall_game_state` and indexed-history
-  tools, and asks the model to finish memory work with a real game action in the
-  same run. Raw Responses API tool objects are scoped to one decision because
-  some routed non-OpenAI providers cannot reliably replay another provider's
-  opaque reasoning/tool-call objects. Cross-turn continuity comes from the
-  notebook and `game_state_history`, not a provider-specific transcript.
+Keep HOST at 127.0.0.1 unless you add authentication and transport security.
+The dashboard API has no authentication. The local SQLite database contains
+game credentials, prompts, and private player observations in plain text.
 
-Strategic prompts and static tool descriptions receive a stable
-`prompt_cache_key`. The key is scoped to the model, instructions, and active
-tool bundle, so repeated phases can reuse provider prompt caching without
-mixing different agent configurations.
+Optional decision spans can be viewed in a local Phoenix instance:
 
-For each action the harness:
+~~~bash
+uvx arize-phoenix serve
+~~~
 
-1. receives the game server's player-specific snapshot;
-2. builds a compact, credential-free observation with the active state path,
-   board, tracks, and map data rather than sending the raw engine snapshot;
-3. attaches only the deepest recognized state's Agents SDK tools;
-4. asks the selected model for exactly one tool call;
-5. validates arguments through Pydantic and translates the call to the typed
-   Swords & Ravens protocol;
-6. lets the game server remain the final rules authority.
-
-Planning uses semantic order names; the harness allocates physical order tokens,
-enforces starred-order and Westeros-card restrictions, and safely replaces a
-partial draft on retry. Supply reconciliation is computed deterministically.
-Autoplay bounds failures per decision and model requests time out after
-`MODEL_REQUEST_TIMEOUT_SECONDS`, so a provider cannot leave a seat permanently
-running.
-
-The model never receives credentials, the raw WebSocket, or a generic protocol
-escape hatch. Unknown game states temporarily receive the complete typed
-gameplay tool catalog so uncommon expansion paths fail open during development
-rather than stopping the match.
-
-## Experiments and traces
-
-The dashboard exposes each agent's runs, aggregate token/cost metrics,
-conversation, strategy memory, state history, and protocol events. `agent_runs`
-stores the exact model, harness,
-instructions, observation, tool definitions, function-call response items,
-standard and provider-native usage, response ID, timing, action, and error for
-each attempt. OpenRouter's provider-native usage includes cost, cache, and
-reasoning details when supplied by the selected provider.
-
-`GET /api/agents/{agent_id}/metrics` summarizes request counts, input/output,
-cached and reasoning tokens, provider cost, latency, current-decision transcript
-size, and historical-state count. `GET /api/agents/{agent_id}/runs/{run_id}`
-returns the complete replayable trace for a single attempt.
-
-The Agents SDK items for the current decision live in `agent_sessions` and
-`agent_messages`. Strategy summaries live in `strategic_memories`, while exact
-player-scoped historical positions and the actions selected from them live in
-`game_state_history`. Raw provider objects are cleared before the next decision;
-the journal and notebook carry cross-turn context without discarding evidence
-needed for evaluation or replay.
-Failed and cancelled model runs roll back any conversation items they appended,
-so retrying a decision does not duplicate a large observation or corrupt the
-next turn's context.
+Set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:6006/v1/traces` and
+restart the harness. SQLite remains the canonical local trace store; failed SDK
+runs can lack partial response items and usage.
 
 ## Verification
 
-Run the Python checks with:
+Run Python checks from the repository root:
 
-```bash
+~~~bash
 uv run ruff check src tests
-uv run pytest
-```
+uv run pytest -q
+~~~
 
-The suite covers persistence, API serialization, protocol compression, the
-headless WebSocket client, state reduction, turn ownership, Pydantic validation,
-tool routing, map extraction, and an Agents SDK tool-call round trip without an
-external request. The end-to-end acceptance run also completed a normal
-three-agent, ten-round base game against the real server and reached its
-`game-ended` state.
+Run game-server checks from swords-and-ravens/agot-bg-game-server:
+
+~~~bash
+npx tsc --noEmit
+npm run generate-json-schemas
+~~~
+
+For a one-round smoke game, start the game server with
+HARNESS_TEST_MAX_TURNS=1. Omit that variable for normal games.

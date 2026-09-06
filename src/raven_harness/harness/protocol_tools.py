@@ -179,7 +179,8 @@ async def auto_reconcile_armies(
 
 @function_tool
 async def muster_units(
-    ctx: RunContextWrapper[HarnessRunContext], musters: list[MusterGroup]
+    ctx: RunContextWrapper[HarnessRunContext],
+    musters: Annotated[list[MusterGroup], Field(min_length=1)],
 ) -> str:
     """Resolve mustering by recruiting or upgrading units from one or more castles.
 
@@ -368,7 +369,8 @@ async def claim_vassals(
 
 @function_tool
 async def distribute_power_tokens(
-    ctx: RunContextWrapper[HarnessRunContext], allocations: list[PowerAllocation]
+    ctx: RunContextWrapper[HarnessRunContext],
+    allocations: Annotated[list[PowerAllocation], Field(min_length=1)],
 ) -> str:
     """Distribute power tokens among houses for the current effect.
 
@@ -446,7 +448,8 @@ async def resolve_consolidate_power(
 
 @function_tool
 async def place_sellswords(
-    ctx: RunContextWrapper[HarnessRunContext], placements: list[SellswordPlacement]
+    ctx: RunContextWrapper[HarnessRunContext],
+    placements: Annotated[list[SellswordPlacement], Field(min_length=1)],
 ) -> str:
     """Place purchased sellsword unit types into regions.
 
@@ -579,6 +582,7 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
         "resolve_march",
     },
     "resolve-single-march": {
+        "call_for_support_against_neutral_force",
         "resolve_march",
     },
     "choose-casualties": {"choose_casualties"},
@@ -616,10 +620,6 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
     "choose-initial-objectives": {"select_objectives"},
     "score-objectives": {"score_objective"},
     "score-other-objectives": {"score_objective"},
-    "call-for-support-against-neutral-force": {
-        "call_for_support_against_neutral_force"
-    },
-    "support-attack-against-neutral-force": {"call_for_support_against_neutral_force"},
 }
 
 
@@ -628,13 +628,10 @@ def gameplay_tools_for_state(
 ) -> list[FunctionTool]:
     """Return tools for the deepest recognized state and no tools for unknown states."""
 
-    if has_specific_tools:
+    if has_specific_tools or not state_types:
         return []
-    for state_type in reversed(state_types):
-        if state_type in _TOOLS_BY_STATE:
-            names = _TOOLS_BY_STATE[state_type]
-            return [_TOOLS_BY_NAME[name] for name in sorted(names)]
-    return []
+    names = _TOOLS_BY_STATE.get(state_types[-1], set())
+    return [_TOOLS_BY_NAME[name] for name in sorted(names)]
 
 
 async def _send(

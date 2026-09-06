@@ -101,7 +101,6 @@ class OrderAssignment(BaseModel):
 @dataclass(frozen=True)
 class ActionSpec:
     name: str
-    description: str
     legal_values: dict[str, Any] = field(default_factory=dict)
 
 
@@ -134,7 +133,10 @@ class HarnessRunContext:
     async def perform(
         self, name: str, arguments: dict[str, Any], messages: Message | list[Message]
     ) -> str:
-        _require_action(self.current_game_context(), name)
+        context = self.current_game_context()
+        if context.ingame is not None and not is_waiting_for_player(context):
+            raise RuntimeError("This player is not responsible for the current decision")
+        _require_action(context, name)
         return await self._send_messages(name, arguments, messages)
 
     async def perform_protocol(
@@ -262,7 +264,6 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
             actions.append(
                 ActionSpec(
                     "choose_house",
-                    f"Join or change house. Legal house_id values: {_choices(houses)}.",
                     {"house_ids": houses},
                 )
             )
@@ -271,30 +272,25 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
     if not leaf or not house_id:
         return actions
 
-    simple_choice_state = _state(context, "simple-choice")
+    simple_choice_state = leaf if leaf.get("type") == "simple-choice" else None
     if simple_choice_state and simple_choice_state.get("houseId") == house_id:
         choices = simple_choice_state.get("choices", [])
         indexed_choices = {index: choice for index, choice in enumerate(choices)}
         actions.append(
             ActionSpec(
                 "choose_option",
-                "Choose one option by index. Legal choices: "
-                + "; ".join(
-                    f"{index}: {choice}" for index, choice in indexed_choices.items()
-                ),
                 {"choice_indexes": list(indexed_choices)},
             )
         )
 
-    select_house_card_state = _state(context, "select-house-card")
-    choose_house_card_state = _state(context, "choose-house-card")
+    select_house_card_state = leaf if leaf.get("type") == "select-house-card" else None
+    choose_house_card_state = leaf if leaf.get("type") == "choose-house-card" else None
     if select_house_card_state and select_house_card_state.get("house") == house_id:
         cards = select_house_card_state.get("houseCards", [])
         if cards:
             actions.append(
                 ActionSpec(
                     "select_house_card",
-                    f"Select an offered house card. Legal house_card_id values: {_choices(cards)}.",
                     {"house_card_ids": cards},
                 )
             )
@@ -319,52 +315,47 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
             actions.append(
                 ActionSpec(
                     "choose_combat_house_card",
-                    f"Choose a combat house card. Legal house_card_id values: {_choices(cards)}.",
                     {"house_card_ids": cards},
                 )
             )
 
-    bidding_state = _state(context, "bidding")
+    bidding_state = leaf if leaf.get("type") == "bidding" else None
     if bidding_state and house_id in bidding_state.get("participatingHouses", []):
         existing = next(
             (pair for pair in bidding_state.get("bids", []) if pair[0] == house_id),
             None,
         )
-        if existing is None:
+        if existing is None or existing[1] is None or int(existing[1]) < 0:
             maximum = max(0, int((context.house or {}).get("powerTokens", 0)))
             actions.append(
                 ActionSpec(
                     "submit_bid",
-                    f"Submit a secret bid from 0 through {maximum} power tokens.",
                     {"minimum": 0, "maximum": maximum},
                 )
             )
 
-    select_orders_state = _state(context, "select-orders")
+    select_orders_state = leaf if leaf.get("type") == "select-orders" else None
     if select_orders_state and select_orders_state.get("house") == house_id:
         count = int(select_orders_state["count"])
         regions = select_orders_state.get("possibleRegions", [])
         actions.append(
             ActionSpec(
                 "select_orders",
-                f"Select exactly {count} distinct regions from: {_choices(regions)}.",
                 {"count": count, "region_ids": regions},
             )
         )
 
-    support_state = _state(context, "support")
+    support_state = leaf if leaf.get("type") == "support" else None
     if support_state and support_state.get("houseId") == house_id and context.combat:
         choices = [context.combat["attackerId"], context.combat["defenderId"], "none"]
         actions.append(
             ActionSpec(
                 "declare_support",
-                "Support the attacker, support the defender, or refuse support. "
-                f"Legal house_id values: {_choices(choices)}.",
                 {"house_ids": choices},
             )
         )
 
-    place_orders_state = _state(context, "place-orders")
+    place_orders_state = leaf if leaf.get("type") == "place-orders" else None
     if (
         place_orders_state
         and house_id not in place_orders_state.get("readyHouses", [])
@@ -398,27 +389,18 @@ def available_action_specs(context: HarnessContext) -> list[ActionSpec]:
                 },
                 key=lambda order: order.value,
             )
-            restriction_description = (
-                " Active Westeros restrictions prohibit order values "
-                f"{_choices([order.value for order in restricted_orders])}."
-                if restricted_orders
-                else ""
+            normal_capacity = _normal_order_capacity(
+                set(restricted_orders), max_starred
             )
+            required_restricted = max(0, len(regions) - normal_capacity)
             actions.append(
                 ActionSpec(
                     "submit_orders",
-                    "Replace your complete draft with one semantic order for every "
-                    f"required region, then mark yourself ready. Required region_id values: {_choices(regions)}. "
-                    f"You may use at most {max_starred} starred orders. Capacities: "
-                    "march_minus_one 1; march 1; march_plus_one 1 starred; "
-                    "defense 2; defense_plus_two 1 starred; support 2; "
-                    "support_plus_one 1 starred; consolidate_power 2; "
-                    "consolidate_power_starred 1 starred; raid 2; raid_starred 1 starred."
-                    + restriction_description,
                     {
                         "region_ids": regions,
                         "max_starred": max_starred,
                         "restricted_orders": restricted_orders,
+                        "required_restricted": required_restricted,
                     },
                 )
             )
@@ -484,7 +466,9 @@ def _tool_for_action(action: ActionSpec) -> FunctionTool:
         assignment_properties["region_id"]["enum"] = legal["region_ids"]
         restricted = set(legal["restricted_orders"])
         allowed_orders = [
-            order.value for order in PlanningOrder if order not in restricted
+            order.value
+            for order in PlanningOrder
+            if legal["required_restricted"] > 0 or order not in restricted
         ]
         assignment_properties["order"]["enum"] = allowed_orders
         schema["$defs"]["PlanningOrder"]["enum"] = allowed_orders
@@ -566,12 +550,15 @@ async def select_house_card(
 
 @function_tool
 async def choose_combat_house_card(
-    ctx: RunContextWrapper[HarnessRunContext], house_card_id: str
+    ctx: RunContextWrapper[HarnessRunContext],
+    house_card_id: str,
+    force_valyrian_blade_decision: bool,
 ) -> str:
     """Choose a house card for the current combat.
 
     Args:
         house_card_id: The exact ID of the card to play.
+        force_valyrian_blade_decision: Ask for the blade decision even if the server could skip it.
     """
     spec = _require_action(
         ctx.context.current_game_context(), "choose_combat_house_card"
@@ -579,11 +566,14 @@ async def choose_combat_house_card(
     _require_member("house_card_id", house_card_id, spec.legal_values["house_card_ids"])
     return await ctx.context.perform(
         "choose_combat_house_card",
-        {"house_card_id": house_card_id},
+        {
+            "house_card_id": house_card_id,
+            "force_valyrian_blade_decision": force_valyrian_blade_decision,
+        },
         {
             "type": "choose-house-card",
             "houseCardId": house_card_id,
-            "dontSkipVsbQuestion": False,
+            "dontSkipVsbQuestion": force_valyrian_blade_decision,
         },
     )
 
@@ -646,11 +636,10 @@ async def declare_support(
     """
     spec = _require_action(ctx.context.current_game_context(), "declare_support")
     _require_member("house_id", house_id, spec.legal_values["house_ids"])
-    message = (
-        {"type": "refuse-support"}
-        if house_id == "none"
-        else {"type": "declare-support", "supportedHouseId": house_id}
-    )
+    message = {
+        "type": "declare-support",
+        "supportedHouseId": None if house_id == "none" else house_id,
+    }
     return await ctx.context.perform("declare_support", {"house_id": house_id}, message)
 
 
@@ -690,23 +679,39 @@ async def submit_orders(
         raise ValueError(
             f"order {order.value} may be used at most {len(ORDER_TOKENS[order])} times"
         )
+    restricted_orders = set(spec.legal_values["restricted_orders"])
     starred_count = sum(
         assignment.order in STARRED_PLANNING_ORDERS for assignment in assignments
     )
-    if starred_count > spec.legal_values["max_starred"]:
+    if spec.legal_values["max_starred"] > 0 and starred_count > spec.legal_values[
+        "max_starred"
+    ]:
         raise ValueError(
             f"assignments may contain at most {spec.legal_values['max_starred']} "
             "starred orders"
         )
-    restricted_orders = set(spec.legal_values["restricted_orders"])
-    used_restricted_orders = sorted(
-        {assignment.order for assignment in assignments} & restricted_orders,
-        key=lambda order: order.value,
+    normal_assignments, restricted_assignments = _partition_order_assignments(
+        assignments,
+        restricted_orders,
+        spec.legal_values["max_starred"],
     )
-    if used_restricted_orders:
+    required_restricted = spec.legal_values["required_restricted"]
+    if len(restricted_assignments) != required_restricted:
+        used_restricted = sorted(
+            {
+                assignment.order.value
+                for assignment in restricted_assignments
+                if assignment.order in restricted_orders
+            }
+        )
+        if required_restricted == 0 and used_restricted:
+            raise ValueError(
+                "active Westeros restrictions prohibit order values "
+                f"{_choices(used_restricted)}"
+            )
         raise ValueError(
-            "active Westeros restrictions prohibit order values "
-            f"{_choices([order.value for order in used_restricted_orders])}"
+            f"assignments require exactly {required_restricted} restricted orders "
+            "after all normally legal physical tokens are used"
         )
     arguments = {
         "assignments": [
@@ -717,9 +722,10 @@ async def submit_orders(
         {"type": "place-order", "regionId": region_id, "orderId": None}
         for region_id in expected_regions
     ]
+    ordered_assignments = [*normal_assignments, *restricted_assignments]
     allocated_counts = {order: 0 for order in PlanningOrder}
     allocated_assignments = []
-    for assignment in assignments:
+    for assignment in ordered_assignments:
         physical_tokens = ORDER_TOKENS[assignment.order]
         token_index = allocated_counts[assignment.order]
         allocated_counts[assignment.order] += 1
@@ -736,6 +742,41 @@ async def submit_orders(
     )
     messages.append({"type": "ready"})
     return await ctx.context.perform("submit_orders", arguments, messages)
+
+
+def _normal_order_capacity(
+    restricted_orders: set[PlanningOrder], max_starred: int
+) -> int:
+    unstarred = sum(
+        len(ORDER_TOKENS[order])
+        for order in PlanningOrder
+        if order not in restricted_orders and order not in STARRED_PLANNING_ORDERS
+    )
+    starred = sum(
+        len(ORDER_TOKENS[order])
+        for order in STARRED_PLANNING_ORDERS
+        if order not in restricted_orders
+    )
+    return unstarred + min(max_starred, starred)
+
+
+def _partition_order_assignments(
+    assignments: list[OrderAssignment],
+    restricted_orders: set[PlanningOrder],
+    max_starred: int,
+) -> tuple[list[OrderAssignment], list[OrderAssignment]]:
+    normal: list[OrderAssignment] = []
+    fallback: list[OrderAssignment] = []
+    for assignment in assignments:
+        if assignment.order in restricted_orders or (
+            max_starred == 0 and assignment.order in STARRED_PLANNING_ORDERS
+        ):
+            fallback.append(assignment)
+        elif assignment.order in STARRED_PLANNING_ORDERS:
+            normal.append(assignment)
+        else:
+            normal.append(assignment)
+    return normal, fallback
 
 
 _TOOL_CATALOG: dict[str, FunctionTool] = {

@@ -1,12 +1,25 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from raven_harness.app import create_app
-from raven_harness.config import Settings
+from raven_harness.config import PROJECT_ROOT, Settings
 
 
 class UnusedRunner:
     async def run_once(self, **_kwargs):
         raise AssertionError("The model should not run in this test")
+
+
+def test_default_relative_data_paths_are_project_local() -> None:
+    settings = Settings(
+        database_path=Path("data/test.db"),
+        rules_path=Path("data/test-rules.json"),
+        _env_file=None,
+    )
+
+    assert settings.resolved_database_path == PROJECT_ROOT / "data/test.db"
+    assert settings.resolved_rules_path == PROJECT_ROOT / "data/test-rules.json"
 
 
 def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
@@ -34,6 +47,11 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
 
         listed = client.get("/api/agents").json()["agents"]
         assert [item["id"] for item in listed] == [agent["id"]]
+        dashboard = client.get("/api/dashboard").json()["agents"]
+        assert dashboard[0]["agent"]["id"] == agent["id"]
+        assert dashboard[0]["state"] is None
+        assert dashboard[0]["metrics"]["runCount"] == 0
+        assert dashboard[0]["recentRuns"] == []
         assert client.get("/").status_code == 200
 
         assert client.get("/api/harnesses").status_code == 404

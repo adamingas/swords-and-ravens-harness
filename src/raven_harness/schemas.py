@@ -77,6 +77,9 @@ class AgentRuntime(CamelModel):
     last_error: str | None = None
     connected_at: str | None = None
     autoplay: bool = False
+    current_run_id: str | None = None
+    run_started_at: str | None = None
+    current_tools: list[str] = Field(default_factory=list)
 
 
 class AutoplayRequest(CamelModel):

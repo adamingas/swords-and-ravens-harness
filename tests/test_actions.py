@@ -11,6 +11,11 @@ from raven_harness.harness.actions import (
     available_tools,
 )
 from raven_harness.harness.observation import build_context, build_observation
+from raven_harness.harness.protocol_tools import (
+    distribute_power_tokens,
+    muster_units,
+    place_sellswords,
+)
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -32,6 +37,20 @@ class FakeClient:
         else:
             self.snapshot["leafStateId"] += "-accepted"
         return self.snapshot
+
+
+def test_collection_protocol_tools_require_at_least_one_item() -> None:
+    assert muster_units.params_json_schema["properties"]["musters"]["minItems"] == 1
+    assert (
+        distribute_power_tokens.params_json_schema["properties"]["allocations"][
+            "minItems"
+        ]
+        == 1
+    )
+    assert (
+        place_sellswords.params_json_schema["properties"]["placements"]["minItems"]
+        == 1
+    )
 
 
 def test_lobby_exposes_only_currently_applicable_tools() -> None:
@@ -203,6 +222,116 @@ async def test_submit_orders_rejects_active_westeros_restriction() -> None:
     assert client.sent == []
 
 
+@pytest.mark.asyncio
+async def test_submit_orders_uses_restricted_token_only_after_legal_inventory() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    game = ingame["game"]
+    game["starredOrderRestrictions"] = [0]
+    game["world"]["regions"] = [
+        {
+            "id": f"region-{index}",
+            "units": [{"id": index, "type": "footman", "allegiance": "stark"}],
+        }
+        for index in range(1, 10)
+    ]
+    ingame["childGameState"]["planningRestrictions"] = ["no-defense-order"]
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    order_values = tool.params_json_schema["$defs"]["OrderAssignment"][
+        "properties"
+    ]["order"]["enum"]
+    assert "defense" in order_values
+    orders = [
+        "march_minus_one",
+        "march",
+        "support",
+        "support",
+        "consolidate_power",
+        "consolidate_power",
+        "raid",
+        "raid",
+        "defense",
+    ]
+    arguments = json.dumps(
+        {
+            "assignments": [
+                {"region_id": f"region-{index}", "order": order}
+                for index, order in enumerate(orders, 1)
+            ]
+        }
+    )
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-forced-restricted-order",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert json.loads(result)["accepted"] is True
+    assert client.sent[-2] == {
+        "type": "place-order",
+        "regionId": "region-9",
+        "orderId": 4,
+    }
+
+
+@pytest.mark.asyncio
+async def test_submit_orders_never_treats_excess_star_as_a_fallback() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    game = ingame["game"]
+    game["starredOrderRestrictions"] = [1]
+    game["world"]["regions"] = [
+        {
+            "id": f"region-{index}",
+            "units": [{"id": index, "type": "footman", "allegiance": "stark"}],
+        }
+        for index in range(1, 11)
+    ]
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    orders = [
+        "march_minus_one",
+        "march",
+        "support",
+        "support",
+        "consolidate_power",
+        "consolidate_power",
+        "raid",
+        "raid",
+        "march_plus_one",
+        "defense_plus_two",
+    ]
+    arguments = json.dumps(
+        {
+            "assignments": [
+                {"region_id": f"region-{index}", "order": order}
+                for index, order in enumerate(orders, 1)
+            ]
+        }
+    )
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-excess-star",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert "at most 1 starred orders" in result
+    assert client.sent == []
+
+
 def test_observation_is_player_scoped_and_concise() -> None:
     context = build_context(lobby_snapshot(), "2", [{"type": "house-chosen"}])
     observation = build_observation(context)
@@ -251,6 +380,104 @@ def test_deepest_protocol_state_hides_parent_state_tools() -> None:
     tools = available_tools(build_context(snapshot, "2"))
 
     assert [tool.name for tool in tools] == ["place_inspected_wildling_card"]
+
+
+def test_unknown_child_state_does_not_inherit_parent_tools() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {"type": "unmapped-new-state"},
+    }
+
+    assert available_tools(build_context(snapshot, "2")) == []
+
+
+def test_unknown_child_state_does_not_inherit_specific_parent_tools() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "bidding",
+        "participatingHouses": ["stark"],
+        "bids": [["stark", -1]],
+        "childGameState": {"type": "unmapped-new-state"},
+    }
+
+    assert available_tools(build_context(snapshot, "2")) == []
+
+
+def test_neutral_force_support_call_is_available_during_single_march() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": None,
+        },
+    }
+
+    tools = available_tools(build_context(snapshot, "2"))
+
+    assert {tool.name for tool in tools} == {
+        "call_for_support_against_neutral_force",
+        "resolve_march",
+    }
+
+
+@pytest.mark.asyncio
+async def test_declining_support_uses_declare_support_with_null_house() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "combat",
+        "attackerId": "lannister",
+        "defenderId": "baratheon",
+        "childGameState": {"type": "support", "houseId": "stark"},
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps({"house_id": "none"})
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-decline-support",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {"type": "declare-support", "supportedHouseId": None}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_state_specific_tool_rechecks_turn_before_send() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "bidding",
+        "participatingHouses": ["stark"],
+        "bids": [["stark", -1]],
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    snapshot["childGameState"]["waitedForUserIds"] = []
+    arguments = json.dumps({"amount": 1})
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-late-bid",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert "not responsible for the current decision" in result
+    assert client.sent == []
 
 
 @pytest.mark.asyncio

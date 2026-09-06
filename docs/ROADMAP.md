@@ -51,28 +51,30 @@ stage as completion of the full objective.
   model behavior.
 - Verify the UI in a browser at desktop and narrow widths.
 
-## 5. Six-model evaluation
+## 5. Same-model evaluation
 
 - Use only the final strategic harness for evaluation games.
-- Evaluate these requested model families after their current provider IDs and
-  tool support are verified:
-  - GLM 5.3 Flash
-  - Qwen 3.7 Flash
-  - GPT-OSS 120B
-  - DeepSeek V4 Flash Latest
-  - Qwen3 235B A22B 2507
-  - GPT 5.6 Luna
+- Use the same exact model ID for every player so model capability does not
+  confound a harness or prompt comparison.
+- Use `z-ai/glm-5.3-flash` through OpenRouter unless provider smoke tests show
+  that its structured tool calls are not reliable enough.
+- Keep provider retries and provider-host fallback enabled. Do not switch to a
+  different model after a failed request.
+- Compare six plainly named prompt configurations while keeping tools and state
+  representation constant for the first evaluation.
 - Run six-player games.
-- Rotate houses so each model plays each house at least twice. This requires at
-  least 12 complete games when each game contains all six models.
+- Rotate houses so each prompt configuration plays each house at least twice.
+  This requires at least 12 complete games when each game contains all six
+  configurations.
 - Preserve all game snapshots, agent traces, token use, cost, failures, and
   seat assignments.
-- Produce model rankings that include match wins, placement or score, house
-  effects, reliability, cost, and an Elo-style rating with stated assumptions.
+- Produce configuration rankings that include match wins, placement or score,
+  house effects, reliability, cost, and an Elo-style rating with stated
+  assumptions.
 
 ## Completion criteria
 
 The project is complete only when all five stages are implemented and verified,
-the requested evaluation has at least two observations for every model-house
-pair, the artifacts are saved in the repository data directory, and the final
-results can be reproduced from documented commands.
+the requested evaluation has at least two observations for every
+configuration-house pair, the artifacts are saved in the repository data
+directory, and the final results can be reproduced from documented commands.

@@ -58,8 +58,9 @@ Strategic rules reference:
   maximum.
 
 The current observation contains a deterministic strategicOverview, your
-strategicMemory, and an index of earlier decision states. Use recall_game_state
-when an exact prior position would materially change the decision. Use
+strategicMemory, and an index of the current recorded decision state and recent
+earlier states. Use recall_game_state when a prior base observation would
+materially change the decision. Use
 update_strategic_memory when your plan, opponent assessment, commitment, or
 lesson changes. If a game rule is unclear, call ask_rules_oracle with one focused
 question. Memory and oracle tools do not consume the required game action. You
@@ -132,7 +133,7 @@ async def recall_game_state(
         ),
     ],
 ) -> str:
-    """Retrieve the exact player-scoped observation from an earlier decision."""
+    """Retrieve a stored base player observation from an earlier decision."""
 
     if ctx.context.memory is None:
         raise RuntimeError("Historical memory is unavailable in this harness")
@@ -161,7 +162,15 @@ async def update_strategic_memory(
     description_override=RULES_ORACLE_DESCRIPTION,
 )
 async def ask_rules_oracle_placeholder(
-    ctx: RunContextWrapper[HarnessRunContext], question: str
+    ctx: RunContextWrapper[HarnessRunContext],
+    question: Annotated[
+        str,
+        Field(
+            min_length=3,
+            max_length=1_200,
+            description="A focused question about one game rule.",
+        ),
+    ],
 ) -> str:
     """Placeholder replaced by the model runner with the nested oracle agent."""
 
@@ -207,6 +216,12 @@ class StrategicHarness:
         if planning is not None:
             observation["planningConstraints"] = {
                 "maxStarredOrders": planning.legal_values["max_starred"],
+                "restrictedOrderValues": [
+                    order.value for order in planning.legal_values["restricted_orders"]
+                ],
+                "requiredRestrictedOrders": planning.legal_values[
+                    "required_restricted"
+                ],
             }
         return observation
 
