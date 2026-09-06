@@ -207,8 +207,8 @@ uv run raven-evaluate --games 12 \
 `raven-evaluate-houses` runs five complete games with `openai/gpt-oss-120b` in
 all six seats. It has no round-limit option. The command requests the Cerebras
 backend with fallback disabled and records each game's active elapsed time. It
-runs one game at a time by default so that one game's six simultaneous agent
-requests do not compete with another game's requests. Reusing its output
+runs one game at a time and permits two model requests at once by default, so
+endpoint queuing does not dominate the measurement. Reusing its output
 directory resumes incomplete games from their saved game and agent checkpoints.
 
 `raven-protocol-smoke` starts the real TypeScript server and six harness

@@ -904,8 +904,8 @@ requests from different games do not compete for endpoint capacity. The
 command has no round-limit option. Each game ends only at the normal victory
 condition or the normal final round.
 
-The runner permits six model requests at a time within each game. Thus, agents
-that have simultaneous decisions do not wait for the other agents' requests.
+The runner permits two model requests at a time within each game. This retains
+some concurrency without creating a six-request burst at the model endpoint.
 
 Each game has its own saved game, agent database, trace, seed, and result. The
 manifest records active elapsed time separately for each game. If the command
