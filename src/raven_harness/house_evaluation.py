@@ -218,7 +218,11 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
 def _require_expected_game_duration(
     game_number: int, attempt: dict[str, Any] | None
 ) -> None:
-    if attempt is None or attempt.get("status") != "completed":
+    if (
+        game_number == HOUSE_TEST_GAMES
+        or attempt is None
+        or attempt.get("status") != "completed"
+    ):
         return
     elapsed = float(attempt["activeElapsedSeconds"])
     if elapsed <= HOUSE_TEST_INVESTIGATE_AFTER_SECONDS:

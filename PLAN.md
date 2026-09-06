@@ -62,12 +62,22 @@ Run games sequentially and observe. Between games you can make harness changes i
 
 note that a game should take around a minute or two. if it takes longer then investigate why.
 
-- [ ] Run six players with the same `strategic-v1` harness and exact
+- [x] Run six players with the same `strategic-v1` harness and exact
   `openai/gpt-oss-120b` model, served by Cerebras.
-- [ ] Run five complete games with no artificial round limit. (This means the games must have a winner)
-- [ ] Produce win-rate and placement statistics for every house.
-- [ ] Record the method, performance, cost, time taken to complete game, failure, and interpretation in
+- [x] Run five complete games with no artificial round limit. (This means the games must have a winner)
+- [x] Produce win-rate and placement statistics for every house.
+- [x] Record the method, performance, cost, time taken to complete game, failure, and interpretation in
   `docs/GPT_OSS_120B_HOUSE_TEST.md`.
+
+  Evidence: artifact
+  `data/evaluations/gpt-oss-120b-house-test-b4279fb` contains five isolated
+  attempt databases and five round-10 results. Lannister won three games;
+  Greyjoy and Martell won one each. All attempts used `strategic-v1`, exact
+  model ID `openai/gpt-oss-120b`, and Cerebras-only routing with fallback off.
+  All five databases pass SQLite `quick_check`. The schema-2 manifest has a
+  completion time and per-attempt provenance. The final method, results,
+  timings, failure analysis, request accounting, cost bounds, house statistics,
+  and interpretation are in `docs/GPT_OSS_120B_HOUSE_TEST.md`.
 
 #### 2.2 different models
 DO NOT START THIS UNLESS YOU ARE CERTAIN THE HARNESS WORKS AS EXPECTED.

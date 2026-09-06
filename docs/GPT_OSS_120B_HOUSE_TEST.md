@@ -2,8 +2,8 @@
 
 ## Status
 
-This experiment is in progress. Four of five games are complete. Do not use
-four games to estimate house strength.
+This experiment is complete. All five games reached a winner without an
+artificial round limit.
 
 ## Method
 
@@ -18,9 +18,11 @@ model calls. A new game-server snapshot wakes each affected agent.
 
 The source revision for Game 1 is `b4279fb`. The source revision for Game 2 is
 `11a7615`. The source revision for Game 3 is `446b444`. The source revision for
-Game 4 is `7a08b11`. Each attempt stores its full runtime provenance. The
-experiment base seed is 102. The first four derived seeds are 647336519,
-2863619190, 2003516222, and 629562040. The artifact root is
+Game 4 is `7a08b11`. Game 5 records the documentation-only revision `b1b2424`
+and has the same runtime fingerprint as Game 4. Each attempt stores its full
+runtime provenance. The experiment base seed is 102. The five derived seeds
+are 647336519, 2863619190, 2003516222, 629562040, and 3567110443. The artifact
+root is
 `data/evaluations/gpt-oss-120b-house-test-b4279fb`.
 
 ## Game 1
@@ -151,6 +153,30 @@ The game used 3,863,113 input tokens and 80,939 output tokens. Its recorded cost
 was $1.412794. The maximum response was 1,196 output tokens, so the new
 4,096-token limit did not constrain a successful response.
 
+## Game 5
+
+Martell won at the end of turn 10.
+
+| Place | House | Victory points | Land areas |
+| ---: | --- | ---: | ---: |
+| 1 | Martell | 5 | 9 |
+| 2 | Lannister | 3 | 5 |
+| 3 | Greyjoy | 3 | 4 |
+| 4 | Stark | 2 | 4 |
+| 5 | Tyrell | 2 | 3 |
+| 6 | Baratheon | 1 | 1 |
+
+The game completed in 301.654 seconds. It completed 301 agent runs and failed
+one. The failed run reached the 4,096-token output limit after 4.146 seconds. A
+fresh turn recovered the decision. The terminal response is present in the
+metrics with its response ID, 12,268 input tokens, 4,096 output tokens, and
+$0.007366 cost.
+
+The game made 346 model-endpoint requests. The trace has 346 request starts,
+345 normal completions, and one captured terminal response. All 346 usage
+records are present. The game used 4,774,195 input tokens and 108,623 output
+tokens. Its recorded cost was $1.752436.
+
 ## Latency investigation
 
 For Game 1, the completed request intervals account for the active runtime as
@@ -213,27 +239,70 @@ mean duration of 1.188 seconds, a median of 1.084 seconds, a 95th percentile of
 for 192.852 seconds. The game had 17.445 seconds between completed request
 intervals.
 
-All four games exceeded the expected one-to-two-minute duration. The calls
-themselves were fast, but a complete ten-turn game required hundreds of model
-decisions. Removing decisions would change the harness behavior and the model
-comparison.
+Game 5 reached six concurrent calls for 16.493 seconds. Its 345 normal
+completions had a mean duration of 1.184 seconds, a median of 1.085 seconds, a
+95th percentile of 2.000 seconds, and a maximum of 2.773 seconds. At least one
+normal request was active for 269.469 seconds. The game had 28.765 seconds
+between normal request intervals. The incomplete request used another 4.146
+seconds.
 
-## Provisional house statistics
+All five games exceeded the expected one-to-two-minute duration. The 1,218.588
+seconds of active game time are 20 minutes and 18.588 seconds. The average was
+243.718 seconds per game. The calls themselves were fast, but each complete
+ten-turn game required hundreds of model decisions. Removing decisions would
+change the harness behavior and the model comparison.
+
+## Aggregate requests, failures, and cost
+
+The five games made 1,452 model-endpoint requests. The aggregate metrics store
+1,439 requests, 19,076,843 input tokens, 418,069 output tokens, and $6.990447.
+This aggregate is a lower bound because Games 1 through 3 ran before terminal
+accounting was complete. Their traces show 13 additional requests: eight
+completed parent responses in Game 2 and five incomplete or cancelled terminal
+responses across Games 1 through 3. The eight recoverable responses add
+121,040 input tokens, 2,628 output tokens, and $0.044335. Therefore, the proven
+minimum is 19,197,883 input tokens, 420,697 output tokens, and $7.034782. The
+exact usage and cost of the five old terminal responses are not recoverable
+from the saved data.
+
+The games completed 1,306 agent runs. Six agent runs failed, and one was
+cancelled during the deliberate Game 1 shutdown test. Five failures were
+output-limit responses. One failure followed six repeated illegal march
+attempts after the rules oracle gave an incorrect answer. Every failed or
+cancelled decision resumed from the last durable boundary. All five games
+reached a winner.
+
+Games 4 and 5 used the final accounting code. Together they made 640 endpoint
+requests, and all 640 have stored usage and cost. Game 5 also proves that an
+incomplete terminal response is now counted.
+
+## House statistics
 
 | House | Wins | Win rate | Average place | Average victory points | Average land areas |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Stark | 0 | 0% | 3.5 | 2.0 | 4.0 |
-| Greyjoy | 1 | 25% | 3.0 | 3.0 | 3.5 |
-| Lannister | 3 | 75% | 2.25 | 3.5 | 5.5 |
-| Tyrell | 0 | 0% | 4.0 | 2.0 | 3.5 |
-| Martell | 0 | 0% | 2.75 | 3.0 | 5.5 |
-| Baratheon | 0 | 0% | 5.5 | 1.0 | 1.25 |
+| Stark | 0 | 0% | 3.6 | 2.0 | 4.0 |
+| Greyjoy | 1 | 20% | 3.0 | 3.0 | 3.6 |
+| Lannister | 3 | 60% | 2.2 | 3.4 | 5.4 |
+| Tyrell | 0 | 0% | 4.2 | 2.0 | 3.4 |
+| Martell | 1 | 20% | 2.4 | 3.4 | 6.2 |
+| Baratheon | 0 | 0% | 5.6 | 1.0 | 1.2 |
 
-These values are descriptive only. Four games are not enough to make a claim
-about house balance.
+Lannister won three games. Greyjoy and Martell won one game each. Martell had
+the best average land-area count at 6.2 and tied Lannister for the best average
+victory-point count at 3.4. Martell also had the second-best average placement,
+2.4, behind Lannister at 2.2.
 
-## Remaining work
+## Interpretation
 
-One more complete game is required. The final report must replace this
-provisional interpretation with five-game house win-rate and placement
-statistics.
+The result proves that the harness can run complete six-player games, issue
+simultaneous model calls when the game permits them, persist game and agent
+state, resume an interrupted game, recover individual failed decisions, and
+retain usage for new failed terminal responses. It also shows that the model
+endpoint is not the source of the four-to-five-minute game time: normal calls
+usually finish in about one second, while the rules expose many decisions in
+sequence.
+
+Five games are a small sample. The Lannister result is evidence from this test,
+not proof that Lannister is generally the strongest house. The mixed-model
+tournament must rotate every model through every house so that house strength
+does not become model strength.

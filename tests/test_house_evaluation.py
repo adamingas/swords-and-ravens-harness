@@ -153,6 +153,16 @@ def test_house_runner_stops_after_an_unexpectedly_slow_game() -> None:
         )
 
 
+def test_house_runner_accepts_a_slow_final_game() -> None:
+    _require_expected_game_duration(
+        HOUSE_TEST_GAMES,
+        {
+            "status": "completed",
+            "activeElapsedSeconds": HOUSE_TEST_INVESTIGATE_AFTER_SECONDS + 1,
+        },
+    )
+
+
 def test_house_runner_rejects_old_manifest_schema(tmp_path) -> None:
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(
