@@ -400,6 +400,9 @@ class OpenAIAgentRunner:
         current_input = OBSERVATION_INPUT_PREFIX + json.dumps(
             observation, separators=(",", ":")
         )
+        parent_tool_choice = (
+            "required" if observation.get("previousAttemptError") else "auto"
+        )
         context_filter = _SessionContextFilter(
             session_history_limit=self.session_history_items,
             current_input=current_input,
@@ -460,6 +463,7 @@ class OpenAIAgentRunner:
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
                     user=agent_record.id,
+                    tool_choice=parent_tool_choice,
                 ),
                 tool_use_behavior=_stop_after_accepted_action(stop_at_tool_names),
                 reset_tool_choice=False,
@@ -595,9 +599,10 @@ class OpenAIAgentRunner:
         prompt_cache_key: str | None,
         metadata: dict[str, str] | None,
         user: str | None = None,
+        tool_choice: str = "auto",
     ) -> ModelSettings:
         return ModelSettings(
-            tool_choice="required",
+            tool_choice=tool_choice,
             parallel_tool_calls=False,
             max_tokens=max_tokens,
             reasoning={"effort": "low"},

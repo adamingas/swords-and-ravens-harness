@@ -259,7 +259,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
     assert runner.client.max_retries == 4
-    assert fake_model.model_settings.tool_choice == "required"
+    assert fake_model.model_settings.tool_choice == "auto"
     assert fake_model.model_settings.extra_body == {
         "provider": {
             "sort": "throughput",
@@ -297,6 +297,29 @@ async def test_runner_aborts_stale_gameplay_tool_without_replay(
 
     assert fake_model.call_count == 1
     assert client.sent == []
+
+
+@pytest.mark.asyncio
+async def test_retry_requires_a_tool_call(monkeypatch) -> None:
+    fake_model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    context = HarnessRunContext(
+        client=FakeClient(), user_id="2", game_password="wolf"
+    )
+    arguments = turn_arguments(record, context)
+    arguments["observation"]["previousAttemptError"] = "No accepted game action"
+
+    await OpenAIAgentRunner(
+        api_key="test-key", base_url="https://api.openai.test/v1"
+    ).run_once(**arguments)
+
+    assert fake_model.model_settings.tool_choice == "required"
 
 
 @pytest.mark.asyncio
