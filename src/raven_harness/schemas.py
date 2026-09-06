@@ -91,16 +91,16 @@ class AutoplayRequest(CamelModel):
 
 
 class LobbySetupRequest(CamelModel):
-    """The one lobby configuration supported by the gameplay harness.
+    """A lobby configuration supported by the gameplay harness.
 
-    The tool and legality layer currently implement the six-player base game
-    without vassals.  Keep the other upstream settings configurable where the
-    game server supports them, but reject variants that the harness cannot
-    reason about.
+    The tool and legality layer implements the native three- and six-player
+    base games without vassals. Keep the other upstream settings configurable
+    where the game server supports them, but reject variants that the harness
+    cannot reason about.
     """
 
     setup_id: Literal["base-game"] = "base-game"
-    player_count: Literal[6] = 6
+    player_count: Literal[3, 6] = 6
     pbem: bool = True
     vassals: Literal[False] = False
     victory_points_to_win: int = Field(default=7, ge=6, le=15)

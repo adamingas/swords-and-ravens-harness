@@ -820,7 +820,7 @@ def _is_base_game(snapshot: dict[str, Any]) -> bool:
         return False
     return (
         settings.get("setupId") == "base-game"
-        and settings.get("playerCount") == 6
+        and settings.get("playerCount") in {3, 6}
         # The upstream serializer omits false boolean settings.
         and settings.get("vassals", False) is False
     )

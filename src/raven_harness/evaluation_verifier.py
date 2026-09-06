@@ -392,11 +392,11 @@ def _validate_manifest(
             "Manifest randomSeed must be an integer from 0 through 4294967295"
         )
     verification = manifest.get("modelVerification")
-    if not isinstance(verification, dict) or verification.get("source") != (
-        "OpenRouter GET /models"
+    if not isinstance(verification, dict) or not isinstance(
+        verification.get("source"), str
     ):
         raise EvaluationVerificationError(
-            "Manifest has no OpenRouter model verification"
+            "Manifest has no model-endpoint verification"
         )
     verified_rows = verification.get("models")
     if not isinstance(verified_rows, list) or not all(
@@ -414,10 +414,10 @@ def _validate_manifest(
     canonical_slugs: dict[str, str] = {}
     for row in verified_rows:
         parameters = row.get("supportedParameters")
-        if not isinstance(parameters, list) or not {
-            "tools",
-            "tool_choice",
-        } <= set(parameters):
+        if parameters is not None and (
+            not isinstance(parameters, list)
+            or not {"tools", "tool_choice"} <= set(parameters)
+        ):
             raise EvaluationVerificationError(
                 f"Verified model {row.get('id')!r} lacks required tool parameters"
             )

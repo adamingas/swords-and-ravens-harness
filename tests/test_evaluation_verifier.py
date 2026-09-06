@@ -256,7 +256,7 @@ def test_verifier_accepts_complete_two_rotation_comparison(tmp_path) -> None:
     assert report["comparisonComplete"] is True
 
 
-def test_complete_tournament_requires_provider_model_and_cost_attribution(
+def test_complete_tournament_reports_missing_attribution_without_blocking_results(
     tmp_path,
 ) -> None:
     root = tmp_path / "missing-attribution"
@@ -278,10 +278,9 @@ def test_complete_tournament_requires_provider_model_and_cost_attribution(
 
     report = verify_evaluation(root)
 
-    assert report["evaluationStatus"] == "provisional"
+    assert report["evaluationStatus"] == "complete"
     assert report["providerAttributionComplete"] is False
-    with pytest.raises(EvaluationIncompleteError, match="attribution: False"):
-        verify_evaluation(root, require_complete=True)
+    assert verify_evaluation(root, require_complete=True)["status"] == "valid"
 
 
 def test_verifier_rejects_missing_completed_result(tmp_path) -> None:

@@ -101,6 +101,7 @@ def test_lobby_setup_request_accepts_only_supported_variant() -> None:
         "vassals": False,
         "victory_points_to_win": 7,
     }
+    assert LobbySetupRequest(playerCount=3).player_count == 3
 
     for field, value in (
         ("setupId", "mother-of-dragons"),

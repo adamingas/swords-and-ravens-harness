@@ -95,9 +95,9 @@ Open <http://localhost:8080/static/#1>. Local development user IDs and
 authentication tokens are equal. Give every human or model player a different
 user ID.
 
-The harness dashboard can create and connect agents, ask a model to choose a
-house, configure a six-player base-game lobby without vassals through an owner
-agent, launch the game,
+The harness can run native three- or six-player base-game lobbies without
+vassals. The dashboard's lobby button configures the six-player form. It can
+create and connect agents, ask a model to choose a house, launch the game,
 run one decision, and enable autoplay. Humans continue to use the original
 browser client. Agent cards show live model-request and tool activity. The
 detail view keeps the recent activity timeline, complete run traces, player
@@ -217,8 +217,9 @@ uv run raven-verify-evaluation --require-complete \
 
 The first command accepts an internally consistent partial evaluation. It
 labels the ranking `provisional`. The second command succeeds only when all 12
-games are complete. Each model-house pair must have two completed games. Every
-provider response must also have model, provider, and cost attribution.
+games are complete and each model-house pair has two completed games. Optional
+endpoint-specific provider and cost enrichment is reported separately and does
+not determine whether the comparison is complete.
 
 The evaluator derives one game seed from `--random-seed` and the game number.
 It records that seed, and each saved game also records the current deterministic
@@ -236,18 +237,18 @@ ports 5101 through 5112 and can make up to 12 model calls concurrently. Use a
 smaller `--concurrent-games` value when the machine or provider cannot support
 that load.
 
-The command checks the OpenRouter key limit, account credits, and model catalog
-once before it schedules attempts. It verifies the exact six IDs and tool-call
-support. The tournament ignores `MODEL_ID`. It also replaces the dashboard provider
-allow-list with one common tournament policy: select by throughput, allow
-fallbacks, allow all listed hosts, and prefer hosts that support the tools. The
-shared request uses `tool_choice=auto` on the first attempt so models can use
-memory or the rules oracle. A reduced-tool retry uses `required`; all six model
-IDs accept that request when provider parameter filtering is disabled. The
-retry sends only the complete current observation, not old action-history
-items. The manager still rejects a response with no game action. Stable
-provider prompt-cache keys are sent for player and rules-oracle calls. The
-harness has no local response cache. The summary reports cached input tokens
+The command checks the configured OpenAI-compatible endpoint's model catalog
+once before it schedules attempts. When OpenRouter is configured, its adapter
+also checks key limits, account credits, and advertised tool-call support. The
+tournament ignores `MODEL_ID`. OpenRouter runs replace the dashboard provider
+allow-list with one common tournament routing policy; other compatible
+endpoints receive no OpenRouter-specific request fields. The shared request
+uses `tool_choice=auto` on the first attempt so models can use memory or the
+rules oracle. A reduced-tool retry uses `required`. The retry sends only the
+complete current observation, not old action-history items. The manager still
+rejects a response with no game action. Stable provider prompt-cache keys are
+sent for player and rules-oracle calls. The harness has no local response
+cache. The summary reports cached input tokens
 when a provider returns them.
 
 The default is fail-fast. Use `--continue-on-error` to let sibling games

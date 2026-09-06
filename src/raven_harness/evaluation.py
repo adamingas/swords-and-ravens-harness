@@ -85,14 +85,17 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
         openrouter_allow_fallbacks=True,
         openrouter_require_parameters=False,
     )
-    if not settings.openrouter_token:
-        raise RuntimeError("Set OPENROUTER_TOKEN before starting an evaluation")
+    if not settings.model_api_key:
+        raise RuntimeError(
+            "Configure an API key for the selected model endpoint before starting "
+            "an evaluation"
+        )
     if not settings.resolved_rules_path.is_file():
         raise RuntimeError(
             "Rules oracle data is required for evaluation; run uv run raven-prepare-rules"
         )
     await _preflight_openrouter_quota(settings)
-    verified_models = await _preflight_openrouter_models(settings)
+    verified_models = await _preflight_model_catalog(settings)
     output = _resolve_output(args.output)
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / "manifest.json"
@@ -282,25 +285,21 @@ async def run_game(
     settings: Settings,
     model_runner: StrategicModelRunner | None = None,
     resume: bool = False,
+    seat_models: list[str] | None = None,
+    seat_houses: list[str] | None = None,
 ) -> dict[str, Any]:
+    attempt_dir = attempt_dir.resolve()
     if await _port_is_open(game_port):
         raise RuntimeError(f"Game-server port {game_port} is already in use")
 
     game_path = attempt_dir / "game.json"
     database_path = attempt_dir / "harness.db"
     server_log_path = attempt_dir / "game-server.log"
-    rotation = house_rotation(game_number)
-    users = user_rotation(game_number)
-    expected_assignments = [
-        {
-            "model": model,
-            "house": rotation[model],
-            "userId": users[model],
-            "harness": TOURNAMENT_HARNESS_ID,
-            "promptSha256": _sha256_text(_effective_instructions()),
-        }
-        for model in TOURNAMENT_MODELS
-    ]
+    expected_assignments = _run_assignments(
+        game_number=game_number,
+        seat_models=seat_models,
+        seat_houses=seat_houses,
+    )
     assignment_path = attempt_dir / "assignments.json"
     if resume:
         try:
@@ -372,23 +371,24 @@ async def run_game(
             durable_game_path=game_path,
         )
 
-        assignment_by_model = {
-            assignment["model"]: assignment for assignment in assignments
+        assignment_by_user = {
+            assignment["userId"]: assignment for assignment in assignments
         }
         if resume:
             records = store.list_agents()
             _validate_resumed_agents(
                 records=records,
-                assignments=assignment_by_model,
+                assignments=assignments,
                 game_port=game_port,
             )
         else:
-            for model in TOURNAMENT_MODELS:
-                user_id = assignment_by_model[model]["userId"]
+            for assignment in assignments:
+                model = assignment["model"]
+                user_id = assignment["userId"]
                 records.append(
                     store.create_agent(
                         AgentCreate(
-                            name=model,
+                            name=_seat_name(assignment, assignments),
                             model=model,
                             system_prompt=DEFAULT_PROMPT,
                             game_server_url=f"ws://127.0.0.1:{game_port}",
@@ -407,14 +407,16 @@ async def run_game(
                 owner.id,
                 LobbySetupRequest(
                     setup_id="base-game",
-                    player_count=6,
+                    player_count=len(assignments),
                     pbem=True,
                     vassals=False,
                     victory_points_to_win=7,
                 ),
             )
             for record in records:
-                await manager.choose_lobby_house(record.id, rotation[record.model])
+                await manager.choose_lobby_house(
+                    record.id, assignment_by_user[record.user_id]["house"]
+                )
             await manager.launch_game(owner.id)
         await _wait_for_game_start(manager, records, timeout=30)
         for record in records:
@@ -449,13 +451,15 @@ async def run_game(
             telemetry.shutdown()
         if database is not None:
             try:
-                provider_generations = await _collect_openrouter_generations(
+                provider_generations = await _collect_provider_metadata(
                     database=database,
                     records=records,
                     settings=settings,
                 )
             except Exception as error:
-                provider_generations = _failed_provider_attribution(error)
+                provider_generations = _failed_provider_attribution(
+                    error, provider=settings.model_provider
+                )
             _write_json(
                 attempt_dir / "provider-generations.json", provider_generations
             )
@@ -487,20 +491,22 @@ async def run_game(
 def _validate_resumed_agents(
     *,
     records: list[Any],
-    assignments: dict[str, dict[str, str]],
+    assignments: list[dict[str, str]],
     game_port: int,
 ) -> None:
-    if len(records) != len(TOURNAMENT_MODELS):
-        raise RuntimeError("Saved attempt does not contain exactly six agents")
-    by_model = {record.model: record for record in records}
-    if len(by_model) != len(records) or set(by_model) != set(TOURNAMENT_MODELS):
-        raise RuntimeError("Saved attempt agents do not match tournament models")
+    if len(records) != len(assignments):
+        raise RuntimeError("Saved attempt does not contain the expected agents")
+    by_user = {record.user_id: record for record in records}
+    if len(by_user) != len(records) or set(by_user) != {
+        assignment["userId"] for assignment in assignments
+    }:
+        raise RuntimeError("Saved attempt agent seats do not match its assignments")
     expected_url = f"ws://127.0.0.1:{game_port}"
-    for model in TOURNAMENT_MODELS:
-        record = by_model[model]
-        assignment = assignments[model]
+    for assignment in assignments:
+        model = assignment["model"]
+        record = by_user[assignment["userId"]]
         if (
-            record.name != model
+            record.name != _seat_name(assignment, assignments)
             or record.system_prompt != DEFAULT_PROMPT
             or record.game_server_url != expected_url
             or record.game_id != "1"
@@ -510,6 +516,62 @@ def _validate_resumed_agents(
             raise RuntimeError(
                 f"Saved agent {model!r} does not match its tournament assignment"
             )
+
+
+def _run_assignments(
+    *,
+    game_number: int,
+    seat_models: list[str] | None,
+    seat_houses: list[str] | None,
+) -> list[dict[str, str]]:
+    if seat_models is None and seat_houses is None:
+        rotation = house_rotation(game_number)
+        users = user_rotation(game_number)
+        pairs = [
+            (model, rotation[model], users[model]) for model in TOURNAMENT_MODELS
+        ]
+    else:
+        if seat_models is None or seat_houses is None:
+            raise RuntimeError("seat_models and seat_houses must be supplied together")
+        if len(seat_models) != len(seat_houses):
+            raise RuntimeError("seat_models and seat_houses must have equal lengths")
+        supported_houses = {
+            3: {"baratheon", "lannister", "stark"},
+            6: set(HOUSES),
+        }
+        expected_houses = supported_houses.get(len(seat_models))
+        if expected_houses is None or set(seat_houses) != expected_houses:
+            raise RuntimeError(
+                "Explicit seats must match the native three- or six-player "
+                "base-game houses"
+            )
+        if any(not isinstance(model, str) or not model.strip() for model in seat_models):
+            raise RuntimeError("Every explicit seat must have a model ID")
+        pairs = [
+            (model.strip(), house, str(index))
+            for index, (model, house) in enumerate(
+                zip(seat_models, seat_houses, strict=True), start=1
+            )
+        ]
+    return [
+        {
+            "model": model,
+            "house": house,
+            "userId": user_id,
+            "harness": TOURNAMENT_HARNESS_ID,
+            "promptSha256": _sha256_text(_effective_instructions()),
+        }
+        for model, house, user_id in pairs
+    ]
+
+
+def _seat_name(
+    assignment: dict[str, str], assignments: list[dict[str, str]]
+) -> str:
+    model = assignment["model"]
+    if sum(item["model"] == model for item in assignments) == 1:
+        return model
+    return f"{model} seat {assignment['userId']}"
 
 
 async def _start_game_server(
@@ -973,6 +1035,89 @@ async def _preflight_openrouter_models(
             await active_client.aclose()
 
 
+async def _preflight_model_catalog(
+    settings: Settings,
+    *,
+    client: httpx.AsyncClient | None = None,
+) -> list[dict[str, Any]]:
+    """Verify tournament IDs through the configured endpoint's model catalog."""
+
+    if settings.model_provider == "OpenRouter":
+        return await _preflight_openrouter_models(settings, client=client)
+
+    endpoint = settings.model_base_url.rstrip("/") + "/models"
+    owns_client = client is None
+    active_client = client or httpx.AsyncClient(timeout=15)
+    try:
+        try:
+            response = await active_client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {settings.model_api_key}"},
+            )
+        except httpx.HTTPError as error:
+            raise RuntimeError(
+                "Model-catalog preflight failed " f"({type(error).__name__})"
+            ) from error
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Model-catalog preflight returned HTTP {response.status_code}"
+            )
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "Model-catalog preflight returned an invalid response"
+            ) from error
+        rows = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise RuntimeError("Model-catalog preflight returned an invalid response")
+        by_id = {
+            row.get("id"): row
+            for row in rows
+            if isinstance(row, dict) and isinstance(row.get("id"), str)
+        }
+        missing = [model for model in TOURNAMENT_MODELS if model not in by_id]
+        if missing:
+            raise RuntimeError(
+                "The configured model endpoint does not list the exact tournament "
+                "model IDs: " + ", ".join(missing)
+            )
+        verified = []
+        for model in TOURNAMENT_MODELS:
+            row = by_id[model]
+            advertised = row.get("supported_parameters")
+            parameters = (
+                sorted(value for value in advertised if isinstance(value, str))
+                if isinstance(advertised, list)
+                else None
+            )
+            if parameters is not None and not {
+                "tools",
+                "tool_choice",
+            } <= set(parameters):
+                raise RuntimeError(
+                    f"The configured model endpoint reports no tool support for "
+                    f"{model!r}"
+                )
+            alias = row.get("alias_target")
+            canonical_slug = row.get("canonical_slug") or model
+            verified.append(
+                {
+                    "id": model,
+                    "name": row.get("name") or model,
+                    "canonicalSlug": canonical_slug,
+                    "aliasTarget": (
+                        alias.get("slug") if isinstance(alias, dict) else None
+                    ),
+                    "supportedParameters": parameters,
+                }
+            )
+        return verified
+    finally:
+        if owns_client:
+            await active_client.aclose()
+
+
 async def _collect_openrouter_generations(
     *,
     database: Database,
@@ -1071,6 +1216,42 @@ async def _collect_openrouter_generations(
     return _provider_generation_artifact(generations)
 
 
+async def _collect_provider_metadata(
+    *,
+    database: Database,
+    records: list[Any],
+    settings: Settings,
+) -> dict[str, Any]:
+    """Collect optional endpoint-specific accounting outside game semantics."""
+
+    if settings.model_provider == "OpenRouter" and settings.openrouter_token:
+        return await _collect_openrouter_generations(
+            database=database,
+            records=records,
+            settings=settings,
+            retries=0,
+            deadline_seconds=2,
+        )
+    generations = [
+        {
+            **row,
+            "provider": None,
+            "model": None,
+            "costUsd": None,
+            "latencyMs": None,
+            "error": (
+                f"No optional metadata adapter is configured for "
+                f"{settings.model_provider}"
+            ),
+        }
+        for row in _persisted_response_rows(database, records)
+    ]
+    return _provider_generation_artifact(
+        generations,
+        source=f"{settings.model_provider} response trace",
+    )
+
+
 def _persisted_response_rows(
     database: Database, records: list[Any]
 ) -> list[dict[str, Any]]:
@@ -1153,10 +1334,12 @@ async def _fetch_openrouter_generation(
 
 def _provider_generation_artifact(
     generations: list[dict[str, Any]],
+    *,
+    source: str = "OpenRouter GET /generation",
 ) -> dict[str, Any]:
     return {
         "generatedAt": _now(),
-        "source": "OpenRouter GET /generation",
+        "source": source,
         "generations": generations,
         **_provider_attribution_summary({"generations": generations}),
     }
@@ -1192,10 +1375,12 @@ def _provider_attribution_summary(value: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _failed_provider_attribution(error: Exception) -> dict[str, Any]:
+def _failed_provider_attribution(
+    error: Exception, *, provider: str = "model endpoint"
+) -> dict[str, Any]:
     return {
         "generatedAt": _now(),
-        "source": "OpenRouter GET /generation",
+        "source": f"{provider} response trace",
         "generations": [],
         "collectionError": (
             "Provider attribution was temporarily unavailable "
@@ -1215,6 +1400,9 @@ async def _refresh_completed_provider_attribution(
     *, output: Path, attempt: dict[str, Any], settings: Settings
 ) -> bool:
     """Retry missing provider metadata without replaying a completed game."""
+
+    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
+        return False
 
     attempt_dir = output / str(attempt["directory"])
     artifact_path = attempt_dir / "provider-generations.json"
@@ -1300,24 +1488,24 @@ def _build_game_result(
     houses = {house["id"]: house for house in game.get("houses", [])}
     iron_throne = list(game.get("ironThroneTrack", []))
     assignment_by_house = {item["house"]: item for item in assignments}
-    if set(assignment_by_house) != set(HOUSES):
-        raise RuntimeError("Assignments do not contain each six-player house exactly once")
-    missing_houses = set(HOUSES) - set(houses)
-    if missing_houses:
+    if len(assignment_by_house) != len(assignments):
+        raise RuntimeError("Assignments contain duplicate houses")
+    if set(assignment_by_house) != set(houses):
         raise RuntimeError(
-            f"Saved game is missing assigned houses: {sorted(missing_houses)}"
+            "Assignments do not match the houses in the saved game: "
+            f"assigned={sorted(assignment_by_house)}, saved={sorted(houses)}"
         )
     if winner not in houses:
         raise RuntimeError(f"Winner house {winner!r} is absent from the saved game")
-    metrics_by_model = {
-        record.model: store.get_run_metrics(record.id) for record in records
+    metrics_by_user = {
+        record.user_id: store.get_run_metrics(record.id) for record in records
     }
     standings = []
     for house_id, house in houses.items():
         assignment = assignment_by_house.get(house_id)
         if assignment is None:
             continue
-        metrics = metrics_by_model[assignment["model"]]
+        metrics = metrics_by_user[assignment["userId"]]
         standings.append(
             {
                 **assignment,
@@ -1408,7 +1596,7 @@ def _load_manifest(
         "harness": TOURNAMENT_HARNESS_ID,
         "models": TOURNAMENT_MODELS,
         "modelVerification": {
-            "source": "OpenRouter GET /models",
+            "source": f"{settings.model_provider} GET /models",
             "verifiedAt": _now(),
             "models": verified_models,
         },
@@ -1852,7 +2040,6 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     comparison_complete = (
         len(results) >= 12
         and minimum_observations >= required_observations
-        and provider_attribution_complete
     )
     return {
         "completedGames": len(results),

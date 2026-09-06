@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import json
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -24,8 +25,10 @@ from raven_harness.evaluation import (
     _persisted_response_rows,
     _preflight_openrouter_models,
     _preflight_openrouter_quota,
+    _preflight_model_catalog,
     _progress_signature,
     _require_sqlite_quick_check,
+    _run_assignments,
     _start_game_server,
     _terminal_winner,
     _validate_evaluation_schedule,
@@ -33,6 +36,7 @@ from raven_harness.evaluation import (
     _wait_for_terminal_game_document,
     derive_game_seed,
     house_rotation,
+    run_game,
     run_evaluation,
     resolve_evaluation_output,
     summarize_results,
@@ -81,11 +85,60 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
             "5",
             "6",
         ]
-
     for model in TOURNAMENT_MODELS:
         user_ids = [user_rotation(game)[model] for game in range(1, 13)]
         assert user_ids.count("1") == 2
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
+
+
+def test_explicit_three_seat_assignments_allow_one_repeated_model() -> None:
+    model = "openai/gpt-oss-120b"
+
+    assignments = _run_assignments(
+        game_number=1,
+        seat_models=[model, model, model],
+        seat_houses=["baratheon", "lannister", "stark"],
+    )
+
+    assert [assignment["model"] for assignment in assignments] == [model] * 3
+    assert [assignment["userId"] for assignment in assignments] == ["1", "2", "3"]
+    assert {assignment["house"] for assignment in assignments} == {
+        "baratheon",
+        "lannister",
+        "stark",
+    }
+
+
+@pytest.mark.asyncio
+async def test_run_game_resolves_attempt_directory_before_starting_server(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured_game_path: Path | None = None
+
+    async def fail_after_capture(**arguments):
+        nonlocal captured_game_path
+        captured_game_path = arguments["game_path"]
+        raise RuntimeError("captured path")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "raven_harness.evaluation._start_game_server", fail_after_capture
+    )
+
+    with pytest.raises(RuntimeError, match="captured path"):
+        await run_game(
+            game_number=1,
+            attempt_dir=Path("relative-attempt"),
+            random_seed=1,
+            game_port=0,
+            max_rounds=1,
+            poll_seconds=0.1,
+            stall_seconds=1,
+            match_timeout_seconds=1,
+            settings=Settings(_env_file=None),
+        )
+
+    assert captured_game_path == (tmp_path / "relative-attempt/game.json").resolve()
 
 
 def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() -> None:
@@ -531,6 +584,31 @@ async def test_model_preflight_rejects_missing_or_non_tool_models() -> None:
 
 
 @pytest.mark.asyncio
+async def test_model_preflight_uses_configured_openai_compatible_endpoint() -> None:
+    rows = [{"id": model} for model in TOURNAMENT_MODELS]
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer compatible-secret"
+        return httpx.Response(200, json={"data": rows})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings = Settings(
+        openrouter_token="",
+        openai_api_key="compatible-secret",
+        openai_base_url="https://models.example/v1",
+        _env_file=None,
+    )
+    try:
+        verified = await _preflight_model_catalog(settings, client=client)
+    finally:
+        await client.aclose()
+
+    assert [row["id"] for row in verified] == TOURNAMENT_MODELS
+    assert all(row["canonicalSlug"] == row["id"] for row in verified)
+    assert all(row["supportedParameters"] is None for row in verified)
+
+
+@pytest.mark.asyncio
 async def test_quota_preflight_runs_before_evaluation_output_is_created(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
@@ -614,7 +692,7 @@ async def test_evaluation_runs_games_concurrently_on_distinct_ports(
         "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
     )
     monkeypatch.setattr(
-        "raven_harness.evaluation._preflight_openrouter_models", accept_models
+        "raven_harness.evaluation._preflight_model_catalog", accept_models
     )
     monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
     monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
@@ -686,7 +764,7 @@ async def test_evaluation_resumes_the_same_durable_attempt(
         "raven_harness.evaluation._preflight_openrouter_quota", accept_quota
     )
     monkeypatch.setattr(
-        "raven_harness.evaluation._preflight_openrouter_models", accept_models
+        "raven_harness.evaluation._preflight_model_catalog", accept_models
     )
     monkeypatch.setattr("raven_harness.evaluation.run_game", fake_run_game)
     monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", evaluation_root)
@@ -723,20 +801,20 @@ async def test_evaluation_resumes_the_same_durable_attempt(
 
 
 @pytest.mark.asyncio
-async def test_evaluation_requires_openrouter_even_with_direct_openai_key(
+async def test_evaluation_requires_a_configured_model_api_key(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     settings = Settings(
         rules_path=tmp_path / "rules.json",
         openrouter_token="",
-        openai_api_key="direct-openai-key",
+        openai_api_key="",
         _env_file=None,
     )
     monkeypatch.setattr(
         "raven_harness.evaluation.Settings", lambda **_kwargs: settings
     )
 
-    with pytest.raises(RuntimeError, match="Set OPENROUTER_TOKEN"):
+    with pytest.raises(RuntimeError, match="Configure an API key"):
         await run_evaluation(argparse.Namespace())
 
 

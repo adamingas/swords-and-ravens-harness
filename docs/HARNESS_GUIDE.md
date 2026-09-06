@@ -399,7 +399,8 @@ as a priority-ordered list and omits later new units that do not fit Supply.
 The accepted action trace records the applied arguments and an omission count
 or flag; the raw SDK response still records the model's original tool call.
 
-The canonical harness supports a six-player base game with vassals disabled.
+The canonical harness supports native three- and six-player base games with
+vassals disabled. The tournament remains six-player.
 PBEM mode and the victory-point target remain configurable. It exposes no
 protocol tool when the snapshot omits the setup or player-count identity, or
 identifies another setup, player count, or an explicitly enabled vassal mode.
@@ -887,7 +888,7 @@ private player state. Treat it as sensitive.
 ## 15. Six-model tournament
 
 `raven-evaluate` runs isolated six-player games. Each game contains these exact
-OpenRouter model IDs:
+model IDs as understood by the configured OpenAI-compatible endpoint:
 
 - `z-ai/glm-5.3-flash`
 - `qwen/qwen3.7-flash`
@@ -904,22 +905,21 @@ games. Local user IDs rotate too, so each model owns two lobbies.
 Evaluation requires prepared rules data. Run `uv run raven-prepare-rules`
 before the smoke game.
 
-The command checks the OpenRouter key limit, account credits, and live model
-catalog once. It does this before it creates the output directory and schedules
-attempts. It stops when the key's spending limit or the account credits are
-exhausted. It also stops when an exact model ID is absent or lacks tool-call
-support. The manifest records the catalog data and the target of an alias.
-These checks do not write the key to an artifact.
+The command checks the configured endpoint's live model catalog once before it
+creates the output directory and schedules attempts. It stops when an exact
+model ID is absent. When OpenRouter is configured, its adapter also checks the
+key limit, account credits, advertised tool-call support, canonical slugs, and
+aliases. These checks do not write the key to an artifact.
 
-The tournament requires `OPENROUTER_TOKEN` and ignores `MODEL_ID`. It does not
-use the dashboard's provider allow-list. It uses one routing policy for all
-models. The policy allows all listed hosts and provider fallbacks. It selects
-hosts by throughput and gives preference to hosts that support the tools. The
-common request uses `tool_choice=auto` on the first attempt so a model can use
-memory or the rules oracle. A reduced-tool retry uses `required`; all six exact
-model IDs accept that request when provider parameter filtering is disabled.
-The retry sends the complete current observation without older SDK history.
-The manager still rejects a response that does not take a game action.
+The tournament requires an API key for the configured OpenAI-compatible
+endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
+provider allow-list; they use one tournament routing policy that allows
+fallbacks and selects hosts by throughput. Other compatible endpoints receive
+no OpenRouter routing fields. The common request uses `tool_choice=auto` on the
+first attempt so a model can use memory or the rules oracle. A reduced-tool
+retry uses `required`. The retry sends the complete current observation without
+older SDK history. The manager still rejects a response that does not take a
+game action.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for
 the model and current tool set. Rules-oracle calls use a separate key for the
@@ -956,13 +956,13 @@ uv run raven-verify-evaluation --require-complete \
 
 The verifier checks stored catalog data, seeds, rotations, assignments, and
 results. It checks the terminal saved winner and the integrity of each SQLite
-file. It also checks exact requested IDs and provider-resolved IDs against the
-stored canonical slugs and aliases, the common harness prompt, provider and
-cost attribution, and the recomputed summary. A valid
+file. It also checks exact requested IDs, any available endpoint-specific
+enrichment, the common harness prompt, and the recomputed summary. A valid
 partial run exits successfully and reports `provisional`. `--require-complete`
-exits with status 2 until 12 games are complete. Each model-house pair must
-have two completed games. Every provider response must have model, provider,
-and cost attribution. Invalid or corrupt artifacts exit with status 1.
+exits with status 2 until 12 games are complete and each model-house pair has
+two completed games. Missing optional provider/cost enrichment is reported but
+does not invalidate the gameplay comparison. Invalid or corrupt artifacts exit
+with status 1.
 
 Then run the complete comparison:
 
@@ -1021,8 +1021,8 @@ the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
 requests, input/output/total/cached token counts, cost, house effects, and a
 stated pairwise Elo calculation. It also reports the completed-game count for
 each model-house pair. A ranking is `provisional` until 12 games are complete,
-every pair has two games, and provider attribution is complete.
-`comparisonComplete` is true only when these conditions are met.
+and every pair has two games. Optional provider attribution has its own
+`providerAttributionComplete` status and does not control `comparisonComplete`.
 
 ## 16. Verify changes
 

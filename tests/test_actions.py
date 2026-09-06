@@ -864,6 +864,13 @@ def test_base_game_detection_accepts_omitted_false_vassal_setting() -> None:
     assert _is_base_game(snapshot) is True
 
 
+def test_base_game_detection_accepts_native_three_player_setup() -> None:
+    snapshot = planning_snapshot()
+    snapshot["gameSettings"]["playerCount"] = 3
+
+    assert _is_base_game(snapshot) is True
+
+
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["childGameState"] = {
