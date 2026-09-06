@@ -381,7 +381,6 @@ class Rulebook:
             custom_output_extractor=record_answer,
             max_turns=3,
             run_config=run_config,
-            failure_error_function=None,
         )
 
 

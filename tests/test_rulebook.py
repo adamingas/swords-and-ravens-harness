@@ -60,21 +60,26 @@ def sample_rulebook() -> Rulebook:
 
 class OracleThenActionModel(Model):
     def __init__(
-        self, *, fail_after_oracle: bool = False, cancel_after_oracle: bool = False
+        self,
+        *,
+        fail_after_oracle: bool = False,
+        cancel_after_oracle: bool = False,
+        oracle_never_finishes: bool = False,
     ) -> None:
         self.outer_calls = 0
         self.oracle_calls = 0
         self.fail_after_oracle = fail_after_oracle
         self.cancel_after_oracle = cancel_after_oracle
+        self.oracle_never_finishes = oracle_never_finishes
 
     async def get_response(self, *args: Any, **kwargs: Any) -> ModelResponse:
         names = {tool.name for tool in kwargs["tools"]}
         if names == {"read_rulebook_sections"}:
             self.oracle_calls += 1
-            if self.oracle_calls == 1:
+            if self.oracle_calls == 1 or self.oracle_never_finishes:
                 output: Any = ResponseFunctionToolCall(
                     arguments='{"section_ids":["supply-and-mustering"]}',
-                    call_id="read-rules",
+                    call_id=f"read-rules-{self.oracle_calls}",
                     name="read_rulebook_sections",
                     type="function_call",
                 )
@@ -217,6 +222,51 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
     assert oracle_trace["sectionIds"] == ["supply-and-mustering"]
     assert "not total units" in oracle_trace["answer"]
     assert result.usage["totalTokens"] == 100
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_rules_oracle_failure_returns_control_to_game_action(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
+) -> None:
+    fake_model = OracleThenActionModel(oracle_never_finishes=True)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    database = Database(tmp_path / "oracle-contained-failure.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="x")
+    )
+    harness = StrategicHarness(
+        OpenAIAgentRunner(
+            api_key="test-key",
+            base_url="https://api.test/v1",
+            rulebook=sample_rulebook(),
+        ),
+        store,
+    )
+    client = FakeClient()
+    prepared = harness.prepare_turn(
+        record, build_context(client.snapshot, "2"), previous_error=None
+    )
+    context = HarnessRunContext(client=client, user_id="2")
+
+    result = await harness.run_turn(record, prepared, context, "oracle-failure-run")
+
+    assert fake_model.oracle_calls == 3
+    assert fake_model.outer_calls == 2
+    assert context.action_taken is not None
+    assert context.action_taken.name == "choose_house"
+    assert result.usage["requests"] == 5
+    tool_output = next(
+        item
+        for item in result.response_items
+        if item.get("type") == "function_call_output"
+        and "Max turns (3) exceeded" in str(item.get("output"))
+    )
+    assert tool_output["output"]
     database.close()
 
 

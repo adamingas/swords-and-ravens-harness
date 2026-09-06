@@ -601,6 +601,8 @@ text transcription of that chart to the Supply section. See
 evidence and source database digests.
 
 The parent model receives the answer and must still call one gameplay tool.
+If the child oracle fails, its tool returns an error result to the parent. The
+child failure does not abort the parent's required game decision.
 The trace stores each completed oracle question, answer, section read, child
 response item, token count, response ID, and provider-reported cost. The
 harness keeps that oracle trace even if the parent call later fails or is
