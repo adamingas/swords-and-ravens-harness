@@ -237,6 +237,7 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
         self.tool_count = 0
         self.request_starts: dict[int, float] = {}
         self.tool_starts: dict[str, tuple[int, float]] = {}
+        self.responses: list[Any] = []
 
     async def on_llm_start(
         self,
@@ -267,6 +268,7 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
     ) -> None:
         if agent is not self.parent_agent:
             return
+        self.responses.append(response)
         request_index = self.request_count
         started_at = self.request_starts.pop(request_index, None)
         context.context.report_activity(
@@ -333,6 +335,27 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
                 "durationMs": _elapsed_milliseconds(started_at),
             },
         )
+
+
+def _capture_terminal_responses(model: Any, sink: list[Any]) -> None:
+    """Retain failed Responses API terminal payloads before the SDK raises."""
+
+    iterate = getattr(model, "_iter_websocket_response_events", None)
+    if not callable(iterate):
+        return
+
+    async def tracked(create_kwargs: dict[str, Any]):
+        async for event in iterate(create_kwargs):
+            if getattr(event, "type", None) in {
+                "response.failed",
+                "response.incomplete",
+            }:
+                response = getattr(event, "response", None)
+                if response is not None:
+                    sink.append(response)
+            yield event
+
+    model._iter_websocket_response_events = tracked
 
 
 def _tool_activity_key(context: Any, tool_name: str, fallback: int) -> str:
@@ -448,10 +471,12 @@ class OpenAIAgentRunner:
         session_item_count = await _session_item_count(session)
 
         oracle_interactions: list[dict[str, Any]] = []
+        terminal_responses: list[Any] = []
         try:
             model = OpenAIResponsesModel(
                 model=agent_record.model, openai_client=self.client
             )
+            _capture_terminal_responses(model, terminal_responses)
             run_config = RunConfig(
                 tracing_disabled=True,
                 workflow_name="Raven Harness action",
@@ -505,6 +530,15 @@ class OpenAIAgentRunner:
                 safe_error_text(error),
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
+
+        def partial_result() -> ModelRunResult:
+            return _partial_result(
+                oracle_interactions,
+                context_filter.manifest(),
+                parent_responses=activity_hooks.responses,
+                terminal_responses=terminal_responses,
+            )
+
         try:
             async with asyncio.timeout(self.run_timeout_seconds):
                 self._save_agent_checkpoint(
@@ -528,7 +562,7 @@ class OpenAIAgentRunner:
                 session, session_item_count, context=context
             )
             raise ModelRunCancelled(
-                _partial_result(oracle_interactions, context_filter.manifest())
+                partial_result()
             ) from error
         except TimeoutError:
             await _rollback_unaccepted_session(
@@ -539,7 +573,7 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(
                 message,
-                _partial_result(oracle_interactions, context_filter.manifest()),
+                partial_result(),
             ) from None
         except APITimeoutError:
             await _rollback_unaccepted_session(
@@ -552,7 +586,7 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(
                 message,
-                _partial_result(oracle_interactions, context_filter.manifest()),
+                partial_result(),
             ) from None
         except GameConnectionLost:
             await _rollback_unaccepted_session(
@@ -579,7 +613,7 @@ class OpenAIAgentRunner:
                 )
             raise error_type(
                 error_text,
-                _partial_result(oracle_interactions, context_filter.manifest()),
+                partial_result(),
             ) from None
 
         try:
@@ -594,7 +628,7 @@ class OpenAIAgentRunner:
             )
             raise ModelRunError(
                 safe_error_text(error),
-                _partial_result(oracle_interactions, context_filter.manifest()),
+                partial_result(),
             ) from None
         await _rollback_unaccepted_session(
             session, session_item_count, context=context
@@ -841,7 +875,11 @@ def _append_oracle_traces(
 
 
 def _partial_result(
-    interactions: list[dict[str, Any]], context_manifest: dict[str, Any]
+    interactions: list[dict[str, Any]],
+    context_manifest: dict[str, Any],
+    *,
+    parent_responses: list[Any] | None = None,
+    terminal_responses: list[Any] | None = None,
 ) -> ModelRunResult:
     response_items: list[dict[str, Any]] = []
     raw_usage: list[dict[str, Any]] = []
@@ -851,6 +889,50 @@ def _partial_result(
         "outputTokens": 0,
         "totalTokens": 0,
     }
+    for response in parent_responses or []:
+        response_usage = response.usage
+        usage["requests"] += int(response_usage.requests)
+        usage["inputTokens"] += int(response_usage.input_tokens)
+        usage["outputTokens"] += int(response_usage.output_tokens)
+        usage["totalTokens"] += int(response_usage.total_tokens)
+        native_usage = (
+            _jsonable(response.raw_usage) if response.raw_usage is not None else {}
+        )
+        native_usage["scope"] = "agent"
+        native_usage["response_id"] = response.response_id
+        raw_usage.append(native_usage)
+        response_items.append(
+            {
+                "type": "partial_model_response",
+                "status": "completed",
+                "responseId": response.response_id,
+                "output": [_jsonable(item) for item in response.output],
+            }
+        )
+    for response in terminal_responses or []:
+        response_usage = getattr(response, "usage", None)
+        usage["requests"] += 1
+        if response_usage is not None:
+            usage["inputTokens"] += int(response_usage.input_tokens)
+            usage["outputTokens"] += int(response_usage.output_tokens)
+            usage["totalTokens"] += int(response_usage.total_tokens)
+        native_usage = _jsonable(response_usage) if response_usage is not None else {}
+        native_usage["scope"] = "agent"
+        native_usage["response_id"] = getattr(response, "id", None)
+        raw_usage.append(native_usage)
+        response_items.append(
+            {
+                "type": "partial_model_response",
+                "status": getattr(response, "status", "failed"),
+                "responseId": getattr(response, "id", None),
+                "incompleteDetails": _jsonable(
+                    getattr(response, "incomplete_details", None)
+                ),
+                "output": [
+                    _jsonable(item) for item in getattr(response, "output", [])
+                ],
+            }
+        )
     _append_oracle_traces(response_items, raw_usage, interactions)
     for interaction in interactions:
         interaction_usage = interaction["usage"]

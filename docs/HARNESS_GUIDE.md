@@ -1029,6 +1029,10 @@ model set, model settings, provider routing, the base random seed, and the fixed
 house and user schedule.
 The same-model runner stops before the next sequential game when a completed
 game takes more than 120 seconds. Investigate that latency before resuming.
+Failed and cancelled turns retain usage from completed parent-model responses,
+oracle responses, and failed or incomplete Responses API terminal payloads.
+This keeps request, token, and cost totals attached to the attempt that incurred
+them.
 Each attempt records its own source, runtime, rules, model, and game-server
 provenance. Documentation commits do not change the runtime fingerprint. An
 interrupted attempt resumes only when its runtime provenance still matches.

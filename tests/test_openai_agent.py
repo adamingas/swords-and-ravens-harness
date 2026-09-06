@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 import hashlib
 import json
 import sqlite3
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -25,6 +26,8 @@ from raven_harness.models.openai_agent import (
     OpenAIAgentRunner,
     PermanentModelError,
     _SessionContextFilter,
+    _capture_terminal_responses,
+    _partial_result,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
 
@@ -65,6 +68,71 @@ class FakeClient:
                 [message["house"], "2"]
             )
         return self.snapshot
+
+
+class TerminalUsage:
+    requests = 1
+    input_tokens = 100
+    output_tokens = 16
+    total_tokens = 116
+
+    def model_dump(self, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "total_tokens": self.total_tokens,
+            "cost": 0.01,
+        }
+
+
+class TerminalEventModel:
+    async def _iter_websocket_response_events(self, _create_kwargs):
+        yield SimpleNamespace(type="response.created")
+        yield SimpleNamespace(
+            type="response.incomplete",
+            response=SimpleNamespace(
+                id="incomplete-1",
+                status="incomplete",
+                usage=TerminalUsage(),
+                incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+                output=[],
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
+    model = TerminalEventModel()
+    terminal_responses: list[Any] = []
+    _capture_terminal_responses(model, terminal_responses)
+
+    events = [
+        event async for event in model._iter_websocket_response_events({})
+    ]
+    result = _partial_result(
+        [], {}, terminal_responses=terminal_responses
+    )
+
+    assert [event.type for event in events] == [
+        "response.created",
+        "response.incomplete",
+    ]
+    assert result.usage == {
+        "requests": 1,
+        "inputTokens": 100,
+        "outputTokens": 16,
+        "totalTokens": 116,
+    }
+    assert result.raw_usage == [
+        {
+            "input_tokens": 100,
+            "output_tokens": 16,
+            "total_tokens": 116,
+            "cost": 0.01,
+            "scope": "agent",
+            "response_id": "incomplete-1",
+        }
+    ]
 
 
 class ToolCallingModel(Model):
@@ -870,8 +938,21 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     first_arguments["tools"] = tools
     first_arguments["max_turns"] = 3
 
-    with pytest.raises(ModelRunError, match="provider failed after note"):
+    with pytest.raises(ModelRunError, match="provider failed after note") as raised:
         await runner.run_once(**first_arguments)
+
+    partial = raised.value.partial_result
+    assert partial.usage == {
+        "requests": 1,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+    }
+    assert partial.raw_usage == [
+        {"scope": "agent", "response_id": "remember-response"}
+    ]
+    assert partial.response_items[0]["type"] == "partial_model_response"
+    assert partial.response_items[0]["responseId"] == "remember-response"
 
     with sqlite3.connect(database_path) as connection:
         assert connection.execute("SELECT COUNT(*) FROM agent_messages").fetchone() == (

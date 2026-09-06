@@ -314,9 +314,14 @@ class Rulebook:
                 "read_rulebook_sections with the smallest useful set of sections. "
                 "Use the official FAQ when it changes the base rulebook. Distinguish "
                 "a printed rule from a server-specific behavior. If the supplied "
-                "sections do not answer the question, say that you do not know. "
-                "Give a concise answer and cite section titles and page numbers. Do "
-                "not recommend a strategy or choose the player's game action."
+                "sections do not answer the question, say that you do not know. Do "
+                "not assume that facts in the player's question are true, and do not "
+                "claim to know the current board state. Before answering yes to a "
+                "legality question, check the supplied text for prohibitions and "
+                "exceptions. For a specific move, separate the general rule from the "
+                "board-state facts that the rule requires. Give a concise answer and "
+                "cite section titles and page numbers. Do not recommend a strategy or "
+                "choose the player's game action."
             ),
             model=model,
             tools=[read_rulebook_sections],

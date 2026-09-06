@@ -213,6 +213,8 @@ model requests without a harness concurrency limit. Reusing its output directory
 resumes incomplete games from their saved game and agent checkpoints.
 Its summary lists every completed, failed, and cancelled attempt. Request,
 token, and cost totals include partial attempts instead of only finished games.
+If a model run fails after one or more responses, those completed responses and
+the final failed or incomplete Responses API payload remain in the run metrics.
 If a completed game exceeds two minutes, the command stops before it starts the
 next game so the latency can be investigated.
 Each attempt records its exact runtime provenance. A documentation-only commit

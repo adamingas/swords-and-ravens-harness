@@ -68,6 +68,7 @@ class OracleThenActionModel(Model):
     ) -> None:
         self.outer_calls = 0
         self.oracle_calls = 0
+        self.oracle_instructions = ""
         self.fail_after_oracle = fail_after_oracle
         self.cancel_after_oracle = cancel_after_oracle
         self.oracle_never_finishes = oracle_never_finishes
@@ -75,6 +76,7 @@ class OracleThenActionModel(Model):
     async def get_response(self, *args: Any, **kwargs: Any) -> ModelResponse:
         names = {tool.name for tool in kwargs["tools"]}
         if names == {"read_rulebook_sections"}:
+            self.oracle_instructions = kwargs["system_instructions"]
             self.oracle_calls += 1
             if self.oracle_calls == 1 or self.oracle_never_finishes:
                 output: Any = ResponseFunctionToolCall(
@@ -214,6 +216,12 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
 
     assert fake_model.outer_calls == 2
     assert fake_model.oracle_calls == 2
+    assert "do not claim to know the current board state" in (
+        fake_model.oracle_instructions.lower()
+    )
+    assert "check the supplied text for prohibitions" in (
+        fake_model.oracle_instructions.lower()
+    )
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
     oracle_trace = next(
@@ -305,18 +313,21 @@ async def test_completed_oracle_trace_is_persisted_when_parent_run_fails(
         assert trace["status"] == "failed"
         assert trace["responseId"] is None
         assert trace["usage"] == {
-            "requests": 2,
-            "inputTokens": 40,
-            "outputTokens": 10,
-            "totalTokens": 50,
+            "requests": 3,
+            "inputTokens": 60,
+            "outputTokens": 15,
+            "totalTokens": 75,
         }
         oracle_trace = next(
             item for item in trace["response"] if item.get("type") == "rules_oracle"
         )
         assert oracle_trace["sectionIds"] == ["supply-and-mustering"]
         assert "not total units" in oracle_trace["answer"]
-        assert len(trace["rawUsage"]) == 2
-        assert all(item["scope"] == "rules-oracle" for item in trace["rawUsage"])
+        assert [item["scope"] for item in trace["rawUsage"]] == [
+            "agent",
+            "rules-oracle",
+            "rules-oracle",
+        ]
     finally:
         await harness.shutdown()
         database.close()
@@ -354,7 +365,7 @@ async def test_completed_oracle_trace_is_persisted_when_parent_run_is_cancelled(
         trace = store.get_run(record.id, store.list_runs(record.id)[0]["id"])
         assert trace is not None
         assert trace["status"] == "cancelled"
-        assert trace["usage"]["totalTokens"] == 50
+        assert trace["usage"]["totalTokens"] == 75
         assert any(
             item.get("type") == "rules_oracle" for item in trace["response"]
         )
