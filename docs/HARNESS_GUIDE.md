@@ -646,10 +646,11 @@ endpoint or query the database for experiment export.
 
 The dashboard header totals the agent count, model runs, failures, tokens, and
 provider-reported cost. Open an agent to see its available house cards and
-card abilities, public card availability for every house, units, controlled
-regions, public standings, occupied board regions, currently revealed orders,
-current action guidance, influence tracks, model usage, run traces, snapshots,
-and memory. Board rows are intentionally sparse: they contain only occupied,
+card abilities. The agent view also shows public card availability for every
+house, units, controlled regions, and public standings. It shows occupied board
+regions, currently revealed orders, current action guidance, and influence
+tracks. The remaining panels show model usage, run traces, snapshots, and
+memory. Board rows are intentionally sparse. They contain only occupied,
 garrisoned, controlled, or currently ordered regions.
 
 The dashboard distinguishes a live state from the latest saved state. A saved
@@ -672,9 +673,9 @@ observations, tool arguments, tool results, or credentials.
 
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
-token counts. Per-agent metrics report request-input distributions separately
-for the gameplay agent and rules oracle. This separates one provider request
-from an SDK run that can contain several requests.
+token counts. Per-agent metrics report separate request-input distributions for
+the gameplay agent and rules oracle. A provider request is not the same as an
+SDK run. One SDK run can contain several requests.
 
 The metrics response has these groups:
 

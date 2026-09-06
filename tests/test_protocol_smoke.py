@@ -176,7 +176,9 @@ def test_scripted_runner_fails_closed_with_dynamic_schema() -> None:
 
 
 @pytest.mark.asyncio
-async def test_real_server_protocol_smoke_writes_verified_artifacts(tmp_path) -> None:
+async def test_real_server_protocol_smoke_writes_verified_artifacts(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     if not (GAME_SERVER_DIR / "node_modules" / ".bin" / "ts-node").is_file():
         pytest.skip("upstream game-server dependencies are not installed")
     with socket.socket() as reservation:
@@ -184,6 +186,7 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(tmp_path) ->
         game_port = int(reservation.getsockname()[1])
 
     output = tmp_path / "protocol-smoke"
+    monkeypatch.setattr("raven_harness.evaluation.EVALUATION_ROOT", tmp_path)
     result = await run_protocol_smoke(
         argparse.Namespace(
             output=str(output),

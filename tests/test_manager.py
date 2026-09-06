@@ -528,6 +528,46 @@ async def test_manager_exposes_bounded_sanitized_live_activity(tmp_path) -> None
     database.close()
 
 
+def test_manager_marks_unfinished_saved_activity_as_interrupted(tmp_path) -> None:
+    database = Database(tmp_path / "interrupted-activity.db")
+    store = AgentStore(database)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Interrupted Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="private-agent-token",
+        )
+    )
+    store.add_event(
+        agent.id,
+        "model-run-started",
+        {"runId": "abandoned-run", "occurredAt": "2026-01-01T00:00:00Z"},
+    )
+    store.add_event(
+        agent.id,
+        "model-request-started",
+        {"runId": "abandoned-run", "occurredAt": "2026-01-01T00:00:01Z"},
+    )
+
+    restarted_manager = AgentManager(
+        store=store, harness=ContextManifestHarness()
+    )
+    activity = restarted_manager.get_runtime(agent.id).model_dump(by_alias=True)[
+        "recentActivity"
+    ]
+
+    assert [item["kind"] for item in activity] == [
+        "model-run-started",
+        "model-request-started",
+        "model-run-interrupted",
+    ]
+    assert activity[-1]["runId"] == "abandoned-run"
+    database.close()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("outcome", ["failed", "cancelled"])
 async def test_manager_persists_partial_result_context_manifest(

@@ -37,6 +37,7 @@ from .telemetry import Telemetry
 HOUSES = ["stark", "greyjoy", "lannister", "tyrell", "martell", "baratheon"]
 DEFAULT_RANDOM_SEED = 1
 RANDOM_SEED_NAMESPACE = "raven-harness-evaluation-v1"
+EVALUATION_ROOT = PROJECT_ROOT / "data" / "evaluations"
 GAME_SERVER_DIR = PROJECT_ROOT / "swords-and-ravens" / "agot-bg-game-server"
 MUTABLE_GAME_SAVE_PATH = (
     "agot-bg-game-server/src/server/website-client/local-entire-game.json"
@@ -140,7 +141,7 @@ def user_rotation(game_number: int) -> dict[str, str]:
 
 async def run_evaluation(args: argparse.Namespace) -> Path:
     settings = Settings()
-    if not settings.model_api_key:
+    if not settings.openrouter_token:
         raise RuntimeError("Set OPENROUTER_TOKEN before starting an evaluation")
     if not settings.resolved_rules_path.is_file():
         raise RuntimeError(
@@ -1638,11 +1639,28 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _resolve_output(value: str | None) -> Path:
+    return resolve_evaluation_output(value, default_prefix="")
+
+
+def resolve_evaluation_output(
+    value: str | None, *, default_prefix: str
+) -> Path:
+    root = EVALUATION_ROOT.resolve()
     if value:
         path = Path(value).expanduser()
-        return path.resolve() if path.is_absolute() else (PROJECT_ROOT / path).resolve()
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    return PROJECT_ROOT / "data" / "evaluations" / stamp
+        resolved = (
+            path.resolve() if path.is_absolute() else (PROJECT_ROOT / path).resolve()
+        )
+    else:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        resolved = root / f"{default_prefix}{stamp}"
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        raise RuntimeError(
+            f"Evaluation output must be inside {root}"
+        ) from None
+    return resolved
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -1660,7 +1678,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run resumable same-model Raven Harness evaluation games."
     )
-    parser.add_argument("--output", help="Artifact directory under the project root.")
+    parser.add_argument(
+        "--output", help="Artifact directory under data/evaluations."
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL_ID)
     parser.add_argument(
         "--random-seed",

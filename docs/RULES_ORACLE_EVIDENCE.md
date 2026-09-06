@@ -4,6 +4,13 @@ This report records why Raven Harness includes a rules oracle. The project did
 not add the oracle only because it seemed useful. Stored model runs showed that
 players repeated rule errors across failed model runs.
 
+The upstream Swords and Ravens repository does not contain the board-game
+rulebook or FAQ. Its only `rules.html` file contains platform conduct and
+community rules. It is not a source for game legality. The oracle therefore
+uses the publisher's official Fantasy Flight Games rulebook and FAQ PDFs.
+`src/raven_harness/rulebook.py` pins both source URLs and SHA-256 digests. The
+generated `data/rules.json` also records that source metadata.
+
 ## Evidence before the oracle
 
 The local trace database `data/match.db` contains model runs from 5 September
@@ -33,6 +40,10 @@ run IDs, pseudonymous players, times, state IDs, phases, and final rule errors.
 It does not contain observations, prompts, credentials, or model output. The
 following SQL selected the source rows. The extraction then read `stateId` and
 `phase` from `observation_json` and removed the generic tool-error prefix.
+
+The private source databases are intentionally ignored by Git. Regenerating
+the tracked extract requires those local databases. Check their recorded
+SHA-256 digests before using them so the source rows cannot change silently.
 
 ~~~sql
 SELECT id, agent_id, created_at, observation_json, error

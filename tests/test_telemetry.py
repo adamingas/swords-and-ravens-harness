@@ -8,6 +8,7 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
 
 from raven_harness.app import create_app
 from raven_harness.config import Settings
+from raven_harness.schemas import AgentCreate
 from raven_harness.telemetry import Telemetry, provider_cost
 
 
@@ -32,7 +33,7 @@ def test_telemetry_is_optional_and_provider_cost_is_aggregated() -> None:
 
 
 def test_application_lifespan_exports_and_flushes_otlp_http_protobuf(
-    tmp_path,
+    tmp_path, monkeypatch,
 ) -> None:
     received: list[dict[str, object]] = []
 
@@ -71,11 +72,36 @@ def test_application_lifespan_exports_and_flushes_otlp_http_protobuf(
             assert client.get("/api/health").json()[
                 "telemetryExportConfigured"
             ] is True
-            telemetry = client.app.state.manager.telemetry
-            with telemetry.tracer.start_as_current_span(
-                "raven.agent.decision"
-            ) as span:
-                span.set_attribute("raven.action", "choose_house")
+            agent = client.app.state.store.create_agent(
+                AgentCreate(
+                    name="Telemetry Wolf",
+                    model=settings.model_id,
+                    user_id="1",
+                    auth_token="test-token",
+                )
+            )
+
+            async def completed_run(agent_id: str) -> dict[str, object]:
+                assert agent_id == agent.id
+                return {
+                    "runId": "production-path-run",
+                    "decision": {
+                        "name": "choose_house",
+                        "usage": {
+                            "inputTokens": 10,
+                            "outputTokens": 2,
+                            "totalTokens": 12,
+                        },
+                    },
+                    "result": {"sentMessageTypes": ["choose-house"]},
+                }
+
+            monkeypatch.setattr(
+                client.app.state.manager, "_run_once", completed_run
+            )
+            response = client.post(f"/api/agents/{agent.id}/run")
+            assert response.status_code == 200
+            assert response.json()["runId"] == "production-path-run"
     finally:
         server.shutdown()
         server.server_close()
@@ -103,7 +129,9 @@ def test_application_lifespan_exports_and_flushes_otlp_http_protobuf(
     ]
     assert [span.name for span in spans] == ["raven.agent.decision"]
     span_attributes = {
-        attribute.key: attribute.value.string_value
-        for attribute in spans[0].attributes
+        attribute.key: attribute.value for attribute in spans[0].attributes
     }
-    assert span_attributes["raven.action"] == "choose_house"
+    assert span_attributes["raven.action"].string_value == "choose_house"
+    assert span_attributes["raven.run.id"].string_value == "production-path-run"
+    assert span_attributes["gen_ai.usage.input_tokens"].int_value == 10
+    assert span_attributes["gen_ai.usage.output_tokens"].int_value == 2

@@ -9,6 +9,7 @@ from raven_harness.evaluation import (
     PROMPT_CONFIGURATIONS,
     _effective_instructions,
     _evaluation_schedule,
+    _provider_attribution_summary,
     _sha256_text,
     _system_prompt,
     house_rotation,
@@ -30,6 +31,7 @@ EMPTY_METRICS = {
     "tokens": {"input": 10, "output": 2, "total": 12},
     "costUsd": 0.001,
 }
+EMPTY_PROVIDER_ATTRIBUTION = _provider_attribution_summary({"generations": []})
 
 
 def _prompt_provenance() -> list[dict[str, str]]:
@@ -93,12 +95,17 @@ def _completed_game(root, manifest, game_number: int) -> dict:
         "winner": winner,
         "round": 10,
         "standings": standings,
+        "providerAttribution": EMPTY_PROVIDER_ATTRIBUTION,
     }
     relative = f"game-{game_number:02d}/attempt-01"
     attempt_dir = root / relative
     _write_json(attempt_dir / "assignments.json", assignments)
     _write_json(attempt_dir / "game.json", _terminal_game(winner))
     _write_json(attempt_dir / "result.json", result)
+    _write_json(
+        attempt_dir / "provider-generations.json",
+        {"generations": [], **EMPTY_PROVIDER_ATTRIBUTION},
+    )
     Database(attempt_dir / "harness.db").close()
     manifest["games"][game_number - 1]["attempts"] = [
         {
@@ -305,6 +312,45 @@ def test_verifier_rejects_corrupt_harness_database(tmp_path) -> None:
     (root / "game-01/attempt-01/harness.db").write_bytes(b"not a sqlite database")
 
     with pytest.raises(EvaluationVerificationError, match="Cannot verify.*database"):
+        verify_evaluation(root)
+
+
+def test_verifier_rejects_missing_provider_attribution(tmp_path) -> None:
+    root = tmp_path / "missing-provider-attribution"
+    _evaluation(root, game_count=1, completed_games=1)
+    (root / "game-01/attempt-01/provider-generations.json").unlink()
+
+    with pytest.raises(EvaluationVerificationError, match="provider attribution"):
+        verify_evaluation(root)
+
+
+def test_verifier_rejects_unexpected_resolved_provider_model(tmp_path) -> None:
+    root = tmp_path / "resolved-model-mismatch"
+    _evaluation(root, game_count=1, completed_games=1)
+    generation = {
+        "runId": "run-1",
+        "agentId": "agent-1",
+        "configuration": "Balanced",
+        "responseId": "response-1",
+        "responseIndex": 0,
+        "provider": "Example",
+        "model": "another/model",
+        "costUsd": 0.001,
+        "latencyMs": 10,
+        "error": None,
+    }
+    summary = _provider_attribution_summary({"generations": [generation]})
+    _write_json(
+        root / "game-01/attempt-01/provider-generations.json",
+        {"generations": [generation], **summary},
+    )
+    result_path = root / "game-01/attempt-01/result.json"
+    result = json.loads(result_path.read_text())
+    result["providerAttribution"] = summary
+    _write_json(result_path, result)
+    _write_json(root / "summary.json", summarize_results([result]))
+
+    with pytest.raises(EvaluationVerificationError, match="unexpected model"):
         verify_evaluation(root)
 
 

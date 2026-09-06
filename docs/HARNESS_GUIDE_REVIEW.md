@@ -119,9 +119,10 @@ The reviewer found no high-severity issue.
 
 The initial test used an in-memory provider and did not prove application
 lifecycle wiring. The production-path test now starts the FastAPI lifespan
-with an OTLP/HTTP endpoint, emits a decision span through the manager's tracer,
-and exits the lifespan. A local collector verifies the flushed protobuf, the
-service and project resource attributes, the span name, and its action.
+with an OTLP/HTTP endpoint. It invokes the agent-run API and lets
+`AgentManager.run_once()` create the decision span. The test then exits the
+lifespan. A local collector verifies the flushed protobuf, service and project
+resource attributes, span name, action, run ID, and token counts.
 
 The in-app browser still could not initialize for this revision. Automated
 desktop and narrow-width visual verification remains incomplete. Static

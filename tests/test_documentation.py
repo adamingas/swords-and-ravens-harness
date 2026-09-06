@@ -11,10 +11,13 @@ from raven_harness.rulebook import RULES_ORACLE_TOOL_NAME
 
 def test_harness_guide_lists_exact_model_visible_tool_catalog() -> None:
     guide = (PROJECT_ROOT / "docs" / "HARNESS_GUIDE.md").read_text()
-    documented = set(re.findall(r"^\| `?([a-z][a-z0-9_]*)\(", guide, re.MULTILINE))
-    documented.update(
+    documented_names = re.findall(
+        r"^\| `?([a-z][a-z0-9_]*)\(", guide, re.MULTILINE
+    )
+    documented_names.extend(
         re.findall(r"^### ([a-z][a-z0-9_]*)\(", guide, re.MULTILINE)
     )
+    documented = set(documented_names)
     registered = {
         *_TOOL_CATALOG,
         *(tool.name for tool in GAMEPLAY_TOOLS),
@@ -22,6 +25,7 @@ def test_harness_guide_lists_exact_model_visible_tool_catalog() -> None:
         RULES_ORACLE_TOOL_NAME,
     }
 
+    assert len(documented_names) == len(documented)
     assert documented == registered
 
 

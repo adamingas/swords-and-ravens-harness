@@ -39,6 +39,11 @@ _MODEL_ACTIVITY_KINDS = {
     "model-tool-started",
     "model-tool-completed",
 }
+_TERMINAL_MODEL_ACTIVITY_KINDS = {
+    "model-run-completed",
+    "model-run-failed",
+    "model-run-cancelled",
+}
 
 
 @dataclass
@@ -141,7 +146,15 @@ class AgentManager:
             newest_first.append({"kind": event.kind, **event.payload})
             if len(newest_first) == 8:
                 break
-        return list(reversed(newest_first))
+        activity = list(reversed(newest_first))
+        if activity and activity[-1]["kind"] not in _TERMINAL_MODEL_ACTIVITY_KINDS:
+            activity.append(
+                {
+                    "kind": "model-run-interrupted",
+                    "runId": latest_run_id,
+                }
+            )
+        return activity[-8:]
 
     async def start(self, agent_id: str) -> AgentPublic:
         existing = self.sessions.get(agent_id)

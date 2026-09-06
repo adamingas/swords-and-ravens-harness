@@ -32,6 +32,7 @@ from raven_harness.evaluation import (
     derive_game_seed,
     house_rotation,
     run_evaluation,
+    resolve_evaluation_output,
     summarize_results,
     user_rotation,
 )
@@ -89,6 +90,22 @@ def test_twelve_game_schedule_has_stable_distinct_uint32_seeds() -> None:
     assert len(set(seeds)) == 12
     assert all(0 <= seed <= 0xFFFFFFFF for seed in seeds)
     assert seeds != [game["randomSeed"] for game in _evaluation_schedule(12, 1)]
+
+
+def test_evaluation_output_must_stay_in_the_repository_data_directory(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    evaluation_root = tmp_path / "data" / "evaluations"
+    monkeypatch.setattr(
+        "raven_harness.evaluation.EVALUATION_ROOT", evaluation_root
+    )
+
+    allowed = evaluation_root / "comparison"
+    assert resolve_evaluation_output(
+        str(allowed), default_prefix=""
+    ) == allowed
+    with pytest.raises(RuntimeError, match="must be inside"):
+        resolve_evaluation_output(str(tmp_path / "outside"), default_prefix="")
 
 
 @pytest.mark.asyncio
@@ -421,6 +438,22 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
     with pytest.raises(RuntimeError, match="quota rejected"):
         await run_evaluation(args)
     assert not output.exists()
+
+
+@pytest.mark.asyncio
+async def test_evaluation_requires_openrouter_even_with_direct_openai_key(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    settings = Settings(
+        rules_path=tmp_path / "rules.json",
+        openrouter_token="",
+        openai_api_key="direct-openai-key",
+        _env_file=None,
+    )
+    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda: settings)
+
+    with pytest.raises(RuntimeError, match="Set OPENROUTER_TOKEN"):
+        await run_evaluation(argparse.Namespace())
 
 
 def _test_git(directory, *arguments: str) -> None:

@@ -19,6 +19,7 @@ from .evaluation import (
     MUTABLE_GAME_SAVE_PATH,
     _git_provenance,
     _write_json,
+    resolve_evaluation_output,
     run_game,
 )
 from .harness.actions import HarnessRunContext
@@ -892,11 +893,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
 
 
 def _resolve_output(value: str | None) -> Path:
-    if value:
-        path = Path(value).expanduser()
-        return path.resolve() if path.is_absolute() else (PROJECT_ROOT / path).resolve()
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    return PROJECT_ROOT / "data" / "evaluations" / f"protocol-smoke-{stamp}"
+    return resolve_evaluation_output(value, default_prefix="protocol-smoke-")
 
 
 def _now() -> str:
@@ -909,7 +906,9 @@ def build_parser() -> argparse.ArgumentParser:
             "Run a deterministic six-player two-round protocol smoke without model calls."
         )
     )
-    parser.add_argument("--output", help="New artifact directory under the project root.")
+    parser.add_argument(
+        "--output", help="New artifact directory under data/evaluations."
+    )
     parser.add_argument("--game-port", type=int, default=5102)
     parser.add_argument("--stall-seconds", type=float, default=30, help=argparse.SUPPRESS)
     parser.add_argument("--timeout-seconds", type=float, default=180, help=argparse.SUPPRESS)

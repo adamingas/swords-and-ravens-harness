@@ -513,6 +513,9 @@ function activityDescription(activity) {
   }
   if (activity.kind === "model-run-failed") return "Run failed";
   if (activity.kind === "model-run-cancelled") return "Run cancelled";
+  if (activity.kind === "model-run-interrupted") {
+    return "Run interrupted before this server started";
+  }
   if (activity.kind === "model-request-started") {
     return "Waiting for model response" + request;
   }

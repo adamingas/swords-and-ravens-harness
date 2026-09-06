@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from collections import Counter
@@ -13,6 +14,7 @@ from .evaluation import (
     HOUSES,
     PROMPT_CONFIGURATIONS,
     _effective_instructions,
+    _provider_attribution_summary,
     _sha256_text,
     _system_prompt,
     _terminal_winner,
@@ -46,6 +48,8 @@ def verify_evaluation(
     assignment_models: set[str] = set()
     status_counts: Counter[str] = Counter()
     checked_databases = 0
+    provider_counts: Counter[str] = Counter()
+    resolved_models: set[str] = set()
 
     for game in games:
         game_number = int(game["number"])
@@ -121,6 +125,24 @@ def verify_evaluation(
                 prompt_hashes=prompt_hashes,
             )
         )
+        provider_summary, game_resolved_models = _validate_provider_attribution(
+            artifact=_read_json_object(
+                attempt_dir / "provider-generations.json",
+                f"game {game_number} provider attribution",
+            ),
+            result=result,
+            game_number=game_number,
+            manifest_model=model,
+        )
+        provider_counts.update(
+            {
+                "requested": provider_summary["requestedCount"],
+                "attributed": provider_summary["attributedCount"],
+                "modelAttributed": provider_summary["modelAttributedCount"],
+                "unavailable": provider_summary["unavailableCount"],
+            }
+        )
+        resolved_models.update(game_resolved_models)
         _sqlite_quick_check(
             attempt_dir / "harness.db", label=f"game {game_number} harness database"
         )
@@ -160,6 +182,13 @@ def verify_evaluation(
             for status in ("completed", "failed", "running")
         },
         "checkedDatabases": checked_databases,
+        "providerAttribution": {
+            "requestedCount": provider_counts["requested"],
+            "attributedCount": provider_counts["attributed"],
+            "modelAttributedCount": provider_counts["modelAttributed"],
+            "unavailableCount": provider_counts["unavailable"],
+            "resolvedModels": sorted(resolved_models),
+        },
         "summaryMatches": True,
         "requiredObservationsPerConfigurationHouse": expected_summary[
             "requiredObservationsPerConfigurationHouse"
@@ -178,6 +207,79 @@ def verify_evaluation(
             f"{expected_summary['requiredObservationsPerConfigurationHouse']}"
         )
     return report
+
+
+def _validate_provider_attribution(
+    *,
+    artifact: dict[str, Any],
+    result: dict[str, Any],
+    game_number: int,
+    manifest_model: str,
+) -> tuple[dict[str, Any], set[str]]:
+    generations = artifact.get("generations")
+    if not isinstance(generations, list) or not all(
+        isinstance(item, dict) for item in generations
+    ):
+        raise EvaluationVerificationError(
+            f"Game {game_number} provider generations must be a list of objects"
+        )
+    expected_summary = _provider_attribution_summary({"generations": generations})
+    for key, expected in expected_summary.items():
+        if artifact.get(key) != expected:
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider attribution has an invalid {key}"
+            )
+    if result.get("providerAttribution") != expected_summary:
+        raise EvaluationVerificationError(
+            f"Game {game_number} result provider attribution does not match its "
+            "provider artifact"
+        )
+
+    configuration_names = {item.name for item in PROMPT_CONFIGURATIONS}
+    identities: set[tuple[str, str]] = set()
+    resolved_models: set[str] = set()
+    for generation in generations:
+        run_id = generation.get("runId")
+        response_id = generation.get("responseId")
+        configuration = generation.get("configuration")
+        if not isinstance(run_id, str) or not run_id:
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider generation has no run ID"
+            )
+        if not isinstance(response_id, str) or not response_id:
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider generation has no response ID"
+            )
+        identity = (run_id, response_id)
+        if identity in identities:
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider generation is duplicated"
+            )
+        identities.add(identity)
+        if configuration not in configuration_names:
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider generation has an unknown configuration"
+            )
+        resolved_model = generation.get("model")
+        if resolved_model is None:
+            continue
+        if not isinstance(resolved_model, str) or not _resolved_model_matches(
+            manifest_model, resolved_model
+        ):
+            raise EvaluationVerificationError(
+                f"Game {game_number} provider resolved unexpected model "
+                f"{resolved_model!r}"
+            )
+        resolved_models.add(resolved_model)
+    return expected_summary, resolved_models
+
+
+def _resolved_model_matches(requested: str, resolved: str) -> bool:
+    """Accept the requested OpenRouter ID or its dated immutable revision."""
+
+    return resolved == requested or bool(
+        re.fullmatch(re.escape(requested) + r"-\d{8}", resolved)
+    )
 
 
 def _validate_manifest(
