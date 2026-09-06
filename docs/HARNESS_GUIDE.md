@@ -179,6 +179,8 @@ snapshot. Autoplay remains enabled, but a decision from the old connection
 generation cannot send tools through the new socket. The harness never replays
 an action whose delivery or acknowledgement is ambiguous; it makes another
 decision only if the fresh snapshot still requires one.
+The retry loop stops if the game server rejects authentication and marks the
+session as banned. Correct the saved user ID or token, then reconnect manually.
 
 This recovery applies while the harness process remains running. Agent records
 and trace rows survive a Python harness restart, but WebSocket connections,
@@ -302,13 +304,13 @@ without a garrison, control token, or revealed order do not appear in board.
 Use map for adjacency and printed board features. Use board for current pieces,
 control, and revealed orders.
 
-House-card status is derived only from cards present in this player's upstream
-snapshot. It exposes the card faces that the normal client shows as available.
-It reports used and disabled totals without copying their card identities. If
-the upstream server hides a house's cards, detailsVisible is false and the
-dashboard does not infer them. revealedOrders reads only ordersOnBoard, which
-the server fills after orders are revealed. It never copies private
-planning.placedOrders into that field.
+House-card status uses only cards present in this player's upstream snapshot.
+It exposes the card faces that the normal client shows as available and reports
+used and disabled totals without copying hidden card identities. When the
+upstream server hides a house's cards, `detailsVisible` is false and the harness
+does not infer them. The harness builds `revealedOrders` only from
+`ordersOnBoard`, which the server fills after orders are revealed. It never
+copies private `planning.placedOrders` into that public field.
 
 This shortened planning observation shows the shape. A real observation
 contains the complete map, all public houses, the full sparse board, the
@@ -645,9 +647,10 @@ While a run is active, the agent card shows whether the harness waits for a
 model response or invokes a tool. It also shows the last five lifecycle steps.
 The Overview tab shows the last eight steps for the current or most recent
 run. These steps survive a server restart because they use `agent_events`.
-They contain only bounded metadata: run and response IDs, request and tool
-sequence numbers, tool names, duration, and token totals. They do not contain
-prompts, observations, tool arguments, tool results, or credentials.
+They contain only bounded metadata: occurrence time, run and response IDs,
+model and phase, offered tool names, request and tool sequence numbers, input
+and output item counts, duration, and token totals. They do not contain prompts,
+observations, tool arguments, tool results, or credentials.
 
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
@@ -682,7 +685,7 @@ A run detail includes this context manifest:
 | removedSupportToolItemCount; removedSupportToolCharacters | Old recall, strategy-note, and oracle call/result items removed from the request. |
 | selectedHistoryItems | History items selected by the harness callback. The SDK can still normalize, deduplicate, or prune these items. |
 | currentInputItemCount; currentInputCharacters; currentInputSha256 | Size and fingerprint of the one current observation input. |
-| modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. It also fingerprints the instructions. The SDK can still deduplicate items afterward. This is not a hash of tools, settings, metadata, model ID, or provider serialization. |
+| modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. The field also fingerprints the instructions. The SDK can still deduplicate items afterward. It is not a hash of tools, settings, metadata, model ID, or provider serialization. |
 
 The current observation itself is stored beside the manifest. The manifest
 does not store API keys. Recorded duration begins before observation
@@ -696,6 +699,8 @@ exponential backoff. A reconnect authentication response is the authoritative
 player-scoped resynchronization. The harness never replays an action whose send
 or acknowledgement was interrupted; it starts a fresh decision only after the
 new snapshot shows that the player still needs to act.
+The retry loop ends if authentication is rejected and the runtime becomes
+`banned`. Fix the saved credentials and reconnect manually.
 
 A zero cost value can mean that a provider omitted its cost field. It does not
 always mean that the request was free. Git ignores root `data/*.db`,

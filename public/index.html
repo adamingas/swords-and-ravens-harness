@@ -13,7 +13,13 @@
         <h1>Raven Harness</h1>
         <p class="subtitle">Seat model-driven players at the same table as humans.</p>
       </div>
-      <div id="api-status" class="api-status">Checking model configuration…</div>
+      <div
+        id="api-status"
+        class="api-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >Checking model configuration…</div>
     </header>
 
     <main>
@@ -38,15 +44,15 @@
         <h3>No agents at the table</h3>
         <p>Create your first agent and give it a Swords &amp; Ravens player identity.</p>
       </section>
-      <section id="agent-grid" class="agent-grid" aria-live="polite"></section>
+      <section id="agent-grid" class="agent-grid"></section>
     </main>
 
-    <dialog id="agent-dialog">
+    <dialog id="agent-dialog" aria-labelledby="agent-dialog-title">
       <form id="agent-form">
         <div class="dialog-heading">
           <div>
             <p class="eyebrow">NEW PLAYER</p>
-            <h2>Create an agent</h2>
+            <h2 id="agent-dialog-title">Create an agent</h2>
           </div>
           <button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button>
         </div>
@@ -95,7 +101,7 @@
       </form>
     </dialog>
 
-    <dialog id="details-dialog" class="details-dialog">
+    <dialog id="details-dialog" class="details-dialog" aria-labelledby="details-title">
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">PLAYER VIEW</p>
@@ -103,18 +109,24 @@
         </div>
         <button type="button" class="icon-button" id="close-details" aria-label="Close">×</button>
       </div>
-      <div class="detail-tabs">
-        <button class="tab active" data-tab="overview">Overview</button>
-        <button class="tab" data-tab="observation">Observation</button>
-        <button class="tab" data-tab="tools">Available tools</button>
-        <button class="tab" data-tab="memory">Memory</button>
-        <button class="tab" data-tab="history">History</button>
-        <button class="tab" data-tab="snapshots">Snapshots</button>
-        <button class="tab" data-tab="metrics">Metrics</button>
-        <button class="tab" data-tab="runs">Runs</button>
-        <button class="tab" data-tab="events">Events</button>
+      <div class="detail-tabs" role="tablist" aria-label="Agent details">
+        <button id="details-tab-overview" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="details-content" data-tab="overview">Overview</button>
+        <button id="details-tab-observation" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="observation">Observation</button>
+        <button id="details-tab-tools" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="tools">Available tools</button>
+        <button id="details-tab-memory" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="memory">Memory</button>
+        <button id="details-tab-history" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="history">History</button>
+        <button id="details-tab-snapshots" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="snapshots">Snapshots</button>
+        <button id="details-tab-metrics" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="metrics">Metrics</button>
+        <button id="details-tab-runs" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="runs">Runs</button>
+        <button id="details-tab-events" class="tab" type="button" role="tab" aria-selected="false" aria-controls="details-content" tabindex="-1" data-tab="events">Events</button>
       </div>
-      <div id="details-content" class="details-content">Loading…</div>
+      <div
+        id="details-content"
+        class="details-content"
+        role="tabpanel"
+        aria-labelledby="details-tab-overview"
+        tabindex="0"
+      >Loading…</div>
     </dialog>
 
     <template id="agent-template">

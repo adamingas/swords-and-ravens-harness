@@ -78,6 +78,7 @@ h3 { margin-bottom: 5px; font-size: 1.45rem; }
 
 .api-status.ready { color: #b9d4ad; border-color: #466344; }
 .api-status.missing { color: #e4bd78; border-color: #6e5733; }
+.api-status.error { color: #ed9b91; border-color: #7d403a; }
 
 main { padding: 38px 0 80px; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
@@ -148,7 +149,9 @@ button { cursor: pointer; }
 .status { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; }
 .status i { width: 7px; height: 7px; border-radius: 50%; background: #6d7068; }
 .status.connected i { background: var(--green); box-shadow: 0 0 9px var(--green); }
-.status.running i, .status.connecting i { background: var(--gold); box-shadow: 0 0 9px var(--gold); }
+.status.running i,
+.status.connecting i,
+.status.reconnecting i { background: var(--gold); box-shadow: 0 0 9px var(--gold); }
 .status.error i, .status.disconnected i, .status.banned i { background: var(--danger); }
 
 .menu-button, .icon-button, .tab {
@@ -247,6 +250,10 @@ dd { margin: 0; overflow: hidden; text-overflow: ellipsis; font-size: .84rem; wh
 
 @keyframes pulse {
   50% { opacity: .55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-flag.thinking { animation: none; }
 }
 
 .empty-state { padding: 90px 20px; text-align: center; border: 1px dashed var(--line); border-radius: 8px; }
@@ -378,7 +385,7 @@ pre {
   white-space: pre-wrap;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 680px) {
   .site-header { min-height: 200px; padding-top: 35px; align-items: flex-start; flex-direction: column; }
   main, .site-header { width: min(100% - 24px, 1180px); }
   .toolbar { align-items: flex-start; flex-direction: column; }

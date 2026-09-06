@@ -4,6 +4,8 @@ const template = document.querySelector("#agent-template");
 const agentDialog = document.querySelector("#agent-dialog");
 const detailsDialog = document.querySelector("#details-dialog");
 const form = document.querySelector("#agent-form");
+const apiStatus = document.querySelector("#api-status");
+const detailTabs = [...document.querySelectorAll(".tab")];
 let monitors = [];
 let detailsAgentId = null;
 let detailsTab = "overview";
@@ -17,12 +19,17 @@ document.querySelector("#new-agent").addEventListener("click", () => agentDialog
 document.querySelector("#close-dialog").addEventListener("click", () => agentDialog.close());
 document.querySelector("#cancel-dialog").addEventListener("click", () => agentDialog.close());
 document.querySelector("#close-details").addEventListener("click", () => detailsDialog.close());
-document.querySelectorAll(".tab").forEach((button) => {
-  button.addEventListener("click", async () => {
-    detailsTab = button.dataset.tab;
-    detailsRunId = null;
-    setActiveTab();
-    await loadDetails();
+detailTabs.forEach((button, index) => {
+  button.addEventListener("click", () => selectDetailsTab(button));
+  button.addEventListener("keydown", (event) => {
+    let nextIndex;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % detailTabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + detailTabs.length) % detailTabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = detailTabs.length - 1;
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    selectDetailsTab(detailTabs[nextIndex], { focus: true });
   });
 });
 
@@ -61,14 +68,15 @@ async function refreshDashboard() {
   ]);
   monitors = nextMonitors;
   render();
-  const status = document.querySelector("#api-status");
   const provider = health.modelApiConfigured
     ? health.modelProvider + " ready"
     : health.modelProvider + " key missing";
   const rules = health.rulesOracleAvailable ? "rules ready" : "rules unavailable";
   const traces = health.telemetryExportConfigured ? "OTLP export on" : "local traces";
-  status.textContent = provider + " · " + rules + " · " + traces;
-  status.className = "api-status " + (health.modelApiConfigured ? "ready" : "missing");
+  setDashboardStatus(
+    provider + " · " + rules + " · " + traces,
+    health.modelApiConfigured ? "ready" : "missing",
+  );
   if (detailsDialog.open) await loadDetails({ showLoading: false });
 }
 
@@ -119,7 +127,13 @@ function render() {
     const decisionPathLabel = node.querySelector(".decision-path-label");
     const decisionPathValue = node.querySelector(".decision-path-value");
     const currentActivity = agent.runtime.currentActivity;
-    if (agent.runtime.status === "running") {
+    if (agent.runtime.status === "reconnecting") {
+      turnFlag.textContent = "Reconnecting";
+      turnFlag.classList.add("thinking");
+      decisionName.textContent = "Waiting for the game server";
+      decisionPathLabel.textContent = "Last state: ";
+      decisionPathValue.textContent = (state?.statePath || []).join(" › ") || "Unavailable";
+    } else if (agent.runtime.status === "running") {
       turnFlag.textContent = elapsedLabel(agent.runtime.runStartedAt);
       turnFlag.classList.add("thinking");
       decisionName.textContent = currentActivity
@@ -157,9 +171,10 @@ function render() {
 
     const connect = node.querySelector(".connect");
     const connected = ["connected", "running"].includes(agent.runtime.status);
-    connect.textContent = connected ? "Disconnect" : "Connect";
+    const started = connected || agent.runtime.status === "reconnecting";
+    connect.textContent = started ? "Disconnect" : "Connect";
     connect.disabled = ["connecting", "running"].includes(agent.runtime.status);
-    connect.addEventListener("click", () => perform(agent.id, connected ? "stop" : "start"));
+    connect.addEventListener("click", () => perform(agent.id, started ? "stop" : "start"));
 
     const run = node.querySelector(".run");
     const canChooseLobbyHouse = agent.runtime.phase === "lobby";
@@ -266,9 +281,24 @@ async function inspect(agentId) {
 }
 
 function setActiveTab() {
-  document.querySelectorAll(".tab").forEach((candidate) => {
-    candidate.classList.toggle("active", candidate.dataset.tab === detailsTab);
+  detailTabs.forEach((candidate) => {
+    const active = candidate.dataset.tab === detailsTab;
+    candidate.classList.toggle("active", active);
+    candidate.setAttribute("aria-selected", String(active));
+    candidate.tabIndex = active ? 0 : -1;
   });
+  document.querySelector("#details-content").setAttribute(
+    "aria-labelledby",
+    "details-tab-" + detailsTab,
+  );
+}
+
+async function selectDetailsTab(button, { focus = false } = {}) {
+  detailsTab = button.dataset.tab;
+  detailsRunId = null;
+  setActiveTab();
+  if (focus) button.focus();
+  await loadDetails();
 }
 
 async function loadDetails({ showLoading = true } = {}) {
@@ -878,7 +908,16 @@ async function api(url, options = {}) {
   return body;
 }
 
-loadModels().then(refresh).catch((error) => {
-  document.querySelector("#api-status").textContent = error.message;
-});
-setInterval(() => refresh().catch(() => {}), 2500);
+function setDashboardStatus(message, state) {
+  if (apiStatus.textContent !== message) apiStatus.textContent = message;
+  apiStatus.className = "api-status " + state;
+  if (state !== "error") apiStatus.removeAttribute("title");
+}
+
+function reportDashboardFailure(error) {
+  setDashboardStatus("Dashboard unavailable · showing last state", "error");
+  apiStatus.title = error.message;
+}
+
+loadModels().then(refresh).catch(reportDashboardFailure);
+setInterval(() => refresh().catch(reportDashboardFailure), 2500);
