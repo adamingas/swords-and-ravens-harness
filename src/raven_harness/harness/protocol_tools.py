@@ -814,7 +814,6 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         move_properties = schema["$defs"]["UnitMove"]["properties"]
         move_properties["destination_region_id"]["enum"] = destinations
         move_properties["unit_ids"]["items"]["enum"] = unit_ids
-        move_properties["unit_ids"]["uniqueItems"] = True
     elif tool.name == "resolve_consolidate_power":
         options = legal_consolidate_power_options(context)
         properties["region_id"]["enum"] = [item["regionId"] for item in options]
@@ -865,7 +864,6 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         region_units = schema["$defs"]["RegionUnits"]["properties"]
         region_units["region_id"]["enum"] = region_ids
         region_units["unit_ids"]["items"]["enum"] = possible_units
-        region_units["unit_ids"]["uniqueItems"] = True
     elif tool.name == "select_region":
         regions = (context.leaf or {}).get("regions")
         if isinstance(regions, list):

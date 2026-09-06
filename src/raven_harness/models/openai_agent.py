@@ -43,7 +43,7 @@ class OpenAIAgentRunner:
         run_timeout_seconds: float = 300,
         max_retries: int = 2,
         max_concurrency: int = 1,
-        max_output_tokens: int = 8_192,
+        max_output_tokens: int = 16_384,
         session_database_path: Path | None = None,
         session_history_items: int = 32,
         provider_routing: dict[str, Any] | None = None,

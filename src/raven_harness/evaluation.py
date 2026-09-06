@@ -269,11 +269,7 @@ async def run_game(
             session_database_path=database_path,
             session_history_items=settings.model_session_history_items,
             provider_routing=(
-                {
-                    "sort": settings.openrouter_provider_sort,
-                    "allow_fallbacks": settings.openrouter_allow_fallbacks,
-                    "require_parameters": settings.openrouter_require_parameters,
-                }
+                settings.openrouter_provider_routing
                 if settings.model_provider == "OpenRouter"
                 else None
             ),
@@ -821,11 +817,7 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             "resetToolChoice": False,
             "rulesOracleMaxOutputTokens": 900,
             "providerRouting": (
-                {
-                    "sort": settings.openrouter_provider_sort,
-                    "allowFallbacks": settings.openrouter_allow_fallbacks,
-                    "requireParameters": settings.openrouter_require_parameters,
-                }
+                settings.openrouter_provider_routing
                 if settings.model_provider == "OpenRouter"
                 else None
             ),

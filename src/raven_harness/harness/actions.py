@@ -453,12 +453,10 @@ def _tool_for_action(action: ActionSpec) -> FunctionTool:
         properties["region_ids"]["items"]["enum"] = region_ids
         properties["region_ids"]["minItems"] = legal["count"]
         properties["region_ids"]["maxItems"] = legal["count"]
-        properties["region_ids"]["uniqueItems"] = True
     elif action.name == "submit_orders":
         assignments = properties["assignments"]
         assignments["minItems"] = len(legal["region_ids"])
         assignments["maxItems"] = len(legal["region_ids"])
-        assignments["uniqueItems"] = True
         assignment_properties = schema["$defs"]["OrderAssignment"]["properties"]
         assignment_properties["region_id"]["enum"] = legal["region_ids"]
         restricted = set(legal["restricted_orders"])

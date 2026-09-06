@@ -57,11 +57,7 @@ def create_app(
             session_database_path=settings.resolved_database_path,
             session_history_items=settings.model_session_history_items,
             provider_routing=(
-                {
-                    "sort": settings.openrouter_provider_sort,
-                    "allow_fallbacks": settings.openrouter_allow_fallbacks,
-                    "require_parameters": settings.openrouter_require_parameters,
-                }
+                settings.openrouter_provider_routing
                 if settings.model_provider == "OpenRouter"
                 else None
             ),

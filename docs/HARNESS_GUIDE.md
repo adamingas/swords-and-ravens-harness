@@ -513,6 +513,15 @@ MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
 MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
 MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
+OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
+defaults to DeepInfra, Cloudflare, and Together. OpenRouter tries those hosts in
+order and uses the same list as an allow-list by default. Host fallback remains
+enabled within that list, and the OpenAI client retries the ordered pool on
+retryable failures. Set `OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit
+other same-model hosts. OPENROUTER_PROVIDER_SORT is used only when the explicit
+order is empty. `OPENROUTER_REQUIRE_PARAMETERS` remains available for simpler
+request shapes, but it is off by default because OpenRouter rejects the Agents
+SDK request when this filter is enabled.
 
 | Mechanism | Default |
 | --- | ---: |
@@ -526,7 +535,7 @@ MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
 | Concurrent model runs | 1 |
 | Parent Agents SDK turns | 6 |
 | Rules-oracle turns | 3 |
-| Maximum model output | 8,192 tokens |
+| Maximum model output | 16,384 tokens |
 | Recent conversation window | 32 SDK items |
 
 For a controlled harness comparison, assign the same exact model ID to all

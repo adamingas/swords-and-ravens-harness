@@ -22,6 +22,31 @@ def test_default_relative_data_paths_are_project_local() -> None:
     assert settings.resolved_rules_path == PROJECT_ROOT / "data/test-rules.json"
 
 
+def test_openrouter_routing_prefers_compatible_hosts() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.openrouter_provider_routing == {
+        "allow_fallbacks": True,
+        "require_parameters": False,
+        "order": ["deepinfra", "cloudflare", "together"],
+        "only": ["deepinfra", "cloudflare", "together"],
+    }
+
+
+def test_openrouter_routing_uses_sort_when_order_is_empty() -> None:
+    settings = Settings(
+        openrouter_provider_order="",
+        openrouter_provider_sort="latency",
+        _env_file=None,
+    )
+
+    assert settings.openrouter_provider_routing == {
+        "allow_fallbacks": True,
+        "require_parameters": False,
+        "sort": "latency",
+    }
+
+
 def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
     app = create_app(
         Settings(database_path=tmp_path / "api.db", openai_api_key=""),

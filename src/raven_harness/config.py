@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,8 +30,10 @@ class Settings(BaseSettings):
     model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_api_max_retries: int = Field(default=2, ge=0, le=10)
     model_max_concurrency: int = Field(default=1, ge=1, le=32)
-    model_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
+    model_max_output_tokens: int = Field(default=16_384, ge=256, le=65_536)
     model_session_history_items: int = Field(default=32, ge=4, le=1_000)
+    openrouter_provider_order: str = "deepinfra,cloudflare,together"
+    openrouter_allow_unlisted_providers: bool = False
     openrouter_provider_sort: str = Field(
         default="throughput", pattern="^(price|throughput|latency)$"
     )
@@ -60,3 +63,22 @@ class Settings(BaseSettings):
     @property
     def model_provider(self) -> str:
         return "OpenRouter" if self.openrouter_token else "OpenAI"
+
+    @property
+    def openrouter_provider_routing(self) -> dict[str, Any]:
+        order = _comma_separated(self.openrouter_provider_order)
+        routing: dict[str, Any] = {
+            "allow_fallbacks": self.openrouter_allow_fallbacks,
+            "require_parameters": self.openrouter_require_parameters,
+        }
+        if order:
+            routing["order"] = order
+            if not self.openrouter_allow_unlisted_providers:
+                routing["only"] = order
+        else:
+            routing["sort"] = self.openrouter_provider_sort
+        return routing
+
+
+def _comma_separated(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
