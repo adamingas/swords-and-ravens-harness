@@ -760,7 +760,8 @@ provider key-management identifiers.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
 defaults to Reka, Cloudflare, CoreWeave, Fireworks, DeepInfra, and Together.
 OpenRouter tries those hosts in order and uses the same list as an allow-list
-by default.
+by default. Reka is first because it completed the existing GLM tool-call
+smoke runs.
 Host fallback remains enabled within that list, and the OpenAI client retries
 the ordered pool on retryable failures. Set
 `OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit other same-model hosts.
@@ -885,17 +886,18 @@ uv run raven-verify-evaluation --require-complete \
   data/evaluations/glm-prompt-comparison
 ~~~
 
-The verifier checks the manifest and rotation, completed result and assignment
-files, the terminal saved winner, each SQLite database, the single model ID,
-and the recomputed summary. A valid partial run exits successfully and reports
-`provisional`. `--require-complete` exits with status 2 until 12 games are
-complete and every configuration-house pair has two observations. Invalid or
-corrupt artifacts exit with status 1.
+The verifier checks the manifest, seeds and rotation, completed result and
+assignment files, the terminal saved winner, each SQLite database, the single
+model ID, and the recomputed summary. A valid partial run exits successfully
+and reports `provisional`. `--require-complete` exits with status 2 until 12
+games are complete and every configuration-house pair has two observations.
+Invalid or corrupt artifacts exit with status 1.
 
 Then run the complete comparison:
 
 ~~~bash
 uv run raven-evaluate --games 12 \
+  --random-seed 1 \
   --output data/evaluations/glm-prompt-comparison
 ~~~
 
@@ -903,11 +905,19 @@ The runner starts one isolated TypeScript server at port 5101 for each game.
 Each attempt contains `game.json`, `harness.db`, assignments, progress,
 `provider-generations.json`, a server log, and a result or failure record. The
 provider artifact is collected best-effort for completed and failed games. The
-manifest records source commits,
-prompt and rules hashes, model settings, provider routing, and the fixed house
-and user schedule. API keys are not recorded. Reusing the same output directory
+manifest records source commits, prompt and rules hashes, model settings,
+provider routing, the base random seed, and the fixed house and user schedule.
+The evaluator derives a distinct uint32 seed for each game and reuses it for
+every attempt of that game. The game result records the exact seed, and the
+verifier checks it against the schedule. Client-only hidden-deck shuffles use a
+separate secure source, so connects and reconnects do not consume the gameplay
+random stream. API keys are not recorded. Reusing the same output directory
 preserves failed attempts, skips completed games, and starts a new attempt for
 the next incomplete game.
+
+The seed makes fresh game-server randomness reproducible. It does not make the
+model provider deterministic. Restoring an arbitrary mid-game save also does
+not restore the process-local random-generator position.
 
 The provenance check ignores only the upstream local saved-game JSON because
 normal play changes that file. It still rejects changes to harness source,

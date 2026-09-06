@@ -35,6 +35,8 @@ from .telemetry import Telemetry
 
 
 HOUSES = ["stark", "greyjoy", "lannister", "tyrell", "martell", "baratheon"]
+DEFAULT_RANDOM_SEED = 1
+RANDOM_SEED_NAMESPACE = "raven-harness-evaluation-v1"
 GAME_SERVER_DIR = PROJECT_ROOT / "swords-and-ravens" / "agot-bg-game-server"
 MUTABLE_GAME_SAVE_PATH = (
     "agot-bg-game-server/src/server/website-client/local-entire-game.json"
@@ -187,6 +189,7 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
                 game_number=game_number,
                 attempt_dir=attempt_dir,
                 model=args.model,
+                random_seed=int(game_entry["randomSeed"]),
                 game_port=args.game_port,
                 max_rounds=args.max_rounds,
                 poll_seconds=args.poll_seconds,
@@ -232,6 +235,7 @@ async def run_game(
     game_number: int,
     attempt_dir: Path,
     model: str,
+    random_seed: int,
     game_port: int,
     max_rounds: int | None,
     poll_seconds: float,
@@ -276,6 +280,7 @@ async def run_game(
             game_path=game_path,
             port=game_port,
             max_rounds=max_rounds,
+            random_seed=random_seed,
             log=server_log,
         )
         await _wait_for_server(process, game_port, timeout=20)
@@ -372,6 +377,7 @@ async def run_game(
         )
         completed_result = _build_game_result(
             game_number=game_number,
+            random_seed=random_seed,
             winner=winner,
             assignments=assignments,
             game_document=game_document,
@@ -422,7 +428,12 @@ async def run_game(
 
 
 async def _start_game_server(
-    *, game_path: Path, port: int, max_rounds: int | None, log: BinaryIO
+    *,
+    game_path: Path,
+    port: int,
+    max_rounds: int | None,
+    random_seed: int,
+    log: BinaryIO,
 ) -> asyncio.subprocess.Process:
     executable = GAME_SERVER_DIR / "node_modules" / ".bin" / "ts-node"
     if not executable.is_file():
@@ -436,6 +447,7 @@ async def _start_game_server(
             "NODE_ENV": "development",
             "PORT": str(port),
             "LOCAL_GAME_PATH": str(game_path),
+            "HARNESS_RANDOM_SEED": str(_require_uint32(random_seed)),
         }
     )
     if max_rounds is not None:
@@ -1063,6 +1075,7 @@ async def _stop_process(process: asyncio.subprocess.Process) -> None:
 def _build_game_result(
     *,
     game_number: int,
+    random_seed: int,
     winner: str,
     assignments: list[dict[str, str]],
     game_document: dict[str, Any],
@@ -1125,6 +1138,7 @@ def _build_game_result(
         standing["placement"] = placement
     return {
         "gameNumber": game_number,
+        "randomSeed": _require_uint32(random_seed),
         "completedAt": _now(),
         "winner": winner,
         "round": game.get("turn"),
@@ -1139,7 +1153,7 @@ def _load_manifest(
     if path.is_file():
         manifest = json.loads(path.read_text())
         schema_version = manifest.get("schemaVersion")
-        if schema_version != 2:
+        if schema_version != 3:
             raise RuntimeError(
                 "Existing evaluation manifest uses unsupported schema version "
                 f"{schema_version!r}; start a new evaluation directory"
@@ -1151,22 +1165,27 @@ def _load_manifest(
         existing_provenance = manifest.get("provenance")
         if not isinstance(existing_provenance, dict):
             raise RuntimeError(
-                "Existing evaluation manifest has no schema-2 provenance; start a "
+                "Existing evaluation manifest has no schema-3 provenance; start a "
                 "new evaluation directory"
             )
         _validate_reproducible_provenance(existing_provenance, provenance)
-        _validate_evaluation_schedule(manifest.get("games"), args.games)
+        if manifest.get("randomSeed") != args.random_seed:
+            raise RuntimeError("Existing evaluation manifest uses another random seed")
+        _validate_evaluation_schedule(
+            manifest.get("games"), args.games, args.random_seed
+        )
         return manifest
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "createdAt": _now(),
         "outputDirectory": str(output),
         "model": args.model,
         "gameCount": args.games,
+        "randomSeed": args.random_seed,
         "maxRounds": args.max_rounds,
         "configurations": [item.model_dump() for item in PROMPT_CONFIGURATIONS],
         "provenance": provenance,
-        "games": _evaluation_schedule(args.games),
+        "games": _evaluation_schedule(args.games, args.random_seed),
     }
     _write_json(path, manifest)
     return manifest
@@ -1230,6 +1249,7 @@ def _build_provenance(args: argparse.Namespace, settings: Settings) -> dict[str,
             ),
         },
         "evaluation": {
+            "randomSeed": args.random_seed,
             "gamePort": args.game_port,
             "maxRounds": args.max_rounds,
             "pollSeconds": args.poll_seconds,
@@ -1370,10 +1390,45 @@ def _sanitized_base_url(value: str) -> str:
     return f"{parsed.scheme}://{host}{parsed.path}".rstrip("/")
 
 
-def _evaluation_schedule(game_count: int) -> list[dict[str, Any]]:
+def derive_game_seed(base_seed: int, game_number: int) -> int:
+    """Derive a stable uint32 seed for one scheduled game."""
+
+    base_seed = _require_uint32(base_seed)
+    if not 1 <= game_number <= 12:
+        raise ValueError("game_number must be from 1 through 12")
+    material = f"{RANDOM_SEED_NAMESPACE}:{base_seed}:{game_number}".encode()
+    return int.from_bytes(hashlib.sha256(material).digest()[:4], "big")
+
+
+def _require_uint32(value: Any) -> int:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not 0 <= value <= 0xFFFFFFFF
+    ):
+        raise ValueError("random seed must be an integer from 0 through 4294967295")
+    return value
+
+
+def _parse_random_seed(value: str) -> int:
+    if not value.isascii() or not value.isdecimal():
+        raise argparse.ArgumentTypeError(
+            "random seed must be a decimal integer from 0 through 4294967295"
+        )
+    try:
+        return _require_uint32(int(value, 10))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
+
+
+def _evaluation_schedule(
+    game_count: int, base_seed: int = DEFAULT_RANDOM_SEED
+) -> list[dict[str, Any]]:
+    base_seed = _require_uint32(base_seed)
     return [
         {
             "number": number,
+            "randomSeed": derive_game_seed(base_seed, number),
             "rotation": house_rotation(number),
             "users": user_rotation(number),
             "attempts": [],
@@ -1382,18 +1437,24 @@ def _evaluation_schedule(game_count: int) -> list[dict[str, Any]]:
     ]
 
 
-def _validate_evaluation_schedule(value: Any, game_count: int) -> None:
-    expected = _evaluation_schedule(game_count)
+def _validate_evaluation_schedule(
+    value: Any, game_count: int, base_seed: int = DEFAULT_RANDOM_SEED
+) -> None:
+    expected = _evaluation_schedule(game_count, base_seed)
     if not isinstance(value, list) or len(value) != len(expected):
         raise RuntimeError("Existing evaluation manifest has a different schedule")
     for actual_game, expected_game in zip(value, expected, strict=True):
         if any(
             actual_game.get(key) != expected_game[key]
-            for key in ("number", "rotation", "users")
+            for key in ("number", "randomSeed", "rotation", "users")
         ):
             raise RuntimeError(
-                "Existing evaluation manifest has a different house or user schedule"
+                "Existing evaluation manifest has a different seed, house, or user "
+                "schedule"
             )
+    seeds = [game["randomSeed"] for game in expected]
+    if len(seeds) != len(set(seeds)):
+        raise RuntimeError("Evaluation schedule contains duplicate random seeds")
 
 
 def _game_entry(manifest: dict[str, Any], number: int) -> dict[str, Any]:
@@ -1601,6 +1662,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", help="Artifact directory under the project root.")
     parser.add_argument("--model", default=DEFAULT_MODEL_ID)
+    parser.add_argument(
+        "--random-seed",
+        type=_parse_random_seed,
+        default=DEFAULT_RANDOM_SEED,
+        help="Base uint32 seed used to derive one stable seed per game (default: 1).",
+    )
     parser.add_argument("--games", type=int, default=12, choices=range(1, 13))
     parser.add_argument("--start-game", type=int, default=1, choices=range(1, 13))
     parser.add_argument("--game-port", type=int, default=5101)

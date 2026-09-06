@@ -198,6 +198,8 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(tmp_path) ->
     game_result = json.loads((output / "result.json").read_text())
     assert smoke["status"] == "completed"
     assert smoke["providerRequests"] == 0
+    assert smoke["randomSeed"] == 1
+    assert game_result["randomSeed"] == smoke["randomSeed"]
     assert smoke["winner"] == game_result["winner"]
     assert set(smoke["toolCoverage"]["invoked"]) >= REQUIRED_TOOL_COVERAGE
     assert smoke["toolCoverage"]["required"] == REQUIRED_TOOL_COUNTS

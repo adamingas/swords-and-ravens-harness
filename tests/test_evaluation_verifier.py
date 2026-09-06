@@ -89,6 +89,7 @@ def _completed_game(root, manifest, game_number: int) -> dict:
     winner = standings[0]["house"]
     result = {
         "gameNumber": game_number,
+        "randomSeed": manifest["games"][game_number - 1]["randomSeed"],
         "winner": winner,
         "round": 10,
         "standings": standings,
@@ -112,9 +113,10 @@ def _completed_game(root, manifest, game_number: int) -> dict:
 
 def _evaluation(root, *, game_count: int, completed_games: int) -> None:
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "model": MODEL,
         "gameCount": game_count,
+        "randomSeed": 1,
         "configurations": [
             configuration.model_dump() for configuration in PROMPT_CONFIGURATIONS
         ],
@@ -123,7 +125,7 @@ def _evaluation(root, *, game_count: int, completed_games: int) -> None:
             "prompts": _prompt_provenance(),
             "rules": {},
             "model": {"id": MODEL},
-            "evaluation": {},
+            "evaluation": {"randomSeed": 1},
         },
         "games": _evaluation_schedule(game_count),
     }
@@ -226,7 +228,31 @@ def test_verifier_rejects_assignment_model_mismatch(tmp_path) -> None:
         verify_evaluation(root)
 
 
-def test_verifier_rejects_missing_schema_two_provenance(tmp_path) -> None:
+def test_verifier_rejects_result_random_seed_mismatch(tmp_path) -> None:
+    root = tmp_path / "seed-mismatch"
+    _evaluation(root, game_count=1, completed_games=1)
+    result_path = root / "game-01/attempt-01/result.json"
+    result = json.loads(result_path.read_text())
+    result["randomSeed"] ^= 1
+    _write_json(result_path, result)
+
+    with pytest.raises(EvaluationVerificationError, match="random seed"):
+        verify_evaluation(root)
+
+
+def test_verifier_rejects_schedule_random_seed_mismatch(tmp_path) -> None:
+    root = tmp_path / "schedule-seed-mismatch"
+    _evaluation(root, game_count=1, completed_games=0)
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["games"][0]["randomSeed"] ^= 1
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(EvaluationVerificationError, match="different seed"):
+        verify_evaluation(root)
+
+
+def test_verifier_rejects_missing_schema_three_provenance(tmp_path) -> None:
     root = tmp_path / "missing-provenance"
     _evaluation(root, game_count=1, completed_games=1)
     manifest_path = root / "manifest.json"

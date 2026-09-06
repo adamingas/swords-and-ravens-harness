@@ -184,7 +184,7 @@ def _validate_manifest(
     manifest: dict[str, Any],
 ) -> tuple[str, int, list[dict[str, Any]], dict[str, str]]:
     schema_version = manifest.get("schemaVersion")
-    if schema_version != 2:
+    if schema_version != 3:
         raise EvaluationVerificationError(
             f"Unsupported evaluation manifest schemaVersion: {schema_version!r}"
         )
@@ -195,6 +195,11 @@ def _validate_manifest(
     if not _is_int(game_count) or not 1 <= game_count <= 12:
         raise EvaluationVerificationError(
             "Manifest gameCount must be an integer from 1 through 12"
+        )
+    random_seed = manifest.get("randomSeed")
+    if not _is_int(random_seed) or not 0 <= random_seed <= 0xFFFFFFFF:
+        raise EvaluationVerificationError(
+            "Manifest randomSeed must be an integer from 0 through 4294967295"
         )
     configurations = manifest.get("configurations")
     expected_configurations = [
@@ -211,11 +216,15 @@ def _validate_manifest(
         for key in ("repositories", "rules", "model", "evaluation")
     ):
         raise EvaluationVerificationError(
-            "Schema-2 manifest provenance is missing a required object"
+            "Schema-3 manifest provenance is missing a required object"
         )
     if provenance["model"].get("id") != model:
         raise EvaluationVerificationError(
             "Manifest model does not match provenance.model.id"
+        )
+    if provenance["evaluation"].get("randomSeed") != random_seed:
+        raise EvaluationVerificationError(
+            "Manifest randomSeed does not match provenance.evaluation.randomSeed"
         )
     prompt_entries = provenance.get("prompts")
     if not isinstance(prompt_entries, list) or len(prompt_entries) != 6 or not all(
@@ -264,7 +273,7 @@ def _validate_manifest(
         prompt_hashes[configuration_name] = effective_hash
     games = manifest.get("games")
     try:
-        _validate_evaluation_schedule(games, game_count)
+        _validate_evaluation_schedule(games, game_count, random_seed)
     except (AttributeError, RuntimeError, TypeError, ValueError) as error:
         raise EvaluationVerificationError(str(error)) from None
     assert isinstance(games, list)
@@ -342,6 +351,10 @@ def _validate_completed_game(
     if not _is_int(result.get("gameNumber")) or result.get("gameNumber") != game_number:
         raise EvaluationVerificationError(
             f"Game {game_number} result has another game number"
+        )
+    if result.get("randomSeed") != game.get("randomSeed"):
+        raise EvaluationVerificationError(
+            f"Game {game_number} result random seed does not match its schedule"
         )
     winner = result.get("winner")
     if winner not in HOUSES:

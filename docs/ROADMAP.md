@@ -66,6 +66,8 @@ stage as completion of the full objective.
 - Rotate houses so each prompt configuration plays each house at least twice.
   This requires at least 12 complete games when each game contains all six
   configurations.
+- Derive and record one stable gameplay seed per game. Reuse the same seed when
+  a failed game is retried.
 - Preserve all game snapshots, agent traces, token use, cost, failures, and
   seat assignments.
 - Produce configuration rankings that include match wins, placement or score,

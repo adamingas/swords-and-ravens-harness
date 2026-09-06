@@ -142,7 +142,9 @@ OTEL_SERVICE_NAME=raven-harness
 OpenRouter takes precedence when both API keys exist. `MODEL_ID` is applied to
 every agent created by this harness server. The default provider order is a
 six-host fallback pool and does not fall through to unlisted hosts. The OpenAI
-client retries the pool twice on retryable failures.
+client retries the pool twice on retryable failures. Reka is first because it
+completed the existing GLM tool-call smoke runs; every fallback still serves
+the same requested model ID.
 MODEL_MAX_CONCURRENCY applies to all agents in the Python process. The sort
 setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
 
@@ -188,6 +190,7 @@ uv run raven-protocol-smoke
 uv run raven-evaluate --games 1 --max-rounds 1 \
   --output data/evaluations/glm-one-round-smoke
 uv run raven-evaluate --games 12 \
+  --random-seed 1 \
   --output data/evaluations/glm-prompt-comparison
 ~~~
 
@@ -209,9 +212,11 @@ The first command accepts an internally consistent partial evaluation and
 labels it `provisional`. The second exits unsuccessfully unless all 12 games
 and both observations for every configuration-house pair are present.
 
-Reusing an output directory skips completed games and preserves failed
-attempts. The manifest rejects changes to the model, prompts, schedule, source
-commits, rules, or runtime settings. Before it creates a new attempt, the
-runner stops if OpenRouter reports that the configured key has exhausted its
-spending limit. The summary labels rankings as provisional until all 12 games
-are complete and every configuration has played each house twice.
+The evaluator derives one game seed from `--random-seed` and the game number.
+It records that seed and reuses it for every retry of that game. Reusing an
+output directory skips completed games and preserves failed attempts. The
+manifest rejects changes to the model, prompts, seed, schedule, source commits,
+rules, or runtime settings. Before it creates a new attempt, the runner stops
+if OpenRouter reports that the configured key has exhausted its spending
+limit. The summary labels rankings as provisional until all 12 games are
+complete and every configuration has played each house twice.

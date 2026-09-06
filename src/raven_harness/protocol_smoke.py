@@ -27,6 +27,7 @@ from .schemas import AgentRecord
 
 
 SMOKE_MODEL_ID = "deterministic-protocol-smoke"
+PROTOCOL_SMOKE_RANDOM_SEED = 1
 ORDER_PLAN = ("march", "raid", "consolidate_power", "support", "defense")
 REQUIRED_TOOL_COVERAGE = {
     "choose_combat_house_card",
@@ -799,6 +800,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
         "status": "running",
         "startedAt": _now(),
         "providerRequests": 0,
+        "randomSeed": PROTOCOL_SMOKE_RANDOM_SEED,
         "maxRounds": 2,
         "repositories": {
             "root": _git_provenance(PROJECT_ROOT, ignore_dirty_submodules=True),
@@ -823,6 +825,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
             game_number=1,
             attempt_dir=output,
             model=SMOKE_MODEL_ID,
+            random_seed=PROTOCOL_SMOKE_RANDOM_SEED,
             game_port=args.game_port,
             max_rounds=2,
             poll_seconds=0.1,

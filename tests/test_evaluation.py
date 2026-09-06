@@ -24,10 +24,12 @@ from raven_harness.evaluation import (
     _preflight_openrouter_quota,
     _progress_signature,
     _require_sqlite_quick_check,
+    _start_game_server,
     _terminal_winner,
     _validate_evaluation_schedule,
     _validate_winner_house,
     _wait_for_terminal_game_document,
+    derive_game_seed,
     house_rotation,
     run_evaluation,
     summarize_results,
@@ -73,8 +75,53 @@ def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() 
     _validate_evaluation_schedule(schedule, 12)
 
     schedule[0]["users"]["Balanced"] = "2"
-    with pytest.raises(RuntimeError, match="different house or user schedule"):
+    with pytest.raises(RuntimeError, match="different seed, house, or user schedule"):
         _validate_evaluation_schedule(schedule, 12)
+
+
+def test_twelve_game_schedule_has_stable_distinct_uint32_seeds() -> None:
+    first = _evaluation_schedule(12, 0)
+    repeated = _evaluation_schedule(12, 0)
+    seeds = [game["randomSeed"] for game in first]
+
+    assert first == repeated
+    assert seeds == [derive_game_seed(0, number) for number in range(1, 13)]
+    assert len(set(seeds)) == 12
+    assert all(0 <= seed <= 0xFFFFFFFF for seed in seeds)
+    assert seeds != [game["randomSeed"] for game in _evaluation_schedule(12, 1)]
+
+
+@pytest.mark.asyncio
+async def test_game_server_receives_the_exact_scheduled_seed(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    game_server_dir = tmp_path / "game-server"
+    executable = game_server_dir / "node_modules" / ".bin" / "ts-node"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("")
+    captured: dict = {}
+    expected_process = object()
+
+    async def create_subprocess_exec(*command, **options):
+        captured["command"] = command
+        captured["options"] = options
+        return expected_process
+
+    monkeypatch.setattr(
+        "raven_harness.evaluation.GAME_SERVER_DIR", game_server_dir
+    )
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_subprocess_exec)
+    with (tmp_path / "server.log").open("wb") as log:
+        process = await _start_game_server(
+            game_path=tmp_path / "game.json",
+            port=5101,
+            max_rounds=None,
+            random_seed=4294967295,
+            log=log,
+        )
+
+    assert process is expected_process
+    assert captured["options"]["env"]["HARNESS_RANDOM_SEED"] == "4294967295"
 
 
 def test_load_manifest_rejects_legacy_schema_without_modifying_it(
@@ -91,7 +138,9 @@ def test_load_manifest_rejects_legacy_schema_without_modifying_it(
     monkeypatch.setattr(
         "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
     )
-    args = argparse.Namespace(model="z-ai/glm-5.3-flash", games=12)
+    args = argparse.Namespace(
+        model="z-ai/glm-5.3-flash", games=12, random_seed=1
+    )
 
     with pytest.raises(RuntimeError, match="unsupported schema version 1"):
         _load_manifest(path, args, tmp_path, Settings(_env_file=None))
@@ -99,23 +148,26 @@ def test_load_manifest_rejects_legacy_schema_without_modifying_it(
     assert json.loads(path.read_text()) == legacy
 
 
-def test_load_manifest_rejects_schema_two_without_provenance(
+def test_load_manifest_rejects_schema_three_without_provenance(
     tmp_path, monkeypatch
 ) -> None:
     path = tmp_path / "manifest.json"
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "model": "z-ai/glm-5.3-flash",
         "gameCount": 12,
+        "randomSeed": 1,
         "games": _evaluation_schedule(12),
     }
     path.write_text(json.dumps(manifest))
     monkeypatch.setattr(
         "raven_harness.evaluation._build_provenance", lambda _args, _settings: {}
     )
-    args = argparse.Namespace(model="z-ai/glm-5.3-flash", games=12)
+    args = argparse.Namespace(
+        model="z-ai/glm-5.3-flash", games=12, random_seed=1
+    )
 
-    with pytest.raises(RuntimeError, match="no schema-2 provenance"):
+    with pytest.raises(RuntimeError, match="no schema-3 provenance"):
         _load_manifest(path, args, tmp_path, Settings(_env_file=None))
 
 
@@ -168,6 +220,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     )
     args = argparse.Namespace(
         model="z-ai/glm-5.3-flash",
+        random_seed=1,
         game_port=5101,
         max_rounds=None,
         poll_seconds=1.0,
@@ -193,6 +246,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
         for item in provenance["prompts"]
     )
     assert provenance["model"]["id"] == "z-ai/glm-5.3-flash"
+    assert provenance["evaluation"]["randomSeed"] == 1
     assert provenance["model"]["maxConcurrency"] == 3
     serialized = str(provenance)
     assert "do-not-record-this-token" not in serialized
@@ -353,6 +407,7 @@ async def test_quota_preflight_runs_before_evaluation_output_is_created(
     args = argparse.Namespace(
         output=str(output),
         model="z-ai/glm-5.3-flash",
+        random_seed=1,
         games=1,
         start_game=1,
         game_port=5101,
