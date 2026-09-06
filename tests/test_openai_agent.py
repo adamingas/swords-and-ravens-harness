@@ -265,7 +265,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
     assert runner.client.max_retries == 4
-    assert fake_model.model_settings.tool_choice == "auto"
+    assert fake_model.model_settings.tool_choice == "required"
     assert fake_model.model_settings.extra_body == {
         "provider": {
             "sort": "throughput",

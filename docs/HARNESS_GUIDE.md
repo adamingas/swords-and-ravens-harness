@@ -915,11 +915,11 @@ The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
 provider allow-list; they use one tournament routing policy that allows
 fallbacks and selects hosts by throughput. Other compatible endpoints receive
-no OpenRouter routing fields. The common request uses `tool_choice=auto` on the
-first attempt so a model can use memory or the rules oracle. A reduced-tool
-retry uses `required`. The retry sends the complete current observation without
-older SDK history. The manager still rejects a response that does not take a
-game action.
+no OpenRouter routing fields. Every decision request uses
+`tool_choice=required`. Memory and the rules oracle remain available as tools.
+A reduced-tool retry sends the complete current observation without older SDK
+history. The manager still rejects a nonconforming response that does not take
+a game action.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for
 the model and current tool set. Rules-oracle calls use a separate key for the

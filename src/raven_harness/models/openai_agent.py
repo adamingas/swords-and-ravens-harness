@@ -435,7 +435,6 @@ class OpenAIAgentRunner:
             observation, separators=(",", ":")
         )
         is_retry = bool(observation.get("previousAttemptError"))
-        parent_tool_choice = "required" if is_retry else "auto"
         context_filter = _SessionContextFilter(
             session_history_limit=self.session_history_items,
             current_input=current_input,
@@ -496,7 +495,7 @@ class OpenAIAgentRunner:
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
                     user=agent_record.id,
-                    tool_choice=parent_tool_choice,
+                    tool_choice="required",
                 ),
                 tool_use_behavior=_stop_after_accepted_action(stop_at_tool_names),
                 reset_tool_choice=False,

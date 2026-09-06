@@ -340,10 +340,7 @@ def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
     assert len(provenance["harness"]["systemPromptSha256"]) == 64
     assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
     assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
-    assert provenance["harness"]["toolChoice"] == {
-        "initial": "auto",
-        "retry": "required",
-    }
+    assert provenance["harness"]["toolChoice"] == "required"
     assert provenance["harness"]["retryHistoryMode"] == (
         "current-observation-only"
     )

@@ -242,13 +242,12 @@ once before it schedules attempts. When OpenRouter is configured, its adapter
 also checks key limits, account credits, and advertised tool-call support. The
 tournament ignores `MODEL_ID`. OpenRouter runs replace the dashboard provider
 allow-list with one common tournament routing policy; other compatible
-endpoints receive no OpenRouter-specific request fields. The shared request
-uses `tool_choice=auto` on the first attempt so models can use memory or the
-rules oracle. A reduced-tool retry uses `required`. The retry sends only the
-complete current observation, not old action-history items. The manager still
-rejects a response with no game action. Stable provider prompt-cache keys are
-sent for player and rules-oracle calls. The harness has no local response
-cache. The summary reports cached input tokens
+endpoints receive no OpenRouter-specific request fields. Every decision request
+uses `tool_choice=required`; memory and the rules oracle remain available as
+tools. A reduced-tool retry sends only the complete current observation, not
+old action-history items. The manager still rejects a nonconforming response
+with no game action. Stable provider prompt-cache keys are sent for player and
+rules-oracle calls. The harness has no local response cache. The summary reports cached input tokens
 when a provider returns them.
 
 The default is fail-fast. Use `--continue-on-error` to let sibling games
