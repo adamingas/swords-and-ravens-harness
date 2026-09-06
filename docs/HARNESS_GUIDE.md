@@ -315,7 +315,7 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | strategicOverview | A deterministic score and resource summary. |
 | strategicMemory | The player's private structured notebook. |
 | historyIndex | A compact index of the current recorded decision state and earlier decision states. |
-| planningConstraints | Starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
+| planningConstraints | Exact regions that can receive an order, starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
 | previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
 | retryInstruction | Present with a prior error. It tells the model to use the function-tool mechanism instead of printing a tool-shaped JSON object. |
 
@@ -364,6 +364,7 @@ automatic notebook, and up to 12 history entries.
   },
   "historyIndex": [{"stateId": "leaf-2", "phase": "place-orders"}],
   "planningConstraints": {
+    "eligibleRegionIds": ["winterfell", "white-harbor"],
     "requiredAssignmentCount": 2,
     "maxStarredOrders": 1,
     "maxAssignmentsByOrderCategory": {
@@ -449,6 +450,9 @@ regions than usable base-game tokens, it is smaller and the model chooses which
 regions receive no order. When normal tokens are exhausted, the server permits
 the minimum necessary restricted tokens; the harness sends normally legal
 tokens before those forced dummy orders.
+`planningConstraints.eligibleRegionIds` lists the exact occupied regions that
+can receive an order. This list can be smaller than `you.controlledRegions`
+because a house can control an empty region with a power token.
 `planningConstraints.maxAssignmentsByOrderCategory` and the state-specific
 tool description give the usable maximum for each family in the current state.
 

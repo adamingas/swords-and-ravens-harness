@@ -26,7 +26,11 @@ def gameplay_tool_error(
 
     if isinstance(error, GameConnectionLost):
         raise error
-    return default_tool_error_function(ctx, error)
+    message = default_tool_error_function(ctx, error)
+    context = getattr(ctx, "context", None)
+    if isinstance(context, HarnessRunContext):
+        context.last_tool_error = message
+    return message
 
 
 class OrderCategory(str, Enum):
@@ -163,6 +167,7 @@ class HarnessRunContext:
     activity_sink: Callable[[str, dict[str, Any]], None] | None = None
     action_taken: ActionTaken | None = None
     pending_strategy_note: str | None = None
+    last_tool_error: str | None = None
     connection_generation: int = field(init=False)
 
     def __post_init__(self) -> None:

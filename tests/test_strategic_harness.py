@@ -230,6 +230,10 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
         "consolidate_power": 2,
         "raid": 2,
     }
+    assert prepared.observation["planningConstraints"]["eligibleRegionIds"] == [
+        "winterfell",
+        "white-harbor",
+    ]
     submit_schema = next(
         tool.params_json_schema for tool in prepared.tools if tool.name == "submit_orders"
     )

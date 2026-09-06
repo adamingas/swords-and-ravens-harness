@@ -574,8 +574,14 @@ class OpenAIAgentRunner:
                 if is_permanent_provider_error(error)
                 else ModelRunError
             )
+            error_text = safe_error_text(error)
+            if context.last_tool_error:
+                error_text = (
+                    f"{error_text}; last tool error: "
+                    f"{safe_error_text(context.last_tool_error)}"
+                )
             raise error_type(
-                safe_error_text(error),
+                error_text,
                 _partial_result(oracle_interactions, context_filter.manifest()),
             ) from None
 

@@ -119,6 +119,25 @@ class CorrectingToolCallingModel(ToolCallingModel):
         )
 
 
+class RepeatingInvalidToolCallingModel(ToolCallingModel):
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        self.model_settings = kwargs["model_settings"]
+        self.inputs.append(kwargs["input"])
+        self.call_count += 1
+        return ModelResponse(
+            output=[
+                ResponseFunctionToolCall(
+                    arguments='{"house_id":"greyjoy"}',
+                    call_id=f"invalid-call-{self.call_count}",
+                    name="choose_house",
+                    type="function_call",
+                )
+            ],
+            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
+            response_id=f"invalid-response-{self.call_count}",
+        )
+
+
 class FailingModel(Model):
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         raise RuntimeError("provider failed")
@@ -454,6 +473,34 @@ async def test_tool_validation_error_can_be_corrected_in_the_same_run(
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
     ]
+
+
+@pytest.mark.asyncio
+async def test_turn_limit_error_preserves_the_last_tool_validation_error(
+    monkeypatch,
+) -> None:
+    fake_model = RepeatingInvalidToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    context = HarnessRunContext(
+        client=FakeClient(), user_id="2", game_password="wolf"
+    )
+    arguments = turn_arguments(record, context)
+    arguments["max_turns"] = 2
+
+    with pytest.raises(ModelRunError, match="last tool error:.*must be one of"):
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**arguments)
+
+    assert fake_model.call_count == 2
+    assert context.last_tool_error is not None
+    assert "must be one of" in context.last_tool_error
 
 
 @pytest.mark.asyncio
