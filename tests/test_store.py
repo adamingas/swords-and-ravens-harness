@@ -80,12 +80,12 @@ def test_player_snapshots_are_append_only_and_deduplicated(tmp_path) -> None:
     assert duplicate_id is None
     assert second_id is not None
     assert second_id > first_id
-    newest = store.list_snapshots(agent.id, limit=1, include_snapshot=True)
+    newest = store.list_snapshots(agent.id, limit=1)
     assert len(newest) == 1
     assert newest[0]["id"] == second_id
     assert newest[0]["leafStateId"] == "leaf-1"
     assert len(newest[0]["contentSha256"]) == 64
-    assert newest[0]["snapshot"] == changed
+    assert store.get_snapshot(agent.id, second_id)["snapshot"] == changed
 
     assert store.delete_agent(agent.id) is True
     assert store.list_snapshots(agent.id) == []

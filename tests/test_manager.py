@@ -484,12 +484,14 @@ async def test_manager_records_each_distinct_player_snapshot(tmp_path) -> None:
     await _wait_for_received_events(store, agent.id, 2)
     assert len(store.list_snapshots(agent.id)) == 2
 
-    snapshots = store.list_snapshots(agent.id, include_snapshot=True)
-    assert snapshots[0]["snapshot"]["childGameState"]["players"] == [
+    snapshots = store.list_snapshots(agent.id)
+    latest = store.get_snapshot(agent.id, snapshots[0]["id"])
+    first = store.get_snapshot(agent.id, snapshots[1]["id"])
+    assert latest["snapshot"]["childGameState"]["players"] == [
         ["baratheon", "1"],
         ["stark", "2"],
     ]
-    assert snapshots[1]["snapshot"] == lobby_snapshot()
+    assert first["snapshot"] == lobby_snapshot()
 
     await manager.stop_all()
     database.close()

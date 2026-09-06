@@ -141,17 +141,16 @@ class AgentStore:
         return int(cursor.lastrowid) if cursor.rowcount else None
 
     def list_snapshots(
-        self, agent_id: str, limit: int = 80, *, include_snapshot: bool = False
+        self, agent_id: str, limit: int = 80
     ) -> list[dict[str, Any]]:
-        """Return newest snapshot metadata, with bodies only when requested."""
+        """Return newest snapshot metadata."""
 
         if not 1 <= limit <= 500:
             raise ValueError("limit must be between 1 and 500")
         with self.database.lock:
             rows = self.database.connection.execute(
-                f"""
+                """
                 SELECT id, leaf_state_id, content_sha256, created_at
-                       {', snapshot_json' if include_snapshot else ''}
                 FROM player_snapshots
                 WHERE agent_id = ?
                 ORDER BY id DESC
@@ -165,11 +164,6 @@ class AgentStore:
                 "leafStateId": row["leaf_state_id"],
                 "contentSha256": row["content_sha256"],
                 "createdAt": row["created_at"],
-                **(
-                    {"snapshot": json.loads(row["snapshot_json"])}
-                    if include_snapshot
-                    else {}
-                ),
             }
             for row in rows
         ]
@@ -313,25 +307,26 @@ class AgentStore:
                 """,
                 (agent_id, turns_ago),
             ).fetchone()
-        return self._history_row(row, include_observation=True) if row else None
+        if row is None:
+            return None
+        result = self._history_row(row)
+        result["observation"] = json.loads(row["observation_json"])
+        return result
 
     def list_state_history(
-        self, agent_id: str, limit: int = 20, *, include_observation: bool = False
+        self, agent_id: str, limit: int = 20
     ) -> list[dict[str, Any]]:
         with self.database.lock:
             rows = self.database.connection.execute(
                 """
-                SELECT id, state_id, round_number, phase, observation_json,
-                       action_name, action_arguments_json, created_at
+                SELECT id, state_id, round_number, phase, action_name,
+                       action_arguments_json, created_at
                 FROM game_state_history
                 WHERE agent_id = ? ORDER BY id DESC LIMIT ?
                 """,
                 (agent_id, limit),
             ).fetchall()
-        return [
-            self._history_row(row, include_observation=include_observation)
-            for row in rows
-        ]
+        return [self._history_row(row) for row in rows]
 
     def get_strategic_memory(self, agent_id: str) -> dict[str, Any]:
         with self.database.lock:
@@ -552,8 +547,8 @@ class AgentStore:
         }
 
     @classmethod
-    def _history_row(cls, row: Any, *, include_observation: bool) -> dict[str, Any]:
-        result = {
+    def _history_row(cls, row: Any) -> dict[str, Any]:
+        return {
             "id": row["id"],
             "stateId": row["state_id"],
             "round": row["round_number"],
@@ -562,9 +557,6 @@ class AgentStore:
             "arguments": cls._load_optional_json(row["action_arguments_json"]),
             "createdAt": row["created_at"],
         }
-        if include_observation:
-            result["observation"] = json.loads(row["observation_json"])
-        return result
 
     @staticmethod
     def _record(row: Any) -> AgentRecord:
