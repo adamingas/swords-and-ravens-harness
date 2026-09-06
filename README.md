@@ -109,7 +109,7 @@ MODEL_MAX_CONCURRENCY=1
 MODEL_MAX_OUTPUT_TOKENS=16384
 MODEL_SESSION_HISTORY_ITEMS=32
 
-OPENROUTER_PROVIDER_ORDER=deepinfra,cloudflare,together
+OPENROUTER_PROVIDER_ORDER=nextbit,reka,io-net,deepinfra,cloudflare,together,wafer
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -120,7 +120,7 @@ OTEL_SERVICE_NAME=raven-harness
 ~~~
 
 OpenRouter takes precedence when both API keys exist. The default provider
-order tries DeepInfra, Cloudflare, and Together for the same exact model, but
+order uses seven hosts that passed the GLM planning-tool schema smoke test, but
 does not fall through to unlisted hosts. Host fallback is enabled within that
 list, and the OpenAI client retries the pool twice on retryable failures.
 MODEL_MAX_CONCURRENCY applies to all agents in the Python process. The sort

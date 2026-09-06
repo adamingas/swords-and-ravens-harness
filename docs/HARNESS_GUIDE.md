@@ -514,14 +514,16 @@ MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
 MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
 OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to DeepInfra, Cloudflare, and Together. OpenRouter tries those hosts in
-order and uses the same list as an allow-list by default. Host fallback remains
-enabled within that list, and the OpenAI client retries the ordered pool on
-retryable failures. Set `OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit
-other same-model hosts. OPENROUTER_PROVIDER_SORT is used only when the explicit
-order is empty. `OPENROUTER_REQUIRE_PARAMETERS` remains available for simpler
-request shapes, but it is off by default because OpenRouter rejects the Agents
-SDK request when this filter is enabled.
+defaults to NextBit, Reka, Io Net, DeepInfra, Cloudflare, Together, and Wafer.
+Each accepted the GLM planning-tool schema in a live smoke test. OpenRouter
+tries those hosts in order and uses the same list as an allow-list by default.
+Host fallback remains enabled within that list, and the OpenAI client retries
+the ordered pool on retryable failures. Set
+`OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit other same-model hosts.
+OPENROUTER_PROVIDER_SORT is used only when the explicit order is empty.
+`OPENROUTER_REQUIRE_PARAMETERS` remains available for simpler request shapes,
+but it is off by default because OpenRouter rejects the Agents SDK request when
+this filter is enabled.
 
 | Mechanism | Default |
 | --- | ---: |

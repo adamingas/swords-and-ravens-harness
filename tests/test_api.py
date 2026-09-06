@@ -28,8 +28,24 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
     assert settings.openrouter_provider_routing == {
         "allow_fallbacks": True,
         "require_parameters": False,
-        "order": ["deepinfra", "cloudflare", "together"],
-        "only": ["deepinfra", "cloudflare", "together"],
+        "order": [
+            "nextbit",
+            "reka",
+            "io-net",
+            "deepinfra",
+            "cloudflare",
+            "together",
+            "wafer",
+        ],
+        "only": [
+            "nextbit",
+            "reka",
+            "io-net",
+            "deepinfra",
+            "cloudflare",
+            "together",
+            "wafer",
+        ],
     }
 
 

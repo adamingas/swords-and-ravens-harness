@@ -32,7 +32,9 @@ class Settings(BaseSettings):
     model_max_concurrency: int = Field(default=1, ge=1, le=32)
     model_max_output_tokens: int = Field(default=16_384, ge=256, le=65_536)
     model_session_history_items: int = Field(default=32, ge=4, le=1_000)
-    openrouter_provider_order: str = "deepinfra,cloudflare,together"
+    openrouter_provider_order: str = (
+        "nextbit,reka,io-net,deepinfra,cloudflare,together,wafer"
+    )
     openrouter_allow_unlisted_providers: bool = False
     openrouter_provider_sort: str = Field(
         default="throughput", pattern="^(price|throughput|latency)$"
