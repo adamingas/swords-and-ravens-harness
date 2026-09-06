@@ -201,56 +201,50 @@ def _action_guidance(
     if context.ingame is None or context.game is None or context.house_id is None:
         return None
     leaf_type = (context.leaf or {}).get("type")
-    order_ids: set[int]
-    kind: str
+    from .legal import (
+        legal_consolidate_power_options,
+        legal_march_options,
+        legal_mustering_options,
+        legal_raven_replacements,
+        legal_raid_options,
+    )
+
     if leaf_type in {"resolve-march-order", "resolve-single-march"}:
-        order_ids, kind = {1, 2, 3}, "march"
-    elif leaf_type in {"resolve-raid-order", "resolve-single-raid"}:
-        order_ids, kind = {13, 14, 15}, "raid"
-    elif leaf_type in {
+        return {
+            "decision": "march",
+            "legalOrderRegions": legal_march_options(context),
+            "constraints": [
+                "Each unit ID may be moved at most once.",
+                "At most one destination may trigger combat.",
+                "Use only destinations listed for the selected starting region.",
+            ],
+            "safePass": (
+                "Call resolve_march with a listed starting_region_id, moves=[], "
+                "and leave_power_token=false to discard the order."
+            ),
+        }
+    if leaf_type in {"resolve-raid-order", "resolve-single-raid"}:
+        return {
+            "decision": "raid",
+            "legalOrderRegions": legal_raid_options(context),
+            "safePass": (
+                "Call resolve_raid with a listed order_region_id and "
+                "target_region_id=null to discard the order."
+            ),
+        }
+    if leaf_type in {
         "resolve-consolidate-power",
         "resolve-single-consolidate-power",
     }:
-        order_ids, kind = {10, 11, 12}, "consolidate-power"
-    elif leaf_type == "player-mustering":
-        map_regions = {region["id"]: region for region in map_reference["regions"]}
-        regions = context.game.get("world", {}).get("regions", [])
-        controlled = []
-        for region in regions:
-            region_id = region.get("id")
-            static = map_regions.get(region_id, {})
-            if not static.get("castleLevel"):
-                continue
-            owns_units = any(
-                unit.get("allegiance") == context.house_id
-                for unit in region.get("units", [])
-            )
-            if not owns_units and region.get("controlPowerToken") != context.house_id:
-                continue
-            controlled.append(
-                {
-                    "regionId": region_id,
-                    "musteringPoints": static["castleLevel"],
-                    "units": region.get("units", []),
-                    "adjacentSeaRegions": [
-                        neighbour_id
-                        for neighbour_id in static.get("neighbours", [])
-                        if map_regions.get(neighbour_id, {}).get("type") == "sea"
-                        and next(
-                            (
-                                candidate.get("garrison", 0)
-                                for candidate in regions
-                                if candidate.get("id") == neighbour_id
-                            ),
-                            0,
-                        )
-                        < 1000
-                    ],
-                }
-            )
+        return {
+            "decision": "consolidate-power",
+            "legalOrderRegions": legal_consolidate_power_options(context),
+        }
+    if leaf_type == "player-mustering":
+        constraints = legal_mustering_options(context)
         return {
             "decision": "mustering",
-            "controlledCastles": controlled,
+            **constraints,
             "unitCosts": {
                 "footman": 1,
                 "ship": 1,
@@ -260,61 +254,16 @@ def _action_guidance(
             },
             "safePass": "Call skip_mustering to submit no recruits.",
         }
-    else:
-        return None
-
-    regions = {
-        region["id"]: region
-        for region in context.game.get("world", {}).get("regions", [])
-    }
-    map_regions = {region["id"]: region for region in map_reference["regions"]}
-    legal_regions = []
-    for region_id, order_id in context.ingame.get("ordersOnBoard", []):
-        if order_id not in order_ids:
-            continue
-        region = regions.get(region_id, {})
-        units = [
-            unit
-            for unit in region.get("units", [])
-            if unit.get("allegiance") == context.house_id
-        ]
-        controls_region = (
-            bool(units) or region.get("controlPowerToken") == context.house_id
-        )
-        if not controls_region:
-            continue
-        item: dict[str, Any] = {
-            "regionId": region_id,
-            "orderId": order_id,
-            "order": ORDER_LEGEND[order_id],
-            "unitIds": [unit.get("id") for unit in units],
+    if leaf_type == "replace-order":
+        return {
+            "decision": "raven-order-replacement",
+            "legalReplacements": legal_raven_replacements(context),
+            "safeChoices": [
+                "Call skip_raven_order_replacement to keep every order.",
+                "Call inspect_top_wildling_card to use the Raven on the Wildling deck.",
+            ],
         }
-        if kind in {"march", "raid"}:
-            item["adjacentRegions"] = [
-                {
-                    "regionId": neighbour_id,
-                    "type": map_regions.get(neighbour_id, {}).get("type"),
-                    "garrison": regions.get(neighbour_id, {}).get("garrison", 0),
-                    "controller": regions.get(neighbour_id, {}).get(
-                        "controlPowerToken"
-                    ),
-                }
-                for neighbour_id in map_regions.get(region_id, {}).get("neighbours", [])
-                if regions.get(neighbour_id, {}).get("garrison", 0) < 1000
-            ]
-        legal_regions.append(item)
-    guidance: dict[str, Any] = {"decision": kind, "legalOrderRegions": legal_regions}
-    if kind == "march":
-        guidance["safePass"] = (
-            "To discard a March order without moving, call resolve_march with a legal "
-            "starting_region_id, moves=[], and leave_power_token=false."
-        )
-    elif kind == "raid":
-        guidance["safePass"] = (
-            "To discard a Raid order, call resolve_raid with a legal order_region_id "
-            "and target_region_id=null."
-        )
-    return guidance
+    return None
 
 
 def _sanitize_event(event: dict[str, Any]) -> dict[str, Any]:

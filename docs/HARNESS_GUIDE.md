@@ -185,8 +185,9 @@ The following sequence applies to each required player action.
 4. The harness selects tools for the active leaf state. It does not fall back
    to a recognized parent when the leaf is unknown.
 5. The harness adds private memory tools and, when available, the rules oracle.
-6. The harness starts one fresh Agents SDK run with the selected model. The SDK
-   can make more than one provider request inside that run.
+6. The harness starts one Agents SDK run with the selected model and the
+   player's recent persisted conversation. The SDK can make more than one
+   provider request inside that run.
 7. The model can read or update memory and can ask the oracle.
 8. The model must call exactly one gameplay tool.
 9. Pydantic validates the tool arguments.
@@ -197,16 +198,18 @@ The following sequence applies to each required player action.
 13. The harness saves the attempt and links an accepted action to its source
     state.
 
-The model does not keep an opaque provider transcript for the complete game.
-Each decision is a new Agents SDK run. However, this is not a context-free run.
-The initial provider request receives the complete current observation, the
-strategic notebook, and a state-history index. Later provider requests in the
-same run receive the SDK's current run transcript. The model can retrieve a
-stored older base observation with `recall_game_state`.
+Each decision is a new `Runner.run` invocation, but it is not a new
+conversation. The Agents SDK stores the player's input messages, function
+calls, function results, and model items in SQLite. The next decision receives
+the latest 32 items by default. It also receives the complete current
+observation, the strategic notebook, and a state-history index. The explicit
+window prevents the provider input from growing without limit. The structured
+notebook and `recall_game_state` preserve information beyond that recent
+window.
 
-This design avoids replaying provider-specific reasoning objects. It also makes
-each attempt inspectable from local data. It does not guarantee deterministic
-replay because model providers and the live game server are external systems.
+This hybrid design gives the model conversational continuity and keeps each
+attempt inspectable from local data. It does not guarantee deterministic replay
+because model providers and the live game server are external systems.
 
 The history table stores the base player observation, before strategic memory,
 historyIndex, planning constraints, and previousAttemptError are added. The
@@ -218,11 +221,10 @@ historyIndex, and the prior error. Its action can be null if no action was
 accepted from that state. History is recorded when the harness prepares a model
 run; it does not contain every intermediate state streamed by the game server.
 
-Short output does not mean that the model received little state. A simple lobby
-choice can need fewer than 60 output tokens. A recorded three-player planning
-attempt used about 7,300 input tokens. The current state is sent again for each
-decision. Strategic memory prevents the provider transcript from growing for
-the full game.
+Short visible output does not mean that the model received little state. A
+simple choice can need only a short function call while its input includes the
+current board, recent conversation, tools, and memory. The current state is sent
+again for each decision.
 
 ## 6. The model observation
 
@@ -242,7 +244,7 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | houses | Public score, control, power, and supply data for all houses. |
 | tracks | Iron Throne, Fiefdoms, and King's Court order. |
 | board | Occupied, controlled, or garrisoned regions and their units. |
-| actionGuidance | Harness-derived candidate IDs for march, raid, mustering, and consolidate-power states. The server validates detailed legality. |
+| actionGuidance | Harness-derived base-game sources, targets, units, and choices for march, raid, mustering, consolidate-power, and Raven states. |
 | strategicOverview | A deterministic score and resource summary. |
 | strategicMemory | The player's private structured notebook. |
 | historyIndex | A compact index of the current recorded decision state and earlier decision states. |
@@ -261,15 +263,16 @@ The harness uses four checks.
 2. **Tool schema:** Pydantic rejects missing fields, wrong types, and extra
    fields. Some tools also receive state-specific enum or range constraints.
 3. **Runtime check:** Immediately before a send, the tool checks the latest
-   state and turn ownership. Strategic tools also validate exact legal values.
+   state and turn ownership. Base-game raid, march, mustering,
+   consolidate-power, Raven replacement, unit selection, region selection, and
+   tie-resolution tools also validate state-specific values locally.
 4. **Snapshot inference:** The harness fetches a new authoritative snapshot and
    checks for evidence that the action was processed.
 
-The narrow strategic tools have the strongest local validation. The broader
-protocol tools are available only in mapped states, but many of their IDs are
-validated only by the game server. The post-action test is a heuristic, not a
-dedicated action acknowledgement. A model can still make a bad attempt, and a
-server transition can occasionally make acceptance ambiguous.
+Some optional-expansion protocol details are still validated only by the game
+server. The post-action test is a heuristic, not a dedicated action
+acknowledgement. A model can still make a bad attempt, and a server transition
+can occasionally make acceptance ambiguous.
 
 submit_orders sends several protocol messages and is not transactional. A
 failure can occur after the server has already applied part of the draft. More
@@ -333,16 +336,15 @@ active state controls when each tool is visible.
 
 | Tool | Exact leaf state | Effect |
 | --- | --- | --- |
-| `resolve_raid(order_region_id, target_region_id)` | `resolve-raid-order` | Resolve a raid. Use a null target to discard the order. |
+| `resolve_raid(order_region_id, target_region_id)` | `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
 | `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. |
-| `choose_casualties(unit_ids)` | `choose-casualties` | Select exact unit IDs for combat casualties. |
 | `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
-| `auto_reconcile_armies()` | `reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
-| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at one or more mustering castles. |
+| `auto_reconcile_armies()` | `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
+| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
 | `resolve_track_ties(ranked_tie_groups)` | `resolve-ties` | Rank each displayed tied group from highest to lowest. |
 | `use_valyrian_steel_blade(use)` | `use-valyrian-steel-blade` | Use or decline the blade in the current combat. |
-| `replace_raven_order(region_id, order_id)` | `replace-order`; `use-raven` | Replace one revealed order with an unused physical order token. |
+| `replace_raven_order(region_id, order_id)` | `replace-order`; `use-raven` | Replace one revealed order with an available physical order token. Base-game region/token pairs are checked locally. |
 | `skip_raven_order_replacement()` | `replace-order`; `use-raven` | Decline Messenger Raven order replacement. |
 | `inspect_top_wildling_card()` | `replace-order`; `use-raven` | Use the Messenger Raven to inspect the top Wildling card. |
 | `place_inspected_wildling_card(destination)` | `see-top-wildling-card` | Return the inspected card to top or put it on bottom. |
@@ -366,7 +368,7 @@ used by optional expansions.
 | `claim_vassals(house_ids)` | `claim-vassal`; `claim-vassals` | Claim the listed vassal houses. |
 | `distribute_power_tokens(allocations)` | `distribute-power-tokens` | Assign token amounts to the listed houses. |
 | `move_loyalty_token(from_region_id, to_region_id)` | `move-loyalty-tokens`; `move-loyalty-token-choice` | Move one loyalty token between regions. |
-| `resolve_consolidate_power(region_id, choice, loan_id)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Gain power, muster, buy a loan, or discard the order. `loan_id` is required by the strict schema but nullable; use an ID only for `purchase_loan` and null otherwise. |
+| `resolve_consolidate_power(region_id, choice, loan_id)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one order. A base game permits `gain_power_tokens`, plus `muster_units` for a starred order on a castle; use a null `loan_id`. Expansion states can also permit loans or order removal. |
 | `place_sellswords(placements)` | `place-sellswords` | Place listed sellsword unit types in regions. |
 | `resolve_spymaster(top_card_ids, bottom_card_ids)` | `resolve-spymaster`; `spymaster` | Split and order inspected Westeros cards between the top and bottom of the deck. |
 | `select_objectives(objective_ids)` | `select-objectives`; `choose-initial-objectives` | Select the offered secret objectives. |
@@ -424,7 +426,8 @@ oracle interaction.
 
 ## 12. Persistence and traces
 
-The SQLite schema has five tables:
+The harness schema has five core tables. The Agents SDK adds two conversation
+tables when the first session-backed run starts:
 
 | Table | Stored data |
 | --- | --- |
@@ -433,6 +436,8 @@ The SQLite schema has five tables:
 | agent_runs | One model attempt: observation, instructions, tool definitions, serialized Agents SDK result items, returned usage, action, error, and timing. Nested-oracle records are appended to those items. |
 | game_state_history | One player-scoped base observation per distinct state at which a model run was prepared, plus the accepted action selected from that state. |
 | strategic_memories | Current private notebook and revision number for each agent. |
+| agent_sessions | One persisted Agents SDK conversation identity per player. |
+| agent_messages | The input, model, tool-call, and tool-result items used for recent conversational continuity. |
 
 The harness records failed attempts. A failure is evidence about model or tool
 reliability and must remain available for evaluation. When the Agents SDK
@@ -442,7 +447,8 @@ still stored.
 
 The database uses schema version 1. The server rejects a database with another
 version. Use another `DATABASE_PATH` when the schema is incompatible. Deleting
-an agent permanently cascades to its events, runs, history, and memory.
+an agent permanently removes its events, runs, history, memory, and SDK
+conversation.
 
 Useful endpoints are:
 
@@ -459,6 +465,7 @@ POST   /api/agents/{agent_id}/stop
 POST   /api/agents/{agent_id}/run
 POST   /api/agents/{agent_id}/autoplay
 POST   /api/agents/{agent_id}/lobby/setup
+POST   /api/agents/{agent_id}/lobby/house
 POST   /api/agents/{agent_id}/lobby/launch
 GET /api/agents/{agent_id}/observation
 GET /api/agents/{agent_id}/tools
@@ -476,13 +483,14 @@ rows; use the run-detail endpoint or query the database for experiment export.
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
 token counts. Recorded duration begins before observation preparation and
-includes time waiting for the process-wide model semaphore. The 150-second
+includes time waiting for the process-wide model semaphore. The 300-second
 model-run timeout begins only after that semaphore is acquired.
 
 A zero cost value can mean that a provider omitted its cost field. It does not
 always mean that the request was free. Git ignores root `data/*.db`,
-`data/*.db-shm`, `data/*.db-wal`, and `data/*.json` matches. Copy experiment
-artifacts to an explicit archive location when you need to retain them.
+`data/*.db-shm`, `data/*.db-wal`, `data/*.json`, and `data/evaluations/`.
+Evaluation artifacts stay next to the code but are not committed; back them up
+separately when needed.
 
 ## 13. Provider behavior
 
@@ -504,6 +512,7 @@ MODEL_REQUEST_TIMEOUT_SECONDS limits one provider attempt.
 MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
 MODEL_MAX_CONCURRENCY limits simultaneous model runs. The default is one to
 avoid overloading low-cost providers.
+MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
 
 | Mechanism | Default |
 | --- | ---: |
@@ -513,11 +522,12 @@ avoid overloading low-cost providers.
 | Autoplay polling interval | 0.75 seconds |
 | Model request timeout | 45 seconds per attempt |
 | Model API retries | 2 |
-| Complete model-run timeout | 150 seconds after queue acquisition |
+| Complete model-run timeout | 300 seconds after queue acquisition |
 | Concurrent model runs | 1 |
-| Parent Agents SDK turns | 4 |
+| Parent Agents SDK turns | 6 |
 | Rules-oracle turns | 3 |
-| Maximum model output | 2,048 tokens |
+| Maximum model output | 8,192 tokens |
+| Recent conversation window | 32 SDK items |
 
 For a controlled harness comparison, assign the same exact model ID to all
 players. For a model tournament, record the model-to-house assignment for each
@@ -564,8 +574,10 @@ The submodule contains small extensions for machine clients:
 - availableHouseIds limits lobby choices to the selected setup.
 - House snapshots include authoritative score, control, and supply totals.
 - HARNESS_TEST_MAX_TURNS shortens development smoke games only.
+- LOCAL_GAME_PATH selects an isolated local saved-game JSON.
+- Nested raid and reconciliation states serialize explicit type names.
 
-The game server stores its current local game in
+By default, the game server stores its current local game in
 swords-and-ravens/agot-bg-game-server/src/server/website-client/local-entire-game.json.
 Stop the server before you replace this file to create a fresh local lobby.
 This file is tracked inside the submodule, so normal play makes the submodule
@@ -574,7 +586,41 @@ dirty. Do not commit a saved game that contains private state.
 The local saved-game JSON is written only after a game starts and can contain
 private player state. Treat it as sensitive.
 
-## 16. Verify changes
+## 16. Same-model evaluation
+
+`raven-evaluate` runs isolated six-player games. Every player uses the exact
+same model ID. The default is `z-ai/glm-5.3-flash` through OpenRouter. Six plain
+prompt configurations rotate through all six houses twice across 12 games.
+Local user IDs rotate too, so each configuration owns two lobbies.
+
+Start with a one-round smoke:
+
+~~~bash
+uv run raven-evaluate --games 1 --max-rounds 1 \
+  --output data/evaluations/glm-one-round-smoke
+~~~
+
+Then run the complete comparison:
+
+~~~bash
+uv run raven-evaluate --games 12 \
+  --output data/evaluations/glm-prompt-comparison
+~~~
+
+The runner starts one isolated TypeScript server at port 5101 for each game.
+Each attempt contains `game.json`, `harness.db`, assignments, progress, a server
+log, and a result or failure record. The manifest records source commits,
+prompt and rules hashes, model settings, provider routing, and the fixed house
+and user schedule. API keys are not recorded. Reusing the same output directory
+preserves failed attempts, skips completed games, and starts a new attempt for
+the next incomplete game.
+
+Completion requires a matching terminal winner in the live observation and
+the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
+`summary.json` reports wins, placement, victory points, reliability, cost,
+house effects, and a stated pairwise Elo calculation.
+
+## 17. Verify changes
 
 Run the Python checks from the repository root:
 

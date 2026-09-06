@@ -26,10 +26,11 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
     model_request_timeout_seconds: float = Field(default=45, gt=0, le=600)
-    model_run_timeout_seconds: float = Field(default=150, gt=0, le=1_800)
+    model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_api_max_retries: int = Field(default=2, ge=0, le=10)
     model_max_concurrency: int = Field(default=1, ge=1, le=32)
-    model_max_output_tokens: int = Field(default=2_048, ge=256, le=65_536)
+    model_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
+    model_session_history_items: int = Field(default=32, ge=4, le=1_000)
     openrouter_provider_sort: str = Field(
         default="throughput", pattern="^(price|throughput|latency)$"
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from dataclasses import dataclass
 from typing import Annotated, Any, Protocol
@@ -72,6 +73,8 @@ Keep notebook entries concise, concrete, and useful to your future self.
 At your first planning decision in every round, refresh the notebook before
 submitting orders. Also refresh it after any material strategic surprise.
 """
+
+AGENT_SDK_MAX_TURNS = 6
 
 
 class StrategicNotes(BaseModel):
@@ -286,7 +289,7 @@ class StrategicHarness:
             context=context,
             tools=prepared.tools,
             instructions=prepared.instructions,
-            max_turns=4,
+            max_turns=AGENT_SDK_MAX_TURNS,
             stop_at_tool_names=prepared.metadata["gameToolNames"],
             prompt_cache_key=prepared.metadata["promptCacheKey"],
             trace_metadata={
@@ -303,7 +306,18 @@ class StrategicHarness:
         return result
 
     async def shutdown(self) -> None:
-        return None
+        shutdown = getattr(self.runner, "shutdown", None)
+        if shutdown is not None:
+            result = shutdown()
+            if inspect.isawaitable(result):
+                await result
+
+    async def clear_agent_history(self, agent_id: str) -> None:
+        clear_session = getattr(self.runner, "clear_session", None)
+        if clear_session is not None:
+            result = clear_session(agent_id)
+            if inspect.isawaitable(result):
+                await result
 
 
 def _automatic_notes(

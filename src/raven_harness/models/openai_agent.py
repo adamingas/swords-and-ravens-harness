@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from agents import (
@@ -13,6 +14,7 @@ from agents import (
     RunConfig,
     Runner,
 )
+from agents.memory import Session, SessionSettings, SQLiteSession
 from openai import APITimeoutError, AsyncOpenAI
 
 from ..harness.actions import HarnessRunContext, available_tools
@@ -38,10 +40,12 @@ class OpenAIAgentRunner:
         api_key: str,
         base_url: str,
         request_timeout_seconds: float = 45,
-        run_timeout_seconds: float = 150,
+        run_timeout_seconds: float = 300,
         max_retries: int = 2,
         max_concurrency: int = 1,
-        max_output_tokens: int = 2_048,
+        max_output_tokens: int = 8_192,
+        session_database_path: Path | None = None,
+        session_history_items: int = 32,
         provider_routing: dict[str, Any] | None = None,
         rulebook: Rulebook | None = None,
     ) -> None:
@@ -51,6 +55,9 @@ class OpenAIAgentRunner:
         self.max_retries = max_retries
         self._run_slots = asyncio.Semaphore(max_concurrency)
         self.max_output_tokens = max_output_tokens
+        self.session_database_path = session_database_path
+        self.session_history_items = session_history_items
+        self._sessions: dict[str, SQLiteSession] = {}
         self.provider_routing = provider_routing
         self.rulebook = rulebook
         self.client = AsyncOpenAI(
@@ -146,6 +153,7 @@ class OpenAIAgentRunner:
                         context=context,
                         max_turns=max_turns,
                         run_config=run_config,
+                        session=self._session(agent_record.id),
                     )
         except TimeoutError as error:
             raise RuntimeError(
@@ -188,6 +196,39 @@ class OpenAIAgentRunner:
             response_items=response_items,
             raw_usage=raw_usage,
         )
+
+    def _session(self, agent_id: str) -> Session | None:
+        if self.session_database_path is None:
+            return None
+        session = self._sessions.get(agent_id)
+        if session is None:
+            session = SQLiteSession(
+                session_id=f"raven-agent-{agent_id}",
+                db_path=self.session_database_path,
+                session_settings=SessionSettings(limit=self.session_history_items),
+            )
+            self._sessions[agent_id] = session
+        return session
+
+    async def shutdown(self) -> None:
+        for session in self._sessions.values():
+            session.close()
+        self._sessions.clear()
+        await self.client.close()
+
+    async def clear_session(self, agent_id: str) -> None:
+        if self.session_database_path is None:
+            return
+        session = self._sessions.pop(agent_id, None)
+        if session is None:
+            session = SQLiteSession(
+                session_id=f"raven-agent-{agent_id}",
+                db_path=self.session_database_path,
+            )
+        try:
+            await session.clear_session()
+        finally:
+            session.close()
 
     def _model_settings(
         self,

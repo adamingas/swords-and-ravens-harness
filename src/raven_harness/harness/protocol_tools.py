@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+from dataclasses import replace
 from itertools import combinations
 from typing import Annotated, Any, Literal
 
@@ -7,6 +9,14 @@ from agents import FunctionTool, RunContextWrapper, function_tool
 from pydantic import BaseModel, ConfigDict, Field
 
 from .actions import HarnessRunContext
+from .legal import (
+    legal_consolidate_power_options,
+    legal_march_options,
+    legal_mustering_options,
+    legal_raven_replacements,
+    legal_raid_options,
+    validate_musterings,
+)
 
 
 class ToolInput(BaseModel):
@@ -63,6 +73,25 @@ async def resolve_raid(
         order_region_id: Region containing your raid order.
         target_region_id: Adjacent enemy order to raid, or null to remove your raid without a target.
     """
+    context = ctx.context.current_game_context()
+    if _is_base_game(context.snapshot):
+        option = next(
+            (
+                item
+                for item in legal_raid_options(context)
+                if item["regionId"] == order_region_id
+            ),
+            None,
+        )
+        if option is None:
+            raise ValueError("order_region_id must identify one of your Raid orders")
+        legal_targets = {
+            item["regionId"] for item in option.get("raidableTargets", [])
+        }
+        if target_region_id is not None and target_region_id not in legal_targets:
+            raise ValueError(
+                "target_region_id is not raidable from the selected order region"
+            )
     return await _send(
         ctx,
         "resolve_raid",
@@ -89,6 +118,48 @@ async def resolve_march(
         moves: Destination groups and exact unit IDs to move to each destination.
         leave_power_token: Whether to leave a control token after vacating the starting land region.
     """
+    context = ctx.context.current_game_context()
+    if _is_base_game(context.snapshot):
+        option = next(
+            (
+                item
+                for item in legal_march_options(context)
+                if item["regionId"] == starting_region_id
+            ),
+            None,
+        )
+        if option is None:
+            raise ValueError("starting_region_id must identify one of your March orders")
+        available_units = set(option.get("unitIds", []))
+        moved_units = [unit_id for move in moves for unit_id in move.unit_ids]
+        if len(moved_units) != len(set(moved_units)):
+            raise ValueError("each unit_id may be moved at most once")
+        invalid_units = sorted(set(moved_units) - available_units)
+        if invalid_units:
+            raise ValueError(f"unit_ids are not movable from this region: {invalid_units}")
+        destinations = [move.destination_region_id for move in moves]
+        if len(destinations) != len(set(destinations)):
+            raise ValueError("each destination_region_id may appear at most once")
+        legal_destinations = {
+            item["regionId"]: item for item in option.get("reachableRegions", [])
+        }
+        invalid_destinations = sorted(set(destinations) - set(legal_destinations))
+        if invalid_destinations:
+            raise ValueError(
+                f"destination_region_id is not reachable: {invalid_destinations}"
+            )
+        if sum(
+            bool(legal_destinations[destination].get("triggersCombat"))
+            for destination in destinations
+        ) > 1:
+            raise ValueError("at most one destination may trigger combat")
+        if leave_power_token and (
+            not option.get("canLeavePowerToken")
+            or set(moved_units) != available_units
+        ):
+            raise ValueError(
+                "leave_power_token is legal only when every unit leaves an eligible land region"
+            )
     arguments = {
         "starting_region_id": starting_region_id,
         "moves": [move.model_dump() for move in moves],
@@ -108,23 +179,6 @@ async def resolve_march(
 
 
 @function_tool
-async def choose_casualties(
-    ctx: RunContextWrapper[HarnessRunContext], unit_ids: list[int]
-) -> str:
-    """Choose the exact unit IDs to take as combat casualties.
-
-    Args:
-        unit_ids: Unit IDs that will be destroyed.
-    """
-    return await _send(
-        ctx,
-        "choose_casualties",
-        {"unit_ids": unit_ids},
-        {"type": "choose-casualties", "chosenCasualties": unit_ids},
-    )
-
-
-@function_tool
 async def select_units(
     ctx: RunContextWrapper[HarnessRunContext], selections: list[RegionUnits]
 ) -> str:
@@ -133,6 +187,32 @@ async def select_units(
     Args:
         selections: Regions and exact unit IDs selected in each one.
     """
+    context = ctx.context.current_game_context()
+    leaf = context.leaf or {}
+    if leaf.get("type") == "select-units":
+        possible_units = {int(unit_id) for unit_id in leaf.get("possibleUnits", [])}
+        selected_units = [
+            unit_id for selection in selections for unit_id in selection.unit_ids
+        ]
+        if len(selected_units) != len(set(selected_units)):
+            raise ValueError("each unit_id may be selected at most once")
+        if not set(selected_units).issubset(possible_units):
+            raise ValueError("unit_ids must come from pendingDecision.possibleUnits")
+        expected = min(int(leaf.get("count", 0)), len(possible_units))
+        if leaf.get("canBeSkipped"):
+            if len(selected_units) > expected:
+                raise ValueError(f"select at most {expected} units")
+        elif len(selected_units) != expected:
+            raise ValueError(f"select exactly {expected} units")
+        unit_regions = _unit_regions(context.game or {})
+        if any(
+            unit_regions.get(unit_id) != selection.region_id
+            for selection in selections
+            for unit_id in selection.unit_ids
+        ):
+            raise ValueError("each selected unit must be grouped under its current region")
+        if leaf.get("selectedUnitsMustBeOfSameRegion") and len(selections) > 1:
+            raise ValueError("all selected units must come from one region")
     arguments = {"selections": [selection.model_dump() for selection in selections]}
     return await _send(
         ctx,
@@ -187,6 +267,9 @@ async def muster_units(
     Args:
         musters: Mustering castles and the recruitments paid for at each castle.
     """
+    context = ctx.context.current_game_context()
+    if _is_base_game(context.snapshot):
+        validate_musterings(context, musters)
     arguments = {"musters": [muster.model_dump() for muster in musters]}
     return await _send(
         ctx,
@@ -227,6 +310,19 @@ async def resolve_track_ties(
     Args:
         ranked_tie_groups: One ordered list of house IDs for each tie group shown in the state.
     """
+    leaf = ctx.context.current_game_context().leaf or {}
+    expected = [
+        list(houses)
+        for _bid, houses in leaf.get("bidResults", [])
+        if len(houses) > 1
+    ]
+    if len(ranked_tie_groups) != len(expected) or any(
+        len(group) != len(set(group)) or set(group) != set(expected[index])
+        for index, group in enumerate(ranked_tie_groups)
+    ):
+        raise ValueError(
+            "ranked_tie_groups must contain each serialized tie group exactly once"
+        )
     return await _send(
         ctx,
         "resolve_track_ties",
@@ -264,6 +360,18 @@ async def replace_raven_order(
         region_id: Region whose order will be replaced.
         order_id: Unused physical order token ID to place there.
     """
+    context = ctx.context.current_game_context()
+    if _is_base_game(context.snapshot):
+        option = next(
+            (
+                item
+                for item in legal_raven_replacements(context)
+                if item["regionId"] == region_id
+            ),
+            None,
+        )
+        if option is None or order_id not in option["availableOrderIds"]:
+            raise ValueError("region_id and order_id are not a legal Raven replacement")
     return await _send(
         ctx,
         "replace_raven_order",
@@ -324,6 +432,10 @@ async def select_region(
     Args:
         region_id: Exact ID of the selected region.
     """
+    leaf = ctx.context.current_game_context().leaf or {}
+    regions = leaf.get("regions")
+    if isinstance(regions, list) and region_id not in regions:
+        raise ValueError("region_id must be one of pendingDecision.regions")
     return await _send(
         ctx,
         "select_region",
@@ -427,6 +539,26 @@ async def resolve_consolidate_power(
         choice: Available resolution shown in the current state.
         loan_id: Loan-card ID for purchase_loan, otherwise null.
     """
+    context = ctx.context.current_game_context()
+    if _is_base_game(context.snapshot):
+        option = next(
+            (
+                item
+                for item in legal_consolidate_power_options(context)
+                if item["regionId"] == region_id
+            ),
+            None,
+        )
+        if option is None:
+            raise ValueError(
+                "region_id must identify one of your Consolidate Power orders"
+            )
+        if choice not in option["choices"]:
+            raise ValueError(
+                f"choice must be one of {', '.join(option['choices'])} for this order"
+            )
+        if loan_id is not None:
+            raise ValueError("loan_id must be null in a base game")
     if choice == "purchase_loan" and loan_id is None:
         raise ValueError("loan_id is required when choice is purchase_loan")
     message = {"type": "resolve-consolidate-power-choice", "region": region_id}
@@ -544,7 +676,6 @@ async def call_for_support_against_neutral_force(
 GAMEPLAY_TOOLS: list[FunctionTool] = [
     resolve_raid,
     resolve_march,
-    choose_casualties,
     select_units,
     auto_reconcile_armies,
     muster_units,
@@ -578,6 +709,7 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
     "support": set(),
     "place-orders": set(),
     "resolve-raid-order": {"resolve_raid"},
+    "resolve-single-raid": {"resolve_raid"},
     "resolve-march-order": {
         "resolve_march",
     },
@@ -585,11 +717,11 @@ _TOOLS_BY_STATE: dict[str, set[str]] = {
         "call_for_support_against_neutral_force",
         "resolve_march",
     },
-    "choose-casualties": {"choose_casualties"},
     "select-units": {"select_units"},
     "resolve-retreat": {"select_units", "select_region"},
     "select-region": {"select_region"},
     "reconcile-armies": {"auto_reconcile_armies"},
+    "player-reconcile-armies": {"auto_reconcile_armies"},
     "mustering": {"muster_units", "skip_mustering"},
     "player-mustering": {"muster_units", "skip_mustering"},
     "resolve-ties": {"resolve_track_ties"},
@@ -632,6 +764,147 @@ def gameplay_tools_for_state(
         return []
     names = _TOOLS_BY_STATE.get(state_types[-1], set())
     return [_TOOLS_BY_NAME[name] for name in sorted(names)]
+
+
+def gameplay_tools_for_context(
+    context: Any, *, has_specific_tools: bool
+) -> list[FunctionTool]:
+    """Return protocol tools with model-facing schemas narrowed to this snapshot."""
+
+    state_types = [state["type"] for state in context.path if state.get("type")]
+    tools = gameplay_tools_for_state(
+        state_types, has_specific_tools=has_specific_tools
+    )
+    if not _is_base_game(context.snapshot):
+        return tools
+    return [_narrow_base_game_tool(tool, context) for tool in tools]
+
+
+def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
+    schema = deepcopy(tool.params_json_schema)
+    properties = schema.get("properties", {})
+    if tool.name == "resolve_raid":
+        options = legal_raid_options(context)
+        properties["order_region_id"]["enum"] = [
+            item["regionId"] for item in options
+        ]
+        targets = sorted(
+            {
+                target["regionId"]
+                for item in options
+                for target in item.get("raidableTargets", [])
+            }
+        )
+        properties["target_region_id"]["anyOf"][0]["enum"] = targets
+    elif tool.name == "resolve_march":
+        options = legal_march_options(context)
+        properties["starting_region_id"]["enum"] = [
+            item["regionId"] for item in options
+        ]
+        destinations = sorted(
+            {
+                target["regionId"]
+                for item in options
+                for target in item.get("reachableRegions", [])
+            }
+        )
+        unit_ids = sorted(
+            {unit_id for item in options for unit_id in item.get("unitIds", [])}
+        )
+        move_properties = schema["$defs"]["UnitMove"]["properties"]
+        move_properties["destination_region_id"]["enum"] = destinations
+        move_properties["unit_ids"]["items"]["enum"] = unit_ids
+        move_properties["unit_ids"]["uniqueItems"] = True
+    elif tool.name == "resolve_consolidate_power":
+        options = legal_consolidate_power_options(context)
+        properties["region_id"]["enum"] = [item["regionId"] for item in options]
+        properties["choice"]["enum"] = sorted(
+            {choice for item in options for choice in item["choices"]}
+        )
+    elif tool.name == "muster_units":
+        guidance = legal_mustering_options(context)
+        origins = guidance["origins"]
+        muster_properties = schema["$defs"]["MusterGroup"]["properties"]
+        muster_properties["mustering_region_id"]["enum"] = [
+            item["regionId"] for item in origins
+        ]
+        properties["musters"]["maxItems"] = guidance["maxOriginGroups"]
+        recruit_properties = schema["$defs"]["Recruitment"]["properties"]
+        recruit_properties["region_id"]["enum"] = sorted(
+            {
+                destination["regionId"]
+                for origin in origins
+                for destination in origin["destinations"]
+            }
+        )
+        recruit_properties["unit_type"]["enum"] = sorted(
+            {
+                unit_type
+                for origin in origins
+                for destination in origin["destinations"]
+                for unit_type in destination["newUnitTypes"]
+            }
+        )
+    elif tool.name == "select_units":
+        leaf = context.leaf or {}
+        possible_units = [int(unit_id) for unit_id in leaf.get("possibleUnits", [])]
+        expected = min(int(leaf.get("count", 0)), len(possible_units))
+        unit_regions = _unit_regions(context.game or {})
+        region_ids = sorted(
+            {
+                unit_regions[unit_id]
+                for unit_id in possible_units
+                if unit_id in unit_regions
+            }
+        )
+        selections = properties["selections"]
+        selections["minItems"] = 0 if leaf.get("canBeSkipped") else int(expected > 0)
+        selections["maxItems"] = 1 if leaf.get(
+            "selectedUnitsMustBeOfSameRegion"
+        ) else expected
+        region_units = schema["$defs"]["RegionUnits"]["properties"]
+        region_units["region_id"]["enum"] = region_ids
+        region_units["unit_ids"]["items"]["enum"] = possible_units
+        region_units["unit_ids"]["uniqueItems"] = True
+    elif tool.name == "select_region":
+        regions = (context.leaf or {}).get("regions")
+        if isinstance(regions, list):
+            properties["region_id"]["enum"] = regions
+    elif tool.name == "resolve_track_ties":
+        groups = [
+            houses
+            for _bid, houses in (context.leaf or {}).get("bidResults", [])
+            if len(houses) > 1
+        ]
+        field = properties["ranked_tie_groups"]
+        field["minItems"] = len(groups)
+        field["maxItems"] = len(groups)
+        field["items"]["items"]["enum"] = sorted(
+            {house for group in groups for house in group}
+        )
+    elif tool.name == "replace_raven_order":
+        options = legal_raven_replacements(context)
+        properties["region_id"]["enum"] = [item["regionId"] for item in options]
+        properties["order_id"]["enum"] = sorted(
+            {
+                order_id
+                for item in options
+                for order_id in item["availableOrderIds"]
+            }
+        )
+    return replace(tool, params_json_schema=schema)
+
+
+def _is_base_game(snapshot: dict[str, Any]) -> bool:
+    return snapshot.get("gameSettings", {}).get("gameMode", "base-game") == "base-game"
+
+
+def _unit_regions(game: dict[str, Any]) -> dict[int, str]:
+    return {
+        int(unit["id"]): str(region["id"])
+        for region in game.get("world", {}).get("regions", [])
+        for unit in region.get("units", [])
+    }
 
 
 async def _send(

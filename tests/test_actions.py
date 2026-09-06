@@ -483,6 +483,7 @@ async def test_state_specific_tool_rechecks_turn_before_send() -> None:
 @pytest.mark.asyncio
 async def test_typed_march_tool_translates_to_game_protocol() -> None:
     snapshot = planning_snapshot()
+    snapshot["childGameState"]["ordersOnBoard"] = [["winterfell", 2]]
     snapshot["childGameState"]["childGameState"] = {"type": "resolve-march-order"}
     client = FakeClient(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
@@ -495,7 +496,7 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
         {
             "starting_region_id": "winterfell",
             "moves": [{"destination_region_id": "white-harbor", "unit_ids": [1]}],
-            "leave_power_token": True,
+            "leave_power_token": False,
         }
     )
 
@@ -514,11 +515,279 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
             "type": "resolve-march-order",
             "startingRegionId": "winterfell",
             "moves": [["white-harbor", [1]]],
-            "leavePowerToken": True,
+            "leavePowerToken": False,
         }
     ]
     assert run_context.action_taken is not None
     assert run_context.action_taken.name == "resolve_march"
+
+
+@pytest.mark.asyncio
+async def test_raid_schema_and_runtime_allow_only_raidable_enemy_orders() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [
+        ["winterfell", 13],
+        ["karhold", 10],
+        ["bay-of-ice", 7],
+    ]
+    ingame["game"]["world"]["regions"].extend(
+        [
+            {
+                "id": "karhold",
+                "units": [{"id": 10, "type": "footman", "allegiance": "lannister"}],
+            },
+            {
+                "id": "bay-of-ice",
+                "units": [{"id": 11, "type": "ship", "allegiance": "lannister"}],
+            },
+        ]
+    )
+    ingame["childGameState"] = {
+        "type": "resolve-raid-order",
+        "childGameState": {"type": "resolve-single-raid", "houseId": "stark"},
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+
+    assert tool.name == "resolve_raid"
+    assert tool.params_json_schema["properties"]["order_region_id"]["enum"] == [
+        "winterfell"
+    ]
+    assert tool.params_json_schema["properties"]["target_region_id"]["anyOf"][0][
+        "enum"
+    ] == ["karhold"]
+
+    invalid = json.dumps(
+        {"order_region_id": "winterfell", "target_region_id": "bay-of-ice"}
+    )
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-invalid-raid",
+            tool_name=tool.name,
+            tool_arguments=invalid,
+        ),
+        invalid,
+    )
+    assert "not raidable" in result
+    assert client.sent == []
+
+    valid = json.dumps(
+        {"order_region_id": "winterfell", "target_region_id": "karhold"}
+    )
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-valid-raid",
+            tool_name=tool.name,
+            tool_arguments=valid,
+        ),
+        valid,
+    )
+    assert client.sent == [
+        {
+            "type": "resolve-raid",
+            "orderRegionId": "winterfell",
+            "targetRegionId": "karhold",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_base_game_consolidate_power_excludes_expansion_choices() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 10]]
+    ingame["childGameState"] = {
+        "type": "resolve-consolidate-power",
+        "childGameState": {
+            "type": "resolve-single-consolidate-power",
+            "house": "stark",
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+
+    assert tool.name == "resolve_consolidate_power"
+    assert tool.params_json_schema["properties"]["choice"]["enum"] == [
+        "gain_power_tokens"
+    ]
+    invalid = json.dumps(
+        {"region_id": "winterfell", "choice": "purchase_loan", "loan_id": 1}
+    )
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-invalid-cp",
+            tool_name=tool.name,
+            tool_arguments=invalid,
+        ),
+        invalid,
+    )
+    assert "choice must be one of gain_power_tokens" in result
+    assert client.sent == []
+
+
+@pytest.mark.asyncio
+async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    house = ingame["game"]["houses"][0]
+    house["unitLimits"] = [
+        ["footman", 10],
+        ["knight", 5],
+        ["ship", 6],
+        ["siege-engine", 2],
+    ]
+    ingame["game"]["supplyRestrictions"] = [[2, 2], [3, 2], [3, 2, 2]]
+    ingame["ordersOnBoard"] = [["winterfell", 12]]
+    ingame["childGameState"] = {
+        "type": "resolve-consolidate-power",
+        "childGameState": {
+            "type": "player-mustering",
+            "house": "stark",
+            "musteringType": 1,
+        },
+    }
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "muster_units"
+    )
+
+    assert tool.params_json_schema["properties"]["musters"]["maxItems"] == 1
+    assert tool.params_json_schema["$defs"]["MusterGroup"]["properties"][
+        "mustering_region_id"
+    ]["enum"] == ["winterfell"]
+
+    too_expensive = json.dumps(
+        {
+            "musters": [
+                {
+                    "mustering_region_id": "winterfell",
+                    "recruitments": [
+                        {
+                            "unit_type": "footman",
+                            "region_id": "winterfell",
+                            "source_unit_id": None,
+                        },
+                        {
+                            "unit_type": "ship",
+                            "region_id": "bay-of-ice",
+                            "source_unit_id": None,
+                        },
+                        {
+                            "unit_type": "ship",
+                            "region_id": "the-shivering-sea",
+                            "source_unit_id": None,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-over-muster",
+            tool_name=tool.name,
+            tool_arguments=too_expensive,
+        ),
+        too_expensive,
+    )
+    assert "mustering points" in result
+    assert client.sent == []
+
+    valid = json.dumps(
+        {
+            "musters": [
+                {
+                    "mustering_region_id": "winterfell",
+                    "recruitments": [
+                        {
+                            "unit_type": "footman",
+                            "region_id": "winterfell",
+                            "source_unit_id": None,
+                        },
+                        {
+                            "unit_type": "ship",
+                            "region_id": "bay-of-ice",
+                            "source_unit_id": None,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-valid-muster",
+            tool_name=tool.name,
+            tool_arguments=valid,
+        ),
+        valid,
+    )
+    assert client.sent == [
+        {
+            "type": "muster",
+            "units": [
+                [
+                    "winterfell",
+                    [
+                        {"from": None, "to": "footman", "region": "winterfell"},
+                        {"from": None, "to": "ship", "region": "bay-of-ice"},
+                    ],
+                ]
+            ],
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_raven_replacement_schema_uses_remaining_physical_tokens() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 1], ["white-harbor", 3]]
+    ingame["game"]["starredOrderRestrictions"] = [1]
+    ingame["childGameState"] = {
+        "type": "use-raven",
+        "childGameState": {"type": "replace-order"},
+    }
+
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "replace_raven_order"
+    )
+
+    assert tool.params_json_schema["properties"]["region_id"]["enum"] == [
+        "white-harbor",
+        "winterfell",
+    ]
+    available_order_ids = tool.params_json_schema["properties"]["order_id"]["enum"]
+    assert 2 in available_order_ids
+    assert 15 in available_order_ids
+
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    invalid = json.dumps({"region_id": "winterfell", "order_id": 15})
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-invalid-raven",
+            tool_name=tool.name,
+            tool_arguments=invalid,
+        ),
+        invalid,
+    )
+    assert "not a legal Raven replacement" in result
+    assert client.sent == []
 
 
 @pytest.mark.asyncio

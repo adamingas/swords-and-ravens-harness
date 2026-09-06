@@ -96,6 +96,18 @@ class LobbySetupRequest(CamelModel):
     victory_points_to_win: int = Field(default=7, ge=6, le=15)
 
 
+class LobbyHouseRequest(CamelModel):
+    house_id: str = Field(min_length=1, max_length=100)
+
+    @field_validator("house_id")
+    @classmethod
+    def strip_house_id(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+        return value
+
+
 class AgentPublic(CamelModel):
     id: str
     name: str

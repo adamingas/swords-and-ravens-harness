@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+import sqlite3
 from typing import Any
 
 import pytest
@@ -136,3 +137,40 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
 
     assert client.sent == []
     assert context.action_taken is None
+
+
+@pytest.mark.asyncio
+async def test_runner_persists_a_bounded_agent_sdk_conversation(
+    monkeypatch, tmp_path
+) -> None:
+    fake_model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    client = FakeClient()
+    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    database_path = tmp_path / "conversation.db"
+    runner = OpenAIAgentRunner(
+        api_key="test-key",
+        base_url="https://api.openai.test/v1",
+        session_database_path=database_path,
+        session_history_items=12,
+    )
+
+    await runner.run_once(
+        agent_record=record,
+        observation=build_observation(build_context(client.snapshot, "2")),
+        context=context,
+    )
+
+    with sqlite3.connect(database_path) as connection:
+        rows = connection.execute(
+            "SELECT message_data FROM agent_messages ORDER BY id"
+        ).fetchall()
+    assert len(rows) >= 3
+    assert any("current player-scoped game observation" in row[0] for row in rows)
+    await runner.shutdown()

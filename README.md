@@ -5,9 +5,10 @@ Raven Harness lets language-model players and human players share one
 observation, phase-specific tools, private strategic memory, and an optional
 official-rules oracle.
 
-The project uses one canonical harness. Each model decision starts with a fresh
-Agents SDK run and receives the complete current observation plus persisted
-memory. SQLite stores every attempt, accepted game action, error, and duration.
+The project uses one canonical harness. Each model decision receives the
+complete current observation, a bounded persisted Agents SDK conversation,
+and structured long-term memory. SQLite stores every attempt, accepted game
+action, error, and duration.
 It stores provider response items and usage when the SDK returns them; a timeout
 can occur before those partial values are available.
 
@@ -67,6 +68,9 @@ resumes the saved game. For a fresh lobby, stop the server and move that file
 to a private backup path before restarting it. Do not commit saved private game
 state to the submodule.
 
+Set `LOCAL_GAME_PATH` to an absolute or project-relative JSON path when a run
+needs an isolated save file. The evaluation command does this automatically.
+
 Start its human browser client in another terminal:
 
 ~~~bash
@@ -99,10 +103,11 @@ OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com/v1
 
 MODEL_REQUEST_TIMEOUT_SECONDS=45
-MODEL_RUN_TIMEOUT_SECONDS=150
+MODEL_RUN_TIMEOUT_SECONDS=300
 MODEL_API_MAX_RETRIES=2
 MODEL_MAX_CONCURRENCY=1
-MODEL_MAX_OUTPUT_TOKENS=2048
+MODEL_MAX_OUTPUT_TOKENS=8192
+MODEL_SESSION_HISTORY_ITEMS=32
 
 OPENROUTER_PROVIDER_SORT=throughput
 OPENROUTER_ALLOW_FALLBACKS=true
@@ -148,3 +153,18 @@ npm run generate-json-schemas
 
 For a one-round smoke game, start the game server with
 HARNESS_TEST_MAX_TURNS=1. Omit that variable for normal games.
+
+The evaluation runner starts an isolated game server, stores its database and
+game JSON below `data/evaluations/`, and assigns the same model to all six
+players. Run a one-round smoke before a complete 12-game comparison:
+
+~~~bash
+uv run raven-evaluate --games 1 --max-rounds 1 \
+  --output data/evaluations/glm-one-round-smoke
+uv run raven-evaluate --games 12 \
+  --output data/evaluations/glm-prompt-comparison
+~~~
+
+Reusing an output directory skips completed games and preserves failed
+attempts. The manifest rejects changes to the model, prompts, schedule, source
+commits, rules, or runtime settings.

@@ -80,8 +80,9 @@ CREATE INDEX IF NOT EXISTS game_state_history_agent_id_id
 
 class Database:
     def __init__(self, filename: Path) -> None:
-        filename.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(filename, check_same_thread=False)
+        self.filename = filename.resolve()
+        self.filename.parent.mkdir(parents=True, exist_ok=True)
+        self.connection = sqlite3.connect(self.filename, check_same_thread=False)
         self.connection.row_factory = sqlite3.Row
         self.lock = RLock()
         with self.lock:

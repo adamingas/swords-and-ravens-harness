@@ -151,13 +151,12 @@ class HarnessRunContext:
             raise RuntimeError(f"Tool {name!r} is only available after the game starts")
         if not is_waiting_for_player(context):
             raise RuntimeError("This player is not responsible for the current decision")
-        from .protocol_tools import gameplay_tools_for_state
+        from .protocol_tools import gameplay_tools_for_context
 
-        state_types = [state["type"] for state in context.path if state.get("type")]
         available = {
             tool.name
-            for tool in gameplay_tools_for_state(
-                state_types,
+            for tool in gameplay_tools_for_context(
+                context,
                 has_specific_tools=bool(available_action_specs(context)),
             )
         }
@@ -223,13 +222,12 @@ def _action_was_acknowledged(
     specific_names = {item.name for item in available_action_specs(after)}
     if name in specific_names:
         return False
-    from .protocol_tools import gameplay_tools_for_state
+    from .protocol_tools import gameplay_tools_for_context
 
-    state_types = [state["type"] for state in after.path if state.get("type")]
     protocol_names = {
         tool.name
-        for tool in gameplay_tools_for_state(
-            state_types, has_specific_tools=bool(specific_names)
+        for tool in gameplay_tools_for_context(
+            after, has_specific_tools=bool(specific_names)
         )
     }
     return name not in protocol_names
@@ -416,14 +414,13 @@ def available_tools(context: HarnessContext) -> list[FunctionTool]:
         for action in available_action_specs(context)
     ]
     if context.ingame is not None:
-        from .protocol_tools import gameplay_tools_for_state
+        from .protocol_tools import gameplay_tools_for_context
 
         existing_names = {tool.name for tool in tools}
-        state_types = [state["type"] for state in context.path if state.get("type")]
         tools.extend(
             tool
-            for tool in gameplay_tools_for_state(
-                state_types, has_specific_tools=bool(tools)
+            for tool in gameplay_tools_for_context(
+                context, has_specific_tools=bool(tools)
             )
             if tool.name not in existing_names
         )

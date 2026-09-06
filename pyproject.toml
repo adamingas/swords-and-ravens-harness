@@ -18,6 +18,7 @@ dependencies = [
 [project.scripts]
 raven-harness = "raven_harness.__main__:main"
 raven-prepare-rules = "raven_harness.rulebook:main"
+raven-evaluate = "raven_harness.evaluation:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -163,6 +163,13 @@ class AgentManager:
             self.store.add_event(agent_id, "connection-status", {"status": "stopped"})
         return self.get_agent(agent_id)
 
+    async def delete(self, agent_id: str) -> bool:
+        if self.store.get_agent(agent_id) is None:
+            return False
+        await self.stop(agent_id)
+        await self.harness.clear_agent_history(agent_id)
+        return self.store.delete_agent(agent_id)
+
     async def run_once(self, agent_id: str) -> dict[str, Any]:
         record = self._require_agent(agent_id)
         with self.telemetry.tracer.start_as_current_span(
@@ -456,6 +463,45 @@ class AgentManager:
             raise RuntimeError("The game server did not accept the lobby settings")
         self.store.add_event(agent_id, "lobby-configured", settings)
         return settings
+
+    async def choose_lobby_house(self, agent_id: str, house_id: str) -> None:
+        """Seat an agent deterministically without exposing control to its model."""
+
+        record, session = self._require_connected_session(agent_id)
+        snapshot = session.client.snapshot
+        assert snapshot is not None
+        lobby = snapshot.get("childGameState", {})
+        if lobby.get("type") != "lobby":
+            raise RuntimeError("The game is no longer in its lobby")
+        available = set(lobby.get("availableHouseIds", []))
+        known = {house.get("id") for house in lobby.get("lobbyHouses", [])}
+        if house_id not in known or house_id not in available:
+            raise RuntimeError(f"House {house_id!r} is not available in this lobby")
+        occupied = {
+            selected_house: str(user_id)
+            for selected_house, user_id in lobby.get("players", [])
+        }
+        occupant = occupied.get(house_id)
+        if occupant is not None and occupant != record.user_id:
+            raise RuntimeError(f"House {house_id!r} is already occupied")
+
+        await session.client.send(
+            {
+                "type": "choose-house",
+                "house": house_id,
+                "password": record.game_password.get_secret_value(),
+            }
+        )
+        snapshot = await session.client.sync_snapshot()
+        seated = any(
+            selected_house == house_id and str(user_id) == record.user_id
+            for selected_house, user_id in snapshot.get("childGameState", {}).get(
+                "players", []
+            )
+        )
+        if not seated:
+            raise RuntimeError("The game server did not accept the house selection")
+        self.store.add_event(agent_id, "lobby-house-selected", {"houseId": house_id})
 
     async def launch_game(self, agent_id: str) -> None:
         """Ask the upstream server to launch the configured lobby."""

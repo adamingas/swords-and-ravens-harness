@@ -19,7 +19,13 @@ from .manager import AgentManager
 from .models.openai_agent import OpenAIAgentRunner
 from .models.catalog import OpenRouterModelCatalog
 from .rulebook import Rulebook
-from .schemas import AgentCreate, AgentPublic, AutoplayRequest, LobbySetupRequest
+from .schemas import (
+    AgentCreate,
+    AgentPublic,
+    AutoplayRequest,
+    LobbyHouseRequest,
+    LobbySetupRequest,
+)
 from .telemetry import Telemetry
 
 
@@ -48,6 +54,8 @@ def create_app(
             max_retries=settings.model_api_max_retries,
             max_concurrency=settings.model_max_concurrency,
             max_output_tokens=settings.model_max_output_tokens,
+            session_database_path=settings.resolved_database_path,
+            session_history_items=settings.model_session_history_items,
             provider_routing=(
                 {
                     "sort": settings.openrouter_provider_sort,
@@ -117,6 +125,8 @@ def create_app(
             "modelApiConfigured": bool(settings.model_api_key),
             "modelProvider": settings.model_provider,
             "modelMaxConcurrency": settings.model_max_concurrency,
+            "modelMaxOutputTokens": settings.model_max_output_tokens,
+            "modelSessionHistoryItems": settings.model_session_history_items,
             "databasePath": str(settings.resolved_database_path),
             "rulesPath": str(settings.resolved_rules_path),
             "rulesOracleAvailable": settings.resolved_rules_path.is_file(),
@@ -160,10 +170,8 @@ def create_app(
     @app.delete("/api/agents/{agent_id}", status_code=204)
     async def delete_agent(agent_id: str, request: Request) -> Response:
         manager = _manager(request)
-        if manager.get_agent(agent_id) is None:
+        if not await manager.delete(agent_id):
             raise KeyError("Agent not found")
-        await manager.stop(agent_id)
-        _store(request).delete_agent(agent_id)
         return Response(status_code=204)
 
     @app.post("/api/agents/{agent_id}/start")
@@ -194,6 +202,13 @@ def create_app(
         agent_id: str, value: LobbySetupRequest, request: Request
     ) -> dict[str, Any]:
         return {"settings": await _manager(request).configure_lobby(agent_id, value)}
+
+    @app.post("/api/agents/{agent_id}/lobby/house", status_code=202)
+    async def choose_lobby_house(
+        agent_id: str, value: LobbyHouseRequest, request: Request
+    ) -> dict[str, bool]:
+        await _manager(request).choose_lobby_house(agent_id, value.house_id)
+        return {"accepted": True}
 
     @app.post("/api/agents/{agent_id}/lobby/launch", status_code=202)
     async def launch_game(agent_id: str, request: Request) -> dict[str, bool]:
