@@ -118,10 +118,13 @@ function render() {
     const decisionName = node.querySelector(".decision-name");
     const decisionPathLabel = node.querySelector(".decision-path-label");
     const decisionPathValue = node.querySelector(".decision-path-value");
+    const currentActivity = agent.runtime.currentActivity;
     if (agent.runtime.status === "running") {
       turnFlag.textContent = elapsedLabel(agent.runtime.runStartedAt);
       turnFlag.classList.add("thinking");
-      decisionName.textContent = "Model is choosing an action";
+      decisionName.textContent = currentActivity
+        ? activityDescription(currentActivity)
+        : "Model is choosing an action";
       decisionPathLabel.textContent = "Available tools: ";
       decisionPathValue.textContent = (agent.runtime.currentTools || []).join(" · ") || "None";
     } else if (state?.isYourTurn) {
@@ -134,6 +137,11 @@ function render() {
       decisionName.textContent = label(state.pendingDecision?.type || state.game.phase);
       decisionPathValue.textContent = (state.statePath || []).join(" › ");
     }
+    renderActivityList(
+      node.querySelector(".activity-list"),
+      agent.runtime.recentActivity || [],
+      currentActivity,
+    );
 
     node.querySelector(".latest-run").textContent = latest
       ? latest.status + ": " + (latest.tool || "no action") + " · " + formatDuration(latest.durationMs)
@@ -331,6 +339,13 @@ function renderOverview() {
   const state = monitor.state;
   if (!state) {
     content.append(section("Connection", textNode("Connect this agent to see its player state.")));
+    content.append(section(
+      "Model activity",
+      activityTimeline(
+        monitor.agent.runtime.recentActivity || [],
+        monitor.agent.runtime.currentActivity,
+      ),
+    ));
     content.append(section("Model usage", jsonBlock(monitor.metrics)));
     content.append(section("Recent model runs", runTable(monitor.recentRuns)));
     return;
@@ -357,6 +372,13 @@ function renderOverview() {
   );
   content.append(decision);
 
+  content.append(section(
+    "Model activity",
+    activityTimeline(
+      monitor.agent.runtime.recentActivity || [],
+      monitor.agent.runtime.currentActivity,
+    ),
+  ));
   content.append(section("Available house cards", cardList(player.availableHouseCards || [])));
   content.append(section("Units", unitTable(player.units || [])));
   content.append(section(
@@ -380,6 +402,73 @@ function section(title, child) {
   element.className = "overview-section";
   element.append(textNode(title, "section-title"), child);
   return element;
+}
+
+function activityTimeline(activities, currentActivity = null) {
+  if (!activities.length) {
+    return textNode("No activity for the current or most recent run.", "muted-line");
+  }
+  const list = document.createElement("ol");
+  list.className = "activity-timeline";
+  activities.slice(-8).forEach((activity) => {
+    const item = document.createElement("li");
+    if (isCurrentActivity(activity, currentActivity)) item.classList.add("current");
+    item.append(
+      textNode(activityDescription(activity), "activity-description"),
+      textNode(activityTime(activity), "activity-time"),
+    );
+    list.append(item);
+  });
+  return list;
+}
+
+function renderActivityList(list, activities, currentActivity) {
+  list.replaceChildren();
+  list.classList.toggle("hidden", activities.length === 0);
+  activities.slice(-5).forEach((activity) => {
+    const item = document.createElement("li");
+    if (isCurrentActivity(activity, currentActivity)) item.classList.add("current");
+    item.textContent = activityDescription(activity);
+    list.append(item);
+  });
+}
+
+function isCurrentActivity(activity, currentActivity) {
+  return currentActivity
+    && activity.kind === currentActivity.kind
+    && activity.occurredAt === currentActivity.occurredAt;
+}
+
+function activityDescription(activity) {
+  const request = activity.requestIndex ? " " + activity.requestIndex : "";
+  if (activity.kind === "model-run-started") return "Run started";
+  if (activity.kind === "model-run-completed") {
+    return "Run completed · " + label(activity.tool);
+  }
+  if (activity.kind === "model-run-failed") return "Run failed";
+  if (activity.kind === "model-run-cancelled") return "Run cancelled";
+  if (activity.kind === "model-request-started") {
+    return "Waiting for model response" + request;
+  }
+  if (activity.kind === "model-request-completed") {
+    const tokens = Number(activity.usage?.totalTokens || 0);
+    return "Model response" + request + " received"
+      + (tokens ? " · " + number(tokens) + " tokens" : "");
+  }
+  if (activity.kind === "model-tool-started") {
+    return "Using " + label(activity.tool);
+  }
+  if (activity.kind === "model-tool-completed") {
+    return "Finished " + label(activity.tool)
+      + (activity.durationMs == null ? "" : " · " + formatDuration(activity.durationMs));
+  }
+  return label(activity.kind);
+}
+
+function activityTime(activity) {
+  if (!activity.occurredAt) return "";
+  const parsed = new Date(activity.occurredAt);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleTimeString();
 }
 
 function stat(name, value) {

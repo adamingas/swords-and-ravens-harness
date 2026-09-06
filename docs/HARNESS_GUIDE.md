@@ -173,7 +173,8 @@ The lifecycle is:
 6. Stop closes the connection. It does not delete the saved agent or traces.
 
 The current client does not reconnect automatically after a WebSocket failure.
-Use **Connect** again after the game server is available.
+It marks normal socket closure as disconnected and fails a pending snapshot
+request immediately. Use **Connect** again after the game server is available.
 
 Agent records and trace rows survive a Python harness restart. WebSocket
 connections, runtime state, and autoplay do not. Reconnect the agents and
@@ -623,6 +624,14 @@ regions, current action guidance, influence tracks, model usage, run traces,
 snapshots, and memory. Board rows are intentionally sparse: they contain only
 occupied, garrisoned, or controlled regions.
 
+While a run is active, the agent card shows whether the harness waits for a
+model response or invokes a tool. It also shows the last five lifecycle steps.
+The Overview tab shows the last eight steps for the current or most recent
+run. These steps survive a server restart because they use `agent_events`.
+They contain only bounded metadata: run and response IDs, request and tool
+sequence numbers, tool names, duration, and token totals. They do not contain
+prompts, observations, tool arguments, tool results, or credentials.
+
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
 The standard usage object contains request, input-token, output-token, and total
 token counts. Per-agent metrics report request-input distributions separately
@@ -799,9 +808,18 @@ does not write the key to an artifact or create an empty attempt directory.
 Start with a one-round smoke:
 
 ~~~bash
+uv run raven-protocol-smoke
 uv run raven-evaluate --games 1 --max-rounds 1 \
   --output data/evaluations/glm-one-round-smoke
 ~~~
+
+`raven-protocol-smoke` starts the real TypeScript server and six harness
+clients. A deterministic runner invokes the dynamic `submit_orders` and
+`skip_raven_order_replacement` tools to finish one round without a model
+provider. It uses only Defense and Support orders, fails closed at an
+unexpected required decision, and writes `smoke.json`, `harness.db`, the saved
+game, and the server log below `data/evaluations/`. This test verifies the
+protocol and persistence path. It does not replace the paid model smoke.
 
 Then run the complete comparison:
 
@@ -828,7 +846,10 @@ Completion requires a matching terminal winner in the live observation and
 the stable saved JSON. The runner also executes SQLite `PRAGMA quick_check`.
 `summary.json` reports wins, placement, victory points, reliability, provider
 requests, input/output/total/cached token counts, cost, house effects, and a
-stated pairwise Elo calculation.
+stated pairwise Elo calculation. It also reports the observation count for
+each configuration-house pair. A ranking is `provisional` until 12 games are
+complete and every pair has two observations. `comparisonComplete` is true
+only when these conditions are met.
 
 ## 16. Verify changes
 

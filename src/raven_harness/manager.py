@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from time import monotonic
 from typing import Any
@@ -25,6 +25,18 @@ from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
 from .telemetry import Telemetry, provider_cost
 
 
+_MODEL_ACTIVITY_KINDS = {
+    "model-run-started",
+    "model-run-completed",
+    "model-run-failed",
+    "model-run-cancelled",
+    "model-request-started",
+    "model-request-completed",
+    "model-tool-started",
+    "model-tool-completed",
+}
+
+
 @dataclass
 class AgentSession:
     status: str
@@ -41,6 +53,8 @@ class AgentSession:
     current_run_id: str | None = None
     run_started_at: str | None = None
     current_tools: list[str] | None = None
+    current_activity: dict[str, Any] | None = None
+    recent_activity: list[dict[str, Any]] = field(default_factory=list)
 
 
 class AgentManager:
@@ -81,7 +95,7 @@ class AgentManager:
     def get_runtime(self, agent_id: str) -> AgentRuntime:
         session = self.sessions.get(agent_id)
         if session is None:
-            return AgentRuntime()
+            return AgentRuntime(recent_activity=self._stored_model_activity(agent_id))
         observation = session.observation or {}
         return AgentRuntime(
             status=session.status,
@@ -93,7 +107,31 @@ class AgentManager:
             current_run_id=session.current_run_id,
             run_started_at=session.run_started_at,
             current_tools=session.current_tools or [],
+            current_activity=session.current_activity,
+            recent_activity=session.recent_activity,
         )
+
+    def _stored_model_activity(self, agent_id: str) -> list[dict[str, Any]]:
+        """Load the bounded activity timeline for the most recent model run."""
+
+        newest_first: list[dict[str, Any]] = []
+        latest_run_id: str | None = None
+        for event in self.store.list_events(
+            agent_id, kinds=_MODEL_ACTIVITY_KINDS
+        ):
+            if event.kind not in _MODEL_ACTIVITY_KINDS:
+                continue
+            run_id = event.payload.get("runId")
+            if not isinstance(run_id, str):
+                continue
+            if latest_run_id is None:
+                latest_run_id = run_id
+            if run_id != latest_run_id:
+                continue
+            newest_first.append({"kind": event.kind, **event.payload})
+            if len(newest_first) == 8:
+                break
+        return list(reversed(newest_first))
 
     async def start(self, agent_id: str) -> AgentPublic:
         existing = self.sessions.get(agent_id)
@@ -153,13 +191,17 @@ class AgentManager:
         if self.connection_factory is not None:
             client_args["connection_factory"] = self.connection_factory
         client = SwordsAndRavensClient(**client_args)
-        session = AgentSession(status="connecting", client=client)
+        session = AgentSession(
+            status="connecting",
+            client=client,
+            recent_activity=self._stored_model_activity(agent_id),
+        )
         self.sessions[agent_id] = session
 
         try:
             await client.connect()
             session.connected_at = datetime.now(timezone.utc).isoformat()
-            session.status = "connected"
+            session.status = client.status
         except Exception as error:
             message = safe_error_text(error)
             session.status = "error"
@@ -255,6 +297,8 @@ class AgentManager:
         session.current_run_id = run_id
         session.run_started_at = created_at
         session.current_tools = []
+        session.current_activity = None
+        session.recent_activity = []
         observation: dict[str, Any] = {}
         action_name: str | None = None
         action_arguments: dict[str, Any] | None = None
@@ -265,6 +309,23 @@ class AgentManager:
         status = "running"
         started_at = monotonic()
         harness = self.harness
+
+        def record_activity(kind: str, payload: dict[str, Any]) -> None:
+            if session.current_run_id != run_id:
+                return
+            sanitized = _sanitize_model_activity(kind, payload)
+            if sanitized is None:
+                return
+            occurred_at = datetime.now(timezone.utc).isoformat()
+            event_payload = {
+                "runId": run_id,
+                "occurredAt": occurred_at,
+                **sanitized,
+            }
+            self.store.add_event(agent_id, kind, event_payload)
+            activity = {"kind": kind, **event_payload}
+            session.current_activity = activity
+            session.recent_activity = [*session.recent_activity, activity][-8:]
 
         try:
             game_context = build_context(
@@ -287,11 +348,9 @@ class AgentManager:
                 raise RuntimeError(
                     "No model tool is implemented for the current game state"
                 )
-            self.store.add_event(
-                agent_id,
+            record_activity(
                 "model-run-started",
                 {
-                    "runId": run_id,
                     "model": record.model,
                     "phase": observation["game"]["phase"],
                     "tools": [tool.name for tool in tools],
@@ -302,6 +361,7 @@ class AgentManager:
                 client=session.client,
                 user_id=record.user_id,
                 game_password=record.game_password.get_secret_value(),
+                activity_sink=record_activity,
             )
             model_result = await harness.run_turn(
                 record,
@@ -325,6 +385,7 @@ class AgentManager:
             session.failure_leaf_id = None
             session.consecutive_failures = 0
             status = "completed"
+            record_activity("model-run-completed", {"tool": action_name})
             result = {
                 "runId": run_id,
                 "decision": {
@@ -360,11 +421,7 @@ class AgentManager:
             error_text = "Model run cancelled"
             if isinstance(error, ModelRunCancelled):
                 model_result = error.partial_result
-            self.store.add_event(
-                agent_id,
-                "model-run-cancelled",
-                {"runId": run_id, "message": error_text},
-            )
+            record_activity("model-run-cancelled", {})
             raise
         except Exception as error:
             status = "failed"
@@ -374,11 +431,7 @@ class AgentManager:
                 if error_text != str(error):
                     error = type(error)(error_text, error.partial_result)
             session.last_error = error_text
-            self.store.add_event(
-                agent_id,
-                "model-run-failed",
-                {"runId": run_id, "message": error_text},
-            )
+            record_activity("model-run-failed", {})
             if isinstance(error, RuntimeError):
                 if str(error) == error_text:
                     raise error from None
@@ -417,6 +470,7 @@ class AgentManager:
             session.current_run_id = None
             session.run_started_at = None
             session.current_tools = []
+            session.current_activity = None
 
     def set_autoplay(self, agent_id: str, enabled: bool) -> AgentPublic:
         session = self.sessions.get(agent_id)
@@ -696,6 +750,73 @@ def _summarize_message(message: dict[str, Any]) -> dict[str, Any]:
         if key in message:
             summary[key] = message[key]
     return summary
+
+
+def _sanitize_model_activity(
+    kind: str, payload: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Allow only bounded lifecycle metadata into the monitoring event stream."""
+
+    if kind == "model-run-started":
+        return {
+            "model": str(payload.get("model", ""))[:160],
+            "phase": str(payload.get("phase", ""))[:80],
+            "tools": [str(name)[:120] for name in payload.get("tools", [])[:64]],
+        }
+    if kind == "model-run-completed":
+        return {"tool": str(payload.get("tool", "unknown"))[:120]}
+    if kind in {"model-run-failed", "model-run-cancelled"}:
+        return {}
+    if kind == "model-request-started":
+        return {
+            "requestIndex": _nonnegative_int(payload.get("requestIndex")),
+            "inputItemCount": _nonnegative_int(payload.get("inputItemCount")),
+        }
+    if kind == "model-request-completed":
+        usage = payload.get("usage")
+        if not isinstance(usage, dict):
+            usage = {}
+        return {
+            "requestIndex": _nonnegative_int(payload.get("requestIndex")),
+            "responseId": str(payload["responseId"])[:200]
+            if payload.get("responseId") is not None
+            else None,
+            "outputItemCount": _nonnegative_int(payload.get("outputItemCount")),
+            "usage": {
+                key: _nonnegative_int(usage.get(key))
+                for key in (
+                    "requests",
+                    "inputTokens",
+                    "outputTokens",
+                    "totalTokens",
+                )
+            },
+            "durationMs": _optional_nonnegative_int(payload.get("durationMs")),
+        }
+    if kind in {"model-tool-started", "model-tool-completed"}:
+        sanitized: dict[str, Any] = {
+            "tool": str(payload.get("tool", "unknown"))[:120],
+            "sequence": _nonnegative_int(payload.get("sequence")),
+        }
+        if kind == "model-tool-completed":
+            sanitized["durationMs"] = _optional_nonnegative_int(
+                payload.get("durationMs")
+            )
+        return sanitized
+    return None
+
+
+def _nonnegative_int(value: Any) -> int:
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError, OverflowError):
+        return 0
+
+
+def _optional_nonnegative_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return _nonnegative_int(value)
 
 
 def _monitoring_state(

@@ -82,6 +82,8 @@ class AgentRuntime(CamelModel):
     current_run_id: str | None = None
     run_started_at: str | None = None
     current_tools: list[str] = Field(default_factory=list)
+    current_activity: dict[str, Any] | None = None
+    recent_activity: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class AutoplayRequest(CamelModel):

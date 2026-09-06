@@ -225,6 +225,16 @@ dd { margin: 0; overflow: hidden; text-overflow: ellipsis; font-size: .84rem; wh
 .turn-flag.thinking { animation: pulse 1.5s ease-in-out infinite; }
 .decision-name { font-size: .86rem; }
 .decision-path { overflow-wrap: anywhere; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.activity-list {
+  margin: 7px 0 0;
+  padding: 7px 0 0 18px;
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  font-size: .69rem;
+}
+.activity-list li.current { color: var(--gold-bright); }
 
 .run-strip {
   margin: 0 0 14px;
@@ -317,6 +327,18 @@ textarea { resize: vertical; line-height: 1.45; }
   color: #d9d2bd;
   font: 500 1.05rem Georgia, serif;
 }
+.activity-timeline { margin: 0; padding: 0; display: grid; gap: 1px; list-style: none; }
+.activity-timeline li {
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  border-left: 2px solid #555a4c;
+  background: #11130f;
+}
+.activity-timeline li.current { border-left-color: var(--gold); }
+.activity-description { color: #d9d2bd; font-size: .78rem; }
+.activity-time { color: var(--muted); font-size: .7rem; }
 .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .item-card { padding: 11px; border: 1px solid var(--line); border-radius: 4px; background: #11130f; }
 .item-name { margin-bottom: 4px; font-size: .82rem; font-weight: 750; }

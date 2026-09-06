@@ -131,6 +131,45 @@ class ContextManifestHarness:
         return result
 
 
+class BlockingActivityHarness(ContextManifestHarness):
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def run_turn(self, record, prepared, context, run_id):
+        for request_index in range(1, 11):
+            context.report_activity(
+                "model-request-started",
+                {
+                    "requestIndex": request_index,
+                    "inputItemCount": request_index + 2,
+                    "prompt": "private prompt body",
+                    "authorization": "Bearer private-token",
+                },
+            )
+        self.started.set()
+        await self.release.wait()
+        context.report_activity(
+            "model-request-completed",
+            {
+                "requestIndex": 10,
+                "responseId": "response-10",
+                "outputItemCount": 1,
+                "usage": {
+                    "requests": 1,
+                    "inputTokens": 100,
+                    "outputTokens": 10,
+                    "totalTokens": 110,
+                    "providerSecret": "private usage body",
+                },
+                "durationMs": 25,
+                "result": "private result body",
+            },
+        )
+        return await super().run_turn(record, prepared, context, run_id)
+
+
 def manifest_manager(tmp_path, outcome: str = "completed"):
     database = Database(tmp_path / f"manager-{outcome}.db")
     store = AgentStore(database)
@@ -165,6 +204,74 @@ async def test_manager_persists_effective_context_manifest(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_manager_exposes_bounded_sanitized_live_activity(tmp_path) -> None:
+    database = Database(tmp_path / "activity.db")
+    store = AgentStore(database)
+    harness = BlockingActivityHarness()
+    manager = AgentManager(store=store, harness=harness)
+    agent = store.create_agent(
+        AgentCreate(
+            name="Activity Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="private-agent-token",
+            game_password="private-game-password",
+        )
+    )
+    manager.sessions[agent.id] = AgentSession(
+        status="connected", client=FakeRunClient()
+    )
+
+    task = asyncio.create_task(manager.run_once(agent.id))
+    await harness.started.wait()
+
+    live = manager.get_runtime(agent.id).model_dump(by_alias=True)
+    assert live["currentActivity"]["kind"] == "model-request-started"
+    assert live["currentActivity"]["requestIndex"] == 10
+    assert len(live["recentActivity"]) == 8
+    assert [item["requestIndex"] for item in live["recentActivity"]] == list(
+        range(3, 11)
+    )
+    harness.release.set()
+    result = await task
+
+    stopped = manager.get_runtime(agent.id).model_dump(by_alias=True)
+    assert stopped["currentActivity"] is None
+    assert len(stopped["recentActivity"]) == 8
+    assert stopped["recentActivity"][-1]["kind"] == "model-run-completed"
+    events = store.list_events(agent.id)
+    request_events = [event for event in events if event.kind.startswith("model-request-")]
+    assert len(request_events) == 11
+    completed = next(
+        event for event in request_events if event.kind == "model-request-completed"
+    )
+    assert completed.payload["runId"] == result["runId"]
+    assert completed.payload["usage"] == {
+        "requests": 1,
+        "inputTokens": 100,
+        "outputTokens": 10,
+        "totalTokens": 110,
+    }
+    serialized = str([event.payload for event in request_events])
+    assert "private prompt body" not in serialized
+    assert "private-token" not in serialized
+    assert "private usage body" not in serialized
+    assert "private result body" not in serialized
+    assert "private-game-password" not in serialized
+
+    for index in range(100):
+        store.add_event(agent.id, "game-message-received", {"index": index})
+    restarted_manager = AgentManager(store=store, harness=ContextManifestHarness())
+    persisted = restarted_manager.get_runtime(agent.id).model_dump(by_alias=True)
+    assert persisted["currentActivity"] is None
+    assert len(persisted["recentActivity"]) == 8
+    assert persisted["recentActivity"][-1]["kind"] == "model-run-completed"
+    database.close()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("outcome", ["failed", "cancelled"])
 async def test_manager_persists_partial_result_context_manifest(
     tmp_path, outcome
@@ -179,6 +286,8 @@ async def test_manager_persists_partial_result_context_manifest(
     assert trace is not None
     assert trace["status"] == outcome
     assert trace["contextManifest"] == harness.manifest
+    activity = manager.get_runtime(agent.id).recent_activity
+    assert activity[-1]["kind"] == f"model-run-{outcome}"
     database.close()
 
 

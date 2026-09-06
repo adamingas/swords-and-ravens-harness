@@ -11,9 +11,13 @@ from conftest import lobby_snapshot, planning_snapshot
 
 
 class FakeConnection:
-    def __init__(self) -> None:
+    def __init__(
+        self, *, answer_sync: bool = True, close_after_auth: bool = False
+    ) -> None:
         self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
         self.closed = False
+        self.answer_sync = answer_sync
+        self.close_after_auth = close_after_auth
 
     def __aiter__(self) -> "FakeConnection":
         return self
@@ -36,7 +40,9 @@ class FakeConnection:
                     }
                 )
             )
-        elif message["type"] == "sync-game":
+            if self.close_after_auth:
+                await self.incoming.put(None)
+        elif message["type"] == "sync-game" and self.answer_sync:
             game = lobby_snapshot()
             game["leafStateId"] = "synced-leaf"
             await self.incoming.put(
@@ -89,6 +95,55 @@ async def test_client_authenticates_and_applies_lobby_updates() -> None:
     assert snapshot["leafStateId"] == "synced-leaf"
     assert client.snapshot is snapshot
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_normal_socket_eof_disconnects_and_fails_pending_sync() -> None:
+    connection = FakeConnection(answer_sync=False)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+    await client.connect(timeout=0.5)
+    pending_sync = asyncio.create_task(client.sync_snapshot(timeout=10))
+    await asyncio.sleep(0)
+
+    await connection.incoming.put(None)
+
+    with pytest.raises(RuntimeError, match="closed before synchronization"):
+        await asyncio.wait_for(pending_sync, timeout=0.5)
+    assert client.status == "disconnected"
+    assert client.connection is None
+    assert client._sync_requests == {}
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_authentication_does_not_succeed_after_immediate_socket_eof() -> None:
+    connection = FakeConnection(close_after_auth=True)
+
+    async def connect(_url: str) -> FakeConnection:
+        return connection
+
+    client = SwordsAndRavensClient(
+        url="ws://game.test",
+        game_id="1",
+        user_id="2",
+        auth_token="secret",
+        connection_factory=connect,
+    )
+
+    with pytest.raises(RuntimeError, match="closed during authentication"):
+        await client.connect(timeout=0.5)
+    assert client.status == "error"
+    assert client.connection is None
 
 
 def test_state_mirror_tracks_turn_units_and_waited_player() -> None:

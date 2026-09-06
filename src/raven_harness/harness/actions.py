@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from itertools import combinations, product
@@ -126,8 +127,20 @@ class HarnessRunContext:
     user_id: str
     game_password: str = ""
     memory: HarnessMemory | None = None
+    activity_sink: Callable[[str, dict[str, Any]], None] | None = None
     action_taken: ActionTaken | None = None
     pending_strategy_note: str | None = None
+
+    def report_activity(self, kind: str, payload: dict[str, Any]) -> None:
+        """Report sanitized model lifecycle metadata without affecting gameplay."""
+
+        if self.activity_sink is None:
+            return
+        try:
+            self.activity_sink(kind, payload)
+        except Exception:
+            # Monitoring must never make a model turn fail.
+            return
 
     def current_game_context(self) -> HarnessContext:
         if self.client.snapshot is None:

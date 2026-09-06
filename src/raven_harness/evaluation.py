@@ -25,6 +25,7 @@ from .harness.strategic import (
     AGENT_SDK_MAX_TURNS,
     STRATEGIC_INSTRUCTIONS,
     StrategicHarness,
+    StrategicModelRunner,
 )
 from .manager import AgentManager
 from .models.openai_agent import OpenAIAgentRunner
@@ -237,6 +238,7 @@ async def run_game(
     stall_seconds: float,
     match_timeout_seconds: float,
     settings: Settings,
+    model_runner: StrategicModelRunner | None = None,
 ) -> dict[str, Any]:
     if await _port_is_open(game_port):
         raise RuntimeError(f"Game-server port {game_port} is already in use")
@@ -263,7 +265,7 @@ async def run_game(
     database: Database | None = None
     manager: AgentManager | None = None
     telemetry: Telemetry | None = None
-    runner: OpenAIAgentRunner | None = None
+    runner: StrategicModelRunner | None = model_runner
     records: list[Any] = []
     completed_result: dict[str, Any] | None = None
     game_mtime_ns: int | None = None
@@ -285,23 +287,24 @@ async def run_game(
             endpoint=settings.otel_exporter_otlp_traces_endpoint,
             service_name=settings.otel_service_name,
         )
-        runner = OpenAIAgentRunner(
-            api_key=settings.model_api_key,
-            base_url=settings.model_base_url,
-            request_timeout_seconds=settings.model_request_timeout_seconds,
-            run_timeout_seconds=settings.model_run_timeout_seconds,
-            max_retries=settings.model_api_max_retries,
-            max_concurrency=settings.model_max_concurrency,
-            max_output_tokens=settings.model_max_output_tokens,
-            session_database_path=database_path,
-            session_history_items=settings.model_session_history_items,
-            provider_routing=(
-                settings.openrouter_provider_routing
-                if settings.model_provider == "OpenRouter"
-                else None
-            ),
-            rulebook=rulebook,
-        )
+        if runner is None:
+            runner = OpenAIAgentRunner(
+                api_key=settings.model_api_key,
+                base_url=settings.model_base_url,
+                request_timeout_seconds=settings.model_request_timeout_seconds,
+                run_timeout_seconds=settings.model_run_timeout_seconds,
+                max_retries=settings.model_api_max_retries,
+                max_concurrency=settings.model_max_concurrency,
+                max_output_tokens=settings.model_max_output_tokens,
+                session_database_path=database_path,
+                session_history_items=settings.model_session_history_items,
+                provider_routing=(
+                    settings.openrouter_provider_routing
+                    if settings.model_provider == "OpenRouter"
+                    else None
+                ),
+                rulebook=rulebook,
+            )
         harness = StrategicHarness(runner, store)
         manager = AgentManager(
             store=store,
@@ -1421,6 +1424,10 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
 
 def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     ratings = {item.name: 1500.0 for item in PROMPT_CONFIGURATIONS}
+    configuration_house_counts = {
+        item.name: {house: 0 for house in HOUSES}
+        for item in PROMPT_CONFIGURATIONS
+    }
     configurations: dict[str, dict[str, Any]] = {
         item.name: {
             "configuration": item.name,
@@ -1451,8 +1458,10 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         deltas = {name: 0.0 for name in ratings}
         for standing in standings:
             name = standing["configuration"]
+            house = standing["house"]
             metrics = standing["metrics"]
             values = configurations[name]
+            configuration_house_counts[name][house] += 1
             values["games"] += 1
             values["wins"] += int(standing["house"] == result["winner"])
             values["placementTotal"] += standing["placement"]
@@ -1534,8 +1543,32 @@ def summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         }
         for house, values in houses.items()
     ]
+    configuration_house_coverage = [
+        {
+            "configuration": configuration.name,
+            "houses": configuration_house_counts[configuration.name],
+            "minimumObservations": min(
+                configuration_house_counts[configuration.name].values()
+            ),
+        }
+        for configuration in PROMPT_CONFIGURATIONS
+    ]
+    required_observations = 2
+    minimum_observations = min(
+        count
+        for house_counts in configuration_house_counts.values()
+        for count in house_counts.values()
+    )
+    comparison_complete = (
+        len(results) >= 12 and minimum_observations >= required_observations
+    )
     return {
         "completedGames": len(results),
+        "comparisonComplete": comparison_complete,
+        "rankingStatus": "complete" if comparison_complete else "provisional",
+        "requiredObservationsPerConfigurationHouse": required_observations,
+        "minimumObservationsPerConfigurationHouse": minimum_observations,
+        "configurationHouseCoverage": configuration_house_coverage,
         "ranking": ranking,
         "houseEffects": house_effects,
         "eloMethod": (

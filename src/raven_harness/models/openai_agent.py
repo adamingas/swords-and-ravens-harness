@@ -6,6 +6,7 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 from agents import (
@@ -14,6 +15,7 @@ from agents import (
     ModelSettings,
     OpenAIResponsesModel,
     RunConfig,
+    RunHooks,
     Runner,
     ToolsToFinalOutputResult,
 )
@@ -189,6 +191,124 @@ class _ModelInputRecorder:
         return data.model_data
 
 
+class _ModelActivityHooks(RunHooks[HarnessRunContext]):
+    """Publish a body-free lifecycle stream for the parent model run."""
+
+    def __init__(self, parent_agent: Agent[HarnessRunContext]) -> None:
+        self.parent_agent = parent_agent
+        self.request_count = 0
+        self.tool_count = 0
+        self.request_starts: dict[int, float] = {}
+        self.tool_starts: dict[str, tuple[int, float]] = {}
+
+    async def on_llm_start(
+        self,
+        context: Any,
+        agent: Agent[HarnessRunContext],
+        system_prompt: str | None,
+        input_items: list[Any],
+    ) -> None:
+        del system_prompt
+        if agent is not self.parent_agent:
+            return
+        self.request_count += 1
+        request_index = self.request_count
+        self.request_starts[request_index] = monotonic()
+        context.context.report_activity(
+            "model-request-started",
+            {
+                "requestIndex": request_index,
+                "inputItemCount": len(input_items),
+            },
+        )
+
+    async def on_llm_end(
+        self,
+        context: Any,
+        agent: Agent[HarnessRunContext],
+        response: Any,
+    ) -> None:
+        if agent is not self.parent_agent:
+            return
+        request_index = self.request_count
+        started_at = self.request_starts.pop(request_index, None)
+        context.context.report_activity(
+            "model-request-completed",
+            {
+                "requestIndex": request_index,
+                "responseId": response.response_id,
+                "outputItemCount": len(response.output),
+                "usage": {
+                    "requests": response.usage.requests,
+                    "inputTokens": response.usage.input_tokens,
+                    "outputTokens": response.usage.output_tokens,
+                    "totalTokens": response.usage.total_tokens,
+                },
+                "durationMs": _elapsed_milliseconds(started_at),
+            },
+        )
+
+    async def on_tool_start(
+        self,
+        context: Any,
+        agent: Agent[HarnessRunContext],
+        tool: Any,
+    ) -> None:
+        if agent is not self.parent_agent:
+            return
+        self.tool_count += 1
+        sequence = self.tool_count
+        key = _tool_activity_key(context, tool.name, sequence)
+        self.tool_starts[key] = (sequence, monotonic())
+        context.context.report_activity(
+            "model-tool-started",
+            {"tool": tool.name, "sequence": sequence},
+        )
+
+    async def on_tool_end(
+        self,
+        context: Any,
+        agent: Agent[HarnessRunContext],
+        tool: Any,
+        result: object,
+    ) -> None:
+        del result
+        if agent is not self.parent_agent:
+            return
+        key = _tool_activity_key(context, tool.name, self.tool_count)
+        started = self.tool_starts.pop(key, None)
+        if started is None:
+            matching_key = next(
+                (
+                    candidate
+                    for candidate in self.tool_starts
+                    if candidate.startswith(f"{tool.name}:")
+                ),
+                None,
+            )
+            started = self.tool_starts.pop(matching_key, None) if matching_key else None
+        sequence, started_at = started or (self.tool_count, None)
+        context.context.report_activity(
+            "model-tool-completed",
+            {
+                "tool": tool.name,
+                "sequence": sequence,
+                "durationMs": _elapsed_milliseconds(started_at),
+            },
+        )
+
+
+def _tool_activity_key(context: Any, tool_name: str, fallback: int) -> str:
+    call_id = getattr(context, "tool_call_id", None)
+    return f"{tool_name}:{call_id or fallback}"
+
+
+def _elapsed_milliseconds(started_at: float | None) -> int | None:
+    if started_at is None:
+        return None
+    return max(0, int((monotonic() - started_at) * 1_000))
+
+
 class ModelRunError(RuntimeError):
     """A failed parent run that still produced traceable nested model work."""
 
@@ -338,6 +458,7 @@ class OpenAIAgentRunner:
                 reset_tool_choice=False,
             )
             model_input_recorder.parent_agent = agent
+            activity_hooks = _ModelActivityHooks(agent)
         except Exception as error:
             raise ModelRunError(
                 safe_error_text(error),
@@ -353,6 +474,7 @@ class OpenAIAgentRunner:
                         max_turns=max_turns,
                         run_config=run_config,
                         session=self._session(agent_record.id),
+                        hooks=activity_hooks,
                     )
         except asyncio.CancelledError as error:
             raise ModelRunCancelled(

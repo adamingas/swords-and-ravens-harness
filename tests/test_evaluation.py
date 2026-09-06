@@ -615,6 +615,10 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     )
 
     assert summary["completedGames"] == 1
+    assert summary["comparisonComplete"] is False
+    assert summary["rankingStatus"] == "provisional"
+    assert summary["requiredObservationsPerConfigurationHouse"] == 2
+    assert summary["minimumObservationsPerConfigurationHouse"] == 0
     assert summary["ranking"][0]["configuration"] == "Balanced"
     assert summary["ranking"][0]["elo"] > 1500
     assert summary["ranking"][0]["reliability"] == 0.75
@@ -630,3 +634,47 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
         "wins": 1,
         "averagePlacement": 1.0,
     }
+
+
+def test_summary_requires_two_complete_house_rotations() -> None:
+    empty_metrics = {
+        "statusCounts": {},
+        "modelRequests": 0,
+        "tokens": {},
+        "costUsd": 0,
+    }
+    results = []
+    for game_number in range(1, 13):
+        rotation = house_rotation(game_number)
+        standings = [
+            {
+                "configuration": configuration.name,
+                "house": rotation[configuration.name],
+                "placement": placement,
+                "victoryPoints": 7 - placement,
+                "metrics": empty_metrics,
+            }
+            for placement, configuration in enumerate(PROMPT_CONFIGURATIONS, 1)
+        ]
+        results.append(
+            {
+                "gameNumber": game_number,
+                "winner": standings[0]["house"],
+                "standings": standings,
+            }
+        )
+
+    summary = summarize_results(results)
+
+    assert summary["completedGames"] == 12
+    assert summary["comparisonComplete"] is True
+    assert summary["rankingStatus"] == "complete"
+    assert summary["minimumObservationsPerConfigurationHouse"] == 2
+    assert summary["configurationHouseCoverage"] == [
+        {
+            "configuration": configuration.name,
+            "houses": {house: 2 for house in HOUSES},
+            "minimumObservations": 2,
+        }
+        for configuration in PROMPT_CONFIGURATIONS
+    ]

@@ -93,7 +93,9 @@ user ID.
 The harness dashboard can create and connect agents, ask a model to choose a
 house, configure a six-player lobby through an owner agent, launch the game,
 run one decision, and enable autoplay. Humans continue to use the original
-browser client.
+browser client. Agent cards show live model-request and tool activity. The
+detail view keeps the recent activity timeline, complete run traces, player
+state, token use, and provider cost.
 
 ## Configuration
 
@@ -173,14 +175,21 @@ game JSON below `data/evaluations/`, and assigns the same model to all six
 players. Run a one-round smoke before a complete 12-game comparison:
 
 ~~~bash
+uv run raven-protocol-smoke
 uv run raven-evaluate --games 1 --max-rounds 1 \
   --output data/evaluations/glm-one-round-smoke
 uv run raven-evaluate --games 12 \
   --output data/evaluations/glm-prompt-comparison
 ~~~
 
+`raven-protocol-smoke` starts the real TypeScript server and six harness
+clients, then completes one round with a deterministic safe policy. It invokes
+the same dynamic gameplay tools as a model but makes no provider requests. Use
+it to test local protocol and persistence changes before the paid model smoke.
+
 Reusing an output directory skips completed games and preserves failed
 attempts. The manifest rejects changes to the model, prompts, schedule, source
 commits, rules, or runtime settings. Before it creates a new attempt, the
 runner stops if OpenRouter reports that the configured key has exhausted its
-spending limit.
+spending limit. The summary labels rankings as provisional until all 12 games
+are complete and every configuration has played each house twice.

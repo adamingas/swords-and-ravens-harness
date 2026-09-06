@@ -75,14 +75,31 @@ class AgentStore:
                 ),
             )
 
-    def list_events(self, agent_id: str, limit: int = 80) -> list[AgentEvent]:
+    def list_events(
+        self,
+        agent_id: str,
+        limit: int = 80,
+        *,
+        kinds: set[str] | None = None,
+    ) -> list[AgentEvent]:
+        if kinds is not None and not kinds:
+            return []
+        kind_filter = ""
+        parameters: list[Any] = [agent_id]
+        if kinds is not None:
+            placeholders = ",".join("?" for _kind in kinds)
+            kind_filter = f" AND kind IN ({placeholders})"
+            parameters.extend(sorted(kinds))
+        parameters.append(limit)
         with self.database.lock:
             rows = self.database.connection.execute(
-                """
+                f"""
                 SELECT id, kind, payload_json, created_at
-                FROM agent_events WHERE agent_id = ? ORDER BY id DESC LIMIT ?
+                FROM agent_events
+                WHERE agent_id = ?{kind_filter}
+                ORDER BY id DESC LIMIT ?
                 """,
-                (agent_id, limit),
+                parameters,
             ).fetchall()
         return [
             AgentEvent(

@@ -254,6 +254,58 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
 
 
 @pytest.mark.asyncio
+async def test_openai_runner_reports_sanitized_request_and_tool_lifecycle(
+    monkeypatch,
+) -> None:
+    fake_model = ToolCallingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent.OpenAIResponsesModel",
+        lambda **_kwargs: fake_model,
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    activities: list[tuple[str, dict[str, Any]]] = []
+    context = HarnessRunContext(
+        client=FakeClient(),
+        user_id="2",
+        game_password="private-game-password",
+        activity_sink=lambda kind, payload: activities.append((kind, payload)),
+    )
+
+    await OpenAIAgentRunner(
+        api_key="private-api-key",
+        base_url="https://api.openai.test/v1",
+    ).run_once(**turn_arguments(record, context))
+
+    assert [kind for kind, _payload in activities] == [
+        "model-request-started",
+        "model-request-completed",
+        "model-tool-started",
+        "model-tool-completed",
+    ]
+    assert activities[0][1] == {"requestIndex": 1, "inputItemCount": 1}
+    assert activities[1][1]["responseId"] == "resp-1"
+    assert activities[1][1]["usage"] == {
+        "requests": 1,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+    }
+    assert activities[2][1] == {"tool": "choose_house", "sequence": 1}
+    assert activities[3][1]["tool"] == "choose_house"
+    assert activities[3][1]["sequence"] == 1
+    assert activities[1][1]["durationMs"] >= 0
+    assert activities[3][1]["durationMs"] >= 0
+    serialized = json.dumps(activities)
+    assert OBSERVATION_INPUT_PREFIX not in serialized
+    assert "private-api-key" not in serialized
+    assert "private-game-password" not in serialized
+    assert "house_id" not in serialized
+    assert '"result"' not in serialized
+
+
+@pytest.mark.asyncio
 async def test_tool_validation_error_can_be_corrected_in_the_same_run(
     monkeypatch,
 ) -> None:

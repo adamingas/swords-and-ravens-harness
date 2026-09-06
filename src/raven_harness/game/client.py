@@ -59,6 +59,8 @@ class SwordsAndRavensClient:
                 {"type": "authenticate", "authData": self.auth_data}, require_auth=False
             )
             await asyncio.wait_for(self._authenticated.wait(), timeout)
+            if self.connection is None or self.status != "connected":
+                raise RuntimeError("Game connection closed during authentication")
             self._ping_task = asyncio.create_task(self._ping_loop())
         except Exception:
             await self.close(status="error")
@@ -120,7 +122,19 @@ class SwordsAndRavensClient:
             raise
         except Exception as error:
             self.on_event("error", {"message": safe_error_text(error)})
-            self._set_status("disconnected")
+        finally:
+            if self.status not in {"banned", "stopped", "error"}:
+                self.connection = None
+                self._authenticated.clear()
+                if self._ping_task is not None:
+                    self._ping_task.cancel()
+                    self._ping_task = None
+                for future in self._sync_requests.values():
+                    if not future.done():
+                        future.set_exception(
+                            RuntimeError("Game connection closed before synchronization")
+                        )
+                self._set_status("disconnected")
 
     def _on_message(self, message: dict[str, Any]) -> None:
         if message.get("type") == "authenticate-response":
