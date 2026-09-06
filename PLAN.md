@@ -46,14 +46,14 @@ The codebase must:
 
 
 ### 2. Run a model tournament
-#### 2.1 same model — complete
+#### 2.1 same model — in progress
 
-- [x] Run six players with the same `strategic-v1` harness and exact
+- [ ] Run six players with the same `strategic-v1` harness and exact
   `openai/gpt-oss-120b` model, served by Cerebras.
-- [x] Run five games.
-- [x] Produce win-rate and placement statistics for every house.
-- [x] Complete every game within one minute.
-- [x] Record the method, performance, cost, failure, and interpretation in
+- [ ] Run five complete games with no artificial round limit.
+- [ ] Produce win-rate and placement statistics for every house.
+- [ ] Measure whether every complete game finishes within one minute.
+- [ ] Record the method, performance, cost, failure, and interpretation in
   `docs/GPT_OSS_120B_HOUSE_TEST.md`.
 
 #### 2.2 different models
