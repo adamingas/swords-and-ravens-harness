@@ -210,7 +210,7 @@ decision.
 
 Autoplay retries a failed model attempt while the same leaf-state ID remains
 active. It disables autoplay at the configured failure limit. The default is
-five consecutive failures for one leaf-state ID. Other snapshot data can
+two consecutive failures for one leaf-state ID. Other snapshot data can
 change without resetting this counter. The dashboard keeps the last error
 visible.
 
@@ -784,10 +784,12 @@ base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
 creating agents.
 
 OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
-MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run and its one HTTP
-request at a time. The client does not retry HTTP requests. Autoplay makes a
-separately traced retry from the durable pre-call checkpoint after a transient
-failure.
+MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 45 seconds by
+default. MODEL_RUN_TIMEOUT_SECONDS separately limits the complete Agents SDK
+run, which can contain more than one request after a support-tool call or a
+corrected tool call. The HTTP client does not retry. Autoplay makes at most one
+separately traced retry by default from the durable pre-call checkpoint after a
+transient failure.
 Agents make asynchronous model calls without a harness concurrency limit.
 MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
 allows reasoning models to complete a tool decision. A 4,096-token limit caused
@@ -824,7 +826,7 @@ this filter is enabled.
 | WebSocket ping interval | 30 seconds |
 | Autoplay trigger | New server snapshot |
 | Model request timeout | 45 seconds per attempt |
-| Model API retries | 2 |
+| Model API retries | 0 inside the HTTP client; 1 checkpointed autoplay retry |
 | Complete model-run timeout | 300 seconds per agent decision |
 | Concurrent model runs | No harness limit |
 | Parent Agents SDK turns | 6 |

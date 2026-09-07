@@ -351,7 +351,7 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
 
 
 class _UsageCapturingResponsesModel(OpenAIResponsesModel):
-    """Keep a terminal response that the Agents SDK would otherwise discard."""
+    """Bound one request and keep terminal responses the SDK would discard."""
 
     def __init__(
         self,
@@ -359,19 +359,25 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         terminal_response_sink: list[tuple[str, Any]] | None = None,
         response_scope: str = "agent",
         response_attribution_sink: dict[str, dict[str, Any]] | None = None,
+        request_timeout_seconds: float = 45,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.terminal_response_sink = terminal_response_sink
         self.response_scope = response_scope
         self.response_attribution_sink = response_attribution_sink
+        self.request_timeout_seconds = request_timeout_seconds
 
     async def _fetch_response(self, *args: Any, **kwargs: Any) -> Any:
         if kwargs.get("stream", False):
             return await super()._fetch_response(*args, **kwargs)
 
         create_kwargs = self._build_response_create_kwargs(*args, **kwargs)
-        response = await self._get_client().responses.create(**create_kwargs)
+        try:
+            async with asyncio.timeout(self.request_timeout_seconds):
+                response = await self._get_client().responses.create(**create_kwargs)
+        except TimeoutError:
+            raise _ModelRequestTimeoutError from None
         if self.response_attribution_sink is not None:
             response_id = str(getattr(response, "id", ""))
             if response_id:
@@ -399,15 +405,15 @@ def _response_model(
     terminal_response_sink: list[tuple[str, Any]] | None = None,
     response_scope: str = "agent",
     response_attribution_sink: dict[str, dict[str, Any]] | None = None,
+    request_timeout_seconds: float = 45,
 ) -> OpenAIResponsesModel:
-    if terminal_response_sink is None and response_attribution_sink is None:
-        return OpenAIResponsesModel(model=model, openai_client=openai_client)
     return _UsageCapturingResponsesModel(
         model=model,
         openai_client=openai_client,
         terminal_response_sink=terminal_response_sink,
         response_scope=response_scope,
         response_attribution_sink=response_attribution_sink,
+        request_timeout_seconds=request_timeout_seconds,
     )
 
 
@@ -463,6 +469,10 @@ class ModelRunCancelled(asyncio.CancelledError):
         self.partial_result = partial_result
 
 
+class _ModelRequestTimeoutError(TimeoutError):
+    """A complete provider request exceeded its wall-clock deadline."""
+
+
 class OpenAIAgentRunner:
     """Runs one Agents SDK turn with the currently legal game tools attached."""
 
@@ -471,6 +481,7 @@ class OpenAIAgentRunner:
         *,
         api_key: str,
         base_url: str,
+        request_timeout_seconds: float = 45,
         run_timeout_seconds: float = 300,
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
@@ -480,6 +491,7 @@ class OpenAIAgentRunner:
         rulebook: Rulebook | None = None,
     ) -> None:
         self.api_key = api_key
+        self.request_timeout_seconds = request_timeout_seconds
         self.run_timeout_seconds = run_timeout_seconds
         self.max_output_tokens = max_output_tokens
         self.session_database_path = session_database_path
@@ -492,7 +504,7 @@ class OpenAIAgentRunner:
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
             base_url=base_url,
-            timeout=run_timeout_seconds,
+            timeout=request_timeout_seconds,
             max_retries=0,
         )
 
@@ -549,6 +561,7 @@ class OpenAIAgentRunner:
                 openai_client=self.client,
                 terminal_response_sink=terminal_responses,
                 response_attribution_sink=response_attribution,
+                request_timeout_seconds=self.request_timeout_seconds,
             )
             run_config = RunConfig(
                 tracing_disabled=True,
@@ -568,6 +581,7 @@ class OpenAIAgentRunner:
                             terminal_response_sink=terminal_responses,
                             response_scope="rules-oracle",
                             response_attribution_sink=response_attribution,
+                            request_timeout_seconds=self.request_timeout_seconds,
                         ),
                         model_settings=self._model_settings(
                             max_tokens=900,
@@ -644,6 +658,15 @@ class OpenAIAgentRunner:
             raise ModelRunCancelled(
                 partial_result()
             ) from error
+        except (APITimeoutError, _ModelRequestTimeoutError):
+            await _rollback_unaccepted_session(
+                session, session_item_count, context=context
+            )
+            message = f"Model API timed out after {self.request_timeout_seconds:g} seconds"
+            raise ModelRunError(
+                message,
+                partial_result(),
+            ) from None
         except TimeoutError:
             await _rollback_unaccepted_session(
                 session, session_item_count, context=context
@@ -651,15 +674,6 @@ class OpenAIAgentRunner:
             message = (
                 f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
             )
-            raise ModelRunError(
-                message,
-                partial_result(),
-            ) from None
-        except APITimeoutError:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
-            message = f"Model API timed out after {self.run_timeout_seconds:g} seconds"
             raise ModelRunError(
                 message,
                 partial_result(),

@@ -79,7 +79,7 @@ class AgentManager:
         harness: PlayerHarness,
         connection_factory: ConnectionFactory | None = None,
         telemetry: Telemetry | None = None,
-        autoplay_max_consecutive_failures: int = 5,
+        autoplay_max_consecutive_failures: int = 2,
         autoplay_retry_base_seconds: float = 2,
         reconnect_retry_base_seconds: float = 1,
         reconnect_retry_max_seconds: float = 30,

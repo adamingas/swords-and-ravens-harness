@@ -49,6 +49,7 @@ def create_app(
         model_runner = runner or OpenAIAgentRunner(
             api_key=settings.model_api_key,
             base_url=settings.model_base_url,
+            request_timeout_seconds=settings.model_request_timeout_seconds,
             run_timeout_seconds=settings.model_run_timeout_seconds,
             max_output_tokens=settings.model_max_output_tokens,
             session_database_path=settings.resolved_database_path,

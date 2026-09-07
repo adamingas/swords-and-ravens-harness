@@ -67,12 +67,13 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
+    model_request_timeout_seconds: float = Field(default=45, gt=0, le=300)
     model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_max_output_tokens: int = Field(
         default=DEFAULT_MODEL_MAX_OUTPUT_TOKENS, ge=256, le=65_536
     )
     model_session_history_items: int = Field(default=32, ge=4, le=1_000)
-    autoplay_max_consecutive_failures: int = Field(default=5, ge=1, le=20)
+    autoplay_max_consecutive_failures: int = Field(default=2, ge=1, le=20)
     autoplay_retry_base_seconds: float = Field(default=2, gt=0, le=60)
     openrouter_provider_order: str = (
         "reka,cloudflare,coreweave,fireworks,deepinfra,together"

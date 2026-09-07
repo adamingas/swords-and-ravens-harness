@@ -26,6 +26,7 @@ from raven_harness.models.openai_agent import (
     OpenAIAgentRunner,
     PermanentModelError,
     _SessionContextFilter,
+    _ModelRequestTimeoutError,
     _UsageCapturingResponsesModel,
     _partial_result,
 )
@@ -97,6 +98,34 @@ class TerminalResponses:
             usage=TerminalUsage(),
             incomplete_details=SimpleNamespace(reason="max_output_tokens"),
             output=[],
+        )
+
+
+class HangingResponses:
+    async def create(self, **_kwargs: Any) -> Any:
+        await asyncio.Event().wait()
+
+
+@pytest.mark.asyncio
+async def test_response_request_has_a_wall_clock_deadline() -> None:
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(responses=HangingResponses()),
+        request_timeout_seconds=0.01,
+    )
+
+    with pytest.raises(_ModelRequestTimeoutError):
+        await asyncio.wait_for(
+            model._fetch_response(
+                None,
+                [],
+                ModelSettings(),
+                [],
+                None,
+                [],
+                stream=False,
+            ),
+            timeout=0.1,
         )
 
 
@@ -336,6 +365,8 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     runner = OpenAIAgentRunner(
         api_key="test-key",
         base_url="https://api.openai.test/v1",
+        request_timeout_seconds=17,
+        run_timeout_seconds=53,
         provider_routing={
             "sort": "throughput",
             "allow_fallbacks": True,
@@ -385,6 +416,8 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     }
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
+    assert runner.client.timeout == 17
+    assert runner.run_timeout_seconds == 53
     assert runner.client.max_retries == 0
     assert fake_model.model_settings.tool_choice == "required"
     assert fake_model.model_settings.extra_body == {

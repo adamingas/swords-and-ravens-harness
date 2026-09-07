@@ -423,6 +423,7 @@ async def run_game(
             runner = OpenAIAgentRunner(
                 api_key=settings.model_api_key,
                 base_url=settings.model_base_url,
+                request_timeout_seconds=settings.model_request_timeout_seconds,
                 run_timeout_seconds=settings.model_run_timeout_seconds,
                 max_output_tokens=settings.model_max_output_tokens,
                 session_database_path=database_path,
@@ -1374,6 +1375,7 @@ def _build_provenance(
             "runtimeSha256": _runtime_fingerprint(),
             "systemPromptSha256": _sha256_text(_system_prompt()),
             "effectiveInstructionsSha256": _sha256_text(_effective_instructions()),
+            "requestTimeoutSeconds": settings.model_request_timeout_seconds,
             "runTimeoutSeconds": settings.model_run_timeout_seconds,
             "clientRetries": 0,
             "maxOutputTokens": settings.model_max_output_tokens,
