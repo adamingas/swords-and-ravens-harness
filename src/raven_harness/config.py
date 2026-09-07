@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
-    model_request_timeout_seconds: float = Field(default=60, gt=0, le=300)
+    model_request_timeout_seconds: float = Field(default=90, gt=0, le=300)
     model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
     model_max_output_tokens: int = Field(
         default=DEFAULT_MODEL_MAX_OUTPUT_TOKENS, ge=256, le=65_536

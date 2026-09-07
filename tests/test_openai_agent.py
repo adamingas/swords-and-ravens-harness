@@ -106,6 +106,28 @@ class HangingResponses:
         await asyncio.Event().wait()
 
 
+class CompletedResponsesWithEmptyCallId:
+    async def create(self, **_kwargs: Any) -> Any:
+        return SimpleNamespace(
+            id="completed-1",
+            status="completed",
+            model="test-model-2026-09-01",
+            provider="Example Provider",
+            service_tier="priority",
+            _request_id="request-2",
+            usage=TerminalUsage(),
+            incomplete_details=None,
+            output=[
+                ResponseFunctionToolCall(
+                    arguments='{"house_id":"stark"}',
+                    call_id="",
+                    name="choose_house",
+                    type="function_call",
+                )
+            ],
+        )
+
+
 @pytest.mark.asyncio
 async def test_response_request_has_a_wall_clock_deadline() -> None:
     model = _UsageCapturingResponsesModel(
@@ -130,13 +152,93 @@ async def test_response_request_has_a_wall_clock_deadline() -> None:
 
 
 @pytest.mark.asyncio
+async def test_completed_response_gets_missing_call_id_and_is_captured() -> None:
+    provider_responses: list[tuple[str, Any]] = []
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(
+            responses=CompletedResponsesWithEmptyCallId()
+        ),
+        response_sink=provider_responses,
+    )
+
+    response = await model._fetch_response(
+        None,
+        [],
+        ModelSettings(),
+        [],
+        None,
+        [],
+        stream=False,
+    )
+
+    assert response.output[0].call_id.startswith("raven_call_")
+    assert provider_responses == [("agent", response)]
+    result = _partial_result([], {}, provider_responses=provider_responses)
+    assert result.usage == {
+        "requests": 1,
+        "inputTokens": 100,
+        "outputTokens": 16,
+        "totalTokens": 116,
+    }
+    assert result.response_items[0]["status"] == "completed"
+    assert result.response_items[0]["output"][0]["call_id"].startswith(
+        "raven_call_"
+    )
+
+
+@pytest.mark.asyncio
+async def test_captured_response_is_not_counted_twice_after_sdk_hook() -> None:
+    provider_responses: list[tuple[str, Any]] = []
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(
+            responses=CompletedResponsesWithEmptyCallId()
+        ),
+        response_sink=provider_responses,
+    )
+    response = await model._fetch_response(
+        None,
+        [],
+        ModelSettings(),
+        [],
+        None,
+        [],
+        stream=False,
+    )
+    sdk_response = SimpleNamespace(
+        usage=Usage(
+            requests=1,
+            input_tokens=100,
+            output_tokens=16,
+            total_tokens=116,
+        ),
+        raw_usage={"cost": 0.01},
+        response_id="completed-1",
+        output=response.output,
+    )
+
+    result = _partial_result(
+        [],
+        {},
+        parent_responses=[sdk_response],
+        provider_responses=provider_responses,
+    )
+
+    assert result.usage["requests"] == 1
+    assert result.usage["totalTokens"] == 116
+    assert len(result.raw_usage) == 1
+    assert len(result.response_items) == 1
+
+
+@pytest.mark.asyncio
 async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
-    terminal_responses: list[tuple[str, Any]] = []
+    provider_responses: list[tuple[str, Any]] = []
     response_attribution: dict[str, dict[str, Any]] = {}
     model = _UsageCapturingResponsesModel(
         model="test-model",
         openai_client=SimpleNamespace(responses=TerminalResponses()),
-        terminal_response_sink=terminal_responses,
+        response_sink=provider_responses,
         response_attribution_sink=response_attribution,
     )
 
@@ -153,7 +255,7 @@ async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
     result = _partial_result(
         [],
         {},
-        terminal_responses=terminal_responses,
+        provider_responses=provider_responses,
         response_attribution=response_attribution,
     )
 

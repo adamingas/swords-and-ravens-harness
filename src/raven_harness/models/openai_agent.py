@@ -4,6 +4,7 @@ import asyncio
 import copy
 import hashlib
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import monotonic
@@ -351,19 +352,19 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
 
 
 class _UsageCapturingResponsesModel(OpenAIResponsesModel):
-    """Bound one request and keep terminal responses the SDK would discard."""
+    """Bound one request and retain its raw response before SDK processing."""
 
     def __init__(
         self,
         *,
-        terminal_response_sink: list[tuple[str, Any]] | None = None,
+        response_sink: list[tuple[str, Any]] | None = None,
         response_scope: str = "agent",
         response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-        request_timeout_seconds: float = 60,
+        request_timeout_seconds: float = 90,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.terminal_response_sink = terminal_response_sink
+        self.response_sink = response_sink
         self.response_scope = response_scope
         self.response_attribution_sink = response_attribution_sink
         self.request_timeout_seconds = request_timeout_seconds
@@ -378,6 +379,7 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
                 response = await self._get_client().responses.create(**create_kwargs)
         except TimeoutError:
             raise _ModelRequestTimeoutError from None
+        response = _normalize_tool_call_ids(response)
         if self.response_attribution_sink is not None:
             response_id = str(getattr(response, "id", ""))
             if response_id:
@@ -386,10 +388,10 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
                 )
         if getattr(response, "usage", None) is None:
             _mark_request_completed_without_usage(response)
+        if self.response_sink is not None:
+            self.response_sink.append((self.response_scope, response))
         status = getattr(response, "status", None)
         if status in {"failed", "incomplete"}:
-            if self.terminal_response_sink is not None:
-                self.terminal_response_sink.append((self.response_scope, response))
             detail = getattr(response, "incomplete_details", None)
             suffix = f"; incomplete_details={detail}" if detail is not None else ""
             raise RuntimeError(
@@ -402,19 +404,54 @@ def _response_model(
     *,
     model: str,
     openai_client: AsyncOpenAI,
-    terminal_response_sink: list[tuple[str, Any]] | None = None,
+    response_sink: list[tuple[str, Any]] | None = None,
     response_scope: str = "agent",
     response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-    request_timeout_seconds: float = 60,
+    request_timeout_seconds: float = 90,
 ) -> OpenAIResponsesModel:
     return _UsageCapturingResponsesModel(
         model=model,
         openai_client=openai_client,
-        terminal_response_sink=terminal_response_sink,
+        response_sink=response_sink,
         response_scope=response_scope,
         response_attribution_sink=response_attribution_sink,
         request_timeout_seconds=request_timeout_seconds,
     )
+
+
+def _normalize_tool_call_ids(response: Any) -> Any:
+    """Supply deterministic opaque IDs when a provider omits them."""
+
+    response_id = str(getattr(response, "id", "") or "response")
+    output = list(getattr(response, "output", []))
+    changed = False
+    for index, item in enumerate(output):
+        if getattr(item, "type", None) != "function_call" or getattr(
+            item, "call_id", None
+        ):
+            continue
+        fingerprint = hashlib.sha256(
+            _canonical_json(
+                {
+                    "responseId": response_id,
+                    "index": index,
+                    "name": getattr(item, "name", None),
+                    "arguments": getattr(item, "arguments", None),
+                }
+            ).encode("utf-8")
+        ).hexdigest()[:24]
+        call_id = f"raven_call_{fingerprint}"
+        if hasattr(item, "model_copy"):
+            output[index] = item.model_copy(update={"call_id": call_id})
+        else:
+            item.call_id = call_id
+        changed = True
+    if not changed:
+        return response
+    if hasattr(response, "model_copy"):
+        return response.model_copy(update={"output": output})
+    response.output = output
+    return response
 
 
 def _response_attribution(response: Any) -> dict[str, Any]:
@@ -481,7 +518,7 @@ class OpenAIAgentRunner:
         *,
         api_key: str,
         base_url: str,
-        request_timeout_seconds: float = 60,
+        request_timeout_seconds: float = 90,
         run_timeout_seconds: float = 300,
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
@@ -553,13 +590,13 @@ class OpenAIAgentRunner:
         session_item_count = await _session_item_count(session)
 
         oracle_interactions: list[dict[str, Any]] = []
-        terminal_responses: list[tuple[str, Any]] = []
+        provider_responses: list[tuple[str, Any]] = []
         response_attribution: dict[str, dict[str, Any]] = {}
         try:
             model = _response_model(
                 model=agent_record.model,
                 openai_client=self.client,
-                terminal_response_sink=terminal_responses,
+                response_sink=provider_responses,
                 response_attribution_sink=response_attribution,
                 request_timeout_seconds=self.request_timeout_seconds,
             )
@@ -578,7 +615,7 @@ class OpenAIAgentRunner:
                         model=_response_model(
                             model=agent_record.model,
                             openai_client=self.client,
-                            terminal_response_sink=terminal_responses,
+                            response_sink=provider_responses,
                             response_scope="rules-oracle",
                             response_attribution_sink=response_attribution,
                             request_timeout_seconds=self.request_timeout_seconds,
@@ -629,7 +666,7 @@ class OpenAIAgentRunner:
                 oracle_interactions,
                 context_filter.manifest(),
                 parent_responses=activity_hooks.responses,
-                terminal_responses=terminal_responses,
+                provider_responses=provider_responses,
                 response_attribution=response_attribution,
             )
 
@@ -711,7 +748,7 @@ class OpenAIAgentRunner:
                 result,
                 oracle_interactions,
                 context_filter.manifest(),
-                terminal_responses=terminal_responses,
+                provider_responses=provider_responses,
                 response_attribution=response_attribution,
             )
         except Exception as error:
@@ -921,7 +958,7 @@ def _completed_result(
     oracle_interactions: list[dict[str, Any]],
     context_manifest: dict[str, Any],
     *,
-    terminal_responses: list[tuple[str, Any]] | None = None,
+    provider_responses: list[tuple[str, Any]] | None = None,
     response_attribution: dict[str, dict[str, Any]] | None = None,
 ) -> ModelRunResult:
     response_attribution = response_attribution or {}
@@ -950,10 +987,16 @@ def _completed_result(
         oracle_interactions,
         response_attribution=response_attribution,
     )
-    _append_terminal_response_traces(
+    unrepresented_responses = _unrepresented_provider_responses(
+        provider_responses or [],
+        parent_responses=result.raw_responses,
+        oracle_interactions=oracle_interactions,
+    )
+    _append_provider_response_traces(
         response_items,
         raw_usage,
-        terminal_responses or [],
+        unrepresented_responses,
+        usage=usage,
         response_attribution=response_attribution,
     )
     return ModelRunResult(
@@ -991,15 +1034,21 @@ def _append_oracle_traces(
             raw_usage.append(usage)
 
 
-def _append_terminal_response_traces(
+def _append_provider_response_traces(
     response_items: list[dict[str, Any]],
     raw_usage: list[dict[str, Any]],
-    terminal_responses: list[tuple[str, Any]],
+    provider_responses: list[tuple[str, Any]],
     *,
+    usage: dict[str, int],
     response_attribution: dict[str, dict[str, Any]],
 ) -> None:
-    for scope, response in terminal_responses:
+    for scope, response in provider_responses:
         response_usage = getattr(response, "usage", None)
+        usage["requests"] += 1
+        if response_usage is not None:
+            usage["inputTokens"] += int(response_usage.input_tokens)
+            usage["outputTokens"] += int(response_usage.output_tokens)
+            usage["totalTokens"] += int(response_usage.total_tokens)
         native_usage = _jsonable(response_usage) if response_usage is not None else {}
         response_id = getattr(response, "id", None)
         native_usage["scope"] = scope
@@ -1024,12 +1073,37 @@ def _append_terminal_response_traces(
         )
 
 
+def _unrepresented_provider_responses(
+    provider_responses: list[tuple[str, Any]],
+    *,
+    parent_responses: list[Any],
+    oracle_interactions: list[dict[str, Any]],
+) -> list[tuple[str, Any]]:
+    represented = Counter(
+        ("agent", getattr(response, "response_id", None))
+        for response in parent_responses
+    )
+    represented.update(
+        ("rules-oracle", usage.get("response_id"))
+        for interaction in oracle_interactions
+        for usage in interaction["rawUsage"]
+    )
+    missing: list[tuple[str, Any]] = []
+    for scope, response in provider_responses:
+        key = (scope, getattr(response, "id", None))
+        if represented[key] > 0:
+            represented[key] -= 1
+        else:
+            missing.append((scope, response))
+    return missing
+
+
 def _partial_result(
     interactions: list[dict[str, Any]],
     context_manifest: dict[str, Any],
     *,
     parent_responses: list[Any] | None = None,
-    terminal_responses: list[tuple[str, Any]] | None = None,
+    provider_responses: list[tuple[str, Any]] | None = None,
     response_attribution: dict[str, dict[str, Any]] | None = None,
 ) -> ModelRunResult:
     response_attribution = response_attribution or {}
@@ -1064,17 +1138,16 @@ def _partial_result(
                 "output": [_jsonable(item) for item in response.output],
             }
         )
-    for _scope, response in terminal_responses or []:
-        response_usage = getattr(response, "usage", None)
-        usage["requests"] += 1
-        if response_usage is not None:
-            usage["inputTokens"] += int(response_usage.input_tokens)
-            usage["outputTokens"] += int(response_usage.output_tokens)
-            usage["totalTokens"] += int(response_usage.total_tokens)
-    _append_terminal_response_traces(
+    unrepresented_responses = _unrepresented_provider_responses(
+        provider_responses or [],
+        parent_responses=parent_responses or [],
+        oracle_interactions=interactions,
+    )
+    _append_provider_response_traces(
         response_items,
         raw_usage,
-        terminal_responses or [],
+        unrepresented_responses,
+        usage=usage,
         response_attribution=response_attribution,
     )
     _append_oracle_traces(
