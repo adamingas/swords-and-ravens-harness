@@ -16,6 +16,7 @@ from .legal import (
     legal_raven_replacements,
     legal_raid_options,
     neutral_force_attack_is_legal,
+    point_safe_musterings,
     possible_neutral_force_support,
     supply_safe_musterings,
     validate_musterings,
@@ -282,19 +283,25 @@ async def muster_units(
 
     Args:
         musters: Mustering castles and recruitments in priority order. The harness
-            omits later new units that would exceed Supply. It keeps legal upgrades.
-            The applied plan can be empty when no requested new unit is Supply-safe.
+            omits later recruitments that exceed the origin's Mustering Points or
+            Supply. It keeps legal upgrades. The applied plan can be empty when no
+            requested recruitment fits.
     """
     context = ctx.context.current_game_context()
-    validate_musterings(context, musters, check_supply=False)
-    applied_musters = supply_safe_musterings(context, musters)
+    validate_musterings(
+        context, musters, check_supply=False, check_points=False
+    )
+    point_safe_musters = point_safe_musterings(context, musters)
+    applied_musters = supply_safe_musterings(context, point_safe_musters)
     if applied_musters:
         validate_musterings(context, applied_musters)
     requested_count = sum(len(muster.recruitments) for muster in musters)
+    point_safe_count = sum(len(muster.recruitments) for muster in point_safe_musters)
     applied_count = sum(len(muster.recruitments) for muster in applied_musters)
     arguments = {
         "musters": [muster.model_dump() for muster in applied_musters],
-        "omitted_supply_unsafe_recruitments": requested_count - applied_count,
+        "omitted_point_unsafe_recruitments": requested_count - point_safe_count,
+        "omitted_supply_unsafe_recruitments": point_safe_count - applied_count,
     }
     return await _send(
         ctx,

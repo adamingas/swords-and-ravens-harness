@@ -242,7 +242,10 @@ action.
    ask the oracle.
 10. The model must call exactly one gameplay tool.
 11. Pydantic validates the tool arguments.
-12. The tool checks the latest state again and sends typed server messages.
+12. The tool checks the latest state again and sends typed server messages. A
+    per-run action lock admits only the first gameplay call if a provider emits
+    duplicate calls despite the single-call setting. This lock does not affect
+    concurrency between agents.
 13. The harness requests a fresh player-scoped snapshot with sync-game.
 14. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
@@ -524,7 +527,7 @@ active state controls when each tool is visible.
 | `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. Unattainable neutral forces are excluded, and the selected army's neutral-force strength is checked locally. |
 | `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
-| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later Supply-unsafe new units are omitted. |
+| `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later point- or Supply-unsafe recruitments are omitted. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
 | `resolve_track_ties(preferred_house_ids)` | `resolve-ties` | Rank the tied houses whose relative position matters. The harness appends omitted houses in displayed order and applies the result within each tied bid group. |
 | `use_valyrian_steel_blade(use)` | `use-valyrian-steel-blade` | Use or decline the blade in the current combat. |
@@ -544,9 +547,10 @@ the target unit should replace an existing Footman; the harness selects the
 engine-compatible Footman internally. `muster_units` requires a non-empty
 `musters` list. Each muster group has `mustering_region_id` and a non-empty
 `recruitments` list. Recruitment order is priority order. Legal upgrades are
-kept because they do not change army size; later new units that would exceed
-Supply are omitted. If every requested new unit is unsafe, the harness submits
-an empty mustering plan to finish the decision.
+kept because they do not change army size. For each castle, later recruitments
+that exceed its Mustering Points are omitted. The remaining list is then
+filtered for Supply in the same priority order. If every requested recruitment
+is unsafe, the harness submits an empty mustering plan to finish the decision.
 
 `leave_power_token=true` requires an eligible land source and every listed
 source unit to leave. When no offered source is eligible, the state-specific
@@ -784,7 +788,7 @@ base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
 creating agents.
 
 OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
-MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 45 seconds by
+MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 60 seconds by
 default. MODEL_RUN_TIMEOUT_SECONDS separately limits the complete Agents SDK
 run, which can contain more than one request after a support-tool call or a
 corrected tool call. The HTTP client does not retry. Autoplay makes at most one
@@ -825,7 +829,7 @@ this filter is enabled.
 | Authoritative snapshot wait | 10 seconds |
 | WebSocket ping interval | 30 seconds |
 | Autoplay trigger | New server snapshot |
-| Model request timeout | 45 seconds per attempt |
+| Model request timeout | 60 seconds per attempt |
 | Model API retries | 0 inside the HTTP client; 1 checkpointed autoplay retry |
 | Complete model-run timeout | 300 seconds per agent decision |
 | Concurrent model runs | No harness limit |

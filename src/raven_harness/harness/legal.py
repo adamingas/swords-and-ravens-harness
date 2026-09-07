@@ -390,6 +390,7 @@ def validate_musterings(
     musters: list[Any],
     *,
     check_supply: bool = True,
+    check_points: bool = True,
 ) -> None:
     """Reject statically illegal base-game recruitments before server submission."""
 
@@ -449,7 +450,9 @@ def validate_musterings(
                 )
                 cost = 1
             points[muster.mustering_region_id] += cost
-        if points[muster.mustering_region_id] > int(origin["musteringPoints"]):
+        if check_points and points[muster.mustering_region_id] > int(
+            origin["musteringPoints"]
+        ):
             raise ValueError("recruitments exceed the origin's mustering points")
 
     availability = _available_pieces(context)
@@ -484,6 +487,33 @@ def supply_safe_musterings(
             if _army_sizes_fit(_army_sizes_after_additions(context, candidate), allowed):
                 additions = candidate
                 recruitments.append(recruitment)
+        if recruitments:
+            result.append(muster.model_copy(update={"recruitments": recruitments}))
+    return result
+
+
+def point_safe_musterings(
+    context: HarnessContext, musters: list[Any]
+) -> list[Any]:
+    """Keep each origin's priority-ordered subset within its mustering points."""
+
+    options = {
+        item["regionId"]: item for item in legal_mustering_options(context)["origins"]
+    }
+    result = []
+    for muster in musters:
+        remaining = int(options[muster.mustering_region_id]["musteringPoints"])
+        recruitments = []
+        for recruitment in muster.recruitments:
+            cost = (
+                1
+                if recruitment.upgrade_from_footman
+                or recruitment.unit_type in {"footman", "ship"}
+                else 2
+            )
+            if cost <= remaining:
+                recruitments.append(recruitment)
+                remaining -= cost
         if recruitments:
             result.append(muster.model_copy(update={"recruitments": recruitments}))
     return result

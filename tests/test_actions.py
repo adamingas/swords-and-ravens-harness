@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Any
 
@@ -86,6 +87,35 @@ class FakeClient:
         )
 
 
+class YieldingClient(FakeClient):
+    def __init__(self, snapshot: dict[str, Any]) -> None:
+        super().__init__(snapshot)
+        self.active_actions = 0
+        self.peak_active_actions = 0
+
+    async def send(self, *args: Any, **kwargs: Any) -> None:
+        self.active_actions += 1
+        self.peak_active_actions = max(
+            self.peak_active_actions, self.active_actions
+        )
+        try:
+            await asyncio.sleep(0)
+            await super().send(*args, **kwargs)
+        finally:
+            self.active_actions -= 1
+
+    async def submit_orders(self, *args: Any, **kwargs: Any) -> OrderSubmission:
+        self.active_actions += 1
+        self.peak_active_actions = max(
+            self.peak_active_actions, self.active_actions
+        )
+        try:
+            await asyncio.sleep(0)
+            return await super().submit_orders(*args, **kwargs)
+        finally:
+            self.active_actions -= 1
+
+
 def test_mustering_requires_at_least_one_group() -> None:
     assert muster_units.params_json_schema["properties"]["musters"]["minItems"] == 1
 
@@ -144,6 +174,36 @@ async def test_agents_sdk_tool_sends_a_legal_action() -> None:
     ]
     assert run_context.action_taken is not None
     assert run_context.action_taken.name == "choose_house"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_gameplay_tool_calls_cross_the_network_only_once() -> None:
+    client = YieldingClient(lobby_snapshot())
+    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    tool = available_tools(build_context(client.snapshot, "2"))[0]
+    arguments = json.dumps({"house_id": "stark"})
+
+    results = await asyncio.gather(
+        *[
+            tool.on_invoke_tool(
+                ToolContext(
+                    context=run_context,
+                    tool_call_id=f"duplicate-{index}",
+                    tool_name=tool.name,
+                    tool_arguments=arguments,
+                ),
+                arguments,
+            )
+            for index in range(2)
+        ]
+    )
+
+    assert client.sent == [
+        {"type": "choose-house", "house": "stark", "password": "wolf"}
+    ]
+    assert client.peak_active_actions == 1
+    assert sum('"accepted": true' in result for result in results) == 1
+    assert sum("already taken an action" in result for result in results) == 1
 
 
 @pytest.mark.asyncio
@@ -265,6 +325,48 @@ async def test_submit_orders_replaces_complete_draft_atomically() -> None:
             ],
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_concurrent_order_submissions_cross_the_network_only_once() -> None:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["game"]["starredOrderRestrictions"] = [3]
+    client = YieldingClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps(
+        {
+            "assignments": [
+                {
+                    "region_id": region_id,
+                    "preferred_order": "defense",
+                    "starred_preference": "avoid",
+                    "priority": priority,
+                }
+                for region_id, priority in (("winterfell", 80), ("white-harbor", 20))
+            ]
+        }
+    )
+
+    results = await asyncio.gather(
+        *[
+            tool.on_invoke_tool(
+                ToolContext(
+                    context=run_context,
+                    tool_call_id=f"duplicate-orders-{index}",
+                    tool_name=tool.name,
+                    tool_arguments=arguments,
+                ),
+                arguments,
+            )
+            for index in range(2)
+        ]
+    )
+
+    assert len(client.sent) == 1
+    assert client.peak_active_actions == 1
+    assert sum('"accepted": true' in result for result in results) == 1
+    assert sum("already taken an action" in result for result in results) == 1
 
 
 @pytest.mark.asyncio
@@ -1455,7 +1557,7 @@ async def test_base_game_consolidate_power_excludes_expansion_choices() -> None:
 
 
 @pytest.mark.asyncio
-async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() -> None:
+async def test_mustering_keeps_the_priority_subset_within_castle_points() -> None:
     snapshot = planning_snapshot()
     ingame = snapshot["childGameState"]
     house = ingame["game"]["houses"][0]
@@ -1495,7 +1597,7 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
                     "mustering_region_id": "winterfell",
                     "recruitments": [
                         {
-                            "unit_type": "footman",
+                            "unit_type": "knight",
                             "region_id": "winterfell",
                             "upgrade_from_footman": False,
                         },
@@ -1514,7 +1616,7 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
             ]
         }
     )
-    result = await tool.on_invoke_tool(
+    await tool.on_invoke_tool(
         ToolContext(
             context=run_context,
             tool_call_id="call-over-muster",
@@ -1523,39 +1625,6 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
         ),
         too_expensive,
     )
-    assert "mustering points" in result
-    assert client.sent == []
-
-    valid = json.dumps(
-        {
-            "musters": [
-                {
-                    "mustering_region_id": "winterfell",
-                    "recruitments": [
-                        {
-                            "unit_type": "footman",
-                            "region_id": "winterfell",
-                            "upgrade_from_footman": False,
-                        },
-                        {
-                            "unit_type": "ship",
-                            "region_id": "bay-of-ice",
-                            "upgrade_from_footman": False,
-                        },
-                    ],
-                }
-            ]
-        }
-    )
-    await tool.on_invoke_tool(
-        ToolContext(
-            context=run_context,
-            tool_call_id="call-valid-muster",
-            tool_name=tool.name,
-            tool_arguments=valid,
-        ),
-        valid,
-    )
     assert client.sent == [
         {
             "type": "muster",
@@ -1563,13 +1632,19 @@ async def test_starred_consolidate_power_mustering_is_limited_to_its_castle() ->
                 [
                     "winterfell",
                     [
-                        {"from": None, "to": "footman", "region": "winterfell"},
-                        {"from": None, "to": "ship", "region": "bay-of-ice"},
+                        {"from": None, "to": "knight", "region": "winterfell"},
                     ],
                 ]
             ],
         }
     ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments[
+        "omitted_point_unsafe_recruitments"
+    ] == 2
+    assert run_context.action_taken.arguments[
+        "omitted_supply_unsafe_recruitments"
+    ] == 0
 
 
 @pytest.mark.asyncio
@@ -1805,6 +1880,10 @@ async def test_mustering_keeps_priority_ordered_supply_safe_recruitments() -> No
         }
     ]
     assert (
+        run_context.action_taken.arguments["omitted_point_unsafe_recruitments"]
+        == 0
+    )
+    assert (
         run_context.action_taken.arguments["omitted_supply_unsafe_recruitments"]
         == 1
     )
@@ -1864,6 +1943,7 @@ async def test_mustering_submits_empty_plan_when_all_requests_exceed_supply() ->
     assert run_context.action_taken is not None
     assert run_context.action_taken.arguments == {
         "musters": [],
+        "omitted_point_unsafe_recruitments": 0,
         "omitted_supply_unsafe_recruitments": 1,
     }
 

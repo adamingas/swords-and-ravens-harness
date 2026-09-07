@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from copy import deepcopy
 from collections.abc import Callable
@@ -169,6 +170,9 @@ class HarnessRunContext:
     pending_strategy_note: str | None = None
     last_tool_error: str | None = None
     connection_generation: int = field(init=False)
+    _action_lock: asyncio.Lock = field(
+        default_factory=asyncio.Lock, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         self.connection_generation = self.client.connection_generation
@@ -234,66 +238,72 @@ class HarnessRunContext:
     ) -> str:
         """Submit one server-validated planning draft and record its response."""
 
-        context = self.current_game_context()
-        if context.ingame is not None and not is_waiting_for_player(context):
-            raise RuntimeError("This player is not responsible for the current decision")
-        _require_action(context, "submit_orders")
-        if self.action_taken is not None:
-            raise RuntimeError("This model run has already taken an action")
-        result = await self.client.submit_orders(
-            orders,
-            expected_generation=self.connection_generation,
-        )
-        if result.response.get("accepted") is not True:
-            reason = result.response.get("reason")
-            detail = reason if isinstance(reason, str) and reason else "unknown-reason"
-            raise RuntimeError(f"The game server rejected 'submit_orders': {detail}")
-        self.action_taken = ActionTaken(
-            name="submit_orders",
-            arguments=arguments,
-            messages=[result.message],
-        )
-        return json.dumps(
-            {
-                "ok": True,
-                "accepted": True,
-                "action": "submit_orders",
-                "stateId": result.snapshot.get("leafStateId"),
-            }
-        )
+        async with self._action_lock:
+            context = self.current_game_context()
+            if context.ingame is not None and not is_waiting_for_player(context):
+                raise RuntimeError(
+                    "This player is not responsible for the current decision"
+                )
+            _require_action(context, "submit_orders")
+            if self.action_taken is not None:
+                raise RuntimeError("This model run has already taken an action")
+            result = await self.client.submit_orders(
+                orders,
+                expected_generation=self.connection_generation,
+            )
+            if result.response.get("accepted") is not True:
+                reason = result.response.get("reason")
+                detail = (
+                    reason if isinstance(reason, str) and reason else "unknown-reason"
+                )
+                raise RuntimeError(
+                    f"The game server rejected 'submit_orders': {detail}"
+                )
+            self.action_taken = ActionTaken(
+                name="submit_orders",
+                arguments=arguments,
+                messages=[result.message],
+            )
+            return json.dumps(
+                {
+                    "ok": True,
+                    "accepted": True,
+                    "action": "submit_orders",
+                    "stateId": result.snapshot.get("leafStateId"),
+                }
+            )
 
     async def _send_message(
         self, name: str, arguments: dict[str, Any], message: Message
     ) -> str:
-        if self.action_taken is not None:
-            raise RuntimeError("This model run has already taken an action")
-        before = self.current_game_context()
-        before_state_id = before.snapshot.get("leafStateId")
-        await self.client.send(
-            message,
-            expected_generation=self.connection_generation,
-        )
-        await self.client.sync_snapshot(
-            expected_generation=self.connection_generation
-        )
-        after = self.current_game_context()
-        if not _action_was_acknowledged(
-            name, arguments, before_state_id, after
-        ):
-            raise RuntimeError(
-                f"The game server did not accept {name!r}; its authoritative state did not reflect the action"
+        async with self._action_lock:
+            if self.action_taken is not None:
+                raise RuntimeError("This model run has already taken an action")
+            before = self.current_game_context()
+            before_state_id = before.snapshot.get("leafStateId")
+            await self.client.send(
+                message,
+                expected_generation=self.connection_generation,
             )
-        self.action_taken = ActionTaken(
-            name=name, arguments=arguments, messages=[message]
-        )
-        return json.dumps(
-            {
-                "ok": True,
-                "accepted": True,
-                "action": name,
-                "stateId": after.snapshot.get("leafStateId"),
-            }
-        )
+            await self.client.sync_snapshot(
+                expected_generation=self.connection_generation
+            )
+            after = self.current_game_context()
+            if not _action_was_acknowledged(name, arguments, before_state_id, after):
+                raise RuntimeError(
+                    f"The game server did not accept {name!r}; its authoritative state did not reflect the action"
+                )
+            self.action_taken = ActionTaken(
+                name=name, arguments=arguments, messages=[message]
+            )
+            return json.dumps(
+                {
+                    "ok": True,
+                    "accepted": True,
+                    "action": name,
+                    "stateId": after.snapshot.get("leafStateId"),
+                }
+            )
 
 
 def _action_was_acknowledged(

@@ -359,7 +359,7 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         terminal_response_sink: list[tuple[str, Any]] | None = None,
         response_scope: str = "agent",
         response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-        request_timeout_seconds: float = 45,
+        request_timeout_seconds: float = 60,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -405,7 +405,7 @@ def _response_model(
     terminal_response_sink: list[tuple[str, Any]] | None = None,
     response_scope: str = "agent",
     response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-    request_timeout_seconds: float = 45,
+    request_timeout_seconds: float = 60,
 ) -> OpenAIResponsesModel:
     return _UsageCapturingResponsesModel(
         model=model,
@@ -481,7 +481,7 @@ class OpenAIAgentRunner:
         *,
         api_key: str,
         base_url: str,
-        request_timeout_seconds: float = 45,
+        request_timeout_seconds: float = 60,
         run_timeout_seconds: float = 300,
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
