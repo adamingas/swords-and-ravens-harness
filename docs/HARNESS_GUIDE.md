@@ -974,11 +974,12 @@ These checks do not write the key to an artifact.
 
 The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
-provider allow-list. They use one tested provider for each model: Together for
-GLM and DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras for
-GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
-unambiguous provider attribution. A checkpointed retry uses Novita for GLM,
-DeepSeek, and Qwen-235B. The other three models keep their primary route.
+provider allow-list. They use one tested provider for each model: Reka for GLM;
+Together for DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras
+for GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
+unambiguous provider attribution. A checkpointed retry uses Io Net for GLM and
+Novita for DeepSeek and Qwen-235B. The other three models keep their primary
+route.
 Other compatible endpoints receive no endpoint-specific routing fields. This
 routing adapter is optional; the tournament logic depends only on the
 OpenAI-compatible interface. Every decision request uses

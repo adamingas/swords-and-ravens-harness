@@ -220,6 +220,16 @@ class RetryingHarness(ContextManifestHarness):
         return result
 
 
+class ErrorRecordingHarness(ContextManifestHarness):
+    def __init__(self, outcome: str = "completed") -> None:
+        super().__init__(outcome)
+        self.previous_errors: list[str | None] = []
+
+    def prepare_turn(self, record, context, previous_error) -> PreparedTurn:
+        self.previous_errors.append(previous_error)
+        return super().prepare_turn(record, context, previous_error)
+
+
 class BlockingActivityHarness(ContextManifestHarness):
     def __init__(self) -> None:
         super().__init__()
@@ -1063,6 +1073,54 @@ async def test_non_capacity_failures_keep_the_strict_retry_budget(tmp_path) -> N
     ]
     assert session.autoplay is False
     assert session.general_failures == 2
+    assert session.capacity_failures == 0
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_model_error_is_reused_only_for_the_same_game_state(tmp_path) -> None:
+    database = Database(tmp_path / "state-scoped-error.db")
+    store = AgentStore(database)
+    harness = ErrorRecordingHarness("failed")
+    manager = AgentManager(store=store, harness=harness)
+    agent = store.create_agent(
+        AgentCreate(
+            name="State-scoped Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    first_snapshot = copy.deepcopy(FakeRunClient.snapshot)
+    first_snapshot["leafStateId"] = "state-a"
+    client = FakeRunClient()
+    client.snapshot = first_snapshot
+    session = AgentSession(status="connected", client=client)
+    manager.sessions[agent.id] = session
+
+    with pytest.raises(RuntimeError, match="model failed"):
+        await manager._run_once(agent.id)
+
+    harness.outcome = "completed"
+    same_state_result = await manager._run_once(agent.id)
+    assert same_state_result["decision"]["name"] == "choose_house"
+    assert harness.previous_errors == [None, "model failed"]
+
+    harness.outcome = "failed"
+    with pytest.raises(RuntimeError, match="model failed"):
+        await manager._run_once(agent.id)
+    client.snapshot = copy.deepcopy(first_snapshot)
+    client.snapshot["leafStateId"] = "state-b"
+    harness.outcome = "completed"
+    later_state_result = await manager._run_once(agent.id)
+
+    assert later_state_result["decision"]["name"] == "choose_house"
+    assert harness.previous_errors[-2:] == [None, None]
+    assert session.last_error is None
+    assert session.failure_leaf_id is None
+    assert session.general_failures == 0
     assert session.capacity_failures == 0
     database.close()
 

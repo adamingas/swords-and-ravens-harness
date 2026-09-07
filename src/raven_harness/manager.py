@@ -335,7 +335,7 @@ class AgentManager:
 
         session.running = True
         session.status = "running"
-        previous_error = session.last_error
+        pending_error = session.last_error
         session.last_error = None
         run_id = str(uuid4())
         active_span = get_current_span()
@@ -354,6 +354,7 @@ class AgentManager:
         error_text: str | None = None
         prepared: PreparedTurn | None = None
         model_result: ModelRunResult | None = None
+        current_state_id: str | None = None
         status = "running"
         started_at = monotonic()
         harness = self.harness
@@ -402,6 +403,18 @@ class AgentManager:
             current_state_id = str(
                 game_context.snapshot.get("leafStateId") or "unknown"
             )
+            previous_error = (
+                pending_error
+                if session.failure_leaf_id == current_state_id
+                else None
+            )
+            if (
+                session.failure_leaf_id is not None
+                and session.failure_leaf_id != current_state_id
+            ):
+                session.failure_leaf_id = None
+                session.general_failures = 0
+                session.capacity_failures = 0
             if (
                 checkpoint is not None
                 and checkpoint["phase"] == "before-model"
@@ -510,6 +523,13 @@ class AgentManager:
                 if error_text != str(error):
                     error = type(error)(error_text, error.partial_result)
             session.last_error = error_text
+            if current_state_id is not None and not isinstance(
+                error, GameConnectionLost
+            ):
+                if session.failure_leaf_id != current_state_id:
+                    session.general_failures = 0
+                    session.capacity_failures = 0
+                session.failure_leaf_id = current_state_id
             record_activity("model-run-failed", {})
             if isinstance(error, RuntimeError):
                 if str(error) == error_text:
