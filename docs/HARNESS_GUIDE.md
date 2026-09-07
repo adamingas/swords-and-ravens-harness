@@ -801,6 +801,11 @@ available.
 The harness records each raw provider response before the Agents SDK processes
 it. If an OpenAI-compatible endpoint omits the opaque ID of a function call,
 the harness supplies a deterministic ID before tool execution.
+If a response contains no function-call item but contains exactly one strict,
+fully parseable `<tool_call>` block in a reasoning item, the harness promotes
+that block to a function call. It keeps the original reasoning item for audit.
+It does not promote prose, malformed markup, multiple candidate calls, or a
+pseudo-call when a real function call is already present.
 Agents make asynchronous model calls without a harness concurrency limit.
 MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
 allows reasoning models to complete a tool decision. A 4,096-token limit caused

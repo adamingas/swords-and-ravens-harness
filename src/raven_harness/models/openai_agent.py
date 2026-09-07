@@ -4,6 +4,7 @@ import asyncio
 import copy
 import hashlib
 import json
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,7 @@ from agents.memory import Session, SessionSettings, SQLiteSession
 from agents.models.openai_responses import _mark_request_completed_without_usage
 from agents.run_config import CallModelData, ModelInputData
 from openai import APITimeoutError, AsyncOpenAI
+from openai.types.responses import ResponseFunctionToolCall
 
 from ..config import DEFAULT_MODEL_MAX_OUTPUT_TOKENS
 from ..errors import is_permanent_provider_error, safe_error_text
@@ -47,6 +49,15 @@ TRANSIENT_SUPPORT_TOOL_NAMES = {
     "recall_game_state",
     "remember_strategy",
 }
+_PSEUDO_TOOL_CALL = re.compile(
+    r"\A\s*<tool_call>\s*<function=([A-Za-z_][A-Za-z0-9_]*)>"
+    r"(.*?)</function>\s*</tool_call>\s*\Z",
+    re.DOTALL,
+)
+_PSEUDO_TOOL_PARAMETER = re.compile(
+    r"<parameter=([A-Za-z_][A-Za-z0-9_]*)>(.*?)</parameter>",
+    re.DOTALL,
+)
 
 
 def _caused_by_connection_loss(error: BaseException) -> GameConnectionLost | None:
@@ -381,7 +392,7 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
                 response = await self._get_client().responses.create(**create_kwargs)
         except TimeoutError:
             raise _ModelRequestTimeoutError from None
-        response = _normalize_tool_call_ids(response)
+        response = _normalize_tool_calls(response)
         if self.response_attribution_sink is not None:
             response_id = str(getattr(response, "id", ""))
             if response_id:
@@ -423,8 +434,10 @@ def _response_model(
     )
 
 
-def _normalize_tool_call_ids(response: Any) -> Any:
-    """Supply deterministic opaque IDs when a provider omits them."""
+def _normalize_tool_calls(response: Any) -> Any:
+    """Promote one strict pseudo-call and supply missing opaque call IDs."""
+
+    response = _promote_pseudo_tool_call(response)
 
     response_id = str(getattr(response, "id", "") or "response")
     output = list(getattr(response, "output", []))
@@ -456,6 +469,63 @@ def _normalize_tool_call_ids(response: Any) -> Any:
         return response.model_copy(update={"output": output})
     response.output = output
     return response
+
+
+def _promote_pseudo_tool_call(response: Any) -> Any:
+    """Convert unambiguous tool markup emitted as reasoning into a function call."""
+
+    output = list(getattr(response, "output", []))
+    if any(getattr(item, "type", None) == "function_call" for item in output):
+        return response
+
+    candidates = []
+    for item in output:
+        if getattr(item, "type", None) != "reasoning":
+            continue
+        for content in getattr(item, "content", None) or []:
+            if getattr(content, "type", None) != "reasoning_text":
+                continue
+            candidate = _parse_pseudo_tool_call(getattr(content, "text", ""))
+            if candidate is not None:
+                candidates.append(candidate)
+    if len(candidates) != 1:
+        return response
+
+    output.append(candidates[0])
+    if hasattr(response, "model_copy"):
+        return response.model_copy(update={"output": output})
+    response.output = output
+    return response
+
+
+def _parse_pseudo_tool_call(text: str) -> ResponseFunctionToolCall | None:
+    match = _PSEUDO_TOOL_CALL.fullmatch(text)
+    if match is None:
+        return None
+    function_name, body = match.groups()
+    arguments: dict[str, Any] = {}
+    position = 0
+    for parameter in _PSEUDO_TOOL_PARAMETER.finditer(body):
+        if body[position : parameter.start()].strip():
+            return None
+        name, raw_value = parameter.groups()
+        if name in arguments:
+            return None
+        value = raw_value.strip()
+        try:
+            arguments[name] = json.loads(value)
+        except json.JSONDecodeError:
+            arguments[name] = value
+        position = parameter.end()
+    if body[position:].strip():
+        return None
+    return ResponseFunctionToolCall(
+        arguments=json.dumps(arguments, separators=(",", ":")),
+        call_id="",
+        name=function_name,
+        type="function_call",
+        status="completed",
+    )
 
 
 def _response_attribution(

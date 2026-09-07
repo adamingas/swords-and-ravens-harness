@@ -10,7 +10,7 @@ import pytest
 from agents import ModelResponse, ModelSettings, Usage
 from agents.memory import SQLiteSession
 from agents.models.interface import Model
-from openai.types.responses import ResponseFunctionToolCall
+from openai.types.responses import ResponseFunctionToolCall, ResponseReasoningItem
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
@@ -30,6 +30,7 @@ from raven_harness.models.openai_agent import (
     _ModelRequestTimeoutError,
     _UsageCapturingResponsesModel,
     _completed_result,
+    _normalize_tool_calls,
     _partial_result,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
@@ -137,6 +138,18 @@ class CompletedResponsesWithoutProvider(CompletedResponsesWithEmptyCallId):
         return response
 
 
+def _reasoning_tool_call(text: str) -> ResponseReasoningItem:
+    return ResponseReasoningItem.model_validate(
+        {
+            "id": "reasoning-1",
+            "summary": [],
+            "type": "reasoning",
+            "content": [{"type": "reasoning_text", "text": text}],
+            "status": "completed",
+        }
+    )
+
+
 @pytest.mark.asyncio
 async def test_response_request_has_a_wall_clock_deadline() -> None:
     model = _UsageCapturingResponsesModel(
@@ -194,6 +207,87 @@ async def test_completed_response_gets_missing_call_id_and_is_captured() -> None
     assert result.response_items[0]["output"][0]["call_id"].startswith(
         "raven_call_"
     )
+
+
+def test_strict_reasoning_tool_markup_is_promoted_to_a_function_call() -> None:
+    response = SimpleNamespace(
+        id="pseudo-response",
+        output=[
+            _reasoning_tool_call(
+                """<tool_call>
+<function=submit_orders>
+<parameter=assignments>
+[{"region_id":"pyke","preferred_order":"defense","priority":90}]
+</parameter>
+</function>
+</tool_call>"""
+            )
+        ],
+    )
+
+    normalized = _normalize_tool_calls(response)
+
+    assert len(normalized.output) == 2
+    call = normalized.output[1]
+    assert call.type == "function_call"
+    assert call.name == "submit_orders"
+    assert json.loads(call.arguments) == {
+        "assignments": [
+            {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "priority": 90,
+            }
+        ]
+    }
+    assert call.call_id.startswith("raven_call_")
+
+
+def test_real_function_call_prevents_pseudo_call_duplication() -> None:
+    actual = ResponseFunctionToolCall(
+        arguments='{"house_id":"stark"}',
+        call_id="actual-call",
+        name="choose_house",
+        type="function_call",
+    )
+    response = SimpleNamespace(
+        id="actual-response",
+        output=[
+            _reasoning_tool_call(
+                "<tool_call><function=choose_house>"
+                "<parameter=house_id>stark</parameter>"
+                "</function></tool_call>"
+            ),
+            actual,
+        ],
+    )
+
+    normalized = _normalize_tool_calls(response)
+
+    assert normalized.output == response.output
+    assert sum(item.type == "function_call" for item in normalized.output) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I suggest this: <tool_call><function=choose_house></function></tool_call>",
+        (
+            "<tool_call><function=choose_house>"
+            "<parameter=house_id>stark</parameter>trailing"
+            "</function></tool_call>"
+        ),
+    ],
+)
+def test_ambiguous_pseudo_tool_markup_is_not_promoted(text: str) -> None:
+    response = SimpleNamespace(
+        id="ambiguous-response",
+        output=[_reasoning_tool_call(text)],
+    )
+
+    normalized = _normalize_tool_calls(response)
+
+    assert len(normalized.output) == 1
 
 
 @pytest.mark.asyncio
