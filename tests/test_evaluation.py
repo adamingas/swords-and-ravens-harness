@@ -102,6 +102,13 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
 
 
 def test_tournament_pins_one_verified_provider_per_model() -> None:
+    assert TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL["z-ai/glm-5.3-flash"] == "together"
+    assert (
+        TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL[
+            "~deepseek/deepseek-v4-flash-latest"
+        ]
+        == "together"
+    )
     for providers in (
         TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL,
         TOURNAMENT_RETRY_PROVIDER_BY_MODEL,

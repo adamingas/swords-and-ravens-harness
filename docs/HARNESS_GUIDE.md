@@ -391,11 +391,13 @@ The harness uses four checks.
 4. **Snapshot inference:** The harness fetches a new authoritative snapshot and
    checks for evidence that the action was processed.
 
-Two narrow corrections avoid wasting another model request. An ineligible
-March control-token request is applied as false. Mustering treats recruitments
-as a priority-ordered list and omits later new units that do not fit Supply.
-The accepted action trace records the applied arguments and an omission count
-or flag; the raw SDK response still records the model's original tool call.
+Three narrow corrections avoid wasting another model request. An ineligible
+March control-token request is applied as false. March move groups and
+Mustering recruitments are priority-ordered lists; the harness omits a group or
+later new unit that does not fit Supply. An empty applied March discards the
+order. The accepted action trace records the applied arguments and an omission
+count or flag; the raw SDK response still records the model's original tool
+call.
 
 The canonical harness supports native three- and six-player base games with
 vassals disabled. The tournament remains six-player.
@@ -524,7 +526,7 @@ active state controls when each tool is visible.
 | Tool | Exact leaf state | Effect |
 | --- | --- | --- |
 | `resolve_raid(order_region_id, target_region_id)` | `resolve-raid-order`; `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
-| `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs. An empty move list discards the march. Unattainable neutral forces are excluded, and the selected army's neutral-force strength is checked locally. |
+| `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs, in priority order. The harness omits Supply-unsafe groups. An empty applied move list discards the march. Unattainable neutral forces are excluded, and the selected army's neutral-force strength is checked locally. |
 | `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
 | `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later point- or Supply-unsafe recruitments are omitted. |
@@ -967,12 +969,11 @@ These checks do not write the key to an artifact.
 
 The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
-provider allow-list. They use one tested provider for each model: Novita for
+provider allow-list. They use one tested provider for each model: Together for
 GLM and DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras for
 GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
-unambiguous provider attribution. A checkpointed retry uses tested Together
-capacity for GLM and DeepSeek and Novita for Qwen-235B. The other three models
-keep their primary route.
+unambiguous provider attribution. A checkpointed retry uses Novita for GLM,
+DeepSeek, and Qwen-235B. The other three models keep their primary route.
 Other compatible endpoints receive no endpoint-specific routing fields. This
 routing adapter is optional; the tournament logic depends only on the
 OpenAI-compatible interface. Every decision request uses

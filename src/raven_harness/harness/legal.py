@@ -145,6 +145,18 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
                         and (target.get("units") or target.get("garrison", 0) > 0)
                     ),
                     "neutralForce": neutral_force,
+                    "supplySafeUnitIdGroupsWhenChosenAlone": [
+                        list(group)
+                        for size in range(1, len(units) + 1)
+                        for group in combinations(
+                            [int(unit["id"]) for unit in units], size
+                        )
+                        if _march_counts_fit_supply(
+                            context,
+                            region_id,
+                            [(target_id, len(group))],
+                        )
+                    ],
                 }
             )
         source = static_regions.get(region_id, {})
@@ -166,6 +178,28 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
             }
         )
     return sorted(result, key=lambda item: item["regionId"])
+
+
+def supply_safe_march_moves(
+    context: HarnessContext,
+    starting_region_id: str,
+    moves: list[Any],
+) -> list[Any]:
+    """Keep requested march groups that fit Supply, in request priority order."""
+
+    accepted: list[Any] = []
+    for move in moves:
+        candidate = [*accepted, move]
+        if _march_counts_fit_supply(
+            context,
+            starting_region_id,
+            [
+                (item.destination_region_id, len(item.unit_ids))
+                for item in candidate
+            ],
+        ):
+            accepted.append(move)
+    return accepted
 
 
 def possible_neutral_force_support(
@@ -773,6 +807,34 @@ def _army_sizes_after_additions(
 def _army_sizes_fit(army_sizes: list[int], allowed: list[int]) -> bool:
     return len(army_sizes) <= len(allowed) and all(
         size <= allowed[index] for index, size in enumerate(army_sizes)
+    )
+
+
+def _march_counts_fit_supply(
+    context: HarnessContext,
+    starting_region_id: str,
+    moves: list[tuple[str, int]],
+) -> bool:
+    counts = _own_unit_counts(context)
+    counts[starting_region_id] = max(
+        0,
+        counts.get(starting_region_id, 0) - sum(count for _, count in moves),
+    )
+    for destination_id, count in moves:
+        counts[destination_id] = counts.get(destination_id, 0) + count
+
+    allowed = _allowed_army_sizes(context)
+    if allowed is not None and not _army_sizes_fit(
+        sorted((count for count in counts.values() if count > 1), reverse=True),
+        allowed,
+    ):
+        return False
+
+    _, static_regions = _regions(context)
+    return all(
+        _region_kind(static_regions.get(destination_id, {})) != "port"
+        or counts.get(destination_id, 0) <= 3
+        for destination_id, _ in moves
     )
 
 

@@ -1326,6 +1326,121 @@ async def test_typed_march_tool_translates_to_game_protocol() -> None:
 
 
 @pytest.mark.asyncio
+async def test_march_omits_a_supply_unsafe_move_group() -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    game = ingame["game"]
+    game["supplyRestrictions"] = [[], [], [3, 2, 2]]
+    game["world"]["regions"] = [
+        {
+            "id": "winterfell",
+            "units": [
+                {
+                    "id": 1,
+                    "type": "footman",
+                    "allegiance": "stark",
+                    "wounded": False,
+                }
+            ],
+        },
+        {
+            "id": "white-harbor",
+            "units": [
+                {
+                    "id": unit_id,
+                    "type": "footman",
+                    "allegiance": "stark",
+                    "wounded": False,
+                }
+                for unit_id in (10, 11, 12)
+            ],
+        },
+        {
+            "id": "karhold",
+            "units": [
+                {
+                    "id": unit_id,
+                    "type": "footman",
+                    "allegiance": "stark",
+                    "wounded": False,
+                }
+                for unit_id in (20, 21)
+            ],
+        },
+        {
+            "id": "moat-cailin",
+            "units": [
+                {
+                    "id": unit_id,
+                    "type": "footman",
+                    "allegiance": "stark",
+                    "wounded": False,
+                }
+                for unit_id in (30, 31)
+            ],
+        },
+    ]
+    ingame["ordersOnBoard"] = [["winterfell", 2]]
+    ingame["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+        },
+    }
+    context = build_context(snapshot, "2")
+    guidance = build_observation(context)["actionGuidance"]
+    white_harbor = next(
+        destination
+        for destination in guidance["legalOrderRegions"][0]["reachableRegions"]
+        if destination["regionId"] == "white-harbor"
+    )
+    assert white_harbor["supplySafeUnitIdGroupsWhenChosenAlone"] == []
+
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = next(
+        item for item in available_tools(context) if item.name == "resolve_march"
+    )
+    arguments = json.dumps(
+        {
+            "starting_region_id": "winterfell",
+            "moves": [
+                {"destination_region_id": "white-harbor", "unit_ids": [1]}
+            ],
+            "leave_power_token": False,
+        }
+    )
+
+    await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-supply-unsafe-march",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert client.sent == [
+        {
+            "type": "resolve-march-order",
+            "startingRegionId": "winterfell",
+            "moves": [],
+            "leavePowerToken": False,
+        }
+    ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments == {
+        "starting_region_id": "winterfell",
+        "moves": [],
+        "leave_power_token": False,
+        "omitted_supply_unsafe_move_groups": 1,
+        "omitted_illegal_power_token": False,
+    }
+
+
+@pytest.mark.asyncio
 async def test_march_omits_an_illegal_power_token_request() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["ordersOnBoard"] = [["winterfell", 2]]

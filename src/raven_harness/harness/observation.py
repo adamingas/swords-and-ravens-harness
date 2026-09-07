@@ -292,6 +292,10 @@ def _action_guidance(context: HarnessContext) -> dict[str, Any] | None:
                 "Each unit ID may be moved at most once.",
                 "At most one destination may trigger combat.",
                 "Use only destinations listed for the selected starting region.",
+                (
+                    "Moves are processed in list order. The harness omits a move "
+                    "group that would exceed Supply after earlier kept groups."
+                ),
             ],
             "safePass": (
                 "Call resolve_march with a listed starting_region_id, moves=[], "

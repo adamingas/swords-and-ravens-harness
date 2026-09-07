@@ -19,6 +19,7 @@ from .legal import (
     point_safe_musterings,
     possible_neutral_force_support,
     supply_safe_musterings,
+    supply_safe_march_moves,
     validate_musterings,
 )
 from .tool_schema import inline_local_definitions
@@ -111,7 +112,9 @@ async def resolve_march(
 
     Args:
         starting_region_id: Region containing the march order and moving units.
-        moves: Destination groups and exact unit IDs to move to each destination.
+        moves: Destination groups and exact unit IDs in priority order. The
+            harness omits a group if applying it after earlier kept groups would
+            exceed Supply.
         leave_power_token: Whether to leave a control token after vacating the starting land region.
             The harness changes this to false when the current move cannot legally leave one.
     """
@@ -149,6 +152,9 @@ async def resolve_march(
         for destination in destinations
     ) > 1:
         raise ValueError("at most one destination may trigger combat")
+    requested_move_count = len(moves)
+    moves = supply_safe_march_moves(context, starting_region_id, moves)
+    moved_units = [unit_id for move in moves for unit_id in move.unit_ids]
     prior_non_combat_moves: list[tuple[str, list[int]]] = []
     for move in moves:
         destination = legal_destinations[move.destination_region_id]
@@ -178,6 +184,7 @@ async def resolve_march(
         "starting_region_id": starting_region_id,
         "moves": [move.model_dump() for move in moves],
         "leave_power_token": leave_power_token,
+        "omitted_supply_unsafe_move_groups": requested_move_count - len(moves),
         "omitted_illegal_power_token": (
             requested_leave_power_token and not leave_power_token
         ),
