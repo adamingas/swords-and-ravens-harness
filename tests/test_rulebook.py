@@ -210,7 +210,12 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
     prepared = harness.prepare_turn(
         record, build_context(client.snapshot, "2"), previous_error=None
     )
-    context = HarnessRunContext(client=client, user_id="2")
+    activities: list[tuple[str, dict[str, Any]]] = []
+    context = HarnessRunContext(
+        client=client,
+        user_id="2",
+        activity_sink=lambda kind, payload: activities.append((kind, payload)),
+    )
 
     result = await harness.run_turn(record, prepared, context, "oracle-run")
 
@@ -230,6 +235,11 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
     assert oracle_trace["sectionIds"] == ["supply-and-mustering"]
     assert "not total units" in oracle_trace["answer"]
     assert result.usage["totalTokens"] == 100
+    assert [
+        payload["scope"]
+        for kind, payload in activities
+        if kind == "model-request-started"
+    ] == ["agent", "rules-oracle", "rules-oracle", "agent"]
     database.close()
 
 

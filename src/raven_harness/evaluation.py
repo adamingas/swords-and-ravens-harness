@@ -414,16 +414,14 @@ async def run_game(
             runner = OpenAIAgentRunner(
                 api_key=settings.model_api_key,
                 base_url=settings.model_base_url,
-                request_timeout_seconds=settings.model_request_timeout_seconds,
                 run_timeout_seconds=settings.model_run_timeout_seconds,
-                max_retries=settings.model_api_max_retries,
                 max_output_tokens=settings.model_max_output_tokens,
                 session_database_path=database_path,
                 session_history_items=settings.model_session_history_items,
                 checkpoint_store=store,
                 provider_routing=(
                     settings.openrouter_provider_routing
-                    if settings.model_provider == "OpenRouter"
+                    if settings.openrouter_token
                     else None
                 ),
                 rulebook=rulebook,
@@ -937,7 +935,7 @@ async def _preflight_openrouter_quota(
 ) -> None:
     """Reject an exhausted OpenRouter key limit or workspace credit balance."""
 
-    if settings.model_provider != "OpenRouter" or not settings.openrouter_token:
+    if not settings.openrouter_token:
         return
     base_url = settings.openrouter_base_url.rstrip("/")
     owns_client = client is None
@@ -1195,14 +1193,23 @@ def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
         "reasoning": 0,
         "maxInputInRun": 0,
     }
-    run_count = model_requests = 0
-    cost_usd = 0.0
+    run_count = 0
+    model_calls: Counter[str] = Counter()
+    model_call_scopes: Counter[str] = Counter()
+    cost_coverage: Counter[str] = Counter()
+    response_providers: Counter[str] = Counter()
+    response_models: Counter[str] = Counter()
+    cost_usd = upstream_inference_cost_usd = 0.0
+    responses_without_provider = 0
     duration_total = duration_maximum = 0
     for item in metrics:
         item_run_count = int(item.get("runCount") or 0)
         run_count += item_run_count
         status_counts.update(item.get("statusCounts") or {})
-        model_requests += int(item.get("modelRequests") or 0)
+        calls = item.get("modelCalls") or {}
+        for key in ("started", "responses", "withoutResponse", "responsesWithoutStart"):
+            model_calls[key] += int(calls.get(key) or 0)
+        model_call_scopes.update(calls.get("startedByScope") or {})
         tokens = item.get("tokens") or {}
         for key in token_totals:
             value = int(tokens.get(key) or 0)
@@ -1211,15 +1218,40 @@ def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
             else:
                 token_totals[key] += value
         cost_usd += float(item.get("costUsd") or 0)
+        upstream_inference_cost_usd += float(
+            item.get("upstreamInferenceCostUsd") or 0
+        )
+        cost_coverage.update(item.get("costCoverage") or {})
+        attribution = item.get("responseAttribution") or {}
+        response_providers.update(attribution.get("providers") or {})
+        response_models.update(attribution.get("models") or {})
+        responses_without_provider += int(
+            attribution.get("responsesWithoutProvider") or 0
+        )
         duration = item.get("durationMs") or {}
         duration_total += int(duration.get("total") or 0)
         duration_maximum = max(duration_maximum, int(duration.get("maximum") or 0))
     return {
         "runCount": run_count,
         "statusCounts": dict(sorted(status_counts.items())),
-        "modelRequests": model_requests,
+        "modelCalls": {
+            **{key: model_calls[key] for key in (
+                "started",
+                "responses",
+                "withoutResponse",
+                "responsesWithoutStart",
+            )},
+            "startedByScope": dict(sorted(model_call_scopes.items())),
+        },
         "tokens": token_totals,
         "costUsd": round(cost_usd, 9),
+        "upstreamInferenceCostUsd": round(upstream_inference_cost_usd, 9),
+        "costCoverage": dict(sorted(cost_coverage.items())),
+        "responseAttribution": {
+            "providers": dict(sorted(response_providers.items())),
+            "models": dict(sorted(response_models.items())),
+            "responsesWithoutProvider": responses_without_provider,
+        },
         "durationMs": {
             "total": duration_total,
             "average": round(duration_total / run_count) if run_count else 0,
@@ -1230,6 +1262,16 @@ def _aggregate_run_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _load_attempt_metrics(attempt_dir: Path) -> dict[str, Any]:
     metrics_path = attempt_dir / "metrics.json"
+    database_path = attempt_dir / "harness.db"
+    if database_path.is_file():
+        database = Database(database_path)
+        try:
+            store = AgentStore(database)
+            return _aggregate_run_metrics(
+                [store.get_run_metrics(record.id) for record in store.list_agents()]
+            )
+        finally:
+            database.close()
     if metrics_path.is_file():
         try:
             value = json.loads(metrics_path.read_text())
@@ -1243,17 +1285,7 @@ def _load_attempt_metrics(attempt_dir: Path) -> dict[str, Any]:
             )
         return value
 
-    database_path = attempt_dir / "harness.db"
-    if not database_path.is_file():
-        return _aggregate_run_metrics([])
-    database = Database(database_path)
-    try:
-        store = AgentStore(database)
-        return _aggregate_run_metrics(
-            [store.get_run_metrics(record.id) for record in store.list_agents()]
-        )
-    finally:
-        database.close()
+    return _aggregate_run_metrics([])
 
 
 def _load_manifest(
@@ -1333,9 +1365,8 @@ def _build_provenance(
             "runtimeSha256": _runtime_fingerprint(),
             "systemPromptSha256": _sha256_text(_system_prompt()),
             "effectiveInstructionsSha256": _sha256_text(_effective_instructions()),
-            "requestTimeoutSeconds": settings.model_request_timeout_seconds,
             "runTimeoutSeconds": settings.model_run_timeout_seconds,
-            "apiMaxRetries": settings.model_api_max_retries,
+            "clientRetries": 0,
             "maxOutputTokens": settings.model_max_output_tokens,
             "sessionHistoryItems": settings.model_session_history_items,
             "autoplayMaxConsecutiveFailures": (
@@ -1363,7 +1394,7 @@ def _build_provenance(
             "baseUrlSha256": _sha256_text(settings.model_base_url),
             "providerRouting": (
                 settings.openrouter_provider_routing
-                if settings.model_provider == "OpenRouter"
+                if settings.openrouter_token
                 else None
             ),
         },
@@ -1627,6 +1658,9 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
             attempt_dir = output / attempt["directory"]
             provenance = attempt.get("provenance") or {}
             model_provenance = provenance.get("models") or {}
+            metrics = _load_attempt_metrics(attempt_dir)
+            if (attempt_dir / "harness.db").is_file():
+                _write_json(attempt_dir / "metrics.json", metrics)
             attempts.append(
                 {
                     "gameNumber": game_number,
@@ -1635,7 +1669,7 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
                     "activeElapsedSeconds": attempt.get("activeElapsedSeconds"),
                     "endpointProvider": model_provenance.get("provider"),
                     "error": attempt.get("error"),
-                    "metrics": _load_attempt_metrics(attempt_dir),
+                    "metrics": metrics,
                 }
             )
         completed = next(
@@ -1686,12 +1720,19 @@ def summarize_results(
             "completedRuns": 0,
             "failedRuns": 0,
             "cancelledRuns": 0,
-            "modelRequests": 0,
+            "modelCallsStarted": 0,
+            "modelResponses": 0,
+            "modelCallsWithoutResponse": 0,
             "inputTokens": 0,
             "outputTokens": 0,
             "totalTokens": 0,
             "cachedInputTokens": 0,
             "costUsd": 0.0,
+            "upstreamInferenceCostUsd": 0.0,
+            "runDurationTotalMs": 0,
+            "maximumRunDurationMs": 0,
+            "responseProviderCounts": Counter(),
+            "responsesWithoutProvider": 0,
         }
         for model in TOURNAMENT_MODELS
     }
@@ -1732,13 +1773,34 @@ def summarize_results(
             values["completedRuns"] += metrics["statusCounts"].get("completed", 0)
             values["failedRuns"] += metrics["statusCounts"].get("failed", 0)
             values["cancelledRuns"] += metrics["statusCounts"].get("cancelled", 0)
-            values["modelRequests"] += int(metrics.get("modelRequests") or 0)
+            model_calls = metrics.get("modelCalls") or {}
+            values["modelCallsStarted"] += int(model_calls.get("started") or 0)
+            values["modelResponses"] += int(model_calls.get("responses") or 0)
+            values["modelCallsWithoutResponse"] += int(
+                model_calls.get("withoutResponse") or 0
+            )
             tokens = metrics.get("tokens") or {}
             values["inputTokens"] += int(tokens.get("input") or 0)
             values["outputTokens"] += int(tokens.get("output") or 0)
             values["totalTokens"] += int(tokens.get("total") or 0)
             values["cachedInputTokens"] += int(tokens.get("cachedInput") or 0)
             values["costUsd"] += metrics["costUsd"]
+            values["upstreamInferenceCostUsd"] += float(
+                metrics.get("upstreamInferenceCostUsd") or 0
+            )
+            duration = metrics.get("durationMs") or {}
+            values["runDurationTotalMs"] += int(duration.get("total") or 0)
+            values["maximumRunDurationMs"] = max(
+                values["maximumRunDurationMs"],
+                int(duration.get("maximum") or 0),
+            )
+            attribution = metrics.get("responseAttribution") or {}
+            values["responseProviderCounts"].update(
+                attribution.get("providers") or {}
+            )
+            values["responsesWithoutProvider"] += int(
+                attribution.get("responsesWithoutProvider") or 0
+            )
             house_values = houses[standing["house"]]
             house_values["games"] += 1
             house_values["wins"] += int(standing["house"] == result["winner"])
@@ -1787,10 +1849,27 @@ def summarize_results(
                     else None
                 ),
                 "costUsd": round(values["costUsd"], 6),
+                "upstreamInferenceCostUsd": round(
+                    values["upstreamInferenceCostUsd"], 6
+                ),
                 "completedRuns": values["completedRuns"],
                 "failedRuns": values["failedRuns"],
                 "cancelledRuns": values["cancelledRuns"],
-                "modelRequests": values["modelRequests"],
+                "modelCallsStarted": values["modelCallsStarted"],
+                "modelResponses": values["modelResponses"],
+                "modelCallsWithoutResponse": values[
+                    "modelCallsWithoutResponse"
+                ],
+                "averageRunDurationMs": (
+                    round(values["runDurationTotalMs"] / run_attempts)
+                    if run_attempts
+                    else None
+                ),
+                "maximumRunDurationMs": values["maximumRunDurationMs"],
+                "responseProviderCounts": dict(
+                    sorted(values["responseProviderCounts"].items())
+                ),
+                "responsesWithoutProvider": values["responsesWithoutProvider"],
                 "inputTokens": values["inputTokens"],
                 "outputTokens": values["outputTokens"],
                 "totalTokens": values["totalTokens"],
@@ -1866,9 +1945,14 @@ def summarize_results(
             sorted(attempt_endpoint_provider_counts.items())
         ),
         "runStatusCounts": attempt_metrics["statusCounts"],
-        "modelRequests": attempt_metrics["modelRequests"],
+        "modelCalls": attempt_metrics["modelCalls"],
         "tokens": attempt_metrics["tokens"],
         "costUsd": round(attempt_metrics["costUsd"], 6),
+        "upstreamInferenceCostUsd": round(
+            attempt_metrics["upstreamInferenceCostUsd"], 6
+        ),
+        "costCoverage": attempt_metrics["costCoverage"],
+        "responseAttribution": attempt_metrics["responseAttribution"],
         "requiredObservationsPerModelHouse": required_observations,
         "minimumObservationsPerModelHouse": minimum_observations,
         "modelHouseCoverage": model_house_coverage,

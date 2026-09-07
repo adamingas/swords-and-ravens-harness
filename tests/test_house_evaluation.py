@@ -31,7 +31,13 @@ def _result(game_number: int, winner: str = "stark") -> dict:
                 "landAreas": 8 - placement,
                 "metrics": {
                     "statusCounts": {"completed": 2},
-                    "modelRequests": 2,
+                    "modelCalls": {
+                        "started": 2,
+                        "responses": 2,
+                        "withoutResponse": 0,
+                        "responsesWithoutStart": 0,
+                        "startedByScope": {"agent": 2},
+                    },
                     "tokens": {
                         "input": 10,
                         "output": 2,
@@ -66,7 +72,13 @@ def _attempt(
         "metrics": {
             "runCount": 12,
             "statusCounts": {status: 12},
-            "modelRequests": 12,
+            "modelCalls": {
+                "started": 12,
+                "responses": 12,
+                "withoutResponse": 0,
+                "responsesWithoutStart": 0,
+                "startedByScope": {"agent": 12},
+            },
             "tokens": {
                 "input": 60,
                 "output": 12,
@@ -108,7 +120,13 @@ def test_house_summary_uses_complete_game_results_and_measured_time() -> None:
         "averageLandAreas": 7.0,
     }
     assert summary["runStatusCounts"] == {"completed": 60}
-    assert summary["modelRequests"] == 60
+    assert summary["modelCalls"] == {
+        "started": 60,
+        "responses": 60,
+        "withoutResponse": 0,
+        "responsesWithoutStart": 0,
+        "startedByScope": {"agent": 60},
+    }
     assert summary["tokens"] == {
         "input": 300,
         "output": 60,
@@ -132,7 +150,7 @@ def test_house_summary_includes_failed_attempt_usage_and_error() -> None:
 
     assert summary["completedGames"] == 0
     assert summary["runStatusCounts"] == {"failed": 12}
-    assert summary["modelRequests"] == 12
+    assert summary["modelCalls"]["started"] == 12
     assert summary["costUsd"] == 0.06
     assert summary["attempts"] == [attempt]
 

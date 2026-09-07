@@ -548,11 +548,22 @@ class AgentStore:
                 "SELECT COUNT(*) FROM game_state_history WHERE agent_id = ?",
                 (agent_id,),
             ).fetchone()[0]
+            request_events = self.database.connection.execute(
+                """
+                SELECT payload_json FROM agent_events
+                WHERE agent_id = ? AND kind = 'model-request-started'
+                ORDER BY id ASC
+                """,
+                (agent_id,),
+            ).fetchall()
 
         statuses: dict[str, int] = {}
-        requests = input_tokens = output_tokens = total_tokens = 0
+        responses = input_tokens = output_tokens = total_tokens = 0
         cached_tokens = cache_write_tokens = reasoning_tokens = 0
-        cost = 0.0
+        charged_cost = upstream_inference_cost = 0.0
+        usage_records = charged_cost_records = upstream_cost_records = 0
+        response_provider_counts: dict[str, int] = {}
+        response_model_counts: dict[str, int] = {}
         durations: list[int] = []
         max_input_tokens_in_run = 0
         request_input_tokens: list[int] = []
@@ -561,7 +572,7 @@ class AgentStore:
             status = str(row["status"])
             statuses[status] = statuses.get(status, 0) + 1
             usage = self._load_optional_json(row["usage_json"]) or {}
-            requests += int(usage.get("requests") or 0)
+            responses += int(usage.get("requests") or 0)
             input_tokens += int(usage.get("inputTokens") or 0)
             output_tokens += int(usage.get("outputTokens") or 0)
             total_tokens += int(usage.get("totalTokens") or 0)
@@ -569,12 +580,30 @@ class AgentStore:
                 max_input_tokens_in_run, int(usage.get("inputTokens") or 0)
             )
             for native in self._load_optional_json(row["raw_usage_json"]) or []:
+                usage_records += 1
                 details = native.get("input_tokens_details") or {}
                 output_details = native.get("output_tokens_details") or {}
+                cost_details = native.get("cost_details") or {}
                 cached_tokens += int(details.get("cached_tokens") or 0)
                 cache_write_tokens += int(details.get("cache_write_tokens") or 0)
                 reasoning_tokens += int(output_details.get("reasoning_tokens") or 0)
-                cost += float(native.get("cost") or 0)
+                if isinstance(native.get("cost"), (int, float)):
+                    charged_cost += float(native["cost"])
+                    charged_cost_records += 1
+                upstream_cost = cost_details.get("upstream_inference_cost")
+                if isinstance(upstream_cost, (int, float)):
+                    upstream_inference_cost += float(upstream_cost)
+                    upstream_cost_records += 1
+                response_provider = native.get("response_provider")
+                if isinstance(response_provider, str) and response_provider:
+                    response_provider_counts[response_provider] = (
+                        response_provider_counts.get(response_provider, 0) + 1
+                    )
+                response_model = native.get("response_model")
+                if isinstance(response_model, str) and response_model:
+                    response_model_counts[response_model] = (
+                        response_model_counts.get(response_model, 0) + 1
+                    )
                 if native.get("input_tokens") is not None:
                     destination = (
                         rules_oracle_request_input_tokens
@@ -585,10 +614,23 @@ class AgentStore:
             if row["duration_ms"] is not None:
                 durations.append(int(row["duration_ms"]))
 
+        starts_by_scope: dict[str, int] = {}
+        for event in request_events:
+            payload = self._load_optional_json(event["payload_json"]) or {}
+            scope = str(payload.get("scope") or "agent")
+            starts_by_scope[scope] = starts_by_scope.get(scope, 0) + 1
+        starts = sum(starts_by_scope.values())
+
         return {
             "runCount": len(rows),
             "statusCounts": statuses,
-            "modelRequests": requests,
+            "modelCalls": {
+                "started": starts,
+                "responses": responses,
+                "withoutResponse": max(0, starts - responses),
+                "responsesWithoutStart": max(0, responses - starts),
+                "startedByScope": dict(sorted(starts_by_scope.items())),
+            },
             "tokens": {
                 "input": input_tokens,
                 "output": output_tokens,
@@ -604,10 +646,26 @@ class AgentStore:
             "rulesOracleRequestInputTokens": self._input_token_distribution(
                 rules_oracle_request_input_tokens
             ),
-            "costUsd": cost,
+            "costUsd": charged_cost,
+            "upstreamInferenceCostUsd": upstream_inference_cost,
+            "costCoverage": {
+                "responseUsageRecords": usage_records,
+                "chargedCostRecords": charged_cost_records,
+                "upstreamInferenceCostRecords": upstream_cost_records,
+            },
+            "responseAttribution": {
+                "providers": dict(sorted(response_provider_counts.items())),
+                "models": dict(sorted(response_model_counts.items())),
+                "responsesWithoutProvider": max(
+                    0, usage_records - sum(response_provider_counts.values())
+                ),
+            },
             "durationMs": {
                 "total": sum(durations),
                 "average": round(sum(durations) / len(durations)) if durations else 0,
+                "p50": self._nearest_rank(durations, 0.5),
+                "p90": self._nearest_rank(durations, 0.9),
+                "p99": self._nearest_rank(durations, 0.99),
                 "maximum": max(durations, default=0),
             },
             "historicalStates": int(history_count),

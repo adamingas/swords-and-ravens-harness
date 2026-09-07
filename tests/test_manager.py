@@ -198,6 +198,7 @@ class BlockingActivityHarness(ContextManifestHarness):
                 "model-request-started",
                 {
                     "requestIndex": request_index,
+                    "scope": "rules-oracle" if request_index == 10 else "agent",
                     "inputItemCount": request_index + 2,
                     "prompt": "private prompt body",
                     "authorization": "Bearer private-token",
@@ -209,6 +210,7 @@ class BlockingActivityHarness(ContextManifestHarness):
             "model-request-completed",
             {
                 "requestIndex": 10,
+                "scope": "rules-oracle",
                 "responseId": "response-10",
                 "outputItemCount": 1,
                 "usage": {
@@ -487,6 +489,7 @@ async def test_manager_exposes_bounded_sanitized_live_activity(tmp_path) -> None
     live = manager.get_runtime(agent.id).model_dump(by_alias=True)
     assert live["currentActivity"]["kind"] == "model-request-started"
     assert live["currentActivity"]["requestIndex"] == 10
+    assert live["currentActivity"]["scope"] == "rules-oracle"
     assert len(live["recentActivity"]) == 8
     assert [item["requestIndex"] for item in live["recentActivity"]] == list(
         range(3, 11)

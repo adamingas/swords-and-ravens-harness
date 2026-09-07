@@ -1015,7 +1015,13 @@ def test_sqlite_quick_check_accepts_evaluation_database(tmp_path) -> None:
 def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     metrics = {
         "statusCounts": {"completed": 3, "failed": 1},
-        "modelRequests": 5,
+        "modelCalls": {
+            "started": 5,
+            "responses": 5,
+            "withoutResponse": 0,
+            "responsesWithoutStart": 0,
+            "startedByScope": {"agent": 5},
+        },
         "tokens": {
             "input": 1_000,
             "output": 200,
@@ -1059,7 +1065,8 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
     assert summary["ranking"][0]["elo"] > 1500
     assert summary["ranking"][0]["reliability"] == 0.75
     assert summary["ranking"][0]["costUsd"] == 0.25
-    assert summary["ranking"][0]["modelRequests"] == 5
+    assert summary["ranking"][0]["modelCallsStarted"] == 5
+    assert summary["ranking"][0]["modelResponses"] == 5
     assert summary["ranking"][0]["inputTokens"] == 1_000
     assert summary["ranking"][0]["outputTokens"] == 200
     assert summary["ranking"][0]["totalTokens"] == 1_200
@@ -1075,7 +1082,7 @@ def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:
 def test_summary_requires_two_complete_house_rotations() -> None:
     empty_metrics = {
         "statusCounts": {},
-        "modelRequests": 0,
+        "modelCalls": {},
         "tokens": {},
         "costUsd": 0,
     }
@@ -1130,7 +1137,13 @@ def test_summary_keeps_failed_attempt_usage_and_endpoint_attribution() -> None:
         "metrics": {
             "runCount": 2,
             "statusCounts": {"completed": 1, "failed": 1},
-            "modelRequests": 3,
+            "modelCalls": {
+                "started": 3,
+                "responses": 2,
+                "withoutResponse": 1,
+                "responsesWithoutStart": 0,
+                "startedByScope": {"agent": 3},
+            },
             "tokens": {
                 "input": 100,
                 "output": 20,
@@ -1149,6 +1162,12 @@ def test_summary_keeps_failed_attempt_usage_and_endpoint_attribution() -> None:
     assert summary["attemptStatusCounts"] == {"failed": 1}
     assert summary["attemptEndpointProviderCounts"] == {"Example endpoint": 1}
     assert summary["runStatusCounts"] == {"completed": 1, "failed": 1}
-    assert summary["modelRequests"] == 3
+    assert summary["modelCalls"] == {
+        "started": 3,
+        "responses": 2,
+        "withoutResponse": 1,
+        "responsesWithoutStart": 0,
+        "startedByScope": {"agent": 3},
+    }
     assert summary["tokens"]["cachedInput"] == 50
     assert summary["costUsd"] == 0.02

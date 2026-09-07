@@ -389,6 +389,12 @@ def _safe_order_arguments(
     assignments_schema = schema.get("properties", {}).get("assignments", {})
     required_count = assignments_schema.get("minItems")
     if (
+        region_ids is None
+        and required_count == 0
+        and assignments_schema.get("maxItems") == 0
+    ):
+        region_ids = []
+    if (
         not isinstance(region_ids, list)
         or not all(isinstance(item, str) for item in region_ids)
         or not isinstance(order_ids, list)

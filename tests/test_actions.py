@@ -1037,6 +1037,59 @@ def test_unattainable_neutral_force_is_not_a_march_destination() -> None:
     assert "moat-cailin" not in destinations
 
 
+def test_march_without_a_destination_has_a_provider_valid_pass_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot = planning_snapshot()
+    ingame = snapshot["childGameState"]
+    ingame["ordersOnBoard"] = [["winterfell", 3]]
+    ingame["childGameState"] = {
+        "type": "resolve-march-order",
+        "childGameState": {
+            "type": "resolve-single-march",
+            "houseId": "stark",
+            "supportersAgainstNeutralForce": None,
+        },
+    }
+    monkeypatch.setattr(
+        "raven_harness.harness.protocol_tools.legal_march_options",
+        lambda _context: [
+            {
+                "regionId": "winterfell",
+                "orderId": 3,
+                "order": "March +1",
+                "unitIds": [1],
+                "reachableRegions": [],
+                "canLeavePowerToken": False,
+            }
+        ],
+    )
+
+    tool = next(
+        item
+        for item in available_tools(build_context(snapshot, "2"))
+        if item.name == "resolve_march"
+    )
+    moves = tool.params_json_schema["properties"]["moves"]
+
+    assert moves["maxItems"] == 0
+    assert not any(
+        value == []
+        for key, value in _nested_items(tool.params_json_schema)
+        if key == "enum"
+    )
+
+
+def _nested_items(value: Any):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield key, item
+            yield from _nested_items(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _nested_items(item)
+
+
 def test_accepted_foreign_support_makes_neutral_force_attainable() -> None:
     snapshot = planning_snapshot()
     ingame = snapshot["childGameState"]

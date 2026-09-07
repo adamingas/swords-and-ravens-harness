@@ -90,6 +90,10 @@ class TerminalResponses:
         return SimpleNamespace(
             id="incomplete-1",
             status="incomplete",
+            model="test-model-2026-09-01",
+            provider="Example Provider",
+            service_tier="priority",
+            _request_id="request-1",
             usage=TerminalUsage(),
             incomplete_details=SimpleNamespace(reason="max_output_tokens"),
             output=[],
@@ -98,11 +102,13 @@ class TerminalResponses:
 
 @pytest.mark.asyncio
 async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
-    terminal_responses: list[Any] = []
+    terminal_responses: list[tuple[str, Any]] = []
+    response_attribution: dict[str, dict[str, Any]] = {}
     model = _UsageCapturingResponsesModel(
         model="test-model",
         openai_client=SimpleNamespace(responses=TerminalResponses()),
         terminal_response_sink=terminal_responses,
+        response_attribution_sink=response_attribution,
     )
 
     with pytest.raises(RuntimeError, match="terminal status incomplete"):
@@ -116,7 +122,10 @@ async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
             stream=False,
         )
     result = _partial_result(
-        [], {}, terminal_responses=terminal_responses
+        [],
+        {},
+        terminal_responses=terminal_responses,
+        response_attribution=response_attribution,
     )
 
     assert result.usage == {
@@ -133,6 +142,10 @@ async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
             "cost": 0.01,
             "scope": "agent",
             "response_id": "incomplete-1",
+            "response_model": "test-model-2026-09-01",
+            "response_provider": "Example Provider",
+            "service_tier": "priority",
+            "request_id": "request-1",
         }
     ]
 
@@ -323,7 +336,6 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     runner = OpenAIAgentRunner(
         api_key="test-key",
         base_url="https://api.openai.test/v1",
-        max_retries=4,
         provider_routing={
             "sort": "throughput",
             "allow_fallbacks": True,
@@ -373,7 +385,7 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     }
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
-    assert runner.client.max_retries == 4
+    assert runner.client.max_retries == 0
     assert fake_model.model_settings.tool_choice == "required"
     assert fake_model.model_settings.extra_body == {
         "provider": {
@@ -553,7 +565,12 @@ async def test_openai_runner_reports_sanitized_request_and_tool_lifecycle(
         "model-tool-started",
         "model-tool-completed",
     ]
-    assert activities[0][1] == {"requestIndex": 1, "inputItemCount": 1}
+    assert activities[0][1] == {
+        "requestIndex": 1,
+        "scope": "agent",
+        "inputItemCount": 1,
+    }
+    assert activities[1][1]["scope"] == "agent"
     assert activities[1][1]["responseId"] == "resp-1"
     assert activities[1][1]["usage"] == {
         "requests": 1,

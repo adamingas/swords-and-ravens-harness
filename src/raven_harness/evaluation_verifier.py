@@ -97,6 +97,13 @@ def verify_evaluation(
                 random_seed=int(manifest["randomSeed"]),
             )
             attempt_endpoint_provider_counts[endpoint_provider] += 1
+            _sqlite_quick_check(
+                attempt_dir / "harness.db",
+                label=(
+                    f"game {game_number} attempt {attempt_number} harness database"
+                ),
+            )
+            checked_databases += 1
             try:
                 metrics = _load_attempt_metrics(attempt_dir)
             except (RuntimeError, sqlite3.Error) as error:
@@ -162,7 +169,6 @@ def verify_evaluation(
             )
         )
         database_path = attempt_dir / "harness.db"
-        _sqlite_quick_check(database_path, label=f"game {game_number} harness database")
         database_responses = _database_response_rows(
             database_path,
             game_number=game_number,
@@ -174,7 +180,6 @@ def verify_evaluation(
         active_elapsed_seconds[game_number] = float(
             attempt.get("activeElapsedSeconds") or 0
         )
-        checked_databases += 1
         completed_results.append(result)
 
     if assignment_models and assignment_models != set(models):

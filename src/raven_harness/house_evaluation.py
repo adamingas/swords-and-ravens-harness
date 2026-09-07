@@ -45,7 +45,7 @@ async def run_house_evaluation(args: argparse.Namespace) -> Path:
         openrouter_require_parameters=False,
         model_max_output_tokens=HOUSE_TEST_MAX_OUTPUT_TOKENS,
     )
-    if settings.model_provider != "OpenRouter":
+    if not settings.openrouter_token:
         raise RuntimeError(
             "The GPT-OSS house experiment requires an endpoint adapter that can "
             "restrict requests to the Cerebras backend"
@@ -330,9 +330,14 @@ def summarize_house_results(
         },
         "houseStatistics": house_statistics,
         "runStatusCounts": metrics["statusCounts"],
-        "modelRequests": metrics["modelRequests"],
+        "modelCalls": metrics["modelCalls"],
         "tokens": metrics["tokens"],
         "costUsd": round(metrics["costUsd"], 6),
+        "upstreamInferenceCostUsd": round(
+            metrics["upstreamInferenceCostUsd"], 6
+        ),
+        "costCoverage": metrics["costCoverage"],
+        "responseAttribution": metrics["responseAttribution"],
     }
 
 

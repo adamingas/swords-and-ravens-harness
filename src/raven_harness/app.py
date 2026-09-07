@@ -49,16 +49,14 @@ def create_app(
         model_runner = runner or OpenAIAgentRunner(
             api_key=settings.model_api_key,
             base_url=settings.model_base_url,
-            request_timeout_seconds=settings.model_request_timeout_seconds,
             run_timeout_seconds=settings.model_run_timeout_seconds,
-            max_retries=settings.model_api_max_retries,
             max_output_tokens=settings.model_max_output_tokens,
             session_database_path=settings.resolved_database_path,
             session_history_items=settings.model_session_history_items,
             checkpoint_store=store,
             provider_routing=(
                 settings.openrouter_provider_routing
-                if settings.model_provider == "OpenRouter"
+                if settings.openrouter_token
                 else None
             ),
             rulebook=rulebook,

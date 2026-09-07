@@ -25,7 +25,13 @@ from raven_harness.schemas import AgentCreate
 
 EMPTY_METRICS = {
     "statusCounts": {"completed": 1},
-    "modelRequests": 1,
+    "modelCalls": {
+        "started": 1,
+        "responses": 1,
+        "withoutResponse": 0,
+        "responsesWithoutStart": 0,
+        "startedByScope": {"agent": 1},
+    },
     "tokens": {"input": 10, "output": 2, "total": 12},
     "costUsd": 0.001,
 }
@@ -207,6 +213,28 @@ def test_verifier_accepts_valid_partial_evaluation_as_provisional(tmp_path) -> N
 
     with pytest.raises(EvaluationIncompleteError, match="1/12 completed games"):
         verify_evaluation(root, require_complete=True)
+
+
+def test_verifier_checks_failed_attempt_database(tmp_path) -> None:
+    root = tmp_path / "failed-attempt"
+    _evaluation(root, game_count=12, completed_games=1)
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["games"][0]["attempts"][0]["status"] = "failed"
+    manifest["games"][0]["attempts"][0]["error"] = "provider failed"
+    _write_json(manifest_path, manifest)
+    _write_summary(root, manifest)
+
+    report = verify_evaluation(root)
+
+    assert report["completedGames"] == 0
+    assert report["checkedDatabases"] == 1
+    database_path = root / "game-01/attempt-01/harness.db"
+    database_path.write_text("not a SQLite database")
+    with pytest.raises(
+        EvaluationVerificationError, match="Cannot verify.*harness database"
+    ):
+        verify_evaluation(root)
 
 
 def test_verifier_accepts_complete_two_rotation_comparison(tmp_path) -> None:

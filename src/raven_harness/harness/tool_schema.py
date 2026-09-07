@@ -41,7 +41,7 @@ def inline_local_definitions(schema: dict[str, Any]) -> dict[str, Any]:
         return {
             key: expand(item, active)
             for key, item in value.items()
-            if key != "$defs"
+            if key != "$defs" and not (key == "enum" and item == [])
         }
 
     result = expand(schema)

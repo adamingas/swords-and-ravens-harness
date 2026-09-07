@@ -49,6 +49,14 @@ def test_default_relative_data_paths_are_project_local() -> None:
 
     assert settings.resolved_database_path == PROJECT_ROOT / "data/test.db"
     assert settings.resolved_rules_path == PROJECT_ROOT / "data/test-rules.json"
+    assert settings.model_provider == "api.openai.com"
+    assert (
+        Settings(
+            openai_base_url="https://models.example.test/v1",
+            _env_file=None,
+        ).model_provider
+        == "models.example.test"
+    )
 
 
 def test_openrouter_routing_prefers_compatible_hosts() -> None:
@@ -123,7 +131,7 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
     )
     with TestClient(app) as client:
         assert client.get("/api/models").json() == {
-            "provider": "OpenAI",
+            "provider": "api.openai.com",
             "defaultModelId": "z-ai/glm-5.3-flash",
         }
         health = client.get("/api/health").json()
@@ -291,7 +299,13 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
             "metrics": {
                 "runCount": 0,
                 "statusCounts": {},
-                "modelRequests": 0,
+                "modelCalls": {
+                    "started": 0,
+                    "responses": 0,
+                    "withoutResponse": 0,
+                    "responsesWithoutStart": 0,
+                    "startedByScope": {},
+                },
                 "tokens": {
                     "input": 0,
                     "output": 0,
@@ -318,7 +332,25 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
                     "maximum": 0,
                 },
                 "costUsd": 0.0,
-                "durationMs": {"total": 0, "average": 0, "maximum": 0},
+                "upstreamInferenceCostUsd": 0.0,
+                "costCoverage": {
+                    "responseUsageRecords": 0,
+                    "chargedCostRecords": 0,
+                    "upstreamInferenceCostRecords": 0,
+                },
+                "responseAttribution": {
+                    "providers": {},
+                    "models": {},
+                    "responsesWithoutProvider": 0,
+                },
+                "durationMs": {
+                    "total": 0,
+                    "average": 0,
+                    "p50": 0,
+                    "p90": 0,
+                    "p99": 0,
+                    "maximum": 0,
+                },
                 "historicalStates": 0,
             }
         }

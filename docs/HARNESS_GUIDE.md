@@ -708,6 +708,9 @@ and output item counts, duration, and token totals. They do not contain prompts,
 observations, tool arguments, tool results, or credentials.
 
 Provider-native usage can include cached tokens, reasoning tokens, and cost.
+The configured endpoint is attributed by hostname. If the endpoint returns an
+upstream provider with a response, the harness records that provider on the
+response instead of querying an endpoint-specific metadata API afterward.
 The standard usage object contains request, input-token, output-token, and total
 token counts. Per-agent metrics report separate request-input distributions for
 the gameplay agent and rules oracle. A provider request is not the same as an
@@ -718,14 +721,17 @@ The metrics response has these groups:
 | Key | Meaning |
 | --- | --- |
 | runCount; statusCounts | Attempt total and completed, failed, or cancelled totals. |
-| modelRequests | Accumulated standard SDK request count for a gameplay run, including nested oracle requests. |
+| modelCalls | Calls started, responses received, calls without a response, and starts grouped by gameplay agent or rules oracle. |
 | tokens.input; output; total | Standard accumulated token counts. |
 | tokens.cachedInput; cacheWrite; reasoning | Provider-native detailed token counts when reported. |
 | tokens.maxInputInRun | Largest accumulated standard input count for one SDK run, including nested oracle work. |
 | requestInputTokens | Reported request count and average, p50, p90, p99, and maximum input for gameplay-agent provider requests. |
 | rulesOracleRequestInputTokens | The same distribution for rules-oracle provider requests. |
-| costUsd | Sum of provider-native cost fields. |
-| durationMs | Total, average, and maximum attempt duration. |
+| costUsd | Sum of provider-reported charged-cost fields. |
+| upstreamInferenceCostUsd | Sum of separately reported upstream inference cost. This is not substituted for charged cost. |
+| costCoverage | Response-usage records and how many contain each cost field. |
+| responseAttribution | Response counts grouped by model and provider when the endpoint returns those fields. |
+| durationMs | Total, average, p50, p90, p99, and maximum run duration. |
 | historicalStates | Number of distinct stored decision states. |
 
 A run detail includes this context manifest:
@@ -745,9 +751,9 @@ A run detail includes this context manifest:
 | modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. The field also fingerprints the instructions. The SDK can still deduplicate items afterward. It is not a hash of tools, settings, metadata, model ID, or provider serialization. |
 
 The current observation itself is stored beside the manifest. The manifest
-does not store API keys. Recorded duration begins before observation
-preparation and includes time waiting for the process-wide model semaphore.
-The 300-second model-run timeout begins only after that semaphore is acquired.
+does not store API keys. Recorded run duration begins before observation
+preparation. The model-run timeout covers the Agents SDK call. Agents run in
+independent asynchronous tasks, with no shared model semaphore.
 
 An agent that has connected successfully stays started across transient game
 WebSocket failures. Its runtime becomes reconnecting, autoplay remains enabled,
@@ -777,12 +783,11 @@ If `OPENROUTER_TOKEN` is empty, the harness uses the direct OpenAI-compatible
 base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
 creating agents.
 
-MODEL_API_MAX_RETRIES controls OpenAI-client retries for connection failures and
-selected transient HTTP responses. The default two means two retries after the
-initial request.
 OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
-MODEL_REQUEST_TIMEOUT_SECONDS limits one provider attempt.
-MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run.
+MODEL_RUN_TIMEOUT_SECONDS limits the complete Agents SDK run and its one HTTP
+request at a time. The client does not retry HTTP requests. Autoplay makes a
+separately traced retry from the durable pre-call checkpoint after a transient
+failure.
 Agents make asynchronous model calls without a harness concurrency limit.
 MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
 allows reasoning models to complete a tool decision. A 4,096-token limit caused

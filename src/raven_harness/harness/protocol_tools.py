@@ -715,7 +715,11 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
                 for target in item.get("raidableTargets", [])
             }
         )
-        properties["target_region_id"]["anyOf"][0]["enum"] = targets
+        target_schema = properties["target_region_id"]
+        if targets:
+            target_schema["anyOf"][0]["enum"] = targets
+        else:
+            target_schema["anyOf"] = [{"type": "null"}]
     elif tool.name == "resolve_march":
         options = legal_march_options(context)
         properties["starting_region_id"]["enum"] = [
@@ -734,6 +738,8 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         move_properties = schema["$defs"]["UnitMove"]["properties"]
         move_properties["destination_region_id"]["enum"] = destinations
         move_properties["unit_ids"]["items"]["enum"] = unit_ids
+        if not destinations:
+            properties["moves"]["maxItems"] = 0
         if options and not any(option.get("canLeavePowerToken") for option in options):
             properties["leave_power_token"]["const"] = False
         properties["leave_power_token"]["description"] += (
@@ -783,9 +789,11 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         )
         selections = properties["selections"]
         selections["minItems"] = 0 if leaf.get("canBeSkipped") else int(expected > 0)
-        selections["maxItems"] = 1 if leaf.get(
-            "selectedUnitsMustBeOfSameRegion"
-        ) else expected
+        selections["maxItems"] = (
+            min(1, expected)
+            if leaf.get("selectedUnitsMustBeOfSameRegion")
+            else expected
+        )
         region_units = schema["$defs"]["RegionUnits"]["properties"]
         region_units["region_id"]["enum"] = region_ids
         region_units["unit_ids"]["items"]["enum"] = possible_units

@@ -206,6 +206,9 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
                 },
                 "output_tokens_details": {"reasoning_tokens": 12},
                 "cost": 0.001,
+                "cost_details": {"upstream_inference_cost": 0.0008},
+                "response_provider": "Example Provider",
+                "response_model": "test-model-2026-09-01",
             },
             {
                 "input_tokens": 500,
@@ -227,6 +230,16 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         duration_ms=1000,
         history_id=first_id,
     )
+    store.add_event(
+        agent.id,
+        "model-request-started",
+        {"requestIndex": 1, "scope": "agent", "inputItemCount": 1},
+    )
+    store.add_event(
+        agent.id,
+        "model-request-started",
+        {"requestIndex": 2, "scope": "rules-oracle", "inputItemCount": 1},
+    )
     run = store.list_runs(agent.id)[0]
     assert run["responseId"] == "resp-1"
     assert run["rawUsage"][0]["cost"] == 0.001
@@ -246,7 +259,13 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
     assert metrics == {
         "runCount": 1,
         "statusCounts": {"completed": 1},
-        "modelRequests": 2,
+        "modelCalls": {
+            "started": 2,
+            "responses": 2,
+            "withoutResponse": 0,
+            "responsesWithoutStart": 0,
+            "startedByScope": {"agent": 1, "rules-oracle": 1},
+        },
         "tokens": {
             "input": 120,
             "output": 25,
@@ -273,7 +292,25 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
             "maximum": 500,
         },
         "costUsd": 0.0016,
-        "durationMs": {"total": 1000, "average": 1000, "maximum": 1000},
+        "upstreamInferenceCostUsd": 0.0008,
+        "costCoverage": {
+            "responseUsageRecords": 3,
+            "chargedCostRecords": 3,
+            "upstreamInferenceCostRecords": 1,
+        },
+        "responseAttribution": {
+            "providers": {"Example Provider": 1},
+            "models": {"test-model-2026-09-01": 1},
+            "responsesWithoutProvider": 2,
+        },
+        "durationMs": {
+            "total": 1000,
+            "average": 1000,
+            "p50": 1000,
+            "p90": 1000,
+            "p99": 1000,
+            "maximum": 1000,
+        },
         "historicalStates": 2,
     }
     database.close()

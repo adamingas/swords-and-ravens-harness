@@ -12,7 +12,15 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
-from agents import Agent, FunctionTool, ModelSettings, RunConfig, RunResult, function_tool
+from agents import (
+    Agent,
+    FunctionTool,
+    ModelSettings,
+    RunConfig,
+    RunHooks,
+    RunResult,
+    function_tool,
+)
 from pydantic import BaseModel, ConfigDict, Field
 from pypdf import PdfReader
 
@@ -287,6 +295,7 @@ class Rulebook:
         model_settings: ModelSettings,
         interaction_sink: MutableSequence[dict[str, Any]],
         run_config: RunConfig,
+        hooks: RunHooks[Any],
     ) -> FunctionTool:
         section_reads: list[RuleSectionId] = []
         current_question = ""
@@ -386,6 +395,7 @@ class Rulebook:
             custom_output_extractor=record_answer,
             max_turns=3,
             run_config=run_config,
+            hooks=hooks,
         )
 
 

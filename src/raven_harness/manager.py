@@ -992,6 +992,7 @@ def _sanitize_model_activity(
     if kind == "model-request-started":
         return {
             "requestIndex": _nonnegative_int(payload.get("requestIndex")),
+            "scope": _model_call_scope(payload.get("scope")),
             "inputItemCount": _nonnegative_int(payload.get("inputItemCount")),
         }
     if kind == "model-request-completed":
@@ -1000,6 +1001,7 @@ def _sanitize_model_activity(
             usage = {}
         return {
             "requestIndex": _nonnegative_int(payload.get("requestIndex")),
+            "scope": _model_call_scope(payload.get("scope")),
             "responseId": str(payload["responseId"])[:200]
             if payload.get("responseId") is not None
             else None,
@@ -1035,6 +1037,10 @@ def _nonnegative_int(value: Any) -> int:
         return 0
 
 
+def _model_call_scope(value: Any) -> str:
+    return "rules-oracle" if value == "rules-oracle" else "agent"
+
+
 def _optional_nonnegative_int(value: Any) -> int | None:
     if value is None:
         return None
@@ -1056,6 +1062,7 @@ def _telemetry_activity_attributes(
         "tool": "raven.tool",
         "responseId": "gen_ai.response.id",
         "requestIndex": "gen_ai.request.index",
+        "scope": "gen_ai.request.scope",
         "sequence": "raven.tool.sequence",
         "inputItemCount": "gen_ai.request.input_items",
         "outputItemCount": "gen_ai.response.output_items",
