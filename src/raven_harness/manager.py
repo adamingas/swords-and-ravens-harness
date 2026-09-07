@@ -26,6 +26,7 @@ from .models.openai_agent import (
     ModelRunError,
     ModelRunResult,
     PermanentModelError,
+    TransientProviderCapacityError,
 )
 from .schemas import AgentPublic, AgentRecord, AgentRuntime, LobbySetupRequest
 from .telemetry import Telemetry, provider_cost
@@ -63,7 +64,8 @@ class AgentSession:
     ready_task: asyncio.Task[None] | None = None
     has_connected: bool = False
     failure_leaf_id: str | None = None
-    consecutive_failures: int = 0
+    general_failures: int = 0
+    capacity_failures: int = 0
     current_run_id: str | None = None
     run_started_at: str | None = None
     current_tools: list[str] | None = None
@@ -81,6 +83,8 @@ class AgentManager:
         telemetry: Telemetry | None = None,
         autoplay_max_consecutive_failures: int = 2,
         autoplay_retry_base_seconds: float = 2,
+        autoplay_max_capacity_failures: int = 4,
+        autoplay_capacity_retry_base_seconds: float = 15,
         reconnect_retry_base_seconds: float = 1,
         reconnect_retry_max_seconds: float = 30,
         durable_game_path: Path | None = None,
@@ -91,6 +95,10 @@ class AgentManager:
         self.telemetry = telemetry or Telemetry.create(endpoint="")
         self.autoplay_max_consecutive_failures = autoplay_max_consecutive_failures
         self.autoplay_retry_base_seconds = autoplay_retry_base_seconds
+        self.autoplay_max_capacity_failures = autoplay_max_capacity_failures
+        self.autoplay_capacity_retry_base_seconds = (
+            autoplay_capacity_retry_base_seconds
+        )
         self.reconnect_retry_base_seconds = reconnect_retry_base_seconds
         self.reconnect_retry_max_seconds = reconnect_retry_max_seconds
         self.durable_game_path = durable_game_path
@@ -453,7 +461,8 @@ class AgentManager:
                     prepared.history_id, action_name, action_arguments
                 )
             session.failure_leaf_id = None
-            session.consecutive_failures = 0
+            session.general_failures = 0
+            session.capacity_failures = 0
             status = "completed"
             record_activity("model-run-completed", {"tool": action_name})
             result = {
@@ -558,7 +567,8 @@ class AgentManager:
             raise RuntimeError("Agent must be connected before autoplay can be changed")
         if enabled and not session.autoplay:
             session.failure_leaf_id = None
-            session.consecutive_failures = 0
+            session.general_failures = 0
+            session.capacity_failures = 0
         session.autoplay = enabled
         self.store.add_event(agent_id, "autoplay-changed", {"enabled": enabled})
         if enabled:
@@ -897,27 +907,39 @@ class AgentManager:
             except GameConnectionLost:
                 expected_session.last_error = None
                 continue
-            except Exception:
-                # Retry a bad model/tool call within the same decision, then leave
-                # a stable failure visible in the dashboard for inspection.
+            except Exception as error:
+                # Capacity rejections fail before inference and get a larger,
+                # separately bounded budget. Other failures retain the strict
+                # two-attempt default.
                 snapshot = expected_session.client.snapshot
                 if snapshot is None:
                     continue
                 current_leaf_id = snapshot.get("leafStateId")
-                if expected_session.failure_leaf_id == current_leaf_id:
-                    expected_session.consecutive_failures += 1
-                else:
+                if expected_session.failure_leaf_id != current_leaf_id:
                     expected_session.failure_leaf_id = current_leaf_id
-                    expected_session.consecutive_failures = 1
-                expected_session.autoplay = (
-                    expected_session.consecutive_failures
-                    < self.autoplay_max_consecutive_failures
+                    expected_session.general_failures = 0
+                    expected_session.capacity_failures = 0
+                capacity_failure = isinstance(
+                    error, TransientProviderCapacityError
                 )
+                if capacity_failure:
+                    expected_session.capacity_failures += 1
+                    failure_count = expected_session.capacity_failures
+                    max_failures = self.autoplay_max_capacity_failures
+                    retry_base_seconds = (
+                        self.autoplay_capacity_retry_base_seconds
+                    )
+                else:
+                    expected_session.general_failures += 1
+                    failure_count = expected_session.general_failures
+                    max_failures = self.autoplay_max_consecutive_failures
+                    retry_base_seconds = self.autoplay_retry_base_seconds
+                expected_session.autoplay = failure_count < max_failures
                 if expected_session.autoplay:
                     delay = min(
                         30,
-                        self.autoplay_retry_base_seconds
-                        * 2 ** (expected_session.consecutive_failures - 1),
+                        retry_base_seconds
+                        * 2 ** (failure_count - 1),
                     )
                     await asyncio.sleep(delay)
                     expected_session.autoplay_wakeup.set()

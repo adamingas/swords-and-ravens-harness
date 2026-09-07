@@ -28,6 +28,7 @@ from raven_harness.models.openai_agent import (
     ModelRunError,
     ModelRunResult,
     PermanentModelError,
+    TransientProviderCapacityError,
 )
 from raven_harness.schemas import AgentCreate, LobbySetupRequest
 from raven_harness.telemetry import Telemetry
@@ -184,6 +185,39 @@ class ConnectionLossHarness(ContextManifestHarness):
         del record, prepared, context, run_id
         self.started.set()
         raise GameConnectionLost("connection changed")
+
+
+class RetryingHarness(ContextManifestHarness):
+    def __init__(self, failures_before_success: int, *, capacity: bool) -> None:
+        super().__init__()
+        self.failures_before_success = failures_before_success
+        self.capacity = capacity
+        self.attempts = 0
+        self.completed = asyncio.Event()
+
+    async def run_turn(self, record, prepared, context, run_id):
+        self.attempts += 1
+        if self.attempts <= self.failures_before_success:
+            result = ModelRunResult(
+                response_id=None,
+                output_text="",
+                usage={
+                    "requests": 0,
+                    "inputTokens": 0,
+                    "outputTokens": 0,
+                    "totalTokens": 0,
+                },
+                response_items=[],
+                raw_usage=[],
+                context_manifest=self.manifest,
+            )
+            error_type = (
+                TransientProviderCapacityError if self.capacity else ModelRunError
+            )
+            raise error_type("provider unavailable", result)
+        result = await super().run_turn(record, prepared, context, run_id)
+        self.completed.set()
+        return result
 
 
 class BlockingActivityHarness(ContextManifestHarness):
@@ -925,9 +959,111 @@ async def test_connection_loss_does_not_consume_autoplay_failure_budget(
     assert session.autoplay_task is not None
     await asyncio.wait_for(session.autoplay_task, timeout=2)
 
-    assert session.consecutive_failures == 0
+    assert session.general_failures == 0
+    assert session.capacity_failures == 0
     assert session.failure_leaf_id is None
     assert session.last_error is None
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_capacity_rejections_get_the_separate_retry_budget(tmp_path) -> None:
+    database = Database(tmp_path / "autoplay-capacity.db")
+    store = AgentStore(database)
+    harness = RetryingHarness(3, capacity=True)
+    manager = AgentManager(
+        store=store,
+        harness=harness,
+        autoplay_max_consecutive_failures=2,
+        autoplay_retry_base_seconds=0.001,
+        autoplay_max_capacity_failures=4,
+        autoplay_capacity_retry_base_seconds=0.001,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Capacity Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    client = FakeRunClient()
+    client.snapshot = planning_snapshot()
+    session = AgentSession(
+        status="connected",
+        client=client,
+        autoplay=True,
+        has_connected=True,
+    )
+    manager.sessions[agent.id] = session
+    manager._schedule_autoplay(agent.id, session)
+
+    await asyncio.wait_for(harness.completed.wait(), timeout=1)
+    manager.set_autoplay(agent.id, False)
+    assert session.autoplay_task is not None
+    await asyncio.wait_for(session.autoplay_task, timeout=1)
+
+    assert harness.attempts == 4
+    assert [run["status"] for run in store.list_runs(agent.id)] == [
+        "completed",
+        "failed",
+        "failed",
+        "failed",
+    ]
+    assert session.general_failures == 0
+    assert session.capacity_failures == 0
+    assert session.failure_leaf_id is None
+    assert session.last_error is None
+    database.close()
+
+
+@pytest.mark.asyncio
+async def test_non_capacity_failures_keep_the_strict_retry_budget(tmp_path) -> None:
+    database = Database(tmp_path / "autoplay-general-failure.db")
+    store = AgentStore(database)
+    harness = RetryingHarness(2, capacity=False)
+    manager = AgentManager(
+        store=store,
+        harness=harness,
+        autoplay_max_consecutive_failures=2,
+        autoplay_retry_base_seconds=0.001,
+        autoplay_max_capacity_failures=4,
+        autoplay_capacity_retry_base_seconds=0.001,
+    )
+    agent = store.create_agent(
+        AgentCreate(
+            name="Strict Wolf",
+            model="test-model",
+            game_server_url="ws://game.test",
+            game_id="1",
+            user_id="2",
+            auth_token="secret",
+        )
+    )
+    client = FakeRunClient()
+    client.snapshot = planning_snapshot()
+    session = AgentSession(
+        status="connected",
+        client=client,
+        autoplay=True,
+        has_connected=True,
+    )
+    manager.sessions[agent.id] = session
+    manager._schedule_autoplay(agent.id, session)
+    assert session.autoplay_task is not None
+
+    await asyncio.wait_for(session.autoplay_task, timeout=1)
+
+    assert harness.attempts == 2
+    assert [run["status"] for run in store.list_runs(agent.id)] == [
+        "failed",
+        "failed",
+    ]
+    assert session.autoplay is False
+    assert session.general_failures == 2
+    assert session.capacity_failures == 0
     database.close()
 
 

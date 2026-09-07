@@ -505,6 +505,10 @@ class PermanentModelError(ModelRunError):
     """A provider account or authentication failure that retries cannot repair."""
 
 
+class TransientProviderCapacityError(ModelRunError):
+    """A provider rejected a request because temporary capacity was unavailable."""
+
+
 class ModelRunCancelled(asyncio.CancelledError):
     """A cancelled parent run that still produced traceable nested model work."""
 
@@ -749,7 +753,11 @@ class OpenAIAgentRunner:
             error_type = (
                 PermanentModelError
                 if is_permanent_provider_error(error)
-                else ModelRunError
+                else (
+                    TransientProviderCapacityError
+                    if getattr(error, "status_code", None) in {429, 503}
+                    else ModelRunError
+                )
             )
             error_text = safe_error_text(error)
             if context.last_tool_error:

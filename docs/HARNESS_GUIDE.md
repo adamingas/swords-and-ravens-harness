@@ -793,7 +793,9 @@ default. MODEL_RUN_TIMEOUT_SECONDS separately limits the complete Agents SDK
 run, which can contain more than one request after a support-tool call or a
 corrected tool call. The HTTP client does not retry. Autoplay makes at most one
 separately traced retry by default from the durable pre-call checkpoint after a
-transient failure.
+model, tool, or timeout failure. HTTP 429 and 503 capacity rejections get up to
+three checkpointed retries because they occur before a model decision is
+available.
 The harness records each raw provider response before the Agents SDK processes
 it. If an OpenAI-compatible endpoint omits the opaque ID of a function call,
 the harness supplies a deterministic ID before tool execution.
@@ -807,6 +809,10 @@ request. It does not delete them from SQLite.
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
+AUTOPLAY_MAX_CAPACITY_FAILURES separately limits attempts after HTTP 429 or 503
+capacity rejections. AUTOPLAY_CAPACITY_RETRY_BASE_SECONDS controls their
+backoff. The default permits four total attempts with 15-, 30-, and 30-second
+delays. A timeout or malformed response still uses the stricter general limit.
 Validation and upstream non-acknowledgement errors are returned to the model
 inside the same SDK run. The run stops only after the harness records an
 accepted gameplay action. Provider account, quota, and authentication failures
@@ -833,7 +839,7 @@ this filter is enabled.
 | WebSocket ping interval | 30 seconds |
 | Autoplay trigger | New server snapshot |
 | Model request timeout | 120 seconds per attempt |
-| Model API retries | 0 inside the HTTP client; 1 checkpointed autoplay retry |
+| Model API retries | 0 inside the HTTP client; 1 general retry or 3 capacity retries |
 | Complete model-run timeout | 300 seconds per agent decision |
 | Concurrent model runs | No harness limit |
 | Parent Agents SDK turns | 6 |

@@ -461,6 +461,12 @@ async def run_game(
                 settings.autoplay_max_consecutive_failures
             ),
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
+            autoplay_max_capacity_failures=(
+                settings.autoplay_max_capacity_failures
+            ),
+            autoplay_capacity_retry_base_seconds=(
+                settings.autoplay_capacity_retry_base_seconds
+            ),
             durable_game_path=game_path,
         )
 
@@ -1400,6 +1406,12 @@ def _build_provenance(
                 settings.autoplay_max_consecutive_failures
             ),
             "autoplayRetryBaseSeconds": settings.autoplay_retry_base_seconds,
+            "autoplayMaxCapacityFailures": (
+                settings.autoplay_max_capacity_failures
+            ),
+            "autoplayCapacityRetryBaseSeconds": (
+                settings.autoplay_capacity_retry_base_seconds
+            ),
             "reasoningEffort": "low",
             "toolChoice": "required",
             "contextPolicy": CONTEXT_POLICY_NAME,

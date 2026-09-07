@@ -25,6 +25,7 @@ from raven_harness.models.openai_agent import (
     ModelRunError,
     OpenAIAgentRunner,
     PermanentModelError,
+    TransientProviderCapacityError,
     _SessionContextFilter,
     _ModelRequestTimeoutError,
     _UsageCapturingResponsesModel,
@@ -485,6 +486,13 @@ class FailingModel(Model):
             yield None
 
 
+class CapacityFailingModel(FailingModel):
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
+        error = RuntimeError("provider capacity unavailable")
+        error.status_code = 503  # type: ignore[attr-defined]
+        raise error
+
+
 class QuotaFailingModel(Model):
     async def get_response(self, *args, **kwargs) -> ModelResponse:
         raise RuntimeError(
@@ -932,6 +940,23 @@ async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
     assert context.action_taken is None
     assert raised.value.partial_result.context_manifest["policy"] == CONTEXT_POLICY_NAME
     assert raised.value.partial_result.context_manifest["currentInputItemCount"] == 1
+
+
+@pytest.mark.asyncio
+async def test_http_capacity_rejection_has_a_distinct_error_type(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent._response_model",
+        lambda **_kwargs: CapacityFailingModel(),
+    )
+    record = AgentRecord.from_create(
+        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+    )
+    context = HarnessRunContext(client=FakeClient(), user_id="2")
+
+    with pytest.raises(TransientProviderCapacityError, match="capacity unavailable"):
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**turn_arguments(record, context))
 
 
 @pytest.mark.asyncio

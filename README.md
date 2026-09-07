@@ -133,6 +133,8 @@ MODEL_MAX_OUTPUT_TOKENS=16384
 MODEL_SESSION_HISTORY_ITEMS=32
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES=2
 AUTOPLAY_RETRY_BASE_SECONDS=2
+AUTOPLAY_MAX_CAPACITY_FAILURES=4
+AUTOPLAY_CAPACITY_RETRY_BASE_SECONDS=15
 
 OPENROUTER_PROVIDER_ORDER=reka,cloudflare,coreweave,fireworks,deepinfra,together
 OPENROUTER_ALLOW_UNLISTED_PROVIDERS=false
@@ -147,10 +149,10 @@ OTEL_SERVICE_NAME=raven-harness
 OpenRouter takes precedence when both API keys exist. `MODEL_ID` is the default
 for a new dashboard agent. Each agent can select a different model that the
 configured endpoint supports. The default provider order is a six-host
-fallback pool and does not fall through to unlisted hosts. The OpenAI client
-retries the pool twice on retryable failures. Reka is first because it
-completed the existing GLM tool-call smoke runs; every fallback still serves
-the model requested by that agent.
+fallback pool and does not fall through to unlisted hosts. OpenRouter can route
+one request across that pool on a provider failure. The OpenAI client itself
+does not retry. Reka is first because it completed the existing GLM tool-call
+smoke runs; every fallback still serves the model requested by that agent.
 The sort setting is used only when `OPENROUTER_PROVIDER_ORDER` is empty.
 
 Keep HOST at 127.0.0.1 unless you add authentication and transport security.

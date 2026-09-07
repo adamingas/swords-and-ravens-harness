@@ -72,6 +72,12 @@ def create_app(
                 settings.autoplay_max_consecutive_failures
             ),
             autoplay_retry_base_seconds=settings.autoplay_retry_base_seconds,
+            autoplay_max_capacity_failures=(
+                settings.autoplay_max_capacity_failures
+            ),
+            autoplay_capacity_retry_base_seconds=(
+                settings.autoplay_capacity_retry_base_seconds
+            ),
         )
         app.state.database = database
         app.state.store = store
