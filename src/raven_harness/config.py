@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     autoplay_max_consecutive_failures: int = Field(default=2, ge=1, le=20)
     autoplay_retry_base_seconds: float = Field(default=2, gt=0, le=60)
     autoplay_max_capacity_failures: int = Field(default=4, ge=1, le=20)
-    autoplay_capacity_retry_base_seconds: float = Field(default=15, gt=0, le=60)
+    autoplay_capacity_retry_base_seconds: float = Field(default=2, gt=0, le=60)
     openrouter_provider_order: str = (
         "reka,cloudflare,coreweave,fireworks,deepinfra,together"
     )

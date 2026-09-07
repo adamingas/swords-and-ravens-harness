@@ -815,7 +815,7 @@ game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
 AUTOPLAY_MAX_CAPACITY_FAILURES separately limits attempts after HTTP 429 or 503
 capacity rejections. AUTOPLAY_CAPACITY_RETRY_BASE_SECONDS controls their
-backoff. The default permits four total attempts with 15-, 30-, and 30-second
+backoff. The default permits four total attempts with 2-, 4-, and 8-second
 delays. A timeout or malformed response still uses the stricter general limit.
 Validation and upstream non-acknowledgement errors are returned to the model
 inside the same SDK run. The run stops only after the harness records an

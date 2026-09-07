@@ -72,7 +72,7 @@ def test_openrouter_routing_prefers_compatible_hosts() -> None:
     assert settings.autoplay_max_consecutive_failures == 2
     assert settings.autoplay_retry_base_seconds == 2
     assert settings.autoplay_max_capacity_failures == 4
-    assert settings.autoplay_capacity_retry_base_seconds == 15
+    assert settings.autoplay_capacity_retry_base_seconds == 2
     assert settings.model_id == "z-ai/glm-5.3-flash"
     assert settings.openrouter_provider_routing == {
         "allow_fallbacks": True,

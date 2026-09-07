@@ -84,7 +84,7 @@ class AgentManager:
         autoplay_max_consecutive_failures: int = 2,
         autoplay_retry_base_seconds: float = 2,
         autoplay_max_capacity_failures: int = 4,
-        autoplay_capacity_retry_base_seconds: float = 15,
+        autoplay_capacity_retry_base_seconds: float = 2,
         reconnect_retry_base_seconds: float = 1,
         reconnect_retry_max_seconds: float = 30,
         durable_game_path: Path | None = None,
