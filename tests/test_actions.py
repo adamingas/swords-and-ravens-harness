@@ -120,6 +120,69 @@ def test_mustering_requires_at_least_one_group() -> None:
     assert muster_units.params_json_schema["properties"]["musters"]["minItems"] == 1
 
 
+def _select_units_snapshot(*, count: int = 2, can_be_skipped: bool = False) -> dict:
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "select-units",
+        "house": "stark",
+        "possibleUnits": [1, 2],
+        "count": count,
+        "canBeSkipped": can_be_skipped,
+        "selectedUnitsMustBeOfSameRegion": False,
+    }
+    return snapshot
+
+
+def test_select_units_schema_requires_the_exact_total_unit_count() -> None:
+    snapshot = _select_units_snapshot()
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    field = tool.params_json_schema["properties"]["unit_ids"]
+
+    assert tool.name == "select_units"
+    assert field["items"]["enum"] == [1, 2]
+    assert field["minItems"] == 2
+    assert field["maxItems"] == 2
+    assert field["uniqueItems"] is True
+
+
+@pytest.mark.asyncio
+async def test_select_units_groups_valid_flat_ids_for_the_game_server() -> None:
+    snapshot = _select_units_snapshot()
+    client = FakeClient(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    arguments = json.dumps({"unit_ids": [1, 2]})
+
+    result = await tool.on_invoke_tool(
+        ToolContext(
+            context=run_context,
+            tool_call_id="call-select-units",
+            tool_name=tool.name,
+            tool_arguments=arguments,
+        ),
+        arguments,
+    )
+
+    assert json.loads(result)["accepted"] is True
+    assert client.sent == [
+        {
+            "type": "select-units",
+            "units": [["winterfell", [1]], ["white-harbor", [2]]],
+        }
+    ]
+    assert run_context.action_taken is not None
+    assert run_context.action_taken.arguments == {"unit_ids": [1, 2]}
+
+
+def test_skippable_select_units_schema_allows_zero_through_required_count() -> None:
+    snapshot = _select_units_snapshot(can_be_skipped=True)
+    tool = available_tools(build_context(snapshot, "2"))[0]
+    field = tool.params_json_schema["properties"]["unit_ids"]
+
+    assert field["minItems"] == 0
+    assert field["maxItems"] == 2
+
+
 def test_lobby_exposes_only_currently_applicable_tools() -> None:
     context = build_context(lobby_snapshot(), "2")
     tools = available_tools(context)

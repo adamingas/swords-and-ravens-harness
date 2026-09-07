@@ -527,7 +527,7 @@ active state controls when each tool is visible.
 | --- | --- | --- |
 | `resolve_raid(order_region_id, target_region_id)` | `resolve-raid-order`; `resolve-single-raid` | Resolve a raid. Base-game schemas list exact source and target regions. Use a null target to discard the order. |
 | `resolve_march(starting_region_id, moves, leave_power_token)` | `resolve-march-order`; `resolve-single-march` | Resolve one march. Each move gives a destination and exact unit IDs, in priority order. The harness omits Supply-unsafe groups. An empty applied move list discards the march. Unattainable neutral forces are excluded, and the selected army's neutral-force strength is checked locally. |
-| `select_units(selections)` | `select-units`; `resolve-retreat` | Select exact units grouped by current region for a retreat, removal, or another effect. |
+| `select_units(unit_ids)` | `select-units`; `resolve-retreat` | Select the exact required number of unit IDs for a retreat, removal, or another effect. The harness groups them by current region for the game server. |
 | `auto_reconcile_armies()` | `reconcile-armies`; `player-reconcile-armies` | Compute and submit the smallest deterministic set of removals that satisfies the current supply limit. |
 | `muster_units(musters)` | `mustering`; `player-mustering` | Recruit or upgrade units at legal mustering castles. Base-game mode, origin, destination, piece, points, and supply checks run locally; later point- or Supply-unsafe recruitments are omitted. |
 | `skip_mustering()` | `mustering`; `player-mustering` | Finish the current mustering decision without recruits. |
@@ -542,8 +542,9 @@ active state controls when each tool is visible.
 | `resolve_consolidate_power(region_id, choice)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one base-game order. Choose `gain_power_tokens`, or choose `muster_units` for a starred order on a castle. |
 | `call_for_support_against_neutral_force()` | `resolve-single-march`, before a support request | Ask for support during a march against a neutral force. The harness exposes it only when a reachable neutral force has at least one eligible foreign supporting house. |
 
-`UnitMove` has `destination_region_id` and a non-empty `unit_ids` list.
-`RegionUnits` has `region_id` and a non-empty `unit_ids` list. A recruitment
+`UnitMove` has `destination_region_id` and a non-empty `unit_ids` list. The
+state-specific `select_units` schema lists the permitted unit IDs and fixes the
+minimum and maximum list length to the required total. A recruitment
 has `unit_type`, `region_id`, and `upgrade_from_footman`. Set the boolean when
 the target unit should replace an existing Footman; the harness selects the
 engine-compatible Footman internally. `muster_units` requires a non-empty

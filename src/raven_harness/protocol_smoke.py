@@ -336,7 +336,7 @@ def _safe_tool_arguments(
     if tool.name == "use_valyrian_steel_blade":
         return {"use": False}
     if tool.name == "select_units":
-        return {"selections": _safe_unit_selections(tool, observation)}
+        return {"unit_ids": _safe_unit_ids(tool, observation)}
     if tool.name == "select_region":
         return {"region_id": _first_enum(tool, "region_id")}
     if tool.name == "resolve_consolidate_power":
@@ -662,9 +662,9 @@ def _safe_house_card(
     )
 
 
-def _safe_unit_selections(
+def _safe_unit_ids(
     tool: FunctionTool, observation: dict[str, Any]
-) -> list[dict[str, Any]]:
+) -> list[int]:
     del tool
     pending = observation.get("pendingDecision", {})
     possible = [int(item) for item in pending.get("possibleUnits", [])]
@@ -695,7 +695,7 @@ def _safe_unit_selections(
             raise UnsupportedSmokeDecision(
                 "select_units cannot satisfy the same-region constraint"
             )
-        return [{"region_id": region_id, "unit_ids": unit_ids[:expected]}]
+        return unit_ids[:expected]
     map_neighbours = {
         item.get("id"): set(item.get("neighbours", []))
         for item in observation.get("map", {}).get("regions", [])
@@ -714,12 +714,12 @@ def _safe_unit_selections(
             item[0],
         ),
     )
-    result = []
+    result: list[int] = []
     remaining = expected
     for region_id, unit_ids in ordered_regions:
         chosen = unit_ids[:remaining]
         if chosen:
-            result.append({"region_id": region_id, "unit_ids": chosen})
+            result.extend(chosen)
             remaining -= len(chosen)
         if remaining == 0:
             return result

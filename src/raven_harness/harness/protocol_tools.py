@@ -34,11 +34,6 @@ class UnitMove(ToolInput):
     unit_ids: list[int] = Field(min_length=1)
 
 
-class RegionUnits(ToolInput):
-    region_id: str
-    unit_ids: list[int] = Field(min_length=1)
-
-
 class Recruitment(ToolInput):
     unit_type: str = Field(
         description="Unit type to create, such as footman, knight, ship, or siege-engine."
@@ -204,20 +199,19 @@ async def resolve_march(
 
 @function_tool(failure_error_function=gameplay_tool_error)
 async def select_units(
-    ctx: RunContextWrapper[HarnessRunContext], selections: list[RegionUnits]
+    ctx: RunContextWrapper[HarnessRunContext], unit_ids: list[int]
 ) -> str:
-    """Select units grouped by their current region for retreat, removal, or another prompted effect.
+    """Select exact units for retreat, removal, or another prompted effect.
 
     Args:
-        selections: Regions and exact unit IDs selected in each one.
+        unit_ids: Exact IDs of the units to select. The current state schema
+            specifies the permitted IDs and exact required count.
     """
     context = ctx.context.current_game_context()
     leaf = context.leaf or {}
+    selected_units = [int(unit_id) for unit_id in unit_ids]
     if leaf.get("type") == "select-units":
         possible_units = {int(unit_id) for unit_id in leaf.get("possibleUnits", [])}
-        selected_units = [
-            unit_id for selection in selections for unit_id in selection.unit_ids
-        ]
         if len(selected_units) != len(set(selected_units)):
             raise ValueError("each unit_id may be selected at most once")
         if not set(selected_units).issubset(possible_units):
@@ -229,24 +223,27 @@ async def select_units(
         elif len(selected_units) != expected:
             raise ValueError(f"select exactly {expected} units")
         unit_regions = _unit_regions(context.game or {})
-        if any(
-            unit_regions.get(unit_id) != selection.region_id
-            for selection in selections
-            for unit_id in selection.unit_ids
-        ):
-            raise ValueError("each selected unit must be grouped under its current region")
-        if leaf.get("selectedUnitsMustBeOfSameRegion") and len(selections) > 1:
+        if any(unit_id not in unit_regions for unit_id in selected_units):
+            raise ValueError("each selected unit must have a current region")
+        if leaf.get("selectedUnitsMustBeOfSameRegion") and len(
+            {unit_regions[unit_id] for unit_id in selected_units}
+        ) > 1:
             raise ValueError("all selected units must come from one region")
-    arguments = {"selections": [selection.model_dump() for selection in selections]}
+    unit_regions = _unit_regions(context.game or {})
+    units_by_region: dict[str, list[int]] = {}
+    for unit_id in selected_units:
+        region_id = unit_regions.get(unit_id)
+        if region_id is None:
+            raise ValueError("each selected unit must have a current region")
+        units_by_region.setdefault(region_id, []).append(unit_id)
+    arguments = {"unit_ids": selected_units}
     return await _send(
         ctx,
         "select_units",
         arguments,
         {
             "type": "select-units",
-            "units": [
-                [selection.region_id, selection.unit_ids] for selection in selections
-            ],
+            "units": [list(item) for item in units_by_region.items()],
         },
     )
 
@@ -794,23 +791,19 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         possible_units = [int(unit_id) for unit_id in leaf.get("possibleUnits", [])]
         expected = min(int(leaf.get("count", 0)), len(possible_units))
         unit_regions = _unit_regions(context.game or {})
-        region_ids = sorted(
-            {
-                unit_regions[unit_id]
-                for unit_id in possible_units
-                if unit_id in unit_regions
-            }
+        selectable_units = [
+            unit_id for unit_id in possible_units if unit_id in unit_regions
+        ]
+        unit_ids = properties["unit_ids"]
+        unit_ids["minItems"] = 0 if leaf.get("canBeSkipped") else expected
+        unit_ids["maxItems"] = expected
+        unit_ids["uniqueItems"] = True
+        unit_ids["items"]["enum"] = selectable_units
+        unit_ids["description"] = (
+            f"Select exactly {expected} distinct unit IDs from this list."
+            if not leaf.get("canBeSkipped")
+            else f"Select at most {expected} distinct unit IDs, or use an empty list."
         )
-        selections = properties["selections"]
-        selections["minItems"] = 0 if leaf.get("canBeSkipped") else int(expected > 0)
-        selections["maxItems"] = (
-            min(1, expected)
-            if leaf.get("selectedUnitsMustBeOfSameRegion")
-            else expected
-        )
-        region_units = schema["$defs"]["RegionUnits"]["properties"]
-        region_units["region_id"]["enum"] = region_ids
-        region_units["unit_ids"]["items"]["enum"] = possible_units
     elif tool.name == "select_region":
         regions = (context.leaf or {}).get("regions")
         if isinstance(regions, list):
