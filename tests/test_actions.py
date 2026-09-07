@@ -142,7 +142,6 @@ def test_select_units_schema_requires_the_exact_total_unit_count() -> None:
     assert field["items"]["enum"] == [1, 2]
     assert field["minItems"] == 2
     assert field["maxItems"] == 2
-    assert field["uniqueItems"] is True
 
 
 @pytest.mark.asyncio

@@ -797,7 +797,6 @@ def _narrow_base_game_tool(tool: FunctionTool, context: Any) -> FunctionTool:
         unit_ids = properties["unit_ids"]
         unit_ids["minItems"] = 0 if leaf.get("canBeSkipped") else expected
         unit_ids["maxItems"] = expected
-        unit_ids["uniqueItems"] = True
         unit_ids["items"]["enum"] = selectable_units
         unit_ids["description"] = (
             f"Select exactly {expected} distinct unit IDs from this list."
