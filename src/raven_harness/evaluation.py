@@ -84,9 +84,8 @@ async def run_evaluation(args: argparse.Namespace) -> Path:
     """Run or resume exactly one sequential game of the mixed-model tournament."""
 
     settings = Settings(
-        openrouter_provider_order="",
+        openrouter_provider_order="deepinfra",
         openrouter_allow_unlisted_providers=True,
-        openrouter_provider_sort="throughput",
         openrouter_allow_fallbacks=True,
         openrouter_require_parameters=False,
         model_max_output_tokens=TOURNAMENT_MAX_OUTPUT_TOKENS,

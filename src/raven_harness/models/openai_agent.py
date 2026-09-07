@@ -997,6 +997,7 @@ def _completed_result(
         raw_usage,
         unrepresented_responses,
         usage=usage,
+        count_usage=False,
         response_attribution=response_attribution,
     )
     return ModelRunResult(
@@ -1040,15 +1041,17 @@ def _append_provider_response_traces(
     provider_responses: list[tuple[str, Any]],
     *,
     usage: dict[str, int],
+    count_usage: bool = True,
     response_attribution: dict[str, dict[str, Any]],
 ) -> None:
     for scope, response in provider_responses:
         response_usage = getattr(response, "usage", None)
-        usage["requests"] += 1
-        if response_usage is not None:
-            usage["inputTokens"] += int(response_usage.input_tokens)
-            usage["outputTokens"] += int(response_usage.output_tokens)
-            usage["totalTokens"] += int(response_usage.total_tokens)
+        if count_usage:
+            usage["requests"] += 1
+            if response_usage is not None:
+                usage["inputTokens"] += int(response_usage.input_tokens)
+                usage["outputTokens"] += int(response_usage.output_tokens)
+                usage["totalTokens"] += int(response_usage.total_tokens)
         native_usage = _jsonable(response_usage) if response_usage is not None else {}
         response_id = getattr(response, "id", None)
         native_usage["scope"] = scope

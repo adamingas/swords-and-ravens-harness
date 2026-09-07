@@ -961,11 +961,11 @@ These checks do not write the key to an artifact.
 
 The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
-provider allow-list; they use one tournament routing policy that allows
-fallbacks and selects hosts by throughput. Other compatible endpoints receive
-no endpoint-specific routing fields. This routing adapter is optional; the
-tournament logic depends only on the OpenAI-compatible interface. Every
-decision request uses
+provider allow-list. They prefer DeepInfra, which passed a live GLM tool-call
+probe, and permit fallback to any other host when that provider cannot serve a
+model. Other compatible endpoints receive no endpoint-specific routing fields.
+This routing adapter is optional; the tournament logic depends only on the
+OpenAI-compatible interface. Every decision request uses
 `tool_choice=required`. Memory and the rules oracle remain available as tools.
 A reduced-tool retry sends the complete current observation without older SDK
 history. The manager still rejects a nonconforming response that does not take

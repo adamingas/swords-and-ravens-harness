@@ -28,6 +28,7 @@ from raven_harness.models.openai_agent import (
     _SessionContextFilter,
     _ModelRequestTimeoutError,
     _UsageCapturingResponsesModel,
+    _completed_result,
     _partial_result,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
@@ -229,6 +230,69 @@ async def test_captured_response_is_not_counted_twice_after_sdk_hook() -> None:
     assert result.usage["totalTokens"] == 116
     assert len(result.raw_usage) == 1
     assert len(result.response_items) == 1
+
+
+def test_completed_result_does_not_recount_unrepresented_oracle_response() -> None:
+    parent_response = SimpleNamespace(
+        usage=Usage(
+            requests=1,
+            input_tokens=100,
+            output_tokens=16,
+            total_tokens=116,
+        ),
+        raw_usage={"input_tokens": 100, "output_tokens": 16, "total_tokens": 116},
+        response_id="completed-parent",
+        output=[],
+    )
+    oracle_response = SimpleNamespace(
+        id="completed-oracle",
+        status="completed",
+        usage=TerminalUsage(),
+        incomplete_details=None,
+        output=[],
+    )
+    sdk_result = SimpleNamespace(
+        context_wrapper=SimpleNamespace(
+            usage=Usage(
+                requests=2,
+                input_tokens=200,
+                output_tokens=32,
+                total_tokens=232,
+            )
+        ),
+        new_items=[],
+        raw_responses=[parent_response],
+        last_response_id="completed-parent",
+        final_output="",
+    )
+
+    result = _completed_result(
+        sdk_result,
+        [],
+        {},
+        provider_responses=[
+            ("agent", SimpleNamespace(id="completed-parent")),
+            ("rules-oracle", oracle_response),
+        ],
+    )
+
+    assert result.usage == {
+        "requests": 2,
+        "inputTokens": 200,
+        "outputTokens": 32,
+        "totalTokens": 232,
+    }
+    assert len(result.raw_usage) == 2
+    assert result.response_items == [
+        {
+            "type": "partial_model_response",
+            "scope": "rules-oracle",
+            "status": "completed",
+            "responseId": "completed-oracle",
+            "incompleteDetails": {"value": "None"},
+            "output": [],
+        }
+    ]
 
 
 @pytest.mark.asyncio
