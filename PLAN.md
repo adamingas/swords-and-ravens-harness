@@ -79,16 +79,18 @@ note that a game should take around a minute or two. if it takes longer then inv
   timings, failure analysis, request accounting, cost bounds, house statistics,
   and interpretation are in `docs/GPT_OSS_120B_HOUSE_TEST.md`.
 
-#### 2.2 different models — in progress (3/12 complete)
+#### 2.2 different models — in progress (4/12 complete)
 DO NOT START THIS UNLESS YOU ARE CERTAIN THE HARNESS WORKS AS EXPECTED.
 
-  Progress: Games 1, 2, and 3 are complete in
-  `data/evaluations/model-tournament-ebae98a`. Game 4 attempt 1 is saved at a
-  pre-model checkpoint in round 5. It stopped when the configured model-endpoint
-  key reached its total spending limit. Commit `29ddb94` prevents SDK history
-  from an older game state from entering a new model call while retaining the
-  complete session in SQLite. Commit `cb1485e` corrects the concurrency guide.
-  The 251-test Python suite and a 53-decision provider-free protocol smoke pass.
+  Progress: Games 1 through 4 are complete in
+  `data/evaluations/model-tournament-ebae98a`. Game 4 stopped at a pre-model
+  checkpoint in round 5 when the configured model-endpoint key reached its
+  spending limit. After the limit changed, the same attempt restored that
+  checkpoint and completed with a round-10 winner. Commit `29ddb94` prevents SDK
+  history from an older game state from entering a new model call while
+  retaining the complete session in SQLite. Commit `96955ce` reduces capacity
+  retry delays from 15/30/30 seconds to 2/4/8 seconds. The 251-test Python suite,
+  a 53-decision provider-free protocol smoke, and the evaluation verifier pass.
 
 The tournament must:
 
