@@ -118,6 +118,15 @@ def verify_evaluation(
                     "activeElapsedSeconds": attempt.get("activeElapsedSeconds"),
                     "endpointProvider": endpoint_provider,
                     "error": attempt.get("error"),
+                    **(
+                        {
+                            "resumeRejectedReason": attempt[
+                                "resumeRejectedReason"
+                            ]
+                        }
+                        if attempt.get("resumeRejectedReason")
+                        else {}
+                    ),
                     "metrics": metrics,
                 }
             )

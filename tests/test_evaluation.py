@@ -921,8 +921,9 @@ async def test_evaluation_starts_a_new_attempt_after_runtime_change(
     assert calls[1]["attempt_dir"].name == "attempt-02"
     manifest = json.loads((output / "manifest.json").read_text())
     first, second = manifest["games"][0]["attempts"]
-    assert first["status"] == "superseded"
-    assert "different harness" in first["error"]
+    assert first["status"] == "failed"
+    assert first["error"] == "first runtime failed"
+    assert "different harness" in first["resumeRejectedReason"]
     assert second["status"] == "completed"
 
 

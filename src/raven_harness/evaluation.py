@@ -168,12 +168,12 @@ async def _run_evaluation_game(
             ):
                 raise RuntimeError("the verified model catalog changed")
         except RuntimeError as error:
-            _supersede_attempt(saved_attempt, reason=str(error))
+            _reject_attempt_resume(saved_attempt, reason=str(error))
             resumable = None
     elif game_entry["attempts"]:
         latest = game_entry["attempts"][-1]
         if latest.get("status") != "completed":
-            _supersede_attempt(
+            _reject_attempt_resume(
                 latest,
                 reason="the durable game state or agent database is missing",
             )
@@ -306,6 +306,15 @@ def _supersede_attempt(attempt: dict[str, Any], *, reason: str) -> None:
             "error": f"Attempt cannot be resumed: {reason}",
         }
     )
+
+
+def _reject_attempt_resume(attempt: dict[str, Any], *, reason: str) -> None:
+    """Keep a terminal failure intact when a changed runtime starts anew."""
+
+    if attempt.get("status") == "failed":
+        attempt["resumeRejectedReason"] = f"Attempt cannot be resumed: {reason}"
+        return
+    _supersede_attempt(attempt, reason=reason)
 
 
 def _resumable_attempt(
@@ -1669,6 +1678,15 @@ def _write_summary(output: Path, manifest: dict[str, Any]) -> None:
                     "activeElapsedSeconds": attempt.get("activeElapsedSeconds"),
                     "endpointProvider": model_provenance.get("provider"),
                     "error": attempt.get("error"),
+                    **(
+                        {
+                            "resumeRejectedReason": attempt[
+                                "resumeRejectedReason"
+                            ]
+                        }
+                        if attempt.get("resumeRejectedReason")
+                        else {}
+                    ),
                     "metrics": metrics,
                 }
             )
