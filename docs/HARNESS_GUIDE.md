@@ -928,8 +928,8 @@ requests from different games do not compete for endpoint capacity. The
 command has no round-limit option. Each game ends only at the normal victory
 condition or the normal final round.
 
-The runner permits two model requests at a time within each game. This retains
-some concurrency without creating a six-request burst at the model endpoint.
+The six agents run as independent asynchronous tasks within each game. The
+harness does not limit concurrent model requests.
 
 Each game has its own saved game, agent database, trace, seed, and result. The
 manifest records active elapsed time separately for each game. If the command
