@@ -359,13 +359,15 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         *,
         response_sink: list[tuple[str, Any]] | None = None,
         response_scope: str = "agent",
+        response_provider: str | None = None,
         response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-        request_timeout_seconds: float = 90,
+        request_timeout_seconds: float = 120,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.response_sink = response_sink
         self.response_scope = response_scope
+        self.response_provider = response_provider
         self.response_attribution_sink = response_attribution_sink
         self.request_timeout_seconds = request_timeout_seconds
 
@@ -384,7 +386,7 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
             response_id = str(getattr(response, "id", ""))
             if response_id:
                 self.response_attribution_sink[response_id] = _response_attribution(
-                    response
+                    response, response_provider=self.response_provider
                 )
         if getattr(response, "usage", None) is None:
             _mark_request_completed_without_usage(response)
@@ -406,14 +408,16 @@ def _response_model(
     openai_client: AsyncOpenAI,
     response_sink: list[tuple[str, Any]] | None = None,
     response_scope: str = "agent",
+    response_provider: str | None = None,
     response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-    request_timeout_seconds: float = 90,
+    request_timeout_seconds: float = 120,
 ) -> OpenAIResponsesModel:
     return _UsageCapturingResponsesModel(
         model=model,
         openai_client=openai_client,
         response_sink=response_sink,
         response_scope=response_scope,
+        response_provider=response_provider,
         response_attribution_sink=response_attribution_sink,
         request_timeout_seconds=request_timeout_seconds,
     )
@@ -454,12 +458,15 @@ def _normalize_tool_call_ids(response: Any) -> Any:
     return response
 
 
-def _response_attribution(response: Any) -> dict[str, Any]:
+def _response_attribution(
+    response: Any, *, response_provider: str | None = None
+) -> dict[str, Any]:
     """Keep portable attribution fields returned with the model response."""
 
     values = {
         "response_model": getattr(response, "model", None),
-        "response_provider": getattr(response, "provider", None),
+        "response_provider": getattr(response, "provider", None)
+        or response_provider,
         "service_tier": getattr(response, "service_tier", None),
         "request_id": getattr(response, "_request_id", None),
     }
@@ -518,7 +525,7 @@ class OpenAIAgentRunner:
         *,
         api_key: str,
         base_url: str,
-        request_timeout_seconds: float = 90,
+        request_timeout_seconds: float = 120,
         run_timeout_seconds: float = 300,
         max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
         session_database_path: Path | None = None,
@@ -594,11 +601,16 @@ class OpenAIAgentRunner:
         oracle_interactions: list[dict[str, Any]] = []
         provider_responses: list[tuple[str, Any]] = []
         response_attribution: dict[str, dict[str, Any]] = {}
+        provider_routing = self._provider_routing(
+            agent_record.model, is_retry=is_retry
+        )
+        response_provider = _single_provider(provider_routing)
         try:
             model = _response_model(
                 model=agent_record.model,
                 openai_client=self.client,
                 response_sink=provider_responses,
+                response_provider=response_provider,
                 response_attribution_sink=response_attribution,
                 request_timeout_seconds=self.request_timeout_seconds,
             )
@@ -619,6 +631,7 @@ class OpenAIAgentRunner:
                             openai_client=self.client,
                             response_sink=provider_responses,
                             response_scope="rules-oracle",
+                            response_provider=response_provider,
                             response_attribution_sink=response_attribution,
                             request_timeout_seconds=self.request_timeout_seconds,
                         ),
@@ -873,16 +886,7 @@ class OpenAIAgentRunner:
         user: str | None = None,
         tool_choice: str = "auto",
     ) -> ModelSettings:
-        routing_by_model = (
-            self.retry_provider_routing_by_model
-            if is_retry
-            else self.provider_routing_by_model
-        )
-        provider_routing = routing_by_model.get(
-            model, routing_by_model.get("*")
-        ) or self.provider_routing_by_model.get(
-            model, self.provider_routing_by_model.get("*")
-        )
+        provider_routing = self._provider_routing(model, is_retry=is_retry)
         return ModelSettings(
             tool_choice=tool_choice,
             parallel_tool_calls=False,
@@ -903,6 +907,34 @@ class OpenAIAgentRunner:
                 else None
             ),
         )
+
+    def _provider_routing(
+        self, model: str, *, is_retry: bool
+    ) -> dict[str, Any] | None:
+        routing_by_model = (
+            self.retry_provider_routing_by_model
+            if is_retry
+            else self.provider_routing_by_model
+        )
+        return routing_by_model.get(
+            model, routing_by_model.get("*")
+        ) or self.provider_routing_by_model.get(
+            model, self.provider_routing_by_model.get("*")
+        )
+
+
+def _single_provider(provider_routing: dict[str, Any] | None) -> str | None:
+    if provider_routing is None:
+        return None
+    only = provider_routing.get("only")
+    if (
+        isinstance(only, list)
+        and len(only) == 1
+        and isinstance(only[0], str)
+        and only[0]
+    ):
+        return only[0]
+    return None
 
 
 async def _rollback_unaccepted_session(

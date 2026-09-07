@@ -47,18 +47,18 @@ TOURNAMENT_HARNESS_ID = "strategic-v1"
 TOURNAMENT_GAMES = 12
 TOURNAMENT_MAX_OUTPUT_TOKENS = 16_384
 TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL = {
-    "z-ai/glm-5.3-flash": "deepinfra",
-    "qwen/qwen3.7-flash": "alibaba",
-    "openai/gpt-oss-120b": "cerebras",
-    "~deepseek/deepseek-v4-flash-latest": "deepinfra",
-    "qwen/qwen3-235b-a22b-2507": "deepinfra",
-    "openai/gpt-5.6-luna": "openai",
-}
-TOURNAMENT_RETRY_PROVIDER_BY_MODEL = {
     "z-ai/glm-5.3-flash": "novita",
     "qwen/qwen3.7-flash": "alibaba",
     "openai/gpt-oss-120b": "cerebras",
     "~deepseek/deepseek-v4-flash-latest": "novita",
+    "qwen/qwen3-235b-a22b-2507": "deepinfra",
+    "openai/gpt-5.6-luna": "openai",
+}
+TOURNAMENT_RETRY_PROVIDER_BY_MODEL = {
+    "z-ai/glm-5.3-flash": "together",
+    "qwen/qwen3.7-flash": "alibaba",
+    "openai/gpt-oss-120b": "cerebras",
+    "~deepseek/deepseek-v4-flash-latest": "together",
     "qwen/qwen3-235b-a22b-2507": "novita",
     "openai/gpt-5.6-luna": "openai",
 }

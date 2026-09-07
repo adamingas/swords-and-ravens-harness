@@ -67,7 +67,7 @@ def test_default_relative_data_paths_are_project_local() -> None:
 def test_openrouter_routing_prefers_compatible_hosts() -> None:
     settings = Settings(_env_file=None)
 
-    assert settings.model_request_timeout_seconds == 90
+    assert settings.model_request_timeout_seconds == 120
     assert settings.model_run_timeout_seconds == 300
     assert settings.autoplay_max_consecutive_failures == 2
     assert settings.autoplay_retry_base_seconds == 2

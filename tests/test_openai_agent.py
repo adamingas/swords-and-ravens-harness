@@ -129,6 +129,13 @@ class CompletedResponsesWithEmptyCallId:
         )
 
 
+class CompletedResponsesWithoutProvider(CompletedResponsesWithEmptyCallId):
+    async def create(self, **kwargs: Any) -> Any:
+        response = await super().create(**kwargs)
+        response.provider = None
+        return response
+
+
 @pytest.mark.asyncio
 async def test_response_request_has_a_wall_clock_deadline() -> None:
     model = _UsageCapturingResponsesModel(
@@ -186,6 +193,39 @@ async def test_completed_response_gets_missing_call_id_and_is_captured() -> None
     assert result.response_items[0]["output"][0]["call_id"].startswith(
         "raven_call_"
     )
+
+
+@pytest.mark.asyncio
+async def test_single_pinned_provider_is_saved_with_response_usage() -> None:
+    provider_responses: list[tuple[str, Any]] = []
+    response_attribution: dict[str, dict[str, Any]] = {}
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(
+            responses=CompletedResponsesWithoutProvider()
+        ),
+        response_sink=provider_responses,
+        response_provider="Pinned Provider",
+        response_attribution_sink=response_attribution,
+    )
+
+    await model._fetch_response(
+        None,
+        [],
+        ModelSettings(),
+        [],
+        None,
+        [],
+        stream=False,
+    )
+    result = _partial_result(
+        [],
+        {},
+        provider_responses=provider_responses,
+        response_attribution=response_attribution,
+    )
+
+    assert result.raw_usage[0]["response_provider"] == "Pinned Provider"
 
 
 @pytest.mark.asyncio

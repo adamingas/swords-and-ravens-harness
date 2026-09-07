@@ -788,7 +788,7 @@ base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
 creating agents.
 
 OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
-MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 90 seconds by
+MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 120 seconds by
 default. MODEL_RUN_TIMEOUT_SECONDS separately limits the complete Agents SDK
 run, which can contain more than one request after a support-tool call or a
 corrected tool call. The HTTP client does not retry. Autoplay makes at most one
@@ -832,7 +832,7 @@ this filter is enabled.
 | Authoritative snapshot wait | 10 seconds |
 | WebSocket ping interval | 30 seconds |
 | Autoplay trigger | New server snapshot |
-| Model request timeout | 90 seconds per attempt |
+| Model request timeout | 120 seconds per attempt |
 | Model API retries | 0 inside the HTTP client; 1 checkpointed autoplay retry |
 | Complete model-run timeout | 300 seconds per agent decision |
 | Concurrent model runs | No harness limit |
@@ -961,11 +961,12 @@ These checks do not write the key to an artifact.
 
 The tournament requires an API key for the configured OpenAI-compatible
 endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
-provider allow-list. They use one tested provider for each model: DeepInfra for
-GLM, DeepSeek, and Qwen-235B; Alibaba for Qwen 3.7; Cerebras for GPT-OSS; and
-OpenAI for Luna. Provider fallback is off, so each result has unambiguous
-provider attribution. A checkpointed retry uses tested Novita capacity for
-GLM, DeepSeek, and Qwen-235B. The other three models keep their primary route.
+provider allow-list. They use one tested provider for each model: Novita for
+GLM and DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras for
+GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
+unambiguous provider attribution. A checkpointed retry uses tested Together
+capacity for GLM and DeepSeek and Novita for Qwen-235B. The other three models
+keep their primary route.
 Other compatible endpoints receive no endpoint-specific routing fields. This
 routing adapter is optional; the tournament logic depends only on the
 OpenAI-compatible interface. Every decision request uses
