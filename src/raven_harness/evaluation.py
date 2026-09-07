@@ -1415,7 +1415,7 @@ def _build_provenance(
             "reasoningEffort": "low",
             "toolChoice": "required",
             "contextPolicy": CONTEXT_POLICY_NAME,
-            "retryHistoryMode": "current-observation-only",
+            "historyMode": "current-observation-only",
             "parallelToolCalls": False,
             "store": False,
             "agentSdkMaxTurns": AGENT_SDK_MAX_TURNS,

@@ -704,17 +704,11 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
     )
     assert result.context_manifest == {
         "policy": CONTEXT_POLICY_NAME,
-        "historyMode": "recent-accepted-actions",
+        "historyMode": "current-observation-only",
         "sessionHistoryLimit": 32,
         "retrievedHistoryItemCount": 0,
-        "discardedPrefixItemCount": 0,
-        "removedObservationItemCount": 0,
-        "removedObservationCharacters": 0,
-        "removedSupportToolItemCount": 0,
-        "removedSupportToolCharacters": 0,
-        "removedRetryHistoryItemCount": 0,
-        "removedRetryHistoryCharacters": 0,
-        "selectedHistoryItems": [],
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
         "currentInputItemCount": 1,
         "currentInputCharacters": len(fake_model.inputs[0][0]["content"]),
         "currentInputSha256": hashlib.sha256(
@@ -889,11 +883,10 @@ async def test_retry_uses_only_the_current_observation(monkeypatch, tmp_path) ->
     assert fake_model.inputs[1][0]["role"] == "user"
     assert fake_model.inputs[1][0]["content"].startswith(OBSERVATION_INPUT_PREFIX)
     manifest = result.context_manifest
-    assert manifest["historyMode"] == "current-observation-only-retry"
+    assert manifest["historyMode"] == "current-observation-only"
     assert manifest["retrievedHistoryItemCount"] == 3
-    assert manifest["removedRetryHistoryItemCount"] == 3
-    assert manifest["removedRetryHistoryCharacters"] > 0
-    assert manifest["selectedHistoryItems"] == []
+    assert manifest["removedHistoryItemCount"] == 3
+    assert manifest["removedHistoryCharacters"] > 0
     assert manifest["modelRequestInputs"][0]["inputItemCount"] == 1
     await runner.shutdown()
 
@@ -1098,7 +1091,7 @@ async def test_cancelled_model_run_carries_the_context_manifest(monkeypatch) -> 
 
 
 @pytest.mark.asyncio
-async def test_runner_filters_old_observations_without_purging_the_session(
+async def test_runner_excludes_old_sdk_items_without_purging_the_session(
     monkeypatch, tmp_path
 ) -> None:
     fake_model = ToolCallingModel()
@@ -1143,34 +1136,27 @@ async def test_runner_filters_old_observations_without_purging_the_session(
     assert sum(
         OBSERVATION_INPUT_PREFIX in item.get("content", "") for item in second_input
     ) == 1
-    assert second_input[0]["type"] == "function_call"
-    assert second_input[0]["call_id"] == "call-1"
-    assert second_input[1]["type"] == "function_call_output"
-    assert second_input[1]["call_id"] == "call-1"
-    assert second_input[2]["role"] == "user"
-    assert second_input[2]["content"].startswith(OBSERVATION_INPUT_PREFIX)
+    assert len(second_input) == 1
+    assert second_input[0]["role"] == "user"
+    assert second_input[0]["content"].startswith(OBSERVATION_INPUT_PREFIX)
 
     manifest = second_result.context_manifest
     assert manifest["policy"] == CONTEXT_POLICY_NAME
     assert manifest["sessionHistoryLimit"] == 12
     assert manifest["retrievedHistoryItemCount"] == 3
-    assert manifest["discardedPrefixItemCount"] == 0
-    assert manifest["removedObservationItemCount"] == 1
-    assert manifest["removedObservationCharacters"] == len(first_input[0]["content"])
-    assert manifest["removedSupportToolItemCount"] == 0
-    assert manifest["removedSupportToolCharacters"] == 0
-    assert manifest["selectedHistoryItems"] == second_input[:2]
+    assert manifest["removedHistoryItemCount"] == 3
+    assert manifest["removedHistoryCharacters"] > len(first_input[0]["content"])
     assert manifest["currentInputItemCount"] == 1
-    assert manifest["currentInputCharacters"] == len(second_input[2]["content"])
+    assert manifest["currentInputCharacters"] == len(second_input[0]["content"])
     assert manifest["currentInputSha256"] == hashlib.sha256(
-        second_input[2]["content"].encode("utf-8")
+        second_input[0]["content"].encode("utf-8")
     ).hexdigest()
     assert "test-key" not in json.dumps(manifest)
     assert first_result.context_manifest["retrievedHistoryItemCount"] == 0
     await runner.shutdown()
 
 
-def test_session_context_filter_discards_an_orphaned_history_prefix() -> None:
+def test_session_context_filter_excludes_all_old_tool_calls() -> None:
     old_observation = {
         "role": "user",
         "content": OBSERVATION_INPUT_PREFIX + '{"game":{"round":1}}',
@@ -1209,103 +1195,28 @@ def test_session_context_filter_discards_an_orphaned_history_prefix() -> None:
     new_items = [{"role": "user", "content": current_input}]
     context_filter = _SessionContextFilter(32, current_input)
 
+    old_items = [
+        orphaned_output,
+        old_observation,
+        retained_reasoning,
+        retained_call,
+        retained_output,
+        retained_message,
+        second_old_observation,
+    ]
     filtered = context_filter(
-        [
-            orphaned_output,
-            old_observation,
-            retained_reasoning,
-            retained_call,
-            retained_output,
-            retained_message,
-            second_old_observation,
-        ],
+        old_items,
         new_items,
     )
 
-    assert filtered == [
-        retained_reasoning,
-        retained_call,
-        retained_output,
-        retained_message,
-        *new_items,
-    ]
+    assert filtered == new_items
     manifest = context_filter.manifest()
     assert manifest["retrievedHistoryItemCount"] == 7
-    assert manifest["discardedPrefixItemCount"] == 1
-    assert manifest["removedObservationItemCount"] == 2
-    assert manifest["removedObservationCharacters"] == (
-        len(old_observation["content"]) + len(second_old_observation["content"])
+    assert manifest["removedHistoryItemCount"] == 7
+    assert manifest["removedHistoryCharacters"] == sum(
+        len(json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
+        for item in old_items
     )
-    assert manifest["selectedHistoryItems"] == [
-        retained_reasoning,
-        retained_call,
-        retained_output,
-        retained_message,
-    ]
-
-
-def test_session_context_filter_removes_large_recall_and_support_outputs() -> None:
-    observation = {
-        "role": "user",
-        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"stateId":"old"}}',
-    }
-    recall_call = {
-        "type": "function_call",
-        "call_id": "recall-1",
-        "name": "recall_game_state",
-        "arguments": '{"turns_ago":1}',
-    }
-    recall_output = {
-        "type": "function_call_output",
-        "call_id": "recall-1",
-        "output": json.dumps({"observation": "x" * 30_000}),
-    }
-    oracle_call = {
-        "type": "function_call",
-        "call_id": "oracle-1",
-        "name": "ask_rules_oracle",
-        "arguments": '{"question":"How does supply work?"}',
-    }
-    oracle_output = {
-        "type": "function_call_output",
-        "call_id": "oracle-1",
-        "output": "A concise answer.",
-    }
-    game_call = {
-        "type": "function_call",
-        "call_id": "game-1",
-        "name": "resolve_march",
-        "arguments": '{"starting_region_id":"winterfell","moves":[]}',
-    }
-    game_output = {
-        "type": "function_call_output",
-        "call_id": "game-1",
-        "output": '{"ok":true}',
-    }
-    current_input = OBSERVATION_INPUT_PREFIX + '{"game":{"stateId":"current"}}'
-    context_filter = _SessionContextFilter(32, current_input)
-
-    filtered = context_filter(
-        [
-            observation,
-            recall_call,
-            recall_output,
-            oracle_call,
-            oracle_output,
-            game_call,
-            game_output,
-        ],
-        [{"role": "user", "content": current_input}],
-    )
-
-    serialized = json.dumps(filtered, separators=(",", ":"))
-    assert "x" * 100 not in serialized
-    assert "recall_game_state" not in serialized
-    assert "ask_rules_oracle" not in serialized
-    assert filtered[:2] == [game_call, game_output]
-    manifest = context_filter.manifest()
-    assert manifest["removedSupportToolItemCount"] == 4
-    assert manifest["removedSupportToolCharacters"] > 30_000
 
 
 @pytest.mark.asyncio
@@ -1372,7 +1283,7 @@ async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
     assert "Uncommitted northern plan" not in serialized_input
     assert "remember_strategy" not in serialized_input
     assert result.context_manifest["retrievedHistoryItemCount"] == 0
-    assert result.context_manifest["removedSupportToolItemCount"] == 0
+    assert result.context_manifest["removedHistoryItemCount"] == 0
     await runner.shutdown()
 
 

@@ -40,15 +40,11 @@ if TYPE_CHECKING:
 
 OBSERVATION_INPUT_PREFIX = (
     "A new decision starts with this current player-scoped game observation. "
-    "Earlier tool results are history; you have not acted on this observation. "
+    "It contains the authoritative game state and durable strategic context. "
+    "You have not acted on this observation. "
     "Choose exactly one available tool for the current decision.\n\n"
 )
-CONTEXT_POLICY_NAME = "current-observation-with-isolated-retries-v2"
-TRANSIENT_SUPPORT_TOOL_NAMES = {
-    "ask_rules_oracle",
-    "recall_game_state",
-    "remember_strategy",
-}
+CONTEXT_POLICY_NAME = "current-observation-only"
 _PSEUDO_TOOL_CALL = re.compile(
     r"\A\s*<tool_call>\s*<function=([A-Za-z_][A-Za-z0-9_]*)>"
     r"(.*?)</function>\s*</tool_call>\s*\Z",
@@ -122,16 +118,9 @@ class ModelRunResult:
 class _SessionContextFilter:
     session_history_limit: int
     current_input: str
-    include_history: bool = True
     retrieved_history_item_count: int = 0
-    discarded_prefix_item_count: int = 0
-    removed_observation_item_count: int = 0
-    removed_observation_characters: int = 0
-    removed_support_tool_item_count: int = 0
-    removed_support_tool_characters: int = 0
-    removed_retry_history_item_count: int = 0
-    removed_retry_history_characters: int = 0
-    selected_history_items: list[dict[str, Any]] = field(default_factory=list)
+    removed_history_item_count: int = 0
+    removed_history_characters: int = 0
     model_request_inputs: list[dict[str, Any]] = field(default_factory=list)
 
     def __call__(
@@ -140,75 +129,21 @@ class _SessionContextFilter:
         new_items: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         self.retrieved_history_item_count = len(history_items)
-        if not self.include_history:
-            self.removed_retry_history_item_count = len(history_items)
-            self.removed_retry_history_characters = sum(
-                len(_canonical_json(item)) for item in history_items
-            )
-            self.selected_history_items = []
-            return list(new_items)
-
-        first_observation_index = next(
-            (
-                index
-                for index, item in enumerate(history_items)
-                if _observation_input_text(item) is not None
-            ),
-            len(history_items),
+        self.removed_history_item_count = len(history_items)
+        self.removed_history_characters = sum(
+            len(_canonical_json(item)) for item in history_items
         )
-        self.discarded_prefix_item_count = first_observation_index
-
-        candidate_items = history_items[first_observation_index:]
-        transient_call_ids = {
-            str(item.get("call_id"))
-            for item in candidate_items
-            if item.get("type") == "function_call"
-            and item.get("name") in TRANSIENT_SUPPORT_TOOL_NAMES
-            and item.get("call_id") is not None
-        }
-        selected: list[dict[str, Any]] = []
-        removed_observation_characters = 0
-        removed_observation_count = 0
-        removed_support_characters = 0
-        removed_support_count = 0
-        for item in candidate_items:
-            observation_text = _observation_input_text(item)
-            if observation_text is not None:
-                removed_observation_count += 1
-                removed_observation_characters += len(observation_text)
-                continue
-            if _is_transient_support_item(item, transient_call_ids):
-                removed_support_count += 1
-                removed_support_characters += len(_canonical_json(item))
-                continue
-            selected.append(item)
-
-        self.removed_observation_item_count = removed_observation_count
-        self.removed_observation_characters = removed_observation_characters
-        self.removed_support_tool_item_count = removed_support_count
-        self.removed_support_tool_characters = removed_support_characters
-        self.selected_history_items = copy.deepcopy(selected)
-        return [*selected, *new_items]
+        return list(new_items)
 
     def manifest(self) -> dict[str, Any]:
         current_input_bytes = self.current_input.encode("utf-8")
         return {
             "policy": CONTEXT_POLICY_NAME,
-            "historyMode": (
-                "recent-accepted-actions"
-                if self.include_history
-                else "current-observation-only-retry"
-            ),
+            "historyMode": "current-observation-only",
             "sessionHistoryLimit": self.session_history_limit,
             "retrievedHistoryItemCount": self.retrieved_history_item_count,
-            "discardedPrefixItemCount": self.discarded_prefix_item_count,
-            "removedObservationItemCount": self.removed_observation_item_count,
-            "removedObservationCharacters": self.removed_observation_characters,
-            "removedSupportToolItemCount": self.removed_support_tool_item_count,
-            "removedSupportToolCharacters": self.removed_support_tool_characters,
-            "removedRetryHistoryItemCount": self.removed_retry_history_item_count,
-            "removedRetryHistoryCharacters": self.removed_retry_history_characters,
-            "selectedHistoryItems": copy.deepcopy(self.selected_history_items),
+            "removedHistoryItemCount": self.removed_history_item_count,
+            "removedHistoryCharacters": self.removed_history_characters,
             "currentInputItemCount": 1,
             "currentInputCharacters": len(self.current_input),
             "currentInputSha256": hashlib.sha256(current_input_bytes).hexdigest(),
@@ -661,7 +596,6 @@ class OpenAIAgentRunner:
         context_filter = _SessionContextFilter(
             session_history_limit=self.session_history_items,
             current_input=current_input,
-            include_history=not is_retry,
         )
         model_input_recorder = _ModelInputRecorder(context_filter.model_request_inputs)
         if not self.api_key:
@@ -1045,29 +979,6 @@ async def _session_item_count(session: Session | None) -> int:
     # SQLiteSession uses -1 as an explicit unlimited query. Calling get_items()
     # would apply the model-context history limit and is not a durable row count.
     return len(await session.get_items(limit=-1))
-
-
-def _observation_input_text(item: dict[str, Any]) -> str | None:
-    if item.get("role") != "user":
-        return None
-    content = item.get("content")
-    if isinstance(content, str) and content.startswith(OBSERVATION_INPUT_PREFIX):
-        return content
-    return None
-
-
-def _is_transient_support_item(
-    item: dict[str, Any], transient_call_ids: set[str]
-) -> bool:
-    if (
-        item.get("type") == "function_call"
-        and item.get("name") in TRANSIENT_SUPPORT_TOOL_NAMES
-    ):
-        return True
-    return (
-        item.get("type") == "function_call_output"
-        and str(item.get("call_id")) in transient_call_ids
-    )
 
 
 def _canonical_json(value: Any) -> str:

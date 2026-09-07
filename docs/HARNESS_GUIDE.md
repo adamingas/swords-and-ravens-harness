@@ -746,14 +746,10 @@ A run detail includes this context manifest:
 | Field | Meaning |
 | --- | --- |
 | policy | Name of the active context-selection policy. |
-| historyMode | `recent-accepted-actions` for an initial attempt, or `current-observation-only-retry` for a retry. |
+| historyMode | `current-observation-only`. Every call receives one complete current observation. |
 | sessionHistoryLimit | Maximum SDK items read from the session. |
 | retrievedHistoryItemCount | Items returned by the session read. |
-| discardedPrefixItemCount | Items discarded before the first complete decision boundary. |
-| removedObservationItemCount; removedObservationCharacters | Old full observations removed from the request. |
-| removedSupportToolItemCount; removedSupportToolCharacters | Old recall, strategy-note, and oracle call/result items removed from the request. |
-| removedRetryHistoryItemCount; removedRetryHistoryCharacters | All old SDK items removed when a retry uses only the current observation. |
-| selectedHistoryItems | History items selected by the harness callback. The SDK can still normalize, deduplicate, or prune these items. |
+| removedHistoryItemCount; removedHistoryCharacters | Old SDK conversation items excluded from the request. They remain in the stored trace. |
 | currentInputItemCount; currentInputCharacters; currentInputSha256 | Size and fingerprint of the one current observation input. |
 | modelRequestInputs | Item count, character count, and SHA-256 fingerprints for the parent input list at the SDK call-model filter. The field also fingerprints the instructions. The SDK can still deduplicate items afterward. It is not a hash of tools, settings, metadata, model ID, or provider serialization. |
 
@@ -985,9 +981,11 @@ Other compatible endpoints receive no endpoint-specific routing fields. This
 routing adapter is optional; the tournament logic depends only on the
 OpenAI-compatible interface. Every decision request uses
 `tool_choice=required`. Memory and the rules oracle remain available as tools.
-A reduced-tool retry sends the complete current observation without older SDK
-history. The manager still rejects a nonconforming response that does not take
-a game action.
+Every attempt sends the complete current observation without older SDK history.
+This prevents obsolete gameplay tools from an earlier state from contaminating
+the current tool set. A retry also reduces the available tools to the required
+gameplay tools. The manager still rejects a nonconforming response that does not
+take a game action.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for
 the model and current tool set. Rules-oracle calls use a separate key for the
