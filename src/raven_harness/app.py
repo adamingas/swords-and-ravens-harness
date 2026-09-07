@@ -55,9 +55,9 @@ def create_app(
             session_database_path=settings.resolved_database_path,
             session_history_items=settings.model_session_history_items,
             checkpoint_store=store,
-            provider_routing=(
-                settings.openrouter_provider_routing
-                if settings.openrouter_token
+            provider_routing_by_model=(
+                {"*": settings.openrouter_provider_routing}
+                if settings.uses_openrouter
                 else None
             ),
             rulebook=rulebook,

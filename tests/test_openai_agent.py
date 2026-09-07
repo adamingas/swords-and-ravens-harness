@@ -523,7 +523,12 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
         lambda **_kwargs: fake_model,
     )
     record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+        AgentCreate(
+            name="Wolf",
+            model="test-model",
+            user_id="2",
+            auth_token="secret",
+        )
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
@@ -533,10 +538,12 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
         base_url="https://api.openai.test/v1",
         request_timeout_seconds=17,
         run_timeout_seconds=53,
-        provider_routing={
-            "sort": "throughput",
-            "allow_fallbacks": True,
-            "require_parameters": False,
+        provider_routing_by_model={
+            "test-model": {
+                "sort": "throughput",
+                "allow_fallbacks": True,
+                "require_parameters": False,
+            }
         },
     )
     result = await runner.run_once(**turn_arguments(record, context))

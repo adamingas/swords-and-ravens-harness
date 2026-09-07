@@ -112,6 +112,10 @@ class Settings(BaseSettings):
         return urlsplit(self.model_base_url).hostname or "configured-model-endpoint"
 
     @property
+    def uses_openrouter(self) -> bool:
+        return self.model_provider == "openrouter.ai"
+
+    @property
     def openrouter_provider_routing(self) -> dict[str, Any]:
         order = _comma_separated(self.openrouter_provider_order)
         routing: dict[str, Any] = {

@@ -50,6 +50,11 @@ def test_default_relative_data_paths_are_project_local() -> None:
     assert settings.resolved_database_path == PROJECT_ROOT / "data/test.db"
     assert settings.resolved_rules_path == PROJECT_ROOT / "data/test-rules.json"
     assert settings.model_provider == "api.openai.com"
+    assert settings.uses_openrouter is False
+    assert (
+        Settings(openrouter_token="secret", _env_file=None).uses_openrouter
+        is True
+    )
     assert (
         Settings(
             openai_base_url="https://models.example.test/v1",

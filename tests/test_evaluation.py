@@ -20,6 +20,7 @@ from raven_harness.evaluation import (
     TOURNAMENT_HARNESS_ID,
     TOURNAMENT_MAX_OUTPUT_TOKENS,
     TOURNAMENT_MODELS,
+    TOURNAMENT_PROVIDER_BY_MODEL,
     _build_provenance,
     _load_manifest,
     _evaluation_schedule,
@@ -32,6 +33,7 @@ from raven_harness.evaluation import (
     _run_assignments,
     _start_game_server,
     _terminal_winner,
+    _tournament_provider_routing,
     _validate_evaluation_schedule,
     _validate_resumed_agents,
     _validate_winner_house,
@@ -96,6 +98,19 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
         user_ids = [user_rotation(game)[model] for game in range(1, 13)]
         assert user_ids.count("1") == 2
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
+
+
+def test_tournament_pins_one_verified_provider_per_model() -> None:
+    routing = _tournament_provider_routing()
+
+    assert set(TOURNAMENT_PROVIDER_BY_MODEL) == set(TOURNAMENT_MODELS)
+    assert set(routing) == set(TOURNAMENT_MODELS)
+    for model, provider in TOURNAMENT_PROVIDER_BY_MODEL.items():
+        assert routing[model] == {
+            "only": [provider],
+            "allow_fallbacks": False,
+            "require_parameters": False,
+        }
 
 
 @pytest.mark.parametrize(
