@@ -46,12 +46,20 @@ TOURNAMENT_MODELS = [
 TOURNAMENT_HARNESS_ID = "strategic-v1"
 TOURNAMENT_GAMES = 12
 TOURNAMENT_MAX_OUTPUT_TOKENS = 16_384
-TOURNAMENT_PROVIDER_BY_MODEL = {
+TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL = {
     "z-ai/glm-5.3-flash": "deepinfra",
     "qwen/qwen3.7-flash": "alibaba",
     "openai/gpt-oss-120b": "cerebras",
     "~deepseek/deepseek-v4-flash-latest": "deepinfra",
     "qwen/qwen3-235b-a22b-2507": "deepinfra",
+    "openai/gpt-5.6-luna": "openai",
+}
+TOURNAMENT_RETRY_PROVIDER_BY_MODEL = {
+    "z-ai/glm-5.3-flash": "novita",
+    "qwen/qwen3.7-flash": "alibaba",
+    "openai/gpt-oss-120b": "cerebras",
+    "~deepseek/deepseek-v4-flash-latest": "novita",
+    "qwen/qwen3-235b-a22b-2507": "novita",
     "openai/gpt-5.6-luna": "openai",
 }
 DEFAULT_RANDOM_SEED = 1
@@ -433,7 +441,12 @@ async def run_game(
                 session_history_items=settings.model_session_history_items,
                 checkpoint_store=store,
                 provider_routing_by_model=(
-                    _tournament_provider_routing()
+                    _tournament_provider_routing(TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL)
+                    if settings.uses_openrouter
+                    else None
+                ),
+                retry_provider_routing_by_model=(
+                    _tournament_provider_routing(TOURNAMENT_RETRY_PROVIDER_BY_MODEL)
                     if settings.uses_openrouter
                     else None
                 ),
@@ -1406,8 +1419,13 @@ def _build_provenance(
             "provider": settings.model_provider,
             "baseUrl": _sanitized_base_url(settings.model_base_url),
             "baseUrlSha256": _sha256_text(settings.model_base_url),
-            "providerRoutingByModel": (
-                _tournament_provider_routing()
+            "primaryProviderRoutingByModel": (
+                _tournament_provider_routing(TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL)
+                if settings.uses_openrouter
+                else None
+            ),
+            "retryProviderRoutingByModel": (
+                _tournament_provider_routing(TOURNAMENT_RETRY_PROVIDER_BY_MODEL)
                 if settings.uses_openrouter
                 else None
             ),
@@ -1425,14 +1443,16 @@ def _build_provenance(
     }
 
 
-def _tournament_provider_routing() -> dict[str, dict[str, Any]]:
+def _tournament_provider_routing(
+    providers: dict[str, str],
+) -> dict[str, dict[str, Any]]:
     return {
         model: {
             "only": [provider],
             "allow_fallbacks": False,
             "require_parameters": False,
         }
-        for model, provider in TOURNAMENT_PROVIDER_BY_MODEL.items()
+        for model, provider in providers.items()
     }
 
 

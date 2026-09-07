@@ -964,9 +964,11 @@ endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
 provider allow-list. They use one tested provider for each model: DeepInfra for
 GLM, DeepSeek, and Qwen-235B; Alibaba for Qwen 3.7; Cerebras for GPT-OSS; and
 OpenAI for Luna. Provider fallback is off, so each result has unambiguous
-provider attribution. Other compatible endpoints receive no endpoint-specific
-routing fields. This routing adapter is optional; the tournament logic depends
-only on the OpenAI-compatible interface. Every decision request uses
+provider attribution. A checkpointed retry uses tested Novita capacity for
+GLM, DeepSeek, and Qwen-235B. The other three models keep their primary route.
+Other compatible endpoints receive no endpoint-specific routing fields. This
+routing adapter is optional; the tournament logic depends only on the
+OpenAI-compatible interface. Every decision request uses
 `tool_choice=required`. Memory and the rules oracle remain available as tools.
 A reduced-tool retry sends the complete current observation without older SDK
 history. The manager still rejects a nonconforming response that does not take

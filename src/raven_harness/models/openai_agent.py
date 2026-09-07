@@ -525,6 +525,7 @@ class OpenAIAgentRunner:
         session_history_items: int = 32,
         checkpoint_store: AgentStore | None = None,
         provider_routing_by_model: dict[str, dict[str, Any]] | None = None,
+        retry_provider_routing_by_model: dict[str, dict[str, Any]] | None = None,
         rulebook: Rulebook | None = None,
     ) -> None:
         self.api_key = api_key
@@ -537,6 +538,7 @@ class OpenAIAgentRunner:
         self._sessions: dict[str, SQLiteSession] = {}
         self._restored_session_ids: set[str] = set()
         self.provider_routing_by_model = provider_routing_by_model or {}
+        self.retry_provider_routing_by_model = retry_provider_routing_by_model or {}
         self.rulebook = rulebook
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
@@ -622,6 +624,7 @@ class OpenAIAgentRunner:
                         ),
                         model_settings=self._model_settings(
                             model=agent_record.model,
+                            is_retry=is_retry,
                             max_tokens=900,
                             prompt_cache_key=(
                                 f"raven-rules-{agent_record.model}-"
@@ -646,6 +649,7 @@ class OpenAIAgentRunner:
                 tools=tools,
                 model_settings=self._model_settings(
                     model=agent_record.model,
+                    is_retry=is_retry,
                     max_tokens=self.max_output_tokens,
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
@@ -862,12 +866,23 @@ class OpenAIAgentRunner:
         self,
         *,
         model: str,
+        is_retry: bool,
         max_tokens: int,
         prompt_cache_key: str | None,
         metadata: dict[str, str] | None,
         user: str | None = None,
         tool_choice: str = "auto",
     ) -> ModelSettings:
+        routing_by_model = (
+            self.retry_provider_routing_by_model
+            if is_retry
+            else self.provider_routing_by_model
+        )
+        provider_routing = routing_by_model.get(
+            model, routing_by_model.get("*")
+        ) or self.provider_routing_by_model.get(
+            model, self.provider_routing_by_model.get("*")
+        )
         return ModelSettings(
             tool_choice=tool_choice,
             parallel_tool_calls=False,
@@ -877,13 +892,7 @@ class OpenAIAgentRunner:
             metadata=metadata,
             preserve_raw_usage=True,
             extra_body=(
-                {"provider": provider_routing}
-                if (
-                    provider_routing := self.provider_routing_by_model.get(
-                        model, self.provider_routing_by_model.get("*")
-                    )
-                )
-                else None
+                {"provider": provider_routing} if provider_routing else None
             ),
             extra_args=(
                 {

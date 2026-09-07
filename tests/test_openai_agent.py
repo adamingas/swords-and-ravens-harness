@@ -545,6 +545,12 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
                 "require_parameters": False,
             }
         },
+        retry_provider_routing_by_model={
+            "test-model": {
+                "only": ["secondary"],
+                "allow_fallbacks": False,
+            }
+        },
     )
     result = await runner.run_once(**turn_arguments(record, context))
 
@@ -599,6 +605,16 @@ async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
             "allow_fallbacks": True,
             "require_parameters": False,
         }
+    }
+    retry_settings = runner._model_settings(
+        model="test-model",
+        is_retry=True,
+        max_tokens=100,
+        prompt_cache_key=None,
+        metadata=None,
+    )
+    assert retry_settings.extra_body == {
+        "provider": {"only": ["secondary"], "allow_fallbacks": False}
     }
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
