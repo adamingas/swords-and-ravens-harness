@@ -55,7 +55,7 @@ TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL = {
     "openai/gpt-5.6-luna": "openai",
 }
 TOURNAMENT_RETRY_PROVIDER_BY_MODEL = {
-    "z-ai/glm-5.3-flash": "io-net",
+    "z-ai/glm-5.3-flash": "coreweave",
     "qwen/qwen3.7-flash": "alibaba",
     "openai/gpt-oss-120b": "cerebras",
     "~deepseek/deepseek-v4-flash-latest": "novita",

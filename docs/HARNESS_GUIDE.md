@@ -974,8 +974,8 @@ endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
 provider allow-list. They use one tested provider for each model: Reka for GLM;
 Together for DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras
 for GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
-unambiguous provider attribution. A checkpointed retry uses Io Net for GLM and
-Novita for DeepSeek and Qwen-235B. The other three models keep their primary
+unambiguous provider attribution. A checkpointed retry uses CoreWeave for GLM
+and Novita for DeepSeek and Qwen-235B. The other three models keep their primary
 route.
 Other compatible endpoints receive no endpoint-specific routing fields. This
 routing adapter is optional; the tournament logic depends only on the
