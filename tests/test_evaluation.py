@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import copy
-import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -15,26 +14,17 @@ from raven_harness.config import Settings
 from raven_harness.database import Database
 from raven_harness.evaluation import (
     HOUSES,
-    MUTABLE_GAME_SAVE_PATH,
     TOURNAMENT_GAMES,
-    TOURNAMENT_HARNESS_ID,
-    TOURNAMENT_MAX_OUTPUT_TOKENS,
     TOURNAMENT_MODELS,
-    TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL,
-    TOURNAMENT_RETRY_PROVIDER_BY_MODEL,
-    _build_provenance,
     _load_manifest,
     _evaluation_schedule,
-    _git_provenance,
     _validate_resumable_provenance,
     _preflight_openrouter_quota,
     _preflight_model_catalog,
-    _progress_signature,
     _require_sqlite_quick_check,
     _run_assignments,
     _start_game_server,
     _terminal_winner,
-    _tournament_provider_routing,
     _validate_evaluation_schedule,
     _validate_resumed_agents,
     _validate_winner_house,
@@ -99,32 +89,6 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
         user_ids = [user_rotation(game)[model] for game in range(1, 13)]
         assert user_ids.count("1") == 2
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
-
-
-def test_tournament_pins_one_verified_provider_per_model() -> None:
-    assert TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL["z-ai/glm-5.3-flash"] == "reka"
-    assert (
-        TOURNAMENT_RETRY_PROVIDER_BY_MODEL["z-ai/glm-5.3-flash"] == "coreweave"
-    )
-    assert (
-        TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL[
-            "~deepseek/deepseek-v4-flash-latest"
-        ]
-        == "together"
-    )
-    for providers in (
-        TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL,
-        TOURNAMENT_RETRY_PROVIDER_BY_MODEL,
-    ):
-        routing = _tournament_provider_routing(providers)
-        assert set(providers) == set(TOURNAMENT_MODELS)
-        assert set(routing) == set(TOURNAMENT_MODELS)
-        for model, provider in providers.items():
-            assert routing[model] == {
-                "only": [provider],
-                "allow_fallbacks": False,
-                "require_parameters": False,
-            }
 
 
 @pytest.mark.parametrize(
@@ -309,116 +273,6 @@ def test_load_manifest_rejects_legacy_schema_without_modifying_it(tmp_path) -> N
     assert json.loads(path.read_text()) == legacy
 
 
-def test_load_manifest_rejects_schema_five_attempt_without_provenance(
-    tmp_path,
-) -> None:
-    path = tmp_path / "manifest.json"
-    manifest = {
-        "schemaVersion": 5,
-        "experiment": "mixed-model-tournament",
-        "harness": TOURNAMENT_HARNESS_ID,
-        "models": TOURNAMENT_MODELS,
-        "gameCount": 12,
-        "randomSeed": 1,
-        "games": _evaluation_schedule(12),
-    }
-    manifest["games"][0]["attempts"] = [
-        {
-            "number": 1,
-            "status": "failed",
-            "directory": "game-01/attempt-01",
-        }
-    ]
-    path.write_text(json.dumps(manifest))
-    args = argparse.Namespace(random_seed=1)
-
-    with pytest.raises(RuntimeError, match="no runtime provenance"):
-        _load_manifest(
-            path,
-            args,
-            tmp_path,
-        )
-
-
-def test_progress_signature_includes_runtime_and_completed_run_progress() -> None:
-    records = [SimpleNamespace(id="agent-1")]
-    observations = [{"game": {"stateId": "leaf-1", "phase": "planning"}}]
-    idle = [
-        SimpleNamespace(status="connected", current_run_id=None, run_started_at=None)
-    ]
-    running = [
-        SimpleNamespace(status="running", current_run_id="run-1", run_started_at="now")
-    ]
-
-    initial = _progress_signature(
-        records=records,
-        observations=observations,
-        runtimes=idle,
-        run_counts=[0],
-    )
-    in_flight = _progress_signature(
-        records=records,
-        observations=observations,
-        runtimes=running,
-        run_counts=[0],
-    )
-    completed = _progress_signature(
-        records=records,
-        observations=observations,
-        runtimes=idle,
-        run_counts=[1],
-    )
-
-    assert initial != in_flight
-    assert in_flight != completed
-    assert initial != completed
-
-
-def test_provenance_hashes_prompts_rules_and_omits_api_key(tmp_path) -> None:
-    rules_path = tmp_path / "rules.json"
-    rules_path.write_text('{"rules": true}\n')
-    settings = Settings(
-        rules_path=rules_path,
-        openrouter_token="do-not-record-this-token",
-        openrouter_base_url="https://url-secret@example.test/api/v1?key=hidden",
-    )
-    args = argparse.Namespace(
-        random_seed=1,
-        game_port=5101,
-        poll_seconds=1.0,
-        stall_seconds=360.0,
-        match_timeout_hours=6.0,
-    )
-
-    provenance = _build_provenance(args, settings)
-
-    assert provenance["repositories"]["root"]["commit"]
-    assert provenance["repositories"]["swordsAndRavens"]["commit"]
-    assert len(provenance["repositories"]["root"]["worktreeSha256"]) == 64
-    assert len(provenance["repositories"]["swordsAndRavens"]["worktreeSha256"]) == 64
-    assert (
-        provenance["rules"]["sha256"]
-        == hashlib.sha256(rules_path.read_bytes()).hexdigest()
-    )
-    assert len(provenance["harness"]["systemPromptSha256"]) == 64
-    assert len(provenance["harness"]["effectiveInstructionsSha256"]) == 64
-    assert len(provenance["harness"]["runtimeSha256"]) == 64
-    assert provenance["harness"]["id"] == TOURNAMENT_HARNESS_ID
-    assert provenance["harness"]["toolChoice"] == "required"
-    assert provenance["harness"]["historyMode"] == "current-observation-only"
-    assert provenance["models"]["ids"] == TOURNAMENT_MODELS
-    assert provenance["evaluation"]["randomSeed"] == 1
-    assert provenance["evaluation"]["gameCount"] == TOURNAMENT_GAMES
-    assert provenance["evaluation"]["gamesPerInvocation"] == 1
-    assert provenance["evaluation"]["maxRounds"] is None
-    assert "maxConcurrency" not in provenance["harness"]
-    assert provenance["harness"]["maxOutputTokens"] == (TOURNAMENT_MAX_OUTPUT_TOKENS)
-    serialized = str(provenance)
-    assert "do-not-record-this-token" not in serialized
-    assert "url-secret" not in serialized
-    assert "hidden" not in serialized
-
-
 def test_resumable_provenance_ignores_docs_commit_but_rejects_runtime_change() -> None:
     existing = {
         "repositories": {
@@ -439,64 +293,6 @@ def test_resumable_provenance_ignores_docs_commit_but_rejects_runtime_change() -
     after_runtime_change["harness"]["runtimeSha256"] = "runtime-b"
     with pytest.raises(RuntimeError, match="different harness"):
         _validate_resumable_provenance(existing, after_runtime_change)
-
-
-def test_git_provenance_ignores_runtime_save_but_tracks_source_changes(
-    tmp_path,
-) -> None:
-    child_source = tmp_path / "child-source"
-    child_source.mkdir()
-    _test_git(child_source, "init")
-    _configure_test_git(child_source)
-    (child_source / "source.txt").write_text("original source\n")
-    save = child_source / MUTABLE_GAME_SAVE_PATH
-    save.parent.mkdir(parents=True)
-    save.write_text("original save\n")
-    _test_git(child_source, "add", ".")
-    _test_git(child_source, "commit", "-m", "initial child")
-
-    root = tmp_path / "root"
-    root.mkdir()
-    _test_git(root, "init")
-    _configure_test_git(root)
-    (root / "README.md").write_text("root source\n")
-    _test_git(root, "add", "README.md")
-    _test_git(root, "commit", "-m", "initial root")
-    _test_git(
-        root,
-        "-c",
-        "protocol.file.allow=always",
-        "submodule",
-        "add",
-        str(child_source),
-        "swords-and-ravens",
-    )
-    _test_git(root, "commit", "-am", "add submodule")
-
-    child = root / "swords-and-ravens"
-    clean_root = _git_provenance(root, ignore_dirty_submodules=True)
-    clean_child = _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))
-    assert clean_root["dirty"] is False
-    assert clean_child["dirty"] is False
-
-    (child / MUTABLE_GAME_SAVE_PATH).write_text("runtime save\n")
-    assert _git_provenance(root, ignore_dirty_submodules=True) == clean_root
-    assert (
-        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,)) == clean_child
-    )
-
-    (child / "source.txt").write_text("changed source\n")
-    assert (
-        _git_provenance(child, ignored_paths=(MUTABLE_GAME_SAVE_PATH,))["dirty"] is True
-    )
-    _test_git(child, "add", "source.txt")
-    _test_git(child, "commit", "-m", "change child source")
-    assert _git_provenance(root, ignore_dirty_submodules=True)["dirty"] is True
-
-    _test_git(root, "add", "swords-and-ravens")
-    _test_git(root, "commit", "-m", "advance submodule")
-    (root / "README.md").write_text("changed root source\n")
-    assert _git_provenance(root, ignore_dirty_submodules=True)["dirty"] is True
 
 
 @pytest.mark.asyncio

@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import copy
 import hashlib
 import json
-import re
 from collections import Counter
 from dataclasses import dataclass, field
-from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from agents import (
     Agent,
@@ -21,39 +18,24 @@ from agents import (
     Runner,
     ToolsToFinalOutputResult,
 )
-from agents.memory import Session, SessionSettings, SQLiteSession
 from agents.models.openai_responses import _mark_request_completed_without_usage
 from agents.run_config import CallModelData, ModelInputData
-from openai import APITimeoutError, AsyncOpenAI
-from openai.types.responses import ResponseFunctionToolCall
+from openai import AsyncOpenAI
 
-from ..config import DEFAULT_MODEL_MAX_OUTPUT_TOKENS
 from ..errors import is_permanent_provider_error, safe_error_text
 from ..game.client import GameConnectionLost
 from ..harness.actions import HarnessRunContext
+from ..harness.decision import SUBMIT_ACTION_TOOL_NAME
 from ..rulebook import RULES_ORACLE_TOOL_NAME, Rulebook
 from ..schemas import AgentRecord
 
-if TYPE_CHECKING:
-    from ..agent_store import AgentStore
 
-
-OBSERVATION_INPUT_PREFIX = (
-    "A new decision starts with this current player-scoped game observation. "
-    "It contains the authoritative game state and durable strategic context. "
-    "You have not acted on this observation. "
-    "Choose exactly one available tool for the current decision.\n\n"
+SUBMISSION_REMINDER = (
+    "You stopped without submitting a gameplay action. Continue this same decision. "
+    "Use exploration tools if more information would help, then call submit_action. "
+    "Only an accepted submit_action call finishes the decision."
 )
-CONTEXT_POLICY_NAME = "current-observation-only"
-_PSEUDO_TOOL_CALL = re.compile(
-    r"\A\s*<tool_call>\s*<function=([A-Za-z_][A-Za-z0-9_]*)>"
-    r"(.*?)</function>\s*</tool_call>\s*\Z",
-    re.DOTALL,
-)
-_PSEUDO_TOOL_PARAMETER = re.compile(
-    r"<parameter=([A-Za-z_][A-Za-z0-9_]*)>(.*?)</parameter>",
-    re.DOTALL,
-)
+CONTEXT_POLICY_NAME = "current-decision-with-continuation"
 
 
 def _caused_by_connection_loss(error: BaseException) -> GameConnectionLost | None:
@@ -69,39 +51,28 @@ def _caused_by_connection_loss(error: BaseException) -> GameConnectionLost | Non
     return None
 
 
-def _stop_after_accepted_action(
-    gameplay_tool_names: list[str],
-):
-    """Keep tool errors in the same model run and stop after an accepted action."""
+def _stop_after_submission(
+    context_wrapper: Any, tool_results: list[Any]
+) -> ToolsToFinalOutputResult:
+    """Continue exploration until submit_action has executed an accepted action."""
 
-    allowed = set(gameplay_tool_names)
-
-    def behavior(context_wrapper: Any, tool_results: list[Any]) -> ToolsToFinalOutputResult:
-        action = context_wrapper.context.action_taken
-        if action is None or action.name not in allowed:
-            return ToolsToFinalOutputResult(is_final_output=False, final_output=None)
-        matching_result = next(
-            (
-                result
-                for result in tool_results
-                if result.tool.name == action.name
-                or result.tool.qualified_name == action.name
-            ),
-            None,
-        )
-        return ToolsToFinalOutputResult(
-            is_final_output=True,
-            final_output=(
-                matching_result.output
-                if matching_result is not None
-                else json.dumps(
-                    {"ok": True, "accepted": True, "action": action.name},
-                    separators=(",", ":"),
-                )
-            ),
-        )
-
-    return behavior
+    if context_wrapper.context.action_taken is None:
+        return ToolsToFinalOutputResult(is_final_output=False, final_output=None)
+    matching_result = next(
+        (
+            result
+            for result in tool_results
+            if result.tool.name == SUBMIT_ACTION_TOOL_NAME
+            or result.tool.qualified_name == SUBMIT_ACTION_TOOL_NAME
+        ),
+        None,
+    )
+    if matching_result is None:
+        return ToolsToFinalOutputResult(is_final_output=False, final_output=None)
+    return ToolsToFinalOutputResult(
+        is_final_output=True,
+        final_output=matching_result.output,
+    )
 
 
 @dataclass(frozen=True)
@@ -115,40 +86,26 @@ class ModelRunResult:
 
 
 @dataclass
-class _SessionContextFilter:
-    session_history_limit: int
+class _ContextManifest:
     current_input: str
-    retrieved_history_item_count: int = 0
-    removed_history_item_count: int = 0
-    removed_history_characters: int = 0
     model_request_inputs: list[dict[str, Any]] = field(default_factory=list)
-
-    def __call__(
-        self,
-        history_items: list[dict[str, Any]],
-        new_items: list[dict[str, Any]],
-    ) -> list[dict[str, Any]]:
-        self.retrieved_history_item_count = len(history_items)
-        self.removed_history_item_count = len(history_items)
-        self.removed_history_characters = sum(
-            len(_canonical_json(item)) for item in history_items
-        )
-        return list(new_items)
+    action_output_schema: dict[str, Any] | None = None
 
     def manifest(self) -> dict[str, Any]:
         current_input_bytes = self.current_input.encode("utf-8")
-        return {
+        manifest = {
             "policy": CONTEXT_POLICY_NAME,
-            "historyMode": "current-observation-only",
-            "sessionHistoryLimit": self.session_history_limit,
-            "retrievedHistoryItemCount": self.retrieved_history_item_count,
-            "removedHistoryItemCount": self.removed_history_item_count,
-            "removedHistoryCharacters": self.removed_history_characters,
             "currentInputItemCount": 1,
             "currentInputCharacters": len(self.current_input),
             "currentInputSha256": hashlib.sha256(current_input_bytes).hexdigest(),
-            "modelRequestInputs": copy.deepcopy(self.model_request_inputs),
+            "modelRequestInputs": list(self.model_request_inputs),
         }
+        if self.action_output_schema is not None:
+            manifest["actionOutputSchema"] = self.action_output_schema
+            manifest["actionOutputSchemaSha256"] = hashlib.sha256(
+                _canonical_json(self.action_output_schema).encode()
+            ).hexdigest()
+        return manifest
 
 
 @dataclass
@@ -298,7 +255,7 @@ class _ModelActivityHooks(RunHooks[HarnessRunContext]):
 
 
 class _UsageCapturingResponsesModel(OpenAIResponsesModel):
-    """Bound one request and retain its raw response before SDK processing."""
+    """Retain each raw response before SDK processing."""
 
     def __init__(
         self,
@@ -307,7 +264,6 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         response_scope: str = "agent",
         response_provider: str | None = None,
         response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-        request_timeout_seconds: float = 120,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -315,19 +271,13 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         self.response_scope = response_scope
         self.response_provider = response_provider
         self.response_attribution_sink = response_attribution_sink
-        self.request_timeout_seconds = request_timeout_seconds
 
     async def _fetch_response(self, *args: Any, **kwargs: Any) -> Any:
         if kwargs.get("stream", False):
             return await super()._fetch_response(*args, **kwargs)
 
         create_kwargs = self._build_response_create_kwargs(*args, **kwargs)
-        try:
-            async with asyncio.timeout(self.request_timeout_seconds):
-                response = await self._get_client().responses.create(**create_kwargs)
-        except TimeoutError:
-            raise _ModelRequestTimeoutError from None
-        response = _normalize_tool_calls(response)
+        response = await self._get_client().responses.create(**create_kwargs)
         if self.response_attribution_sink is not None:
             response_id = str(getattr(response, "id", ""))
             if response_id:
@@ -342,6 +292,11 @@ class _UsageCapturingResponsesModel(OpenAIResponsesModel):
         if status in {"failed", "incomplete"}:
             detail = getattr(response, "incomplete_details", None)
             suffix = f"; incomplete_details={detail}" if detail is not None else ""
+            provider_error = getattr(response, "error", None)
+            if provider_error is not None:
+                suffix += "; error=" + safe_error_text(
+                    _canonical_json(_jsonable(provider_error))
+                )
             raise RuntimeError(
                 f"Responses API returned terminal status {status}{suffix}"
             )
@@ -356,7 +311,6 @@ def _response_model(
     response_scope: str = "agent",
     response_provider: str | None = None,
     response_attribution_sink: dict[str, dict[str, Any]] | None = None,
-    request_timeout_seconds: float = 120,
 ) -> OpenAIResponsesModel:
     return _UsageCapturingResponsesModel(
         model=model,
@@ -365,101 +319,6 @@ def _response_model(
         response_scope=response_scope,
         response_provider=response_provider,
         response_attribution_sink=response_attribution_sink,
-        request_timeout_seconds=request_timeout_seconds,
-    )
-
-
-def _normalize_tool_calls(response: Any) -> Any:
-    """Promote one strict pseudo-call and supply missing opaque call IDs."""
-
-    response = _promote_pseudo_tool_call(response)
-
-    response_id = str(getattr(response, "id", "") or "response")
-    output = list(getattr(response, "output", []))
-    changed = False
-    for index, item in enumerate(output):
-        if getattr(item, "type", None) != "function_call" or getattr(
-            item, "call_id", None
-        ):
-            continue
-        fingerprint = hashlib.sha256(
-            _canonical_json(
-                {
-                    "responseId": response_id,
-                    "index": index,
-                    "name": getattr(item, "name", None),
-                    "arguments": getattr(item, "arguments", None),
-                }
-            ).encode("utf-8")
-        ).hexdigest()[:24]
-        call_id = f"raven_call_{fingerprint}"
-        if hasattr(item, "model_copy"):
-            output[index] = item.model_copy(update={"call_id": call_id})
-        else:
-            item.call_id = call_id
-        changed = True
-    if not changed:
-        return response
-    if hasattr(response, "model_copy"):
-        return response.model_copy(update={"output": output})
-    response.output = output
-    return response
-
-
-def _promote_pseudo_tool_call(response: Any) -> Any:
-    """Convert unambiguous tool markup emitted as reasoning into a function call."""
-
-    output = list(getattr(response, "output", []))
-    if any(getattr(item, "type", None) == "function_call" for item in output):
-        return response
-
-    candidates = []
-    for item in output:
-        if getattr(item, "type", None) != "reasoning":
-            continue
-        for content in getattr(item, "content", None) or []:
-            if getattr(content, "type", None) != "reasoning_text":
-                continue
-            candidate = _parse_pseudo_tool_call(getattr(content, "text", ""))
-            if candidate is not None:
-                candidates.append(candidate)
-    if len(candidates) != 1:
-        return response
-
-    output.append(candidates[0])
-    if hasattr(response, "model_copy"):
-        return response.model_copy(update={"output": output})
-    response.output = output
-    return response
-
-
-def _parse_pseudo_tool_call(text: str) -> ResponseFunctionToolCall | None:
-    match = _PSEUDO_TOOL_CALL.fullmatch(text)
-    if match is None:
-        return None
-    function_name, body = match.groups()
-    arguments: dict[str, Any] = {}
-    position = 0
-    for parameter in _PSEUDO_TOOL_PARAMETER.finditer(body):
-        if body[position : parameter.start()].strip():
-            return None
-        name, raw_value = parameter.groups()
-        if name in arguments:
-            return None
-        value = raw_value.strip()
-        try:
-            arguments[name] = json.loads(value)
-        except json.JSONDecodeError:
-            arguments[name] = value
-        position = parameter.end()
-    if body[position:].strip():
-        return None
-    return ResponseFunctionToolCall(
-        arguments=json.dumps(arguments, separators=(",", ":")),
-        call_id="",
-        name=function_name,
-        type="function_call",
-        status="completed",
     )
 
 
@@ -470,8 +329,7 @@ def _response_attribution(
 
     values = {
         "response_model": getattr(response, "model", None),
-        "response_provider": getattr(response, "provider", None)
-        or response_provider,
+        "response_provider": getattr(response, "provider", None) or response_provider,
         "service_tier": getattr(response, "service_tier", None),
         "request_id": getattr(response, "_request_id", None),
     }
@@ -522,44 +380,22 @@ class ModelRunCancelled(asyncio.CancelledError):
         self.partial_result = partial_result
 
 
-class _ModelRequestTimeoutError(TimeoutError):
-    """A complete provider request exceeded its wall-clock deadline."""
-
-
-class OpenAIAgentRunner:
-    """Runs one Agents SDK turn with the currently legal game tools attached."""
+class LLMAgentRunner:
+    """Shared Responses API agent loop for concrete LLM endpoint adapters."""
 
     def __init__(
         self,
         *,
         api_key: str,
         base_url: str,
-        request_timeout_seconds: float = 120,
-        run_timeout_seconds: float = 300,
-        max_output_tokens: int = DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
-        session_database_path: Path | None = None,
-        session_history_items: int = 32,
-        checkpoint_store: AgentStore | None = None,
-        provider_routing_by_model: dict[str, dict[str, Any]] | None = None,
-        retry_provider_routing_by_model: dict[str, dict[str, Any]] | None = None,
         rulebook: Rulebook | None = None,
     ) -> None:
         self.api_key = api_key
-        self.request_timeout_seconds = request_timeout_seconds
-        self.run_timeout_seconds = run_timeout_seconds
-        self.max_output_tokens = max_output_tokens
-        self.session_database_path = session_database_path
-        self.session_history_items = session_history_items
-        self.checkpoint_store = checkpoint_store
-        self._sessions: dict[str, SQLiteSession] = {}
-        self._restored_session_ids: set[str] = set()
-        self.provider_routing_by_model = provider_routing_by_model or {}
-        self.retry_provider_routing_by_model = retry_provider_routing_by_model or {}
         self.rulebook = rulebook
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
             base_url=base_url,
-            timeout=request_timeout_seconds,
+            timeout=None,
             max_retries=0,
         )
 
@@ -575,59 +411,50 @@ class OpenAIAgentRunner:
         context: HarnessRunContext,
         tools: list[FunctionTool],
         instructions: str,
-        max_turns: int,
-        stop_at_tool_names: list[str],
         prompt_cache_key: str,
         trace_metadata: dict[str, str],
     ) -> ModelRunResult:
-        session = self._session(agent_record.id)
-        recovered = await self._restore_agent_session(agent_record.id, session)
-        current_state_id = str(observation.get("game", {}).get("stateId") or "unknown")
-        if (
-            recovered is not None
-            and recovered["phase"] == "before-model"
-            and recovered["stateId"] == current_state_id
-        ):
-            observation = copy.deepcopy(recovered["observation"])
-        current_input = OBSERVATION_INPUT_PREFIX + json.dumps(
-            observation, separators=(",", ":")
+        if context.decision is None:
+            raise ValueError("A model turn requires a gameplay decision")
+        visible_observation = dict(observation)
+        briefing = visible_observation.pop("decisionBriefing")
+        current_input = (
+            "Read the current board state, then follow the decision instructions below."
+            "\n\nCurrent observation:\n"
+            + json.dumps(visible_observation, separators=(",", ":"))
+            + "\n\nCurrent decision:\n"
+            + briefing
+            + "\n\nHow to complete this decision:\n"
+            "You MUST call submit_action to submit your gameplay action. A text response "
+            "does not submit anything. Use the exact fields and enum values in the current "
+            "submit_action schema. Explore liberally with the other tools whenever they can "
+            "test a route, target, threat, rule, memory, or assumption. Inspect the results, "
+            "then call submit_action. Exploration tools do not submit an action."
         )
-        is_retry = bool(observation.get("previousAttemptError"))
-        context_filter = _SessionContextFilter(
-            session_history_limit=self.session_history_items,
+        run_manifest = _ContextManifest(
             current_input=current_input,
+            action_output_schema=context.decision.output_schema.json_schema(),
         )
-        model_input_recorder = _ModelInputRecorder(context_filter.model_request_inputs)
+        model_input_recorder = _ModelInputRecorder(run_manifest.model_request_inputs)
         if not self.api_key:
-            message = (
-                "OPENROUTER_TOKEN or OPENAI_API_KEY is not configured on the harness server"
-            )
-            raise ModelRunError(message, _partial_result([], context_filter.manifest()))
-
-        session_item_count = await _session_item_count(session)
+            message = "OPENROUTER_TOKEN or OPENAI_API_KEY is not configured on the harness server"
+            raise ModelRunError(message, _partial_result([], run_manifest.manifest()))
 
         oracle_interactions: list[dict[str, Any]] = []
         provider_responses: list[tuple[str, Any]] = []
         response_attribution: dict[str, dict[str, Any]] = {}
-        provider_routing = self._provider_routing(
-            agent_record.model, is_retry=is_retry
-        )
-        response_provider = _single_provider(provider_routing)
         try:
             model = _response_model(
                 model=agent_record.model,
                 openai_client=self.client,
                 response_sink=provider_responses,
-                response_provider=response_provider,
                 response_attribution_sink=response_attribution,
-                request_timeout_seconds=self.request_timeout_seconds,
             )
             run_config = RunConfig(
                 tracing_disabled=True,
                 workflow_name="Raven Harness action",
                 group_id=agent_record.id,
                 trace_metadata=trace_metadata,
-                session_input_callback=context_filter,
                 call_model_input_filter=model_input_recorder,
             )
             activity_hooks = _ModelActivityHooks()
@@ -639,45 +466,41 @@ class OpenAIAgentRunner:
                             openai_client=self.client,
                             response_sink=provider_responses,
                             response_scope="rules-oracle",
-                            response_provider=response_provider,
                             response_attribution_sink=response_attribution,
-                            request_timeout_seconds=self.request_timeout_seconds,
                         ),
                         model_settings=self._model_settings(
-                            model=agent_record.model,
-                            is_retry=is_retry,
                             max_tokens=900,
                             prompt_cache_key=(
                                 f"raven-rules-{agent_record.model}-"
                                 f"{self.rulebook.cache_fingerprint}"
                             ),
                             metadata=trace_metadata,
+                            user=agent_record.id,
                         ),
                         interaction_sink=oracle_interactions,
                         run_config=run_config,
                         hooks=activity_hooks,
                     )
-                    if tool.name == RULES_ORACLE_TOOL_NAME
-                    and self.rulebook is not None
+                    if tool.name == RULES_ORACLE_TOOL_NAME and self.rulebook is not None
                     else tool
                 )
                 for tool in tools
             ]
+            tools.append(context.decision.submission_tool())
             agent = Agent[HarnessRunContext](
                 name=agent_record.name,
                 instructions=instructions,
                 model=model,
                 tools=tools,
+                output_type=None,
                 model_settings=self._model_settings(
-                    model=agent_record.model,
-                    is_retry=is_retry,
-                    max_tokens=self.max_output_tokens,
+                    max_tokens=None,
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
                     user=agent_record.id,
                     tool_choice="required",
                 ),
-                tool_use_behavior=_stop_after_accepted_action(stop_at_tool_names),
+                tool_use_behavior=_stop_after_submission,
                 reset_tool_choice=False,
             )
             model_input_recorder.parent_agent = agent
@@ -685,72 +508,39 @@ class OpenAIAgentRunner:
         except Exception as error:
             raise ModelRunError(
                 safe_error_text(error),
-                _partial_result(oracle_interactions, context_filter.manifest()),
+                _partial_result(oracle_interactions, run_manifest.manifest()),
             ) from None
 
         def partial_result() -> ModelRunResult:
             return _partial_result(
                 oracle_interactions,
-                context_filter.manifest(),
+                run_manifest.manifest(),
                 parent_responses=activity_hooks.responses,
                 provider_responses=provider_responses,
                 response_attribution=response_attribution,
             )
 
         try:
-            async with asyncio.timeout(self.run_timeout_seconds):
-                self._save_agent_checkpoint(
-                    agent_record=agent_record,
-                    observation=observation,
-                    session_item_count=session_item_count,
-                    run_id=trace_metadata["run_id"],
-                    phase="before-model",
-                )
+            results = []
+            run_input: str | list[dict[str, Any]] = current_input
+            while context.action_taken is None:
                 result = await Runner.run(
                     agent,
-                    input=current_input,
+                    input=run_input,
                     context=context,
-                    max_turns=max_turns,
+                    max_turns=None,
                     run_config=run_config,
-                    session=session,
                     hooks=activity_hooks,
                 )
+                results.append(result)
+                if context.action_taken is None:
+                    run_input = result.to_input_list()
+                    run_input.append({"role": "user", "content": SUBMISSION_REMINDER})
         except asyncio.CancelledError as error:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
-            raise ModelRunCancelled(
-                partial_result()
-            ) from error
-        except (APITimeoutError, _ModelRequestTimeoutError):
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
-            message = f"Model API timed out after {self.request_timeout_seconds:g} seconds"
-            raise ModelRunError(
-                message,
-                partial_result(),
-            ) from None
-        except TimeoutError:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
-            message = (
-                f"Model run exceeded {self.run_timeout_seconds:g} seconds total"
-            )
-            raise ModelRunError(
-                message,
-                partial_result(),
-            ) from None
+            raise ModelRunCancelled(partial_result()) from error
         except GameConnectionLost:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
             raise
         except Exception as error:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
             connection_error = _caused_by_connection_loss(error)
             if connection_error is not None:
                 raise connection_error from error
@@ -776,140 +566,41 @@ class OpenAIAgentRunner:
 
         try:
             completed = _completed_result(
-                result,
+                results,
                 oracle_interactions,
-                context_filter.manifest(),
+                run_manifest.manifest(),
                 provider_responses=provider_responses,
                 response_attribution=response_attribution,
             )
         except Exception as error:
-            await _rollback_unaccepted_session(
-                session, session_item_count, context=context
-            )
             raise ModelRunError(
                 safe_error_text(error),
                 partial_result(),
             ) from None
-        await _rollback_unaccepted_session(
-            session, session_item_count, context=context
-        )
-        if context.action_taken is not None:
-            self._save_agent_checkpoint(
-                agent_record=agent_record,
-                observation=observation,
-                session_item_count=await _session_item_count(session),
-                run_id=trace_metadata["run_id"],
-                phase="after-action",
-            )
         return completed
 
-    async def _restore_agent_session(
-        self, agent_id: str, session: Session | None
-    ) -> dict[str, Any] | None:
-        """Discard an interrupted turn back to its last durable boundary."""
-
-        if (
-            session is None
-            or self.checkpoint_store is None
-            or agent_id in self._restored_session_ids
-        ):
-            return None
-        checkpoint = self.checkpoint_store.get_agent_checkpoint(agent_id)
-        if checkpoint is not None:
-            expected_count = int(checkpoint["sessionItemCount"])
-            current_count = await _session_item_count(session)
-            if current_count < expected_count:
-                raise RuntimeError(
-                    f"Agent session {agent_id} has {current_count} items but its "
-                    f"checkpoint requires {expected_count}"
-                )
-            for _ in range(current_count - expected_count):
-                if await session.pop_item() is None:
-                    raise RuntimeError(
-                        f"Agent session {agent_id} could not be restored to its "
-                        "checkpoint"
-                    )
-        self._restored_session_ids.add(agent_id)
-        return checkpoint
-
-    def _save_agent_checkpoint(
-        self,
-        *,
-        agent_record: AgentRecord,
-        observation: dict[str, Any],
-        session_item_count: int,
-        run_id: str,
-        phase: str,
-    ) -> None:
-        if self.checkpoint_store is None:
-            return
-        state_id = str(observation.get("game", {}).get("stateId") or "unknown")
-        self.checkpoint_store.set_agent_checkpoint(
-            agent_id=agent_record.id,
-            state_id=state_id,
-            observation=observation,
-            session_item_count=session_item_count,
-            run_id=run_id,
-            phase=phase,
-        )
-
-    def _session(self, agent_id: str) -> Session | None:
-        if self.session_database_path is None:
-            return None
-        session = self._sessions.get(agent_id)
-        if session is None:
-            session = SQLiteSession(
-                session_id=f"raven-agent-{agent_id}",
-                db_path=self.session_database_path,
-                session_settings=SessionSettings(limit=self.session_history_items),
-            )
-            self._sessions[agent_id] = session
-        return session
-
     async def shutdown(self) -> None:
-        for session in self._sessions.values():
-            session.close()
-        self._sessions.clear()
         await self.client.close()
-
-    async def clear_session(self, agent_id: str) -> None:
-        if self.session_database_path is None:
-            return
-        session = self._sessions.pop(agent_id, None)
-        if session is None:
-            session = SQLiteSession(
-                session_id=f"raven-agent-{agent_id}",
-                db_path=self.session_database_path,
-            )
-        try:
-            await session.clear_session()
-        finally:
-            session.close()
-            self._restored_session_ids.discard(agent_id)
 
     def _model_settings(
         self,
         *,
-        model: str,
-        is_retry: bool,
-        max_tokens: int,
+        max_tokens: int | None,
         prompt_cache_key: str | None,
         metadata: dict[str, str] | None,
         user: str | None = None,
         tool_choice: str = "auto",
     ) -> ModelSettings:
-        provider_routing = self._provider_routing(model, is_retry=is_retry)
+        extra_body = self._request_extra_body(user=user)
         return ModelSettings(
             tool_choice=tool_choice,
             parallel_tool_calls=False,
             max_tokens=max_tokens,
-            reasoning={"effort": "low"},
+            reasoning={"effort": "high"},
             store=False,
             metadata=metadata,
             preserve_raw_usage=True,
-            extra_body=(
-                {"provider": provider_routing} if provider_routing else None
-            ),
+            extra_body=extra_body or None,
             extra_args=(
                 {
                     "prompt_cache_key": prompt_cache_key,
@@ -920,65 +611,40 @@ class OpenAIAgentRunner:
             ),
         )
 
-    def _provider_routing(
-        self, model: str, *, is_retry: bool
-    ) -> dict[str, Any] | None:
-        routing_by_model = (
-            self.retry_provider_routing_by_model
-            if is_retry
-            else self.provider_routing_by_model
+    def _request_extra_body(self, *, user: str | None) -> dict[str, Any]:
+        del user
+        return {}
+
+
+class OpenAIAgentRunner(LLMAgentRunner):
+    """Agent runner for OpenAI's Responses API."""
+
+
+class OpenRouterAgentRunner(LLMAgentRunner):
+    """Agent runner for OpenRouter with shared endpoint exclusions."""
+
+    def __init__(
+        self,
+        *,
+        provider_blocklist: list[str] | tuple[str, ...],
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.provider_blocklist = tuple(
+            dict.fromkeys(
+                provider.strip().lower()
+                for provider in provider_blocklist
+                if provider.strip()
+            )
         )
-        return routing_by_model.get(
-            model, routing_by_model.get("*")
-        ) or self.provider_routing_by_model.get(
-            model, self.provider_routing_by_model.get("*")
-        )
 
-
-def _single_provider(provider_routing: dict[str, Any] | None) -> str | None:
-    if provider_routing is None:
-        return None
-    only = provider_routing.get("only")
-    if (
-        isinstance(only, list)
-        and len(only) == 1
-        and isinstance(only[0], str)
-        and only[0]
-    ):
-        return only[0]
-    return None
-
-
-async def _rollback_unaccepted_session(
-    session: Session | None,
-    original_item_count: int,
-    *,
-    context: HarnessRunContext,
-) -> None:
-    """Remove only the current failed decision from persistent model history."""
-
-    if session is None or context.action_taken is not None:
-        return
-    try:
-        current_item_count = await _session_item_count(session)
-        for _ in range(max(0, current_item_count - original_item_count)):
-            if await session.pop_item() is None:
-                break
-    except Exception:
-        # A stale failed transcript is worse than losing optional conversation
-        # history. Authoritative observations and durable strategy remain stored.
-        try:
-            await session.clear_session()
-        except Exception:
-            pass
-
-
-async def _session_item_count(session: Session | None) -> int:
-    if session is None:
-        return 0
-    # SQLiteSession uses -1 as an explicit unlimited query. Calling get_items()
-    # would apply the model-context history limit and is not a durable row count.
-    return len(await session.get_items(limit=-1))
+    def _request_extra_body(self, *, user: str | None) -> dict[str, Any]:
+        body: dict[str, Any] = {}
+        if user:
+            body["session_id"] = f"raven-agent-{user}"
+        if self.provider_blocklist:
+            body["provider"] = {"ignore": list(self.provider_blocklist)}
+        return body
 
 
 def _canonical_json(value: Any) -> str:
@@ -991,7 +657,7 @@ def _canonical_json(value: Any) -> str:
 
 
 def _completed_result(
-    result: Any,
+    results: list[Any],
     oracle_interactions: list[dict[str, Any]],
     context_manifest: dict[str, Any],
     *,
@@ -999,25 +665,36 @@ def _completed_result(
     response_attribution: dict[str, dict[str, Any]] | None = None,
 ) -> ModelRunResult:
     response_attribution = response_attribution or {}
-    total_usage = result.context_wrapper.usage
     usage = {
-        "requests": total_usage.requests,
-        "inputTokens": total_usage.input_tokens,
-        "outputTokens": total_usage.output_tokens,
-        "totalTokens": total_usage.total_tokens,
+        "requests": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
     }
-    response_items = [_jsonable(item.to_input_item()) for item in result.new_items]
+    response_items = [
+        _jsonable(item.to_input_item())
+        for result in results
+        for item in result.new_items
+    ]
     raw_usage: list[dict[str, Any]] = []
-    for response in result.raw_responses:
-        native_usage = (
-            _jsonable(response.raw_usage) if response.raw_usage is not None else {}
-        )
-        native_usage["scope"] = "agent"
-        native_usage["response_id"] = response.response_id
-        _merge_response_attribution(
-            native_usage, response.response_id, response_attribution
-        )
-        raw_usage.append(native_usage)
+    parent_responses = []
+    for result in results:
+        total_usage = result.context_wrapper.usage
+        usage["requests"] += total_usage.requests
+        usage["inputTokens"] += total_usage.input_tokens
+        usage["outputTokens"] += total_usage.output_tokens
+        usage["totalTokens"] += total_usage.total_tokens
+        parent_responses.extend(result.raw_responses)
+        for response in result.raw_responses:
+            native_usage = (
+                _jsonable(response.raw_usage) if response.raw_usage is not None else {}
+            )
+            native_usage["scope"] = "agent"
+            native_usage["response_id"] = response.response_id
+            _merge_response_attribution(
+                native_usage, response.response_id, response_attribution
+            )
+            raw_usage.append(native_usage)
     _append_oracle_traces(
         response_items,
         raw_usage,
@@ -1026,7 +703,7 @@ def _completed_result(
     )
     unrepresented_responses = _unrepresented_provider_responses(
         provider_responses or [],
-        parent_responses=result.raw_responses,
+        parent_responses=parent_responses,
         oracle_interactions=oracle_interactions,
     )
     _append_provider_response_traces(
@@ -1037,9 +714,14 @@ def _completed_result(
         count_usage=False,
         response_attribution=response_attribution,
     )
+    final = results[-1]
     return ModelRunResult(
-        response_id=result.last_response_id,
-        output_text=str(result.final_output or ""),
+        response_id=final.last_response_id,
+        output_text=(
+            json.dumps(final.final_output, ensure_ascii=False)
+            if isinstance(final.final_output, dict)
+            else str(final.final_output or "")
+        ),
         usage=usage,
         response_items=response_items,
         raw_usage=raw_usage,
@@ -1093,9 +775,7 @@ def _append_provider_response_traces(
         response_id = getattr(response, "id", None)
         native_usage["scope"] = scope
         native_usage["response_id"] = response_id
-        _merge_response_attribution(
-            native_usage, response_id, response_attribution
-        )
+        _merge_response_attribution(native_usage, response_id, response_attribution)
         raw_usage.append(native_usage)
         response_items.append(
             {
@@ -1106,9 +786,12 @@ def _append_provider_response_traces(
                 "incompleteDetails": _jsonable(
                     getattr(response, "incomplete_details", None)
                 ),
-                "output": [
-                    _jsonable(item) for item in getattr(response, "output", [])
-                ],
+                "providerError": (
+                    _jsonable(response.error)
+                    if getattr(response, "error", None) is not None
+                    else None
+                ),
+                "output": [_jsonable(item) for item in getattr(response, "output", [])],
             }
         )
 

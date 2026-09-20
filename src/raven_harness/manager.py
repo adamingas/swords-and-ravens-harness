@@ -18,6 +18,7 @@ from .game.client import (
     GameConnectionLost,
     SwordsAndRavensClient,
 )
+from .game.map_reference import observation_map_reference
 from .harness.actions import HarnessRunContext, describe_tools
 from .harness.interface import PlayerHarness, PreparedTurn
 from .harness.observation import build_context, is_waiting_for_player
@@ -278,7 +279,6 @@ class AgentManager:
         if self.store.get_agent(agent_id) is None:
             return False
         await self.stop(agent_id)
-        await self.harness.clear_agent_history(agent_id)
         return self.store.delete_agent(agent_id)
 
     async def run_once(self, agent_id: str) -> dict[str, Any]:
@@ -399,7 +399,6 @@ class AgentManager:
                 raise RuntimeError(
                     "This player is not responsible for the current decision"
                 )
-            checkpoint = self.store.get_agent_checkpoint(agent_id)
             current_state_id = str(
                 game_context.snapshot.get("leafStateId") or "unknown"
             )
@@ -415,22 +414,12 @@ class AgentManager:
                 session.failure_leaf_id = None
                 session.general_failures = 0
                 session.capacity_failures = 0
-            if (
-                checkpoint is not None
-                and checkpoint["phase"] == "before-model"
-                and checkpoint["stateId"] == current_state_id
-            ):
-                checkpoint_error = checkpoint["observation"].get(
-                    "previousAttemptError"
-                )
-                if isinstance(checkpoint_error, str) and checkpoint_error:
-                    previous_error = checkpoint_error
             prepared = harness.prepare_turn(record, game_context, previous_error)
             observation = prepared.observation
             session.observation = observation
             tools = prepared.tools
             session.current_tools = [tool.name for tool in tools]
-            if not prepared.game_tool_names:
+            if prepared.decision is None:
                 raise RuntimeError(
                     "No model tool is implemented for the current game state"
                 )
@@ -1188,7 +1177,8 @@ def _monitoring_state(
         if unit.get("allegiance") == house_id
     ]
     map_by_id = {
-        region.get("id"): region for region in observation.get("map", {}).get("regions", [])
+        region.get("id"): region
+        for region in observation_map_reference(observation)["regions"]
     }
     controlled_regions = [
         {

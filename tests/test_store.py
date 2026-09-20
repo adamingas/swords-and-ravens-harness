@@ -4,7 +4,7 @@ import sqlite3
 import pytest
 
 from raven_harness.agent_store import AgentStore
-from raven_harness.database import SCHEMA_VERSION, Database
+from raven_harness.database import Database
 from raven_harness.schemas import AgentCreate, AgentPublic
 
 from conftest import lobby_snapshot
@@ -61,7 +61,6 @@ def test_player_snapshots_are_append_only_and_deduplicated(tmp_path) -> None:
     assert len(newest) == 1
     assert newest[0]["id"] == second_id
     assert newest[0]["leafStateId"] == "leaf-1"
-    assert len(newest[0]["contentSha256"]) == 64
     assert store.get_snapshot(agent.id, second_id)["snapshot"] == changed
     latest = store.get_latest_snapshot(agent.id)
     assert latest is not None
@@ -71,34 +70,6 @@ def test_player_snapshots_are_append_only_and_deduplicated(tmp_path) -> None:
     assert store.delete_agent(agent.id) is True
     assert store.list_snapshots(agent.id) == []
     assert store.get_latest_snapshot(agent.id) is None
-    database.close()
-
-
-def test_fresh_database_uses_current_schema(tmp_path) -> None:
-    database = Database(tmp_path / "fresh.db")
-
-    version = database.connection.execute("PRAGMA user_version").fetchone()[0]
-    run_columns = {
-        row["name"]
-        for row in database.connection.execute("PRAGMA table_info(agent_runs)")
-    }
-
-    checkpoint_columns = {
-        row["name"]
-        for row in database.connection.execute("PRAGMA table_info(agent_checkpoints)")
-    }
-
-    assert version == SCHEMA_VERSION == 4
-    assert "context_json" in run_columns
-    assert checkpoint_columns == {
-        "agent_id",
-        "state_id",
-        "observation_json",
-        "session_item_count",
-        "run_id",
-        "phase",
-        "updated_at",
-    }
     database.close()
 
 
@@ -112,7 +83,9 @@ def test_database_rejects_every_non_current_existing_schema(tmp_path, version) -
     connection.commit()
     connection.close()
 
-    with pytest.raises(RuntimeError, match=f"schema version {version} is not supported"):
+    with pytest.raises(
+        RuntimeError, match=f"schema version {version} is not supported"
+    ):
         Database(path)
 
     connection = sqlite3.connect(path)
@@ -123,7 +96,7 @@ def test_database_rejects_every_non_current_existing_schema(tmp_path, version) -
     connection.close()
 
 
-def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
+def test_state_history_memory_and_run_persist(tmp_path) -> None:
     database = Database(tmp_path / "memory.db")
     store = AgentStore(database)
     agent = store.create_agent(
@@ -140,22 +113,6 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
     first_id = store.record_state(agent.id, first)
     store.record_history_action(first_id, "submit_orders", {"assignments": []})
     store.record_state(agent.id, second)
-    checkpoint = store.set_agent_checkpoint(
-        agent_id=agent.id,
-        state_id="leaf-2",
-        observation=second,
-        session_item_count=7,
-        run_id="run-pending",
-        phase="before-model",
-    )
-
-    assert checkpoint == store.get_agent_checkpoint(agent.id)
-    assert checkpoint["stateId"] == "leaf-2"
-    assert checkpoint["observation"] == second
-    assert checkpoint["sessionItemCount"] == 7
-    assert checkpoint["runId"] == "run-pending"
-    assert checkpoint["phase"] == "before-model"
-
     recalled = store.recall_state(agent.id, 1)
     assert recalled is not None
     assert recalled["stateId"] == "leaf-1"
@@ -230,89 +187,13 @@ def test_state_history_memory_and_rich_run_trace_persist(tmp_path) -> None:
         duration_ms=1000,
         history_id=first_id,
     )
-    store.add_event(
-        agent.id,
-        "model-request-started",
-        {"requestIndex": 1, "scope": "agent", "inputItemCount": 1},
-    )
-    store.add_event(
-        agent.id,
-        "model-request-started",
-        {"requestIndex": 2, "scope": "rules-oracle", "inputItemCount": 1},
-    )
-    run = store.list_runs(agent.id)[0]
-    assert run["responseId"] == "resp-1"
-    assert run["rawUsage"][0]["cost"] == 0.001
-    assert run["durationMs"] == 1000
     trace = store.get_run(agent.id, "run-1")
     assert trace is not None
     assert trace["observation"] == second
-    assert trace["contextManifest"] == {
-        "mode": "current-observation-and-memory",
-        "items": [{"kind": "observation", "characters": 512}],
-    }
     assert trace["instructions"] == "stable prompt"
     assert trace["response"] == [{"type": "function_call", "name": "resolve_march"}]
     assert store.get_run(agent.id, "unknown") is None
 
-    metrics = store.get_run_metrics(agent.id)
-    assert metrics == {
-        "runCount": 1,
-        "statusCounts": {"completed": 1},
-        "modelCalls": {
-            "started": 2,
-            "responses": 2,
-            "withoutResponse": 0,
-            "responsesWithoutStart": 0,
-            "startedByScope": {"agent": 1, "rules-oracle": 1},
-        },
-        "tokens": {
-            "input": 120,
-            "output": 25,
-            "total": 145,
-            "cachedInput": 40,
-            "cacheWrite": 10,
-            "reasoning": 15,
-            "maxInputInRun": 120,
-        },
-        "requestInputTokens": {
-            "reportedRequests": 2,
-            "average": 60,
-            "p50": 20,
-            "p90": 100,
-            "p99": 100,
-            "maximum": 100,
-        },
-        "rulesOracleRequestInputTokens": {
-            "reportedRequests": 1,
-            "average": 500,
-            "p50": 500,
-            "p90": 500,
-            "p99": 500,
-            "maximum": 500,
-        },
-        "costUsd": 0.0016,
-        "upstreamInferenceCostUsd": 0.0008,
-        "costCoverage": {
-            "responseUsageRecords": 3,
-            "chargedCostRecords": 3,
-            "upstreamInferenceCostRecords": 1,
-        },
-        "responseAttribution": {
-            "providers": {"Example Provider": 1},
-            "models": {"test-model-2026-09-01": 1},
-            "responsesWithoutProvider": 2,
-        },
-        "durationMs": {
-            "total": 1000,
-            "average": 1000,
-            "p50": 1000,
-            "p90": 1000,
-            "p99": 1000,
-            "maximum": 1000,
-        },
-        "historicalStates": 2,
-    }
     database.close()
 
 

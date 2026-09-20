@@ -28,27 +28,18 @@ from .evaluation import (
 
 
 HOUSE_TEST_MODEL = "openai/gpt-oss-120b"
-HOUSE_TEST_PROVIDER = "cerebras"
 HOUSE_TEST_GAMES = 5
 HOUSE_TEST_RANDOM_SEED = 102
 HOUSE_TEST_INVESTIGATE_AFTER_SECONDS = 120
-HOUSE_TEST_MAX_OUTPUT_TOKENS = 4_096
 
 
 async def run_house_evaluation(args: argparse.Namespace) -> Path:
     """Run complete games with one model in all six seats."""
 
-    settings = Settings(
-        openrouter_provider_order=HOUSE_TEST_PROVIDER,
-        openrouter_allow_unlisted_providers=False,
-        openrouter_allow_fallbacks=False,
-        openrouter_require_parameters=False,
-        model_max_output_tokens=HOUSE_TEST_MAX_OUTPUT_TOKENS,
-    )
+    settings = Settings()
     if not settings.openrouter_token:
         raise RuntimeError(
-            "The GPT-OSS house experiment requires an endpoint adapter that can "
-            "restrict requests to the Cerebras backend"
+            "The GPT-OSS house experiment requires an OpenRouter token"
         )
     if not settings.model_api_key:
         raise RuntimeError(
@@ -381,8 +372,9 @@ def _load_or_create_manifest(
         "experiment": "same-model-house-test",
         "harness": TOURNAMENT_HARNESS_ID,
         "model": HOUSE_TEST_MODEL,
-        "requestedProvider": HOUSE_TEST_PROVIDER,
-        "providerFallbacks": False,
+        "blockedProviders": (
+            provenance.get("models", {}).get("providerRouting") or {}
+        ).get("blockedProviders", []),
         "gameCount": HOUSE_TEST_GAMES,
         "randomSeed": HOUSE_TEST_RANDOM_SEED,
         "maxRounds": None,

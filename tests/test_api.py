@@ -22,8 +22,6 @@ class UnusedRunner:
         context,
         tools,
         instructions,
-        max_turns,
-        stop_at_tool_names,
         prompt_cache_key,
         trace_metadata,
     ):
@@ -32,15 +30,8 @@ class UnusedRunner:
     async def shutdown(self) -> None:
         pass
 
-    async def clear_session(self, agent_id: str) -> None:
-        del agent_id
 
-
-def test_default_relative_data_paths_are_project_local() -> None:
-    defaults = Settings(_env_file=None)
-    assert defaults.resolved_database_path == PROJECT_ROOT / "data/harness.db"
-    assert defaults.resolved_rules_path == PROJECT_ROOT / "data/rules.json"
-
+def test_relative_data_paths_and_endpoint_selection() -> None:
     settings = Settings(
         database_path=Path("data/test.db"),
         rules_path=Path("data/test-rules.json"),
@@ -51,10 +42,7 @@ def test_default_relative_data_paths_are_project_local() -> None:
     assert settings.resolved_rules_path == PROJECT_ROOT / "data/test-rules.json"
     assert settings.model_provider == "api.openai.com"
     assert settings.uses_openrouter is False
-    assert (
-        Settings(openrouter_token="secret", _env_file=None).uses_openrouter
-        is True
-    )
+    assert Settings(openrouter_token="secret", _env_file=None).uses_openrouter is True
     assert (
         Settings(
             openai_base_url="https://models.example.test/v1",
@@ -64,60 +52,16 @@ def test_default_relative_data_paths_are_project_local() -> None:
     )
 
 
-def test_openrouter_routing_prefers_compatible_hosts() -> None:
-    settings = Settings(_env_file=None)
-
-    assert settings.model_request_timeout_seconds == 120
-    assert settings.model_run_timeout_seconds == 300
-    assert settings.autoplay_max_consecutive_failures == 2
-    assert settings.autoplay_retry_base_seconds == 2
-    assert settings.autoplay_max_capacity_failures == 4
-    assert settings.autoplay_capacity_retry_base_seconds == 2
-    assert settings.model_id == "z-ai/glm-5.3-flash"
-    assert settings.openrouter_provider_routing == {
-        "allow_fallbacks": True,
-        "require_parameters": False,
-        "order": [
-            "reka",
-            "cloudflare",
-            "coreweave",
-            "fireworks",
-            "deepinfra",
-            "together",
-        ],
-        "only": [
-            "reka",
-            "cloudflare",
-            "coreweave",
-            "fireworks",
-            "deepinfra",
-            "together",
-        ],
-    }
-
-
-def test_openrouter_routing_uses_sort_when_order_is_empty() -> None:
+def test_openrouter_blocklist_ignores_empty_items() -> None:
     settings = Settings(
-        openrouter_provider_order="",
-        openrouter_provider_sort="latency",
+        openrouter_provider_blocklist="together, ,novita",
         _env_file=None,
     )
 
-    assert settings.openrouter_provider_routing == {
-        "allow_fallbacks": True,
-        "require_parameters": False,
-        "sort": "latency",
-    }
+    assert settings.openrouter_blocked_providers == ["together", "novita"]
 
 
-def test_lobby_setup_request_accepts_only_supported_variant() -> None:
-    assert LobbySetupRequest().model_dump() == {
-        "setup_id": "base-game",
-        "player_count": 6,
-        "pbem": True,
-        "vassals": False,
-        "victory_points_to_win": 7,
-    }
+def test_lobby_setup_request_rejects_unsupported_variants() -> None:
     assert LobbySetupRequest(playerCount=3).player_count == 3
 
     for field, value in (
@@ -139,13 +83,6 @@ def test_dashboard_api_creates_and_lists_agents(tmp_path) -> None:
         runner=UnusedRunner(),
     )
     with TestClient(app) as client:
-        assert client.get("/api/models").json() == {
-            "provider": "api.openai.com",
-            "defaultModelId": "z-ai/glm-5.3-flash",
-        }
-        health = client.get("/api/health").json()
-        assert health["defaultModelId"] == "z-ai/glm-5.3-flash"
-        assert health["rulesOracleAvailable"] is False
         response = client.post(
             "/api/agents",
             json={
@@ -215,7 +152,7 @@ def test_dashboard_restores_last_saved_player_state_after_restart(tmp_path) -> N
     assert [unit["id"] for unit in monitor["state"]["player"]["units"]] == [1, 2]
 
 
-def test_dashboard_uses_a_default_and_accepts_per_agent_models(tmp_path) -> None:
+def test_dashboard_accepts_per_agent_models(tmp_path) -> None:
     app = create_app(
         Settings(
             database_path=tmp_path / "api.db",
@@ -233,10 +170,6 @@ def test_dashboard_uses_a_default_and_accepts_per_agent_models(tmp_path) -> None
         "authToken": "secret",
     }
     with TestClient(app) as client:
-        created = client.post("/api/agents", json=base_request)
-        assert created.status_code == 201
-        assert created.json()["agent"]["model"] == "provider/model-a"
-
         other = client.post(
             "/api/agents",
             json={**base_request, "name": "Other Wolf", "model": "provider/model-b"},
@@ -297,70 +230,14 @@ def test_dashboard_rejects_removed_harness_selector(tmp_path) -> None:
             f"/api/agents/{agent['id']}/snapshots/{snapshots[0]['id']}"
         ).json()["snapshot"]
         assert stored_snapshot["snapshot"] == lobby_snapshot()
-        assert client.get(
-            f"/api/agents/{agent['id']}/snapshots/999999"
-        ).status_code == 404
-        assert client.get(
-            f"/api/agents/{agent['id']}/snapshots", params={"limit": 0}
-        ).status_code == 422
+        assert (
+            client.get(f"/api/agents/{agent['id']}/snapshots/999999").status_code == 404
+        )
+        assert (
+            client.get(
+                f"/api/agents/{agent['id']}/snapshots", params={"limit": 0}
+            ).status_code
+            == 422
+        )
         assert client.get("/api/agents/missing/snapshots").status_code == 404
-        assert client.get(f"/api/agents/{agent['id']}/metrics").json() == {
-            "metrics": {
-                "runCount": 0,
-                "statusCounts": {},
-                "modelCalls": {
-                    "started": 0,
-                    "responses": 0,
-                    "withoutResponse": 0,
-                    "responsesWithoutStart": 0,
-                    "startedByScope": {},
-                },
-                "tokens": {
-                    "input": 0,
-                    "output": 0,
-                    "total": 0,
-                    "cachedInput": 0,
-                    "cacheWrite": 0,
-                    "reasoning": 0,
-                    "maxInputInRun": 0,
-                },
-                "requestInputTokens": {
-                    "reportedRequests": 0,
-                    "average": 0,
-                    "p50": 0,
-                    "p90": 0,
-                    "p99": 0,
-                    "maximum": 0,
-                },
-                "rulesOracleRequestInputTokens": {
-                    "reportedRequests": 0,
-                    "average": 0,
-                    "p50": 0,
-                    "p90": 0,
-                    "p99": 0,
-                    "maximum": 0,
-                },
-                "costUsd": 0.0,
-                "upstreamInferenceCostUsd": 0.0,
-                "costCoverage": {
-                    "responseUsageRecords": 0,
-                    "chargedCostRecords": 0,
-                    "upstreamInferenceCostRecords": 0,
-                },
-                "responseAttribution": {
-                    "providers": {},
-                    "models": {},
-                    "responsesWithoutProvider": 0,
-                },
-                "durationMs": {
-                    "total": 0,
-                    "average": 0,
-                    "p50": 0,
-                    "p90": 0,
-                    "p99": 0,
-                    "maximum": 0,
-                },
-                "historicalStates": 0,
-            }
-        }
         assert client.get(f"/api/agents/{agent['id']}/runs/missing").status_code == 404

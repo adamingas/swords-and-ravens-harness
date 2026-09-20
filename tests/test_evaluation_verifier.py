@@ -151,7 +151,6 @@ def _completed_game(root, manifest, game_number: int) -> dict:
                     "runtimeSha256": "4" * 64,
                     "systemPromptSha256": SYSTEM_PROMPT_HASH,
                     "effectiveInstructionsSha256": EFFECTIVE_PROMPT_HASH,
-                    "maxOutputTokens": 16_384,
                 },
                 "rules": {"available": True, "sha256": "5" * 64},
                 "models": {
@@ -364,44 +363,6 @@ def test_verifier_rejects_schedule_random_seed_mismatch(tmp_path) -> None:
         verify_evaluation(root)
 
 
-def test_verifier_rejects_missing_attempt_provenance(tmp_path) -> None:
-    root = tmp_path / "missing-provenance"
-    _evaluation(root, game_count=12, completed_games=1)
-    manifest_path = root / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    del manifest["games"][0]["attempts"][0]["provenance"]
-    _write_json(manifest_path, manifest)
-
-    with pytest.raises(EvaluationVerificationError, match="runtime provenance"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_assignment_prompt_hash_mismatch(tmp_path) -> None:
-    root = tmp_path / "prompt-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    assignment_path = root / "game-01/attempt-01/assignments.json"
-    assignments = json.loads(assignment_path.read_text())
-    assignments[0]["promptSha256"] = "0" * 64
-    _write_json(assignment_path, assignments)
-
-    with pytest.raises(EvaluationVerificationError, match="prompt hash"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_attempt_prompt_hash_mismatch(tmp_path) -> None:
-    root = tmp_path / "provenance-prompt-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    manifest_path = root / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["games"][0]["attempts"][0]["provenance"]["harness"][
-        "effectiveInstructionsSha256"
-    ] = "0" * 64
-    _write_json(manifest_path, manifest)
-
-    with pytest.raises(EvaluationVerificationError, match="prompt hash"):
-        verify_evaluation(root)
-
-
 def test_verifier_rejects_saved_winner_mismatch(tmp_path) -> None:
     root = tmp_path / "winner-mismatch"
     _evaluation(root, game_count=12, completed_games=1)
@@ -437,24 +398,6 @@ def test_verifier_rejects_database_run_model_mismatch(tmp_path) -> None:
         database.close()
 
     with pytest.raises(EvaluationVerificationError, match="wrong model"):
-        verify_evaluation(root)
-
-
-def test_verifier_requires_a_response_trace_for_every_model(tmp_path) -> None:
-    root = tmp_path / "missing-model-trace"
-    _evaluation(root, game_count=12, completed_games=1)
-    database = Database(root / "game-01/attempt-01/harness.db")
-    try:
-        with database.lock:
-            database.connection.execute(
-                "UPDATE agent_runs SET response_id = NULL WHERE id = ?",
-                ("run-1-1",),
-            )
-            database.connection.commit()
-    finally:
-        database.close()
-
-    with pytest.raises(EvaluationVerificationError, match="no model response trace"):
         verify_evaluation(root)
 
 

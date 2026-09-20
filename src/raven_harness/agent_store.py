@@ -204,73 +204,6 @@ class AgentStore:
             return None
         return self._snapshot_row(row)
 
-    def set_agent_checkpoint(
-        self,
-        *,
-        agent_id: str,
-        state_id: str,
-        observation: dict[str, Any],
-        session_item_count: int,
-        run_id: str,
-        phase: str,
-    ) -> dict[str, Any]:
-        """Persist the exact session boundary surrounding one model call."""
-
-        if session_item_count < 0:
-            raise ValueError("session item count cannot be negative")
-        if phase not in {"before-model", "after-action"}:
-            raise ValueError(f"invalid agent checkpoint phase: {phase}")
-        now = datetime.now(timezone.utc).isoformat()
-        with self.database.lock, self.database.connection:
-            self.database.connection.execute(
-                """
-                INSERT INTO agent_checkpoints (
-                  agent_id, state_id, observation_json, session_item_count,
-                  run_id, phase, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(agent_id) DO UPDATE SET
-                  state_id = excluded.state_id,
-                  observation_json = excluded.observation_json,
-                  session_item_count = excluded.session_item_count,
-                  run_id = excluded.run_id,
-                  phase = excluded.phase,
-                  updated_at = excluded.updated_at
-                """,
-                (
-                    agent_id,
-                    state_id,
-                    json.dumps(observation),
-                    session_item_count,
-                    run_id,
-                    phase,
-                    now,
-                ),
-            )
-        checkpoint = self.get_agent_checkpoint(agent_id)
-        assert checkpoint is not None
-        return checkpoint
-
-    def get_agent_checkpoint(self, agent_id: str) -> dict[str, Any] | None:
-        with self.database.lock:
-            row = self.database.connection.execute(
-                """
-                SELECT state_id, observation_json, session_item_count,
-                       run_id, phase, updated_at
-                FROM agent_checkpoints WHERE agent_id = ?
-                """,
-                (agent_id,),
-            ).fetchone()
-        if row is None:
-            return None
-        return {
-            "stateId": row["state_id"],
-            "observation": json.loads(row["observation_json"]),
-            "sessionItemCount": int(row["session_item_count"]),
-            "runId": row["run_id"],
-            "phase": row["phase"],
-            "updatedAt": row["updated_at"],
-        }
-
     @staticmethod
     def _snapshot_row(row: Any) -> dict[str, Any]:
         return {
@@ -435,6 +368,7 @@ class AgentStore:
                 "opponentModels": [],
                 "commitments": [],
                 "lessons": [],
+                "decisionJournal": [],
                 "revision": 0,
                 "updatedAt": None,
             }

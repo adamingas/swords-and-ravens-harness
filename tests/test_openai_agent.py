@@ -1,36 +1,30 @@
 import asyncio
 from collections.abc import AsyncIterator
-import hashlib
-import json
-import sqlite3
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from agents import ModelResponse, ModelSettings, Usage
-from agents.memory import SQLiteSession
 from agents.models.interface import Model
-from openai.types.responses import ResponseFunctionToolCall, ResponseReasoningItem
+from openai.types.responses import (
+    ResponseFunctionToolCall,
+    ResponseOutputMessage,
+    ResponseOutputText,
+)
 
-from raven_harness.agent_store import AgentStore
-from raven_harness.database import Database
 from raven_harness.game.client import GameConnectionLost
 from raven_harness.harness.actions import HarnessRunContext, available_tools
+from raven_harness.harness.decision import build_decision_contract
 from raven_harness.harness.observation import build_observation
-from raven_harness.harness.strategic import remember_strategy
 from raven_harness.models.openai_agent import (
-    CONTEXT_POLICY_NAME,
-    OBSERVATION_INPUT_PREFIX,
+    SUBMISSION_REMINDER,
     ModelRunCancelled,
     ModelRunError,
     OpenAIAgentRunner,
+    OpenRouterAgentRunner,
     PermanentModelError,
     TransientProviderCapacityError,
-    _SessionContextFilter,
-    _ModelRequestTimeoutError,
     _UsageCapturingResponsesModel,
-    _completed_result,
-    _normalize_tool_calls,
     _partial_result,
 )
 from raven_harness.schemas import AgentCreate, AgentRecord
@@ -45,607 +39,99 @@ class FakeClient:
         self.sent: list[dict[str, Any]] = []
         self.connection_generation = 1
 
-    async def send(
-        self,
-        message: dict[str, Any],
-        *,
-        require_auth: bool = True,
-        expected_generation: int | None = None,
-    ) -> None:
+    async def send(self, message, *, require_auth=True, expected_generation=None):
         del require_auth
         if expected_generation != self.connection_generation:
             raise GameConnectionLost("stale connection generation")
         self.sent.append(message)
 
-    async def sync_snapshot(
-        self,
-        timeout: float = 10,
-        *,
-        expected_generation: int | None = None,
-    ) -> dict[str, Any]:
+    async def sync_snapshot(self, timeout=10, *, expected_generation=None):
         del timeout
         if expected_generation != self.connection_generation:
             raise GameConnectionLost("stale connection generation")
         message = self.sent[-1]
         if message["type"] == "choose-house":
-            self.snapshot["childGameState"]["players"].append(
-                [message["house"], "2"]
-            )
+            self.snapshot["childGameState"]["players"].append([message["house"], "2"])
         return self.snapshot
 
 
-class TerminalUsage:
-    requests = 1
-    input_tokens = 100
-    output_tokens = 16
-    total_tokens = 116
-
-    def model_dump(self, **_kwargs: Any) -> dict[str, Any]:
-        return {
-            "input_tokens": self.input_tokens,
-            "output_tokens": self.output_tokens,
-            "total_tokens": self.total_tokens,
-            "cost": 0.01,
-        }
-
-
-class TerminalResponses:
-    async def create(self, **_kwargs: Any) -> Any:
-        return SimpleNamespace(
-            id="incomplete-1",
-            status="incomplete",
-            model="test-model-2026-09-01",
-            provider="Example Provider",
-            service_tier="priority",
-            _request_id="request-1",
-            usage=TerminalUsage(),
-            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
-            output=[],
-        )
-
-
-class HangingResponses:
-    async def create(self, **_kwargs: Any) -> Any:
-        await asyncio.Event().wait()
-
-
-class CompletedResponsesWithEmptyCallId:
-    async def create(self, **_kwargs: Any) -> Any:
-        return SimpleNamespace(
-            id="completed-1",
-            status="completed",
-            model="test-model-2026-09-01",
-            provider="Example Provider",
-            service_tier="priority",
-            _request_id="request-2",
-            usage=TerminalUsage(),
-            incomplete_details=None,
-            output=[
-                ResponseFunctionToolCall(
-                    arguments='{"house_id":"stark"}',
-                    call_id="",
-                    name="choose_house",
-                    type="function_call",
-                )
-            ],
-        )
-
-
-class CompletedResponsesWithoutProvider(CompletedResponsesWithEmptyCallId):
-    async def create(self, **kwargs: Any) -> Any:
-        response = await super().create(**kwargs)
-        response.provider = None
-        return response
-
-
-def _reasoning_tool_call(text: str) -> ResponseReasoningItem:
-    return ResponseReasoningItem.model_validate(
-        {
-            "id": "reasoning-1",
-            "summary": [],
-            "type": "reasoning",
-            "content": [{"type": "reasoning_text", "text": text}],
-            "status": "completed",
-        }
-    )
-
-
-@pytest.mark.asyncio
-async def test_response_request_has_a_wall_clock_deadline() -> None:
-    model = _UsageCapturingResponsesModel(
-        model="test-model",
-        openai_client=SimpleNamespace(responses=HangingResponses()),
-        request_timeout_seconds=0.01,
-    )
-
-    with pytest.raises(_ModelRequestTimeoutError):
-        await asyncio.wait_for(
-            model._fetch_response(
-                None,
-                [],
-                ModelSettings(),
-                [],
-                None,
-                [],
-                stream=False,
-            ),
-            timeout=0.1,
-        )
-
-
-@pytest.mark.asyncio
-async def test_completed_response_gets_missing_call_id_and_is_captured() -> None:
-    provider_responses: list[tuple[str, Any]] = []
-    model = _UsageCapturingResponsesModel(
-        model="test-model",
-        openai_client=SimpleNamespace(
-            responses=CompletedResponsesWithEmptyCallId()
-        ),
-        response_sink=provider_responses,
-    )
-
-    response = await model._fetch_response(
-        None,
-        [],
-        ModelSettings(),
-        [],
-        None,
-        [],
-        stream=False,
-    )
-
-    assert response.output[0].call_id.startswith("raven_call_")
-    assert provider_responses == [("agent", response)]
-    result = _partial_result([], {}, provider_responses=provider_responses)
-    assert result.usage == {
-        "requests": 1,
-        "inputTokens": 100,
-        "outputTokens": 16,
-        "totalTokens": 116,
-    }
-    assert result.response_items[0]["status"] == "completed"
-    assert result.response_items[0]["output"][0]["call_id"].startswith(
-        "raven_call_"
-    )
-
-
-def test_strict_reasoning_tool_markup_is_promoted_to_a_function_call() -> None:
-    response = SimpleNamespace(
-        id="pseudo-response",
-        output=[
-            _reasoning_tool_call(
-                """<tool_call>
-<function=submit_orders>
-<parameter=assignments>
-[{"region_id":"pyke","preferred_order":"defense","priority":90}]
-</parameter>
-</function>
-</tool_call>"""
+def _message(text: str, number: int) -> ResponseOutputMessage:
+    return ResponseOutputMessage(
+        id=f"message-{number}",
+        content=[
+            ResponseOutputText(
+                annotations=[], logprobs=[], text=text, type="output_text"
             )
         ],
-    )
-
-    normalized = _normalize_tool_calls(response)
-
-    assert len(normalized.output) == 2
-    call = normalized.output[1]
-    assert call.type == "function_call"
-    assert call.name == "submit_orders"
-    assert json.loads(call.arguments) == {
-        "assignments": [
-            {
-                "region_id": "pyke",
-                "preferred_order": "defense",
-                "priority": 90,
-            }
-        ]
-    }
-    assert call.call_id.startswith("raven_call_")
-
-
-def test_real_function_call_prevents_pseudo_call_duplication() -> None:
-    actual = ResponseFunctionToolCall(
-        arguments='{"house_id":"stark"}',
-        call_id="actual-call",
-        name="choose_house",
-        type="function_call",
-    )
-    response = SimpleNamespace(
-        id="actual-response",
-        output=[
-            _reasoning_tool_call(
-                "<tool_call><function=choose_house>"
-                "<parameter=house_id>stark</parameter>"
-                "</function></tool_call>"
-            ),
-            actual,
-        ],
-    )
-
-    normalized = _normalize_tool_calls(response)
-
-    assert normalized.output == response.output
-    assert sum(item.type == "function_call" for item in normalized.output) == 1
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "I suggest this: <tool_call><function=choose_house></function></tool_call>",
-        (
-            "<tool_call><function=choose_house>"
-            "<parameter=house_id>stark</parameter>trailing"
-            "</function></tool_call>"
-        ),
-    ],
-)
-def test_ambiguous_pseudo_tool_markup_is_not_promoted(text: str) -> None:
-    response = SimpleNamespace(
-        id="ambiguous-response",
-        output=[_reasoning_tool_call(text)],
-    )
-
-    normalized = _normalize_tool_calls(response)
-
-    assert len(normalized.output) == 1
-
-
-@pytest.mark.asyncio
-async def test_single_pinned_provider_is_saved_with_response_usage() -> None:
-    provider_responses: list[tuple[str, Any]] = []
-    response_attribution: dict[str, dict[str, Any]] = {}
-    model = _UsageCapturingResponsesModel(
-        model="test-model",
-        openai_client=SimpleNamespace(
-            responses=CompletedResponsesWithoutProvider()
-        ),
-        response_sink=provider_responses,
-        response_provider="Pinned Provider",
-        response_attribution_sink=response_attribution,
-    )
-
-    await model._fetch_response(
-        None,
-        [],
-        ModelSettings(),
-        [],
-        None,
-        [],
-        stream=False,
-    )
-    result = _partial_result(
-        [],
-        {},
-        provider_responses=provider_responses,
-        response_attribution=response_attribution,
-    )
-
-    assert result.raw_usage[0]["response_provider"] == "Pinned Provider"
-
-
-@pytest.mark.asyncio
-async def test_captured_response_is_not_counted_twice_after_sdk_hook() -> None:
-    provider_responses: list[tuple[str, Any]] = []
-    model = _UsageCapturingResponsesModel(
-        model="test-model",
-        openai_client=SimpleNamespace(
-            responses=CompletedResponsesWithEmptyCallId()
-        ),
-        response_sink=provider_responses,
-    )
-    response = await model._fetch_response(
-        None,
-        [],
-        ModelSettings(),
-        [],
-        None,
-        [],
-        stream=False,
-    )
-    sdk_response = SimpleNamespace(
-        usage=Usage(
-            requests=1,
-            input_tokens=100,
-            output_tokens=16,
-            total_tokens=116,
-        ),
-        raw_usage={"cost": 0.01},
-        response_id="completed-1",
-        output=response.output,
-    )
-
-    result = _partial_result(
-        [],
-        {},
-        parent_responses=[sdk_response],
-        provider_responses=provider_responses,
-    )
-
-    assert result.usage["requests"] == 1
-    assert result.usage["totalTokens"] == 116
-    assert len(result.raw_usage) == 1
-    assert len(result.response_items) == 1
-
-
-def test_completed_result_does_not_recount_unrepresented_oracle_response() -> None:
-    parent_response = SimpleNamespace(
-        usage=Usage(
-            requests=1,
-            input_tokens=100,
-            output_tokens=16,
-            total_tokens=116,
-        ),
-        raw_usage={"input_tokens": 100, "output_tokens": 16, "total_tokens": 116},
-        response_id="completed-parent",
-        output=[],
-    )
-    oracle_response = SimpleNamespace(
-        id="completed-oracle",
+        role="assistant",
         status="completed",
-        usage=TerminalUsage(),
-        incomplete_details=None,
-        output=[],
-    )
-    sdk_result = SimpleNamespace(
-        context_wrapper=SimpleNamespace(
-            usage=Usage(
-                requests=2,
-                input_tokens=200,
-                output_tokens=32,
-                total_tokens=232,
-            )
-        ),
-        new_items=[],
-        raw_responses=[parent_response],
-        last_response_id="completed-parent",
-        final_output="",
+        type="message",
     )
 
-    result = _completed_result(
-        sdk_result,
-        [],
-        {},
-        provider_responses=[
-            ("agent", SimpleNamespace(id="completed-parent")),
-            ("rules-oracle", oracle_response),
-        ],
-    )
 
-    assert result.usage == {
-        "requests": 2,
-        "inputTokens": 200,
-        "outputTokens": 32,
-        "totalTokens": 232,
-    }
-    assert len(result.raw_usage) == 2
-    assert result.response_items == [
-        {
-            "type": "partial_model_response",
-            "scope": "rules-oracle",
-            "status": "completed",
-            "responseId": "completed-oracle",
-            "incompleteDetails": {"value": "None"},
-            "output": [],
-        }
-    ]
-
-
-@pytest.mark.asyncio
-async def test_failed_terminal_response_keeps_usage_and_cost() -> None:
-    provider_responses: list[tuple[str, Any]] = []
-    response_attribution: dict[str, dict[str, Any]] = {}
-    model = _UsageCapturingResponsesModel(
-        model="test-model",
-        openai_client=SimpleNamespace(responses=TerminalResponses()),
-        response_sink=provider_responses,
-        response_attribution_sink=response_attribution,
-    )
-
-    with pytest.raises(RuntimeError, match="terminal status incomplete"):
-        await model._fetch_response(
-            None,
-            [],
-            ModelSettings(),
-            [],
-            None,
-            [],
-            stream=False,
-        )
-    result = _partial_result(
-        [],
-        {},
-        provider_responses=provider_responses,
-        response_attribution=response_attribution,
-    )
-
-    assert result.usage == {
-        "requests": 1,
-        "inputTokens": 100,
-        "outputTokens": 16,
-        "totalTokens": 116,
-    }
-    assert result.raw_usage == [
-        {
-            "input_tokens": 100,
-            "output_tokens": 16,
-            "total_tokens": 116,
-            "cost": 0.01,
-            "scope": "agent",
-            "response_id": "incomplete-1",
-            "response_model": "test-model-2026-09-01",
-            "response_provider": "Example Provider",
-            "service_tier": "priority",
-            "request_id": "request-1",
-        }
-    ]
-
-
-class ToolCallingModel(Model):
-    def __init__(self, expected_tool_names: list[str] | None = None) -> None:
-        self.model_settings: Any = None
+class SubmittingModel(Model):
+    def __init__(self, *, text_before_submission: bool = False) -> None:
+        self.text_before_submission = text_before_submission
         self.inputs: list[list[dict[str, Any]]] = []
-        self.call_count = 0
-        self.expected_tool_names = expected_tool_names or ["choose_house"]
+        self.settings: ModelSettings | None = None
 
     async def get_response(self, *args, **kwargs) -> ModelResponse:
-        tools = kwargs["tools"]
-        self.model_settings = kwargs["model_settings"]
+        del args
         self.inputs.append(kwargs["input"])
-        self.call_count += 1
-        assert [tool.name for tool in tools] == self.expected_tool_names
-        return ModelResponse(
-            output=[
+        self.settings = kwargs["model_settings"]
+        number = len(self.inputs)
+        assert [tool.name for tool in kwargs["tools"]] == ["submit_action"]
+        output = (
+            [_message("I have chosen Stark.", number)]
+            if self.text_before_submission and number == 1
+            else [
                 ResponseFunctionToolCall(
-                    arguments='{"house_id":"stark"}',
-                    call_id=f"call-{self.call_count}",
-                    name="choose_house",
+                    arguments=(
+                        '{"house_id":"stark",'
+                        '"strategic_handoff":"Secure Winterfell next."}'
+                    ),
+                    call_id=f"submit-{number}",
+                    name="submit_action",
                     type="function_call",
                 )
-            ],
+            ]
+        )
+        return ModelResponse(
+            output=output,
             usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
-            response_id=f"resp-{self.call_count}",
+            response_id=f"response-{number}",
         )
 
     async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
         if False:
             yield None
-
-
-class ConcurrentToolCallingModel(ToolCallingModel):
-    def __init__(self, expected_concurrency: int) -> None:
-        super().__init__()
-        self.expected_concurrency = expected_concurrency
-        self.active = 0
-        self.peak_active = 0
-        self.all_started = asyncio.Event()
-
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        self.active += 1
-        self.peak_active = max(self.peak_active, self.active)
-        if self.active == self.expected_concurrency:
-            self.all_started.set()
-        try:
-            await asyncio.wait_for(self.all_started.wait(), timeout=0.5)
-            return await super().get_response(*args, **kwargs)
-        finally:
-            self.active -= 1
-
-
-class CorrectingToolCallingModel(ToolCallingModel):
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        self.model_settings = kwargs["model_settings"]
-        self.inputs.append(kwargs["input"])
-        self.call_count += 1
-        assert [tool.name for tool in kwargs["tools"]] == self.expected_tool_names
-        house_id = "greyjoy" if self.call_count == 1 else "stark"
-        return ModelResponse(
-            output=[
-                ResponseFunctionToolCall(
-                    arguments=json.dumps({"house_id": house_id}),
-                    call_id=f"correcting-call-{self.call_count}",
-                    name="choose_house",
-                    type="function_call",
-                )
-            ],
-            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
-            response_id=f"correcting-response-{self.call_count}",
-        )
-
-
-class RepeatingInvalidToolCallingModel(ToolCallingModel):
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        self.model_settings = kwargs["model_settings"]
-        self.inputs.append(kwargs["input"])
-        self.call_count += 1
-        return ModelResponse(
-            output=[
-                ResponseFunctionToolCall(
-                    arguments='{"house_id":"greyjoy"}',
-                    call_id=f"invalid-call-{self.call_count}",
-                    name="choose_house",
-                    type="function_call",
-                )
-            ],
-            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
-            response_id=f"invalid-response-{self.call_count}",
-        )
 
 
 class FailingModel(Model):
+    def __init__(self, error: BaseException) -> None:
+        self.error = error
+
     async def get_response(self, *args, **kwargs) -> ModelResponse:
-        raise RuntimeError("provider failed")
+        raise self.error
 
     async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
         if False:
             yield None
 
 
-class CapacityFailingModel(FailingModel):
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        error = RuntimeError("provider capacity unavailable")
-        error.status_code = 503  # type: ignore[attr-defined]
-        raise error
-
-
-class QuotaFailingModel(Model):
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        raise RuntimeError(
-            "spending limit exhausted; visit "
-            "https://provider.test/settings/keys/private-key-id"
-        )
-
-    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
-        if False:
-            yield None
-
-
-class CancellingModel(Model):
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        raise asyncio.CancelledError
-
-    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
-        if False:
-            yield None
-
-
-class RememberThenFailModel(Model):
-    def __init__(self) -> None:
-        self.call_count = 0
-
-    async def get_response(self, *args, **kwargs) -> ModelResponse:
-        self.call_count += 1
-        if self.call_count == 2:
-            raise RuntimeError("provider failed after note")
-        return ModelResponse(
-            output=[
-                ResponseFunctionToolCall(
-                    arguments='{"note":"Uncommitted northern plan"}',
-                    call_id="remember-1",
-                    name="remember_strategy",
-                    type="function_call",
-                )
-            ],
-            usage=Usage(requests=1, input_tokens=20, output_tokens=5, total_tokens=25),
-            response_id="remember-response",
-        )
-
-    async def stream_response(self, *args, **kwargs) -> AsyncIterator[Any]:
-        if False:
-            yield None
-
-
-def turn_arguments(
-    record: AgentRecord, context: HarnessRunContext
-) -> dict[str, Any]:
+def turn_arguments(record: AgentRecord, context: HarnessRunContext) -> dict[str, Any]:
     game_context = context.current_game_context()
+    decision = build_decision_contract(game_context, available_tools(game_context))
+    assert decision is not None
+    context.decision = decision
+    observation = build_observation(game_context)
+    observation["decisionBriefing"] = "Choose your available house."
     return {
         "agent_record": record,
-        "observation": build_observation(game_context),
+        "observation": observation,
         "context": context,
-        "tools": available_tools(game_context),
+        "tools": [],
         "instructions": record.system_prompt,
-        "max_turns": 1,
-        "stop_at_tool_names": ["choose_house"],
         "prompt_cache_key": "test-cache-key",
         "trace_metadata": {
             "agent_id": record.id,
@@ -655,761 +141,166 @@ def turn_arguments(
     }
 
 
-@pytest.mark.asyncio
-async def test_openai_runner_attaches_and_executes_agents_sdk_tools(
-    monkeypatch,
-) -> None:
-    fake_model = ToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
+def _record() -> AgentRecord:
+    return AgentRecord.from_create(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="secret")
     )
-    record = AgentRecord.from_create(
-        AgentCreate(
-            name="Wolf",
-            model="test-model",
-            user_id="2",
-            auth_token="secret",
-        )
+
+
+@pytest.mark.asyncio
+async def test_runner_submits_the_dynamic_action_tool(monkeypatch) -> None:
+    model = SubmittingModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent._response_model", lambda **_: model
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
 
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-        request_timeout_seconds=17,
-        run_timeout_seconds=53,
-        provider_routing_by_model={
-            "test-model": {
-                "sort": "throughput",
-                "allow_fallbacks": True,
-                "require_parameters": False,
-            }
-        },
-        retry_provider_routing_by_model={
-            "test-model": {
-                "only": ["secondary"],
-                "allow_fallbacks": False,
-            }
-        },
-    )
-    result = await runner.run_once(**turn_arguments(record, context))
+    result = await OpenAIAgentRunner(
+        api_key="test-key", base_url="https://api.openai.test/v1"
+    ).run_once(**turn_arguments(_record(), context))
 
-    assert result.response_id == "resp-1"
-    assert result.usage["totalTokens"] == 25
-    assert result.raw_usage == [{"scope": "agent", "response_id": "resp-1"}]
-    request_input = json.dumps(
-        fake_model.inputs[0], ensure_ascii=False, separators=(",", ":"), sort_keys=True
-    )
-    assert result.context_manifest == {
-        "policy": CONTEXT_POLICY_NAME,
-        "historyMode": "current-observation-only",
-        "sessionHistoryLimit": 32,
-        "retrievedHistoryItemCount": 0,
-        "removedHistoryItemCount": 0,
-        "removedHistoryCharacters": 0,
-        "currentInputItemCount": 1,
-        "currentInputCharacters": len(fake_model.inputs[0][0]["content"]),
-        "currentInputSha256": hashlib.sha256(
-            fake_model.inputs[0][0]["content"].encode("utf-8")
-        ).hexdigest(),
-        "modelRequestInputs": [
-            {
-                "requestIndex": 1,
-                "inputItemCount": 1,
-                "inputCharacters": len(request_input),
-                "inputSha256": hashlib.sha256(
-                    request_input.encode("utf-8")
-                ).hexdigest(),
-                "instructionsCharacters": len(record.system_prompt),
-                "instructionsSha256": hashlib.sha256(
-                    record.system_prompt.encode("utf-8")
-                ).hexdigest(),
-            }
-        ],
-    }
     assert context.action_taken is not None
     assert context.action_taken.name == "choose_house"
-    assert runner.client.timeout == 17
-    assert runner.run_timeout_seconds == 53
-    assert runner.client.max_retries == 0
-    assert fake_model.model_settings.tool_choice == "required"
-    assert fake_model.model_settings.extra_body == {
-        "provider": {
-            "sort": "throughput",
-            "allow_fallbacks": True,
-            "require_parameters": False,
-        }
-    }
-    retry_settings = runner._model_settings(
-        model="test-model",
-        is_retry=True,
-        max_tokens=100,
-        prompt_cache_key=None,
-        metadata=None,
-    )
-    assert retry_settings.extra_body == {
-        "provider": {"only": ["secondary"], "allow_fallbacks": False}
-    }
     assert client.sent == [
         {"type": "choose-house", "house": "stark", "password": "wolf"}
     ]
+    assert result.usage["requests"] == 1
+    assert model.settings is not None
+    assert model.settings.tool_choice == "required"
+    assert model.settings.reasoning.effort == "high"
 
 
 @pytest.mark.asyncio
-async def test_runner_does_not_limit_simultaneous_agent_model_calls(
+async def test_text_completion_continues_the_same_decision_until_submission(
     monkeypatch,
 ) -> None:
-    fake_model = ConcurrentToolCallingModel(expected_concurrency=6)
+    model = SubmittingModel(text_before_submission=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
+        "raven_harness.models.openai_agent._response_model", lambda **_: model
     )
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-    )
-    calls = []
-    for call_number in range(1, 7):
-        record = AgentRecord.from_create(
-            AgentCreate(
-                name=f"Player {call_number}",
-                user_id="2",
-                auth_token="secret",
-            )
-        )
-        context = HarnessRunContext(
-            client=FakeClient(),
-            user_id="2",
-            game_password="wolf",
-        )
-        arguments = turn_arguments(record, context)
-        arguments["trace_metadata"] = {
-            **arguments["trace_metadata"],
-            "agent_id": record.id,
-            "run_id": f"run-{call_number}",
-        }
-        calls.append(runner.run_once(**arguments))
+    context = HarnessRunContext(client=FakeClient(), user_id="2", game_password="wolf")
 
-    await asyncio.wait_for(asyncio.gather(*calls), timeout=1)
+    result = await OpenAIAgentRunner(
+        api_key="test-key", base_url="https://api.openai.test/v1"
+    ).run_once(**turn_arguments(_record(), context))
 
-    assert fake_model.peak_active == 6
+    assert context.action_taken is not None
+    assert len(model.inputs) == 2
+    assert model.inputs[1][-1] == {"role": "user", "content": SUBMISSION_REMINDER}
+    assert "Current observation:" in model.inputs[1][0]["content"]
+    assert any(item.get("role") == "assistant" for item in model.inputs[1])
+    assert result.usage["requests"] == 2
 
 
 @pytest.mark.asyncio
-async def test_runner_aborts_stale_gameplay_tool_without_replay(
-    monkeypatch,
-) -> None:
-    fake_model = ToolCallingModel()
+async def test_stale_connection_stops_without_replaying_action(monkeypatch) -> None:
+    model = SubmittingModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+        "raven_harness.models.openai_agent._response_model", lambda **_: model
     )
     client = FakeClient()
     context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
     client.connection_generation += 1
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-    )
 
     with pytest.raises(GameConnectionLost, match="stale connection generation"):
-        await runner.run_once(**turn_arguments(record, context))
-
-    assert fake_model.call_count == 1
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**turn_arguments(_record(), context))
     assert client.sent == []
 
 
 @pytest.mark.asyncio
-async def test_retry_requires_a_tool_call(monkeypatch) -> None:
-    fake_model = ToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    context = HarnessRunContext(
-        client=FakeClient(), user_id="2", game_password="wolf"
-    )
-    arguments = turn_arguments(record, context)
-    arguments["observation"]["previousAttemptError"] = "No accepted game action"
-
-    await OpenAIAgentRunner(
-        api_key="test-key", base_url="https://api.openai.test/v1"
-    ).run_once(**arguments)
-
-    assert fake_model.model_settings.tool_choice == "required"
-
-
-@pytest.mark.asyncio
-async def test_retry_uses_only_the_current_observation(monkeypatch, tmp_path) -> None:
-    fake_model = ToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    client = FakeClient()
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-        session_database_path=tmp_path / "retry-context.db",
-    )
-
-    await runner.run_once(
-        **turn_arguments(
-            record,
-            HarnessRunContext(client=client, user_id="2", game_password="wolf"),
+async def test_provider_failures_are_classified_and_redacted(monkeypatch) -> None:
+    capacity = RuntimeError("provider capacity unavailable")
+    capacity.status_code = 503  # type: ignore[attr-defined]
+    cases = [
+        (RuntimeError("provider failed"), ModelRunError),
+        (capacity, TransientProviderCapacityError),
+        (
+            RuntimeError(
+                "spending limit exhausted; https://provider.test/settings/keys/private-key-id"
+            ),
+            PermanentModelError,
+        ),
+    ]
+    for error, expected_type in cases:
+        monkeypatch.setattr(
+            "raven_harness.models.openai_agent._response_model",
+            lambda error=error, **_: FailingModel(error),
         )
-    )
-    retry_arguments = turn_arguments(
-        record,
-        HarnessRunContext(client=client, user_id="2", game_password="wolf"),
-    )
-    retry_arguments["observation"]["previousAttemptError"] = (
-        "The prior action was not accepted"
-    )
-    result = await runner.run_once(**retry_arguments)
-
-    assert len(fake_model.inputs[1]) == 1
-    assert fake_model.inputs[1][0]["role"] == "user"
-    assert fake_model.inputs[1][0]["content"].startswith(OBSERVATION_INPUT_PREFIX)
-    manifest = result.context_manifest
-    assert manifest["historyMode"] == "current-observation-only"
-    assert manifest["retrievedHistoryItemCount"] == 3
-    assert manifest["removedHistoryItemCount"] == 3
-    assert manifest["removedHistoryCharacters"] > 0
-    assert manifest["modelRequestInputs"][0]["inputItemCount"] == 1
-    await runner.shutdown()
+        context = HarnessRunContext(client=FakeClient(), user_id="2")
+        with pytest.raises(expected_type) as raised:
+            await OpenAIAgentRunner(
+                api_key="test-key", base_url="https://api.openai.test/v1"
+            ).run_once(**turn_arguments(_record(), context))
+        assert "private-key-id" not in str(raised.value)
 
 
 @pytest.mark.asyncio
-async def test_openai_runner_reports_sanitized_request_and_tool_lifecycle(
-    monkeypatch,
-) -> None:
-    fake_model = ToolCallingModel()
+async def test_cancellation_preserves_partial_trace(monkeypatch) -> None:
     monkeypatch.setattr(
         "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    activities: list[tuple[str, dict[str, Any]]] = []
-    context = HarnessRunContext(
-        client=FakeClient(),
-        user_id="2",
-        game_password="private-game-password",
-        activity_sink=lambda kind, payload: activities.append((kind, payload)),
-    )
-
-    await OpenAIAgentRunner(
-        api_key="private-api-key",
-        base_url="https://api.openai.test/v1",
-    ).run_once(**turn_arguments(record, context))
-
-    assert [kind for kind, _payload in activities] == [
-        "model-request-started",
-        "model-request-completed",
-        "model-tool-started",
-        "model-tool-completed",
-    ]
-    assert activities[0][1] == {
-        "requestIndex": 1,
-        "scope": "agent",
-        "inputItemCount": 1,
-    }
-    assert activities[1][1]["scope"] == "agent"
-    assert activities[1][1]["responseId"] == "resp-1"
-    assert activities[1][1]["usage"] == {
-        "requests": 1,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
-    }
-    assert activities[2][1] == {"tool": "choose_house", "sequence": 1}
-    assert activities[3][1]["tool"] == "choose_house"
-    assert activities[3][1]["sequence"] == 1
-    assert activities[1][1]["durationMs"] >= 0
-    assert activities[3][1]["durationMs"] >= 0
-    serialized = json.dumps(activities)
-    assert OBSERVATION_INPUT_PREFIX not in serialized
-    assert "private-api-key" not in serialized
-    assert "private-game-password" not in serialized
-    assert "house_id" not in serialized
-    assert '"result"' not in serialized
-
-
-@pytest.mark.asyncio
-async def test_tool_validation_error_can_be_corrected_in_the_same_run(
-    monkeypatch,
-) -> None:
-    fake_model = CorrectingToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    client = FakeClient()
-    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    arguments = turn_arguments(record, context)
-    arguments["max_turns"] = 3
-
-    result = await OpenAIAgentRunner(
-        api_key="test-key", base_url="https://api.openai.test/v1"
-    ).run_once(**arguments)
-
-    assert fake_model.call_count == 2
-    assert "must be one of" in json.dumps(fake_model.inputs[1])
-    assert result.response_id == "correcting-response-2"
-    assert context.action_taken is not None
-    assert context.action_taken.arguments == {"house_id": "stark"}
-    assert client.sent == [
-        {"type": "choose-house", "house": "stark", "password": "wolf"}
-    ]
-
-
-@pytest.mark.asyncio
-async def test_turn_limit_error_preserves_the_last_tool_validation_error(
-    monkeypatch,
-) -> None:
-    fake_model = RepeatingInvalidToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    context = HarnessRunContext(
-        client=FakeClient(), user_id="2", game_password="wolf"
-    )
-    arguments = turn_arguments(record, context)
-    arguments["max_turns"] = 2
-
-    with pytest.raises(ModelRunError, match="last tool error:.*must be one of"):
-        await OpenAIAgentRunner(
-            api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(**arguments)
-
-    assert fake_model.call_count == 2
-    assert context.last_tool_error is not None
-    assert "must be one of" in context.last_tool_error
-
-
-@pytest.mark.asyncio
-async def test_failed_model_run_does_not_send_an_action(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: FailingModel(),
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    client = FakeClient()
-    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    with pytest.raises(ModelRunError, match="provider failed") as raised:
-        await OpenAIAgentRunner(
-            api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(**turn_arguments(record, context))
-
-    assert client.sent == []
-    assert context.action_taken is None
-    assert raised.value.partial_result.context_manifest["policy"] == CONTEXT_POLICY_NAME
-    assert raised.value.partial_result.context_manifest["currentInputItemCount"] == 1
-
-
-@pytest.mark.asyncio
-async def test_http_capacity_rejection_has_a_distinct_error_type(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: CapacityFailingModel(),
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
+        lambda **_: FailingModel(asyncio.CancelledError()),
     )
     context = HarnessRunContext(client=FakeClient(), user_id="2")
-
-    with pytest.raises(TransientProviderCapacityError, match="capacity unavailable"):
-        await OpenAIAgentRunner(
-            api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(**turn_arguments(record, context))
-
-
-@pytest.mark.asyncio
-async def test_quota_error_is_terminal_and_redacted(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: QuotaFailingModel(),
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    context = HarnessRunContext(client=FakeClient(), user_id="2")
-
-    with pytest.raises(PermanentModelError) as raised:
-        await OpenAIAgentRunner(
-            api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(**turn_arguments(record, context))
-
-    assert "spending limit exhausted" in str(raised.value)
-    assert "private-key-id" not in str(raised.value)
-    assert "[redacted]" in str(raised.value)
-
-
-@pytest.mark.asyncio
-async def test_cancelled_model_run_carries_the_context_manifest(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: CancellingModel(),
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    client = FakeClient()
-    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-
     with pytest.raises(ModelRunCancelled) as raised:
         await OpenAIAgentRunner(
             api_key="test-key", base_url="https://api.openai.test/v1"
-        ).run_once(**turn_arguments(record, context))
+        ).run_once(**turn_arguments(_record(), context))
+    assert raised.value.partial_result.usage["requests"] == 0
 
-    manifest = raised.value.partial_result.context_manifest
-    assert manifest["policy"] == CONTEXT_POLICY_NAME
-    assert manifest["currentInputItemCount"] == 1
-    assert manifest["retrievedHistoryItemCount"] == 0
+
+def test_openrouter_routes_around_blocked_providers_with_cache_affinity() -> None:
+    runner = OpenRouterAgentRunner(
+        api_key="test-key",
+        base_url="https://openrouter.ai/api/v1",
+        provider_blocklist=["Together", "novita", "together"],
+    )
+    settings = runner._model_settings(
+        max_tokens=None, prompt_cache_key="cache-key", metadata=None, user="agent-id"
+    )
+    assert settings.extra_body == {
+        "session_id": "raven-agent-agent-id",
+        "provider": {"ignore": ["together", "novita"]},
+    }
+
+
+class TerminalUsage:
+    requests = 1
+    input_tokens = 100
+    output_tokens = 16
+    total_tokens = 116
+
+    def model_dump(self, **_kwargs: Any) -> dict[str, Any]:
+        return {"input_tokens": 100, "output_tokens": 16, "total_tokens": 116}
 
 
 @pytest.mark.asyncio
-async def test_runner_excludes_old_sdk_items_without_purging_the_session(
-    monkeypatch, tmp_path
-) -> None:
-    fake_model = ToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: fake_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    client = FakeClient()
-    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    database_path = tmp_path / "conversation.db"
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-        session_database_path=database_path,
-        session_history_items=12,
-    )
-
-    first_result = await runner.run_once(**turn_arguments(record, context))
-    first_input = fake_model.inputs[0]
-
-    client.snapshot = lobby_snapshot()
-    second_context = HarnessRunContext(
-        client=client, user_id="2", game_password="wolf"
-    )
-    second_result = await runner.run_once(**turn_arguments(record, second_context))
-    second_input = fake_model.inputs[1]
-
-    with sqlite3.connect(database_path) as connection:
-        rows = connection.execute(
-            "SELECT message_data FROM agent_messages ORDER BY id"
-        ).fetchall()
-    stored_items = [json.loads(row[0]) for row in rows]
-
-    assert len(stored_items) == 6
-    assert sum(
-        OBSERVATION_INPUT_PREFIX in item.get("content", "")
-        for item in stored_items
-    ) == 2
-    assert sum(
-        OBSERVATION_INPUT_PREFIX in item.get("content", "") for item in second_input
-    ) == 1
-    assert len(second_input) == 1
-    assert second_input[0]["role"] == "user"
-    assert second_input[0]["content"].startswith(OBSERVATION_INPUT_PREFIX)
-
-    manifest = second_result.context_manifest
-    assert manifest["policy"] == CONTEXT_POLICY_NAME
-    assert manifest["sessionHistoryLimit"] == 12
-    assert manifest["retrievedHistoryItemCount"] == 3
-    assert manifest["removedHistoryItemCount"] == 3
-    assert manifest["removedHistoryCharacters"] > len(first_input[0]["content"])
-    assert manifest["currentInputItemCount"] == 1
-    assert manifest["currentInputCharacters"] == len(second_input[0]["content"])
-    assert manifest["currentInputSha256"] == hashlib.sha256(
-        second_input[0]["content"].encode("utf-8")
-    ).hexdigest()
-    assert "test-key" not in json.dumps(manifest)
-    assert first_result.context_manifest["retrievedHistoryItemCount"] == 0
-    await runner.shutdown()
-
-
-def test_session_context_filter_excludes_all_old_tool_calls() -> None:
-    old_observation = {
-        "role": "user",
-        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"round":1}}',
-    }
-    orphaned_output = {
-        "type": "function_call_output",
-        "call_id": "orphaned-call",
-        "output": '{"ok":true}',
-    }
-    retained_call = {
-        "type": "function_call",
-        "call_id": "complete-call",
-        "name": "choose_house",
-        "arguments": '{"house_id":"stark"}',
-    }
-    retained_reasoning = {
-        "type": "reasoning",
-        "id": "reasoning-1",
-        "summary": [],
-    }
-    retained_output = {
-        "type": "function_call_output",
-        "call_id": "complete-call",
-        "output": '{"ok":true}',
-    }
-    retained_message = {
-        "type": "message",
-        "role": "assistant",
-        "content": [{"type": "output_text", "text": "Action completed."}],
-    }
-    second_old_observation = {
-        "role": "user",
-        "content": OBSERVATION_INPUT_PREFIX + '{"game":{"round":1,"phase":"action"}}',
-    }
-    current_input = OBSERVATION_INPUT_PREFIX + '{"game":{"round":2}}'
-    new_items = [{"role": "user", "content": current_input}]
-    context_filter = _SessionContextFilter(32, current_input)
-
-    old_items = [
-        orphaned_output,
-        old_observation,
-        retained_reasoning,
-        retained_call,
-        retained_output,
-        retained_message,
-        second_old_observation,
-    ]
-    filtered = context_filter(
-        old_items,
-        new_items,
-    )
-
-    assert filtered == new_items
-    manifest = context_filter.manifest()
-    assert manifest["retrievedHistoryItemCount"] == 7
-    assert manifest["removedHistoryItemCount"] == 7
-    assert manifest["removedHistoryCharacters"] == sum(
-        len(json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
-        for item in old_items
-    )
-
-
-@pytest.mark.asyncio
-async def test_failed_strategy_note_is_not_replayed_on_the_next_run(
-    monkeypatch, tmp_path
-) -> None:
-    failing_model = RememberThenFailModel()
-    current_model: Model = failing_model
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: current_model,
-    )
-    record = AgentRecord.from_create(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    database_path = tmp_path / "failed-note.db"
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-        session_database_path=database_path,
-    )
-    first_context = HarnessRunContext(
-        client=FakeClient(), user_id="2", game_password="wolf"
-    )
-    tools = [
-        *available_tools(first_context.current_game_context()),
-        remember_strategy,
-    ]
-    first_arguments = turn_arguments(record, first_context)
-    first_arguments["tools"] = tools
-    first_arguments["max_turns"] = 3
-
-    with pytest.raises(ModelRunError, match="provider failed after note") as raised:
-        await runner.run_once(**first_arguments)
-
-    partial = raised.value.partial_result
-    assert partial.usage == {
-        "requests": 1,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
-    }
-    assert partial.raw_usage == [
-        {"scope": "agent", "response_id": "remember-response"}
-    ]
-    assert partial.response_items[0]["type"] == "partial_model_response"
-    assert partial.response_items[0]["responseId"] == "remember-response"
-
-    with sqlite3.connect(database_path) as connection:
-        assert connection.execute("SELECT COUNT(*) FROM agent_messages").fetchone() == (
-            0,
+async def test_failed_response_preserves_provider_error_details() -> None:
+    async def create(**_kwargs: Any) -> Any:
+        return SimpleNamespace(
+            id="failed-1",
+            status="failed",
+            model="test-model",
+            provider="Example Provider",
+            service_tier="priority",
+            _request_id="request-1",
+            usage=TerminalUsage(),
+            incomplete_details=None,
+            error={"code": "server_error", "message": "Generation failed"},
+            output=[],
         )
 
-    successful_model = ToolCallingModel(["choose_house", "remember_strategy"])
-    current_model = successful_model
-    second_context = HarnessRunContext(
-        client=FakeClient(), user_id="2", game_password="wolf"
+    responses = []
+    model = _UsageCapturingResponsesModel(
+        model="test-model",
+        openai_client=SimpleNamespace(responses=SimpleNamespace(create=create)),
+        response_sink=responses,
     )
-    second_arguments = turn_arguments(record, second_context)
-    second_arguments["tools"] = tools
-    result = await runner.run_once(**second_arguments)
-
-    serialized_input = json.dumps(successful_model.inputs[0], separators=(",", ":"))
-    assert "Uncommitted northern plan" not in serialized_input
-    assert "remember_strategy" not in serialized_input
-    assert result.context_manifest["retrievedHistoryItemCount"] == 0
-    assert result.context_manifest["removedHistoryItemCount"] == 0
-    await runner.shutdown()
-
-
-@pytest.mark.asyncio
-async def test_runner_restores_session_to_the_pre_model_checkpoint(
-    monkeypatch, tmp_path
-) -> None:
-    model = ToolCallingModel()
-    monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
-        lambda **_kwargs: model,
-    )
-    database_path = tmp_path / "checkpoint.db"
-    database = Database(database_path)
-    store = AgentStore(database)
-    record = store.create_agent(
-        AgentCreate(name="Wolf", user_id="2", auth_token="secret")
-    )
-    session = SQLiteSession(
-        session_id=f"raven-agent-{record.id}", db_path=database_path
-    )
-    kept_items = [
-        {"role": "assistant", "content": f"keep-{index}"}
-        for index in range(40)
-    ]
-    await session.add_items(kept_items)
-    store.set_agent_checkpoint(
-        agent_id=record.id,
-        state_id="leaf-1",
-        observation={
-            "game": {"stateId": "leaf-1"},
-            "recoveryMarker": "exact saved observation",
-        },
-        session_item_count=len(kept_items),
-        run_id="interrupted-run",
-        phase="before-model",
-    )
-    await session.add_items(
-        [{"role": "user", "content": "discard interrupted model input"}]
-    )
-    session.close()
-
-    runner = OpenAIAgentRunner(
-        api_key="test-key",
-        base_url="https://api.openai.test/v1",
-        session_database_path=database_path,
-        checkpoint_store=store,
-    )
-    context = HarnessRunContext(
-        client=FakeClient(), user_id="2", game_password="wolf"
-    )
-    await runner.run_once(**turn_arguments(record, context))
-
-    with sqlite3.connect(database_path) as connection:
-        persisted_items = "\n".join(
-            row[0]
-            for row in connection.execute(
-                "SELECT message_data FROM agent_messages ORDER BY id"
-            )
+    with pytest.raises(RuntimeError, match="Generation failed"):
+        await model._fetch_response(
+            None, [], ModelSettings(), [], None, [], stream=False
         )
-    assert "keep-0" in persisted_items
-    assert "keep-39" in persisted_items
-    assert "discard interrupted model input" not in persisted_items
-    assert "exact saved observation" in json.dumps(model.inputs[0])
-    checkpoint = store.get_agent_checkpoint(record.id)
-    assert checkpoint is not None
-    assert checkpoint["phase"] == "after-action"
-    assert checkpoint["sessionItemCount"] > len(kept_items)
-    await runner.shutdown()
-    database.close()
-
-
-def test_session_context_filter_plateaus_across_one_hundred_decisions() -> None:
-    history_limit = 32
-    stored_history: list[dict[str, Any]] = []
-    effective_sizes: list[int] = []
-
-    for decision in range(100):
-        current_input = (
-            OBSERVATION_INPUT_PREFIX
-            + json.dumps(
-                {
-                    "game": {"stateId": f"state-{decision}"},
-                    "board": "x" * 30_000,
-                },
-                separators=(",", ":"),
-            )
-        )
-        new_items = [{"role": "user", "content": current_input}]
-        context_filter = _SessionContextFilter(history_limit, current_input)
-        effective_input = context_filter(stored_history[-history_limit:], new_items)
-
-        serialized_input = json.dumps(effective_input, separators=(",", ":"))
-        effective_sizes.append(len(serialized_input))
-        effective_text = "\n".join(
-            content
-            for item in effective_input
-            if isinstance((content := item.get("content")), str)
-        )
-        assert effective_text.count(OBSERVATION_INPUT_PREFIX) == 1
-        if decision:
-            assert f'"stateId":"state-{decision - 1}"' not in effective_text
-
-        call_id = f"call-{decision}"
-        stored_history.extend(
-            [
-                *new_items,
-                {
-                    "type": "reasoning",
-                    "id": f"reasoning-{decision}",
-                    "summary": [],
-                },
-                {
-                    "type": "function_call",
-                    "call_id": call_id,
-                    "name": "resolve_march",
-                    "arguments": '{"option_id":"march-1"}',
-                },
-                {
-                    "type": "function_call_output",
-                    "call_id": call_id,
-                    "output": '{"ok":true}',
-                },
-            ]
-        )
-
-    assert len(stored_history) == 400
-    assert len(set(effective_sizes[20:])) == 1
-    assert effective_sizes[-1] < 35_000
+    result = _partial_result([], {}, provider_responses=responses)
+    assert result.response_items[0]["providerError"]["code"] == "server_error"

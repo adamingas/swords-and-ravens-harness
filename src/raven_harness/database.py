@@ -80,16 +80,6 @@ CREATE TABLE player_snapshots (
   UNIQUE(agent_id, leaf_state_id, content_sha256)
 );
 
-CREATE TABLE agent_checkpoints (
-  agent_id TEXT PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE,
-  state_id TEXT NOT NULL,
-  observation_json TEXT NOT NULL,
-  session_item_count INTEGER NOT NULL CHECK(session_item_count >= 0),
-  run_id TEXT NOT NULL,
-  phase TEXT NOT NULL CHECK(phase IN ('before-model', 'after-action')),
-  updated_at TEXT NOT NULL
-);
-
 CREATE INDEX IF NOT EXISTS agent_events_agent_id_id
   ON agent_events(agent_id, id DESC);
 CREATE INDEX IF NOT EXISTS agent_runs_agent_id_created_at

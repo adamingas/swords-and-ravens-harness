@@ -22,6 +22,7 @@ from .evaluation import (
     resolve_evaluation_output,
     run_game,
 )
+from .game.map_reference import observation_map_reference
 from .harness.actions import HarnessRunContext
 from .models.openai_agent import ModelRunResult
 from .schemas import AgentRecord
@@ -71,8 +72,6 @@ class ScriptedProtocolRunner:
         context: HarnessRunContext,
         tools: list[FunctionTool],
         instructions: str,
-        max_turns: int,
-        stop_at_tool_names: list[str],
         prompt_cache_key: str,
         trace_metadata: dict[str, str],
     ) -> ModelRunResult:
@@ -83,8 +82,6 @@ class ScriptedProtocolRunner:
                 context=context,
                 tools=tools,
                 instructions=instructions,
-                max_turns=max_turns,
-                stop_at_tool_names=stop_at_tool_names,
                 prompt_cache_key=prompt_cache_key,
                 trace_metadata=trace_metadata,
             )
@@ -97,15 +94,15 @@ class ScriptedProtocolRunner:
         context: HarnessRunContext,
         tools: list[FunctionTool],
         instructions: str,
-        max_turns: int,
-        stop_at_tool_names: list[str],
         prompt_cache_key: str,
         trace_metadata: dict[str, str],
     ) -> ModelRunResult:
-        del agent_record, instructions, max_turns, prompt_cache_key, trace_metadata
+        del agent_record, instructions, tools, prompt_cache_key, trace_metadata
         house_id = str(observation.get("you", {}).get("houseId"))
         self._check_private_order_mask(context, house_id)
-        gameplay_tools = [tool for tool in tools if tool.name in stop_at_tool_names]
+        if context.decision is None:
+            raise RuntimeError("Protocol smoke turn has no gameplay decision")
+        gameplay_tools = [action.tool for action in context.decision.actions]
         tool = _select_safe_tool(gameplay_tools, observation)
         if tool.name == "submit_orders":
             region_ids = (
@@ -218,7 +215,9 @@ class ScriptedProtocolRunner:
         region_ids = [str(item[0]) for item in expected]
         marker = _player_order_marker(context.client.snapshot, region_ids, house_id)
         if marker["orders"] != expected:
-            raise RuntimeError("The submitting player did not receive its exact order IDs")
+            raise RuntimeError(
+                "The submitting player did not receive its exact order IDs"
+            )
         self._private_order_expectation = {
             "ownerHouse": house_id,
             "regionIds": region_ids,
@@ -255,9 +254,6 @@ class ScriptedProtocolRunner:
     async def shutdown(self) -> None:
         return None
 
-    async def clear_session(self, agent_id: str) -> None:
-        del agent_id
-
 
 def _select_safe_tool(
     gameplay_tools: list[FunctionTool], observation: dict[str, Any]
@@ -290,9 +286,7 @@ def _select_safe_tool(
         if name in tools_by_name:
             return tools_by_name[name]
     state_path = observation.get("statePath", [])
-    schemas = {
-        tool.name: tool.params_json_schema for tool in gameplay_tools
-    }
+    schemas = {tool.name: tool.params_json_schema for tool in gameplay_tools}
     raise UnsupportedSmokeDecision(
         "No fail-closed protocol-smoke policy for authoritative state "
         f"{state_path!r}; dynamic tool schemas: "
@@ -418,7 +412,7 @@ def _safe_order_arguments(
     round_number = int(observation.get("game", {}).get("round") or 1)
     region_details = {
         item.get("id"): item
-        for item in observation.get("map", {}).get("regions", [])
+        for item in observation_map_reference(observation)["regions"]
     }
     if adjacency is None:
         first_region = next(
@@ -437,20 +431,14 @@ def _safe_order_arguments(
             first_category = "raid" if round_number == 1 else "march"
         else:
             first_category = "support"
-    if (
-        first_category not in order_ids
-    ):
+    if first_category not in order_ids:
         fallback_categories = (
             ("defense", "consolidate_power", "raid")
             if adjacency is not None and own_house >= enemy_house
             else ORDER_PLAN
         )
         first_category = next(
-            (
-                category
-                for category in fallback_categories
-                if category in order_ids
-            ),
+            (category for category in fallback_categories if category in order_ids),
             "",
         )
         if not first_category:
@@ -460,10 +448,7 @@ def _safe_order_arguments(
     remaining_regions = [item for item in region_ids if item != first_region]
     selected = [(first_region, first_category)]
     remaining_categories = [
-        item
-        for item in ORDER_PLAN
-        if item != first_category
-        and item in order_ids
+        item for item in ORDER_PLAN if item != first_category and item in order_ids
     ]
     for category in remaining_categories:
         if not remaining_regions:
@@ -533,7 +518,9 @@ async def _probe_rejected_order_submission(
         )
     after = _player_order_marker(result.snapshot, region_ids, house_id)
     if after != before:
-        raise RuntimeError("The rejected order probe changed authoritative player state")
+        raise RuntimeError(
+            "The rejected order probe changed authoritative player state"
+        )
     return {
         "accepted": False,
         "reason": "unknown-order",
@@ -579,10 +566,12 @@ def _enemy_adjacency(
     }
     neighbours = {
         item.get("id"): set(item.get("neighbours", []))
-        for item in observation.get("map", {}).get("regions", [])
+        for item in observation_map_reference(observation)["regions"]
     }
     for region_id in eligible_region_ids:
-        adjacent_enemies = sorted(neighbours.get(region_id, set()) & enemy_regions.keys())
+        adjacent_enemies = sorted(
+            neighbours.get(region_id, set()) & enemy_regions.keys()
+        )
         if adjacent_enemies:
             return region_id, enemy_regions[adjacent_enemies[0]]
     return None
@@ -601,7 +590,9 @@ def _safe_march_arguments(
         .get("enum", [])
     )
     if not isinstance(options, list) or not allowed_sources:
-        raise UnsupportedSmokeDecision("resolve_march did not expose exact legal options")
+        raise UnsupportedSmokeDecision(
+            "resolve_march did not expose exact legal options"
+        )
     option = next(
         (item for item in options if item.get("regionId") in allowed_sources), None
     )
@@ -662,9 +653,7 @@ def _safe_house_card(
     )
 
 
-def _safe_unit_ids(
-    tool: FunctionTool, observation: dict[str, Any]
-) -> list[int]:
+def _safe_unit_ids(tool: FunctionTool, observation: dict[str, Any]) -> list[int]:
     del tool
     pending = observation.get("pendingDecision", {})
     possible = [int(item) for item in pending.get("possibleUnits", [])]
@@ -698,7 +687,7 @@ def _safe_unit_ids(
         return unit_ids[:expected]
     map_neighbours = {
         item.get("id"): set(item.get("neighbours", []))
-        for item in observation.get("map", {}).get("regions", [])
+        for item in observation_map_reference(observation)["regions"]
     }
     own_house = observation.get("you", {}).get("houseId")
     enemy_regions = {
@@ -898,8 +887,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", help="New artifact directory under data/evaluations."
     )
     parser.add_argument("--game-port", type=int, default=5102)
-    parser.add_argument("--stall-seconds", type=float, default=30, help=argparse.SUPPRESS)
-    parser.add_argument("--timeout-seconds", type=float, default=180, help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--stall-seconds", type=float, default=30, help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--timeout-seconds", type=float, default=180, help=argparse.SUPPRESS
+    )
     return parser
 
 

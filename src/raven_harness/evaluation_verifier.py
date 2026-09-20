@@ -13,7 +13,6 @@ from .evaluation import (
     HOUSES,
     TOURNAMENT_HARNESS_ID,
     TOURNAMENT_GAMES,
-    TOURNAMENT_MAX_OUTPUT_TOKENS,
     TOURNAMENT_MODELS,
     _load_attempt_metrics,
     _terminal_winner,
@@ -294,10 +293,7 @@ def _validate_attempt_metadata(
         raise EvaluationVerificationError(
             f"Game {game_number} attempt has invalid prompt hashes"
         )
-    if (
-        not _is_sha256(harness.get("runtimeSha256"))
-        or harness.get("maxOutputTokens") != TOURNAMENT_MAX_OUTPUT_TOKENS
-    ):
+    if not _is_sha256(harness.get("runtimeSha256")):
         raise EvaluationVerificationError(
             f"Game {game_number} attempt has invalid runtime provenance"
         )

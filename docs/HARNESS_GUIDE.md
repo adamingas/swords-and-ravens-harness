@@ -10,7 +10,7 @@ authenticated users.
 The harness gives each model three things:
 
 - a player-scoped view of the current game;
-- only the tools that apply to the current decision;
+- exploration tools and a final action schema tailored to the current decision;
 - private strategic memory and an optional official-rules oracle.
 
 The model does not receive a WebSocket, credentials, or an unrestricted server
@@ -224,7 +224,7 @@ action.
 1. The game server sends state changes and authoritative waitedForUserIds.
 2. The harness confirms that the current user must act.
 3. The harness creates a clean observation from the latest snapshot.
-4. The harness selects tools for the active leaf state. It does not fall back
+4. The harness builds an action contract for the active leaf state. It does not fall back
    to a recognized parent when the leaf is unknown.
 5. The harness adds the history-recall and strategy-note tools. It also adds
    the rules oracle when prepared rules data is available.
@@ -232,52 +232,39 @@ action.
    game server atomically saves the game before it replies. The harness waits
    until `game.json` contains the same leaf-state ID and a random-stream
    checkpoint.
-7. The harness saves the current observation and exact SDK session length as
-   the agent's pre-call checkpoint.
-8. The harness starts one Agents SDK run with the selected model and the
-   player's recent model and tool items. It appends one complete current
-   observation. The SDK can make more than one provider request inside that
-   run.
-9. The model can recall an older decision state, replace its durable plan, or
-   ask the oracle.
-10. The model must call exactly one gameplay tool.
-11. Pydantic validates the tool arguments.
-12. The tool checks the latest state again and sends typed server messages. A
+7. The harness starts one Agents SDK run with the current observation and a
+   fresh user-message briefing explaining the task, consequences and tool
+   purposes. Static rules and the compact map remain in the system prompt.
+   Every model request has exploration tools and one state-specific
+   `submit_action` tool.
+8. Tool choice is required. The briefing encourages liberal, iterative
+   exploration: inspect results, follow up on uncertainties and compare plans.
+   Tool calls and their results continue within the same SDK run. The decision
+   ends only after an accepted `submit_action` call. If the model stops with
+   text, the harness appends a reminder to the same transcript and continues.
+9. The action contract validates the tool arguments and restores arguments that
+    have only one possible value. Unit-destruction selections explicitly use
+    `unit_ids_to_destroy`.
+10. The original handler checks the latest state again and sends typed server messages. A
     per-run action lock admits only the first gameplay call if a provider emits
     duplicate calls despite the single-call setting. This lock does not affect
     concurrency between agents.
-13. The harness requests a fresh player-scoped snapshot with sync-game.
-14. The harness infers acceptance from a changed leaf state, changed turn
+11. The harness requests a fresh player-scoped snapshot with sync-game.
+12. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
-15. The harness updates the automatic notebook when the SDK run returns. If
+13. The harness updates the automatic notebook when the SDK run returns. If
     the model queued a plan and the game action was accepted, the harness also
-    saves that plan. It saves the post-action SDK session length, saves the
-    attempt, and links the action to its source state.
+    saves that plan, saves the attempt, and links the action to its source state.
 
-Each decision is a new `Runner.run` invocation, but it is not a new
-conversation. The Agents SDK stores the player's input messages, function
-calls, function results, and model items in SQLite. By default, it reads the
-latest 32 stored items before a decision. The harness removes every old full
-observation from that window. It keeps later assistant and reasoning items,
-plus gameplay function calls and results. It removes only old recall,
-strategy-note, and rules-oracle calls and their matching results. These
-support results remain available during the current SDK run, but they are not
-replayed in a later decision. The harness then appends exactly one complete
-current observation. The automatic strategic notebook and state-history index
-are inside that observation.
+The run has no harness turn limit and uses high reasoning effort. Only an
+accepted action commits the proposed strategy note. Cancellation sends no action.
 
-The filter also discards an incomplete prefix when the 32-item window starts
-in the middle of an older decision. The raw SDK rows remain in SQLite. Thus,
-the audit history is complete while repeated board states do not inflate the
-provider request. The 32-item setting bounds recent model and tool continuity;
-it is not a token limit. Tool schemas, instructions, the current observation,
-and several provider requests inside one SDK run can still use many tokens.
-The structured notebook and `recall_game_state` preserve selected information
-beyond the recent window.
-
-This hybrid design gives the model conversational continuity and keeps each
-attempt inspectable from local data. It does not guarantee deterministic replay
-because model providers and the live game server are external systems.
+SQLite retains the run's input, tool results and returned model items.
+Earlier turns' SDK messages are excluded from the next decision's model input;
+the current observation, notebook and history index supply continuity, and
+`recall_game_state` retrieves older observations when needed. Input hashes and
+usage records cover every model request in the run. Provider outputs remain
+nondeterministic.
 
 The history table stores the base player observation, before strategic memory,
 historyIndex, planning constraints, and previousAttemptError are added. The
@@ -291,8 +278,8 @@ run. The separate `player_snapshots` table stores every distinct snapshot from
 the game server, including states that do not require a model decision.
 
 Short visible output does not mean that the model received little state. A
-simple choice can need only a short function call while its input includes the
-current board, recent conversation, tools, and memory. The current state is sent
+simple choice can need only a short JSON answer while its input includes the
+current board, tools, and memory. The current state is sent
 again for each decision.
 
 ## 6. The model observation
@@ -309,7 +296,7 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | recentEvents | Up to 12 compact server events and game-log entries. |
 | orderLegend | Mapping from upstream physical order-token IDs to readable order names. |
 | lobby | Lobby houses, available house IDs, seats, and ready users. Present only before launch. |
-| map | Stable region types, icons, castles, and adjacency data. |
+| mapVariant | Identifier of the static map included in the system prompt. |
 | houses | Public score, control, power, and supply data for all houses. |
 | houseCardStatus | Public available-card details and available, used, and disabled counts for each house. Used-card identities are omitted. |
 | tracks | Iron Throne, Fiefdoms, and King's Court order. |
@@ -321,11 +308,12 @@ The observation is JSON. It contains no credentials. Its main fields are:
 | historyIndex | A compact index of the current recorded decision state and earlier decision states. |
 | planningConstraints | Exact regions that can receive an order, starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
 | previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
-| retryInstruction | Present with a prior error. It tells the model to use the function-tool mechanism instead of printing a tool-shaped JSON object. |
+| decisionBriefing | Fresh task and tool-purpose prose, rendered after the observation in the user message. |
+| retryInstruction | Present with a prior error. Explains that the previous action was not accepted and asks the model to correct it. |
 
 The map reference is complete, but the board field is sparse. Empty regions
 without a garrison, control token, or revealed order do not appear in board.
-Use map for adjacency and printed board features. Use board for current pieces,
+Use the system-prompt map for adjacency and printed board features. Use board for current pieces,
 control, and revealed orders.
 
 House-card status uses only cards present in this player's upstream snapshot.
@@ -420,7 +408,9 @@ behavior makes missing state coverage visible.
 
 ## 8. Strategic gameplay tools
 
-These tools use state-specific schemas and local legality checks.
+These are internal gameplay handlers with state-specific schemas and local
+legality checks. The current model submits a final JSON action; it does not
+call these handlers as tools. Their names remain in accepted-action records.
 
 | Tool | Availability and effect |
 | --- | --- |
@@ -510,18 +500,15 @@ For this example, the full path is:
 7. SQLite stores the input observation, instructions, offered tool schemas,
    SDK response items, selected arguments, usage, timing, and any error.
 
-If an attempt does not produce an accepted gameplay action, the harness removes
-only that attempt's SDK transcript before retrying. The retry uses only the
-complete current observation. It does not resend earlier accepted action
-history because the observation already contains the authoritative game state.
-The retry exposes only the required gameplay tools; memory and rules-oracle
-tools return after the decision succeeds. This prevents an invalid textual
-pseudo-call or a large old transcript from delaying the next retry.
+If the model stops without an accepted gameplay action, the harness keeps that
+decision's model and tool items, appends a direct reminder to call
+`submit_action`, and continues. A later game decision starts from a clean
+transcript and the newest authoritative observation.
 
 ## 9. Core protocol gameplay tools
 
-These tools translate typed model input to one Swords & Ravens message. The
-active state controls when each tool is visible.
+These internal handlers translate validated final actions to Swords & Ravens
+messages. The active state determines which actions the final schema permits.
 
 | Tool | Exact leaf state | Effect |
 | --- | --- | --- |
@@ -570,11 +557,20 @@ submitted priority order through the full local Supply validator.
 
 ## 10. Private support tools
 
-Support tools do not end the required gameplay decision. The two memory tools
-are available in every model run. The rules oracle is available only when the
+Support tools do not submit a gameplay action. The two memory tools
+are available during exploration. The rules oracle is available only when the
 prepared rules data is loaded. The harness rebuilds the factual fields in
 `strategicMemory` after an accepted action. The model can write only the
-`modelPlan` text through `remember_strategy`.
+`modelPlan` text through `remember_strategy`. Tool use is optional at the API
+level, while the current-decision briefing explicitly encourages multiple
+useful calls rather than token conservation.
+
+### check_neighbours(area)
+
+Returns an area's direct neighbours with current owners, units, wounds, orders,
+terrain and castle information. Use the battlefield as the queried area when
+checking support. Direct adjacency differs from ship-transport reachability.
+This tool is available during in-game exploration.
 
 ### recall_game_state(turns_ago)
 
@@ -629,21 +625,12 @@ tables when the first session-backed run starts:
 | game_state_history | One player-scoped base observation per distinct state at which a model run was prepared, plus the accepted action selected from that state. |
 | strategic_memories | Current private notebook and revision number for each agent. |
 | player_snapshots | Each distinct player-scoped WebSocket snapshot. Each row contains the complete serialized snapshot. |
-| agent_checkpoints | The observation, run ID, phase, and exact SDK session length immediately before a model call or after its accepted action. |
-| agent_sessions | One persisted Agents SDK conversation identity per player. |
-| agent_messages | The input, model, tool-call, and tool-result items used for recent conversational continuity. |
 
 The harness records failed attempts. A failure is evidence about model or tool
 reliability and must remain available for evaluation. A failed parent call
 keeps each oracle interaction that completed before the failure. A provider
 exception can still prevent the SDK from returning partial parent response
 items or parent usage. The harness always stores the error and elapsed time.
-
-On the first decision after a process restart, the runner removes SDK items
-beyond the saved session length. If the game still has the checkpoint's leaf
-state, it reuses the exact saved observation. If the game has advanced, it uses
-the new authoritative observation and retains only the last committed SDK
-session state.
 
 The database uses schema version 4. The server creates only this schema and
 rejects every other existing version. It does not migrate old databases. Use a
@@ -786,30 +773,18 @@ If `OPENROUTER_TOKEN` is empty, the harness uses the direct OpenAI-compatible
 base URL and key. Set `MODEL_ID` to a model supported by that endpoint before
 creating agents.
 
-OPENROUTER_ALLOW_FALLBACKS controls OpenRouter host fallback.
-MODEL_REQUEST_TIMEOUT_SECONDS limits each provider request to 120 seconds by
-default. MODEL_RUN_TIMEOUT_SECONDS separately limits the complete Agents SDK
-run, which can contain more than one request after a support-tool call or a
-corrected tool call. The HTTP client does not retry. Autoplay makes at most one
-separately traced retry by default from the durable pre-call checkpoint after a
+Model requests and complete Agents SDK runs have no harness wall-clock deadline.
+The HTTP client does not retry. Autoplay makes at most one
+separately traced retry by default after a
 model, tool, or timeout failure. HTTP 429 and 503 capacity rejections get up to
-three checkpointed retries because they occur before a model decision is
+three retries because they occur before a model decision is
 available.
 The harness records each raw provider response before the Agents SDK processes
-it. If an OpenAI-compatible endpoint omits the opaque ID of a function call,
-the harness supplies a deterministic ID before tool execution.
-If a response contains no function-call item but contains exactly one strict,
-fully parseable `<tool_call>` block in a reasoning item, the harness promotes
-that block to a function call. It keeps the original reasoning item for audit.
-It does not promote prose, malformed markup, multiple candidate calls, or a
-pseudo-call when a real function call is already present.
+it. Providers must return standard function-call items; the harness does not
+repair malformed calls or reinterpret reasoning text as a tool call.
 Agents make asynchronous model calls without a harness concurrency limit.
-MODEL_MAX_OUTPUT_TOKENS limits one model response. The 16,384-token default
-allows reasoning models to complete a tool decision. A 4,096-token limit caused
-repeated incomplete responses from supported tournament models.
-MODEL_SESSION_HISTORY_ITEMS limits the recent Agents SDK conversation window.
-The harness filters old observation inputs from that window before the model
-request. It does not delete them from SQLite.
+Gameplay model responses use the endpoint's own output limit; the harness does
+not impose a token cap.
 AUTOPLAY_MAX_CONSECUTIVE_FAILURES limits failed attempts for one unchanged
 game decision. AUTOPLAY_RETRY_BASE_SECONDS controls exponential retry backoff;
 the delay is capped at 30 seconds.
@@ -823,18 +798,10 @@ accepted gameplay action. Provider account, quota, and authentication failures
 stop autoplay for all running agents immediately. Persisted and API-visible
 error text redacts credential assignments, sensitive URL parameters, and
 provider key-management identifiers.
-OPENROUTER_PROVIDER_ORDER is a comma-separated preferred host order. It
-defaults to Reka, Cloudflare, CoreWeave, Fireworks, DeepInfra, and Together.
-OpenRouter tries those hosts in order and uses the same list as an allow-list
-by default. Reka is first because it completed the existing GLM tool-call
-smoke runs.
-Host fallback remains enabled within that list, and the OpenAI client retries
-the ordered pool on retryable failures. Set
-`OPENROUTER_ALLOW_UNLISTED_PROVIDERS=true` to permit other same-model hosts.
-OPENROUTER_PROVIDER_SORT is used only when the explicit order is empty.
-`OPENROUTER_REQUIRE_PARAMETERS` remains available for simpler request shapes,
-but it is off by default because OpenRouter rejects the Agents SDK request when
-this filter is enabled.
+`OPENROUTER_PROVIDER_BLOCKLIST` is a comma-separated list applied to every
+OpenRouter model and rules-oracle request. It defaults to Together, GMICloud, Alibaba, Novita, Makora, and SiliconFlow because live tools-plus-JSON-schema probes found
+malformed structured output or endpoint incompatibility. OpenRouter chooses
+among the remaining eligible endpoints and may fall back between them.
 
 | Mechanism | Default |
 | --- | ---: |
@@ -842,9 +809,7 @@ this filter is enabled.
 | Authoritative snapshot wait | 10 seconds |
 | WebSocket ping interval | 30 seconds |
 | Autoplay trigger | New server snapshot |
-| Model request timeout | 120 seconds per attempt |
 | Model API retries | 0 inside the HTTP client; 1 general retry or 3 capacity retries |
-| Complete model-run timeout | 300 seconds per agent decision |
 | Concurrent model runs | No harness limit |
 | Parent Agents SDK turns | 6 |
 | Rules-oracle turns | 3 |
@@ -969,17 +934,10 @@ required tool calls. If the endpoint adapter supports a budget check, the
 command rejects an exhausted key or account before it creates an attempt.
 These checks do not write the key to an artifact.
 
-The tournament requires an API key for the configured OpenAI-compatible
-endpoint and ignores `MODEL_ID`. OpenRouter runs do not use the dashboard's
-provider allow-list. They use one tested provider for each model: Reka for GLM;
-Together for DeepSeek; DeepInfra for Qwen-235B; Alibaba for Qwen 3.7; Cerebras
-for GPT-OSS; and OpenAI for Luna. Provider fallback is off, so each result has
-unambiguous provider attribution. A checkpointed retry uses CoreWeave for GLM
-and Novita for DeepSeek and Qwen-235B. The other three models keep their primary
-route.
-Other compatible endpoints receive no endpoint-specific routing fields. This
-routing adapter is optional; the tournament logic depends only on the
-OpenAI-compatible interface. Every decision request uses
+The tournament requires an API key for the configured endpoint and ignores
+`MODEL_ID`. OpenRouter runs use the same shared provider blocklist as the
+dashboard and game runner. Direct OpenAI runs do not receive OpenRouter routing
+fields. Every decision request uses
 `tool_choice=required`. Memory and the rules oracle remain available as tools.
 Every attempt sends the complete current observation without older SDK history.
 This prevents obsolete gameplay tools from an earlier state from contaminating
@@ -1092,9 +1050,8 @@ random stream. API keys are not recorded. Reusing the same output directory
 preserves completed attempts. An incomplete attempt resumes in the same
 directory when its saved game and SQLite database exist. The evaluator reloads
 the saved game, reopens the agent database, reuses the six agent identities,
-reconnects their clients, restores each model session to its last checkpoint,
-and enables autoplay. A model request that was active at shutdown is run again
-from its pre-call state. If the game or database was never created, the
+reconnects their clients, and enables autoplay. A model request that was active
+at shutdown is run again from the current authoritative state. If the game or database was never created, the
 evaluator marks that attempt as superseded and starts a new numbered attempt.
 A game failure exits the command. No sibling game exists to cancel. A resume
 must use the same harness runtime, rules, game server, model endpoint, seed,

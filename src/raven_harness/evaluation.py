@@ -21,14 +21,13 @@ from .agent_store import AgentStore
 from .config import PROJECT_ROOT, Settings
 from .database import Database
 from .errors import safe_error_text
-from .harness.strategic import (
-    AGENT_SDK_MAX_TURNS,
-    STRATEGIC_INSTRUCTIONS,
-    StrategicHarness,
-    StrategicModelRunner,
-)
+from .game.map_reference import load_map_reference
+from .harness.strategic import StrategicHarness, StrategicModelRunner
 from .manager import AgentManager
-from .models.openai_agent import CONTEXT_POLICY_NAME, OpenAIAgentRunner
+from .models.openai_agent import (
+    CONTEXT_POLICY_NAME,
+)
+from .models.runner import create_llm_runner
 from .rulebook import Rulebook
 from .schemas import AgentCreate, DEFAULT_PROMPT, LobbySetupRequest
 from .telemetry import Telemetry
@@ -45,23 +44,6 @@ TOURNAMENT_MODELS = [
 ]
 TOURNAMENT_HARNESS_ID = "strategic-v1"
 TOURNAMENT_GAMES = 12
-TOURNAMENT_MAX_OUTPUT_TOKENS = 16_384
-TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL = {
-    "z-ai/glm-5.3-flash": "reka",
-    "qwen/qwen3.7-flash": "alibaba",
-    "openai/gpt-oss-120b": "cerebras",
-    "~deepseek/deepseek-v4-flash-latest": "together",
-    "qwen/qwen3-235b-a22b-2507": "deepinfra",
-    "openai/gpt-5.6-luna": "openai",
-}
-TOURNAMENT_RETRY_PROVIDER_BY_MODEL = {
-    "z-ai/glm-5.3-flash": "coreweave",
-    "qwen/qwen3.7-flash": "alibaba",
-    "openai/gpt-oss-120b": "cerebras",
-    "~deepseek/deepseek-v4-flash-latest": "novita",
-    "qwen/qwen3-235b-a22b-2507": "novita",
-    "openai/gpt-5.6-luna": "openai",
-}
 DEFAULT_RANDOM_SEED = 1
 RANDOM_SEED_NAMESPACE = "raven-harness-evaluation-v1"
 EVALUATION_ROOT = PROJECT_ROOT / "data" / "evaluations"
@@ -99,9 +81,7 @@ def user_rotation(game_number: int) -> dict[str, str]:
 async def run_evaluation(args: argparse.Namespace) -> Path:
     """Run or resume exactly one sequential game of the mixed-model tournament."""
 
-    settings = Settings(
-        model_max_output_tokens=TOURNAMENT_MAX_OUTPUT_TOKENS,
-    )
+    settings = Settings()
     if not settings.model_api_key:
         raise RuntimeError(
             "Configure an API key for the selected model endpoint before starting "
@@ -431,25 +411,8 @@ async def run_game(
             service_name=settings.otel_service_name,
         )
         if runner is None:
-            runner = OpenAIAgentRunner(
-                api_key=settings.model_api_key,
-                base_url=settings.model_base_url,
-                request_timeout_seconds=settings.model_request_timeout_seconds,
-                run_timeout_seconds=settings.model_run_timeout_seconds,
-                max_output_tokens=settings.model_max_output_tokens,
-                session_database_path=database_path,
-                session_history_items=settings.model_session_history_items,
-                checkpoint_store=store,
-                provider_routing_by_model=(
-                    _tournament_provider_routing(TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL)
-                    if settings.uses_openrouter
-                    else None
-                ),
-                retry_provider_routing_by_model=(
-                    _tournament_provider_routing(TOURNAMENT_RETRY_PROVIDER_BY_MODEL)
-                    if settings.uses_openrouter
-                    else None
-                ),
+            runner = create_llm_runner(
+                settings,
                 rulebook=rulebook,
             )
         harness = StrategicHarness(runner, store)
@@ -839,7 +802,7 @@ async def _wait_for_game_end(
                 },
             )
             last_progress_write = now
-        if now - last_change > stall_seconds:
+        if stall_seconds > 0 and now - last_change > stall_seconds:
             raise RuntimeError(
                 f"Game state did not change for {stall_seconds:g} seconds"
             )
@@ -1397,11 +1360,7 @@ def _build_provenance(
             "runtimeSha256": _runtime_fingerprint(),
             "systemPromptSha256": _sha256_text(_system_prompt()),
             "effectiveInstructionsSha256": _sha256_text(_effective_instructions()),
-            "requestTimeoutSeconds": settings.model_request_timeout_seconds,
-            "runTimeoutSeconds": settings.model_run_timeout_seconds,
             "clientRetries": 0,
-            "maxOutputTokens": settings.model_max_output_tokens,
-            "sessionHistoryItems": settings.model_session_history_items,
             "autoplayMaxConsecutiveFailures": (
                 settings.autoplay_max_consecutive_failures
             ),
@@ -1412,13 +1371,13 @@ def _build_provenance(
             "autoplayCapacityRetryBaseSeconds": (
                 settings.autoplay_capacity_retry_base_seconds
             ),
-            "reasoningEffort": "low",
+            "reasoningEffort": "high",
             "toolChoice": "required",
+            "actionSubmission": "submit-action-tool",
             "contextPolicy": CONTEXT_POLICY_NAME,
             "historyMode": "current-observation-only",
             "parallelToolCalls": False,
             "store": False,
-            "agentSdkMaxTurns": AGENT_SDK_MAX_TURNS,
             "resetToolChoice": False,
             "rulesOracleMaxOutputTokens": 900,
         },
@@ -1431,13 +1390,8 @@ def _build_provenance(
             "provider": settings.model_provider,
             "baseUrl": _sanitized_base_url(settings.model_base_url),
             "baseUrlSha256": _sha256_text(settings.model_base_url),
-            "primaryProviderRoutingByModel": (
-                _tournament_provider_routing(TOURNAMENT_PRIMARY_PROVIDER_BY_MODEL)
-                if settings.uses_openrouter
-                else None
-            ),
-            "retryProviderRoutingByModel": (
-                _tournament_provider_routing(TOURNAMENT_RETRY_PROVIDER_BY_MODEL)
+            "providerRouting": (
+                {"blockedProviders": settings.openrouter_blocked_providers}
                 if settings.uses_openrouter
                 else None
             ),
@@ -1452,19 +1406,6 @@ def _build_provenance(
             "stallSeconds": args.stall_seconds,
             "matchTimeoutHours": args.match_timeout_hours,
         },
-    }
-
-
-def _tournament_provider_routing(
-    providers: dict[str, str],
-) -> dict[str, dict[str, Any]]:
-    return {
-        model: {
-            "only": [provider],
-            "allow_fallbacks": False,
-            "require_parameters": False,
-        }
-        for model, provider in providers.items()
     }
 
 
@@ -1605,7 +1546,9 @@ def _system_prompt() -> str:
 
 
 def _effective_instructions() -> str:
-    return _system_prompt().rstrip() + STRATEGIC_INSTRUCTIONS
+    return StrategicHarness.build_instructions(
+        _system_prompt(), map_reference=load_map_reference(6)
+    )
 
 
 def _sha256_text(value: str) -> str:

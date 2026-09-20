@@ -69,3 +69,52 @@ def _properties(item: dict[str, Any]) -> dict[str, Any]:
         property_["name"]: property_["value"]
         for property_ in item.get("properties", [])
     }
+
+
+def observation_map_reference(observation: dict[str, Any]) -> dict[str, Any]:
+    """Resolve static data locally, including observations stored before mapVariant."""
+
+    if "map" in observation:
+        return observation["map"]
+    variant = observation.get("mapVariant")
+    if variant is None:
+        return {"regions": []}
+    settings = {
+        "westeros": (6, False),
+        "westeros-7p": (7, False),
+        "westeros-with-essos": (8, False),
+        "ffc-eyrie-with-port": (4, True),
+    }
+    return load_map_reference(*settings[variant])
+
+
+def format_map_reference(reference: dict[str, Any]) -> str:
+    """Compact, deterministic text retaining all topology and static game facts."""
+
+    lines = [
+        "# Map",
+        f"Variant: {reference['variant']}. Fixed for this game.",
+        "Each line is area-id [terrain; optional attributes]: direct neighbours.",
+        "Edges are bidirectional. IDs are the IDs used by gameplay tools.",
+        "castle=1 means castle; castle=2 means stronghold. Omitted castle, supply",
+        "and crown values are zero; omitted home means no home house. Home is",
+        "the default home controller, not current ownership. The observation",
+        "and map tool provide current board state. Edges alone do not establish",
+        "legal movement or support; terrain, ports and ship transport matter.",
+        "",
+    ]
+    for region in sorted(reference["regions"], key=lambda item: item["id"]):
+        attributes = [region["type"]]
+        for field, label in (
+            ("castleLevel", "castle"),
+            ("supplyIcons", "supply"),
+            ("crownIcons", "crown"),
+            ("homeController", "home"),
+        ):
+            if region.get(field):
+                attributes.append(f"{label}={region[field]}")
+        lines.append(
+            f"{region['id']} [{'; '.join(attributes)}]: "
+            + ", ".join(region["neighbours"])
+        )
+    return "\n".join(lines)

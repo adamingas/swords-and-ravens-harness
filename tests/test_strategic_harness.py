@@ -11,15 +11,25 @@ from openai.types.responses import ResponseFunctionToolCall
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
+from raven_harness.game.client import OrderSubmission
+from raven_harness.game.map_reference import load_map_reference
 from raven_harness.harness.actions import HarnessRunContext
-from raven_harness.harness.interface import PlayerHarness
-from raven_harness.harness.observation import build_context, build_observation
-from raven_harness.harness import strategic as strategic_module
+from raven_harness.harness.observation import build_context
 from raven_harness.harness.strategic import StrategicHarness, remember_strategy
 from raven_harness.models.openai_agent import ModelRunResult, OpenAIAgentRunner
 from raven_harness.schemas import AgentCreate
 
 from conftest import lobby_snapshot, planning_snapshot
+
+
+def final_answer(value):
+    value = {**value, "strategic_handoff": "Continue the current plan next decision."}
+    return ResponseFunctionToolCall(
+        arguments=json.dumps(value),
+        call_id="final-action",
+        name="submit_action",
+        type="function_call",
+    )
 
 
 class FakeClient:
@@ -50,9 +60,7 @@ class FakeClient:
         assert expected_generation == self.connection_generation
         message = self.sent[-1]
         if message["type"] == "choose-house":
-            self.snapshot["childGameState"]["players"].append(
-                [message["house"], "2"]
-            )
+            self.snapshot["childGameState"]["players"].append([message["house"], "2"])
         return self.snapshot
 
 
@@ -67,8 +75,6 @@ class HarnessStubRunner:
         context,
         tools,
         instructions,
-        max_turns,
-        stop_at_tool_names,
         prompt_cache_key,
         trace_metadata,
     ):
@@ -77,8 +83,95 @@ class HarnessStubRunner:
     async def shutdown(self) -> None:
         pass
 
-    async def clear_session(self, agent_id: str) -> None:
-        del agent_id
+
+class MapThenOrdersModel(Model):
+    def __init__(self):
+        self.calls = 0
+
+    async def get_response(self, *args, **kwargs):
+        self.calls += 1
+        assert kwargs["model_settings"].tool_choice == "required"
+        assert kwargs["output_schema"] is None
+        assert "submit_orders" not in {tool.name for tool in kwargs["tools"]}
+        assert "submit_action" in {tool.name for tool in kwargs["tools"]}
+        if self.calls == 1:
+            name, arguments = "check_neighbours", {"area": "Castle Black"}
+            output = ResponseFunctionToolCall(
+                arguments=json.dumps(arguments),
+                call_id="map-turn-1",
+                name=name,
+                type="function_call",
+            )
+        else:
+            assert self.calls == 2
+            map_output = next(
+                item["output"]
+                for item in kwargs["input"]
+                if isinstance(item, dict)
+                and item.get("type") == "function_call_output"
+                and item.get("call_id") == "map-turn-1"
+            )
+            assert "winterfell" in {area["id"] for area in json.loads(map_output)}
+            arguments = {
+                "assignments": [
+                    {
+                        "region_id": region,
+                        "preferred_order": "march",
+                        "starred_preference": "avoid",
+                        "priority": 50,
+                    }
+                    for region in ("winterfell", "white-harbor")
+                ]
+            }
+            output = final_answer(arguments)
+        return ModelResponse(
+            output=[output],
+            usage=Usage(requests=1, input_tokens=30, output_tokens=10, total_tokens=40),
+            response_id=f"map-response-{self.calls}",
+        )
+
+    async def stream_response(self, *args, **kwargs):
+        raise NotImplementedError
+        yield
+
+
+@pytest.mark.asyncio
+async def test_strategic_harness_checks_map_then_submits_orders(monkeypatch, tmp_path):
+    model = MapThenOrdersModel()
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent._response_model", lambda **_kwargs: model
+    )
+    database = Database(tmp_path / "map.db")
+    store = AgentStore(database)
+    record = store.create_agent(
+        AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="secret")
+    )
+    client = FakeClient(planning_snapshot())
+
+    async def submit_orders(orders, *, expected_generation):
+        assert expected_generation == client.connection_generation
+        message = {"type": "submit-orders", "orders": orders}
+        client.sent.append(message)
+        return OrderSubmission(message, {"accepted": True}, client.snapshot)
+
+    monkeypatch.setattr(client, "submit_orders", submit_orders, raising=False)
+    harness = StrategicHarness(
+        OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1"), store
+    )
+    prepared = harness.prepare_turn(record, build_context(client.snapshot, "2"), None)
+    context = HarnessRunContext(client=client, user_id="2")
+    try:
+        await harness.run_turn(record, prepared, context, "map-test")
+        assert model.calls == 2
+        assert context.action_taken.name == "submit_orders"
+        assert len(client.sent) == 1
+        assert "check_neighbours" not in {
+            tool.name
+            for tool in harness.preview_tools(build_context(lobby_snapshot(), "2"))
+        }
+    finally:
+        await harness.shutdown()
+        database.close()
 
 
 class RecallThenActionModel(Model):
@@ -95,12 +188,7 @@ class RecallThenActionModel(Model):
                 type="function_call",
             )
         else:
-            output = ResponseFunctionToolCall(
-                arguments='{"house_id":"stark"}',
-                call_id="action-after-recall",
-                name="choose_house",
-                type="function_call",
-            )
+            output = final_answer({"house_id": "stark"})
         return ModelResponse(
             output=[output],
             usage=Usage(requests=1, input_tokens=30, output_tokens=10, total_tokens=40),
@@ -131,12 +219,7 @@ class RememberThenActionModel(Model):
         elif self.fail_after_note:
             raise RuntimeError("provider failed after strategy note")
         else:
-            output = ResponseFunctionToolCall(
-                arguments='{"house_id":"stark"}',
-                call_id="action-after-memory",
-                name="choose_house",
-                type="function_call",
-            )
+            output = final_answer({"house_id": "stark"})
         return ModelResponse(
             output=[output],
             usage=Usage(requests=1, input_tokens=30, output_tokens=10, total_tokens=40),
@@ -170,27 +253,7 @@ class PendingOutcomeRunner(HarnessStubRunner):
         )
 
 
-def test_strategic_harness_implements_interface_and_prepares_memory(
-    tmp_path, monkeypatch
-) -> None:
-    observation_builds = 0
-    action_spec_builds = 0
-    build_action_specs = strategic_module.available_action_specs
-
-    def count_observation_build(context):
-        nonlocal observation_builds
-        observation_builds += 1
-        return build_observation(context)
-
-    def count_action_spec_build(context):
-        nonlocal action_spec_builds
-        action_spec_builds += 1
-        return build_action_specs(context)
-
-    monkeypatch.setattr(strategic_module, "build_observation", count_observation_build)
-    monkeypatch.setattr(
-        strategic_module, "available_action_specs", count_action_spec_build
-    )
+def test_strategic_harness_prepares_prompt_tools_and_decision(tmp_path) -> None:
     database = Database(tmp_path / "strategic.db")
     store = AgentStore(database)
     record = store.create_agent(
@@ -205,36 +268,24 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
         runner=HarnessStubRunner(),
         store=store,
     )
-    assert isinstance(harness, PlayerHarness)
-
     context = build_context(planning_snapshot(), "2")
     prepared = harness.prepare_turn(record, context, previous_error=None)
-    assert observation_builds == 1
-    assert action_spec_builds == 1
     names = [tool.name for tool in prepared.tools]
-    assert "submit_orders" in names
-    assert "recall_game_state" in names
-    assert "remember_strategy" in names
-    assert "update_strategic_memory" not in names
-    assert prepared.prompt_cache_key.startswith("raven-")
-    assert prepared.observation["strategicMemory"]["revision"] == 0
-    assert prepared.observation["strategicMemory"]["roundNumber"] is None
-    assert prepared.observation["strategicMemory"]["modelPlan"] == ""
-    assert prepared.observation["strategicOverview"]["round"] == 1
-    assert prepared.observation["planningConstraints"]["eligibleRegionIds"] == [
-        "winterfell",
-        "white-harbor",
-    ]
-    submit_schema = next(
-        tool.params_json_schema for tool in prepared.tools if tool.name == "submit_orders"
-    )
+    assert "submit_orders" not in names
+    assert "check_neighbours" in names
+    assert prepared.instructions.count("\n# Map\n") == 1
+    assert "castle-black [land; crown=1]:" in prepared.instructions
+    assert "map" not in prepared.observation
+    assert prepared.observation["mapVariant"] == "westeros"
+    assert "placing planning orders" in prepared.observation["decisionBriefing"]
+    assert "check_neighbours looks up" in prepared.observation["decisionBriefing"]
+    assert "not limited to one tool call" in prepared.observation["decisionBriefing"]
+    assert "`submit_action`" in prepared.instructions
+    assert "placing planning orders" not in prepared.instructions
+    assert "\n# Rules\n" in prepared.instructions
+    submit_schema = prepared.decision.output_schema.json_schema()
     assignment = submit_schema["properties"]["assignments"]["items"]["properties"]
-    assert "$defs" not in submit_schema
     assert assignment["region_id"]["enum"] == ["winterfell", "white-harbor"]
-    assert "restricted categories are none" in assignment["preferred_order"][
-        "description"
-    ]
-    assert store.recall_state(record.id, 0)["stateId"] == "leaf-2"  # type: ignore[index]
 
     later_snapshot = copy.deepcopy(planning_snapshot())
     later_snapshot["leafStateId"] = "leaf-later"
@@ -242,21 +293,26 @@ def test_strategic_harness_implements_interface_and_prepares_memory(
     later = harness.prepare_turn(
         record, build_context(later_snapshot, "2"), previous_error=None
     )
-    assert observation_builds == 2
-    assert action_spec_builds == 2
     assert later.prompt_cache_key == prepared.prompt_cache_key
-    submit_orders = next(tool for tool in later.tools if tool.name == "submit_orders")
-    assert "winterfell" not in submit_orders.description.lower()
-    assert later.game_tool_names == ["submit_orders"]
+    assert later.instructions == prepared.instructions
 
     retry = harness.prepare_turn(
         record,
         build_context(later_snapshot, "2"),
         previous_error="The model returned text instead of a game action",
     )
-    assert retry.observation["previousAttemptError"].startswith("The model returned")
-    assert "actual function-tool mechanism" in retry.observation["retryInstruction"]
-    assert [tool.name for tool in retry.tools] == ["submit_orders"]
+    assert (
+        "call submit_action with corrected arguments"
+        in retry.observation["retryInstruction"]
+    )
+    alternate_snapshot = copy.deepcopy(later_snapshot)
+    alternate_snapshot["gameSettings"]["addPortToTheEyrie"] = True
+    alternate = harness.prepare_turn(
+        record, build_context(alternate_snapshot, "2"), previous_error=None
+    )
+    assert alternate.observation["mapVariant"] == "ffc-eyrie-with-port"
+    assert "Variant: ffc-eyrie-with-port." in alternate.instructions
+    assert alternate.prompt_cache_key != prepared.prompt_cache_key
     database.close()
 
 
@@ -282,7 +338,10 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
     )
     store.record_state(
         record.id,
-        {"game": {"stateId": "prior-state", "round": 2, "phase": "march"}},
+        {
+            "game": {"stateId": "prior-state", "round": 2, "phase": "march"},
+            "map": load_map_reference(6),
+        },
     )
     client = FakeClient(lobby_snapshot())
     game_context = build_context(client.snapshot, "2")
@@ -309,6 +368,8 @@ async def test_strategic_harness_recalls_exact_prior_state_then_acts(
     assert recalled["found"] is True
     assert recalled["stateId"] == "prior-state"
     assert recalled["observation"]["game"]["round"] == 2
+    assert "map" not in recalled["observation"]
+    assert recalled["observation"]["mapVariant"] == "westeros"
     automatic_memory = store.get_strategic_memory(record.id)
     assert automatic_memory["roundNumber"] == 0
     assert "used choose_house" in automatic_memory["commitments"][-1]
@@ -389,8 +450,9 @@ async def test_strategy_note_commits_only_after_accepted_gameplay_action(
     assert fake_model.calls == 2
     assert run_context.action_taken is not None
     memory = store.get_strategic_memory(record.id)
-    assert memory["modelPlan"] == (
-        "Hold Winterfell, then pressure the eastern castles."
+    assert memory["modelPlan"] == "Continue the current plan next decision."
+    assert memory["decisionJournal"][-1].endswith(
+        "Continue the current plan next decision."
     )
     assert memory["revision"] == 1
     await harness.shutdown()

@@ -28,8 +28,8 @@ from pypdf import PdfReader
 RULES_ORACLE_TOOL_NAME = "ask_rules_oracle"
 RULES_ORACLE_DESCRIPTION = (
     "Ask a private rules specialist one focused question when a rule is unclear. "
-    "The specialist reads the official rulebook and FAQ. This does not take your "
-    "required game action, so you must still call one gameplay tool afterward."
+    "The specialist reads the official rulebook and FAQ. This does not submit a "
+    "gameplay action. After reading the answer, continue exploring or call submit_action."
 )
 
 # The Supply track on page 8 is artwork in the official PDF, so PDF text

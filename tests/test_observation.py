@@ -163,6 +163,28 @@ def test_observation_exposes_public_card_status_and_revealed_orders() -> None:
     assert "private-objective" not in serialized
 
 
+def test_bidding_observation_names_track_and_explains_hidden_bids() -> None:
+    snapshot = copy.deepcopy(planning_snapshot())
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "westeros",
+        "childGameState": {
+            "type": "clash-of-kings",
+            "currentTrackI": 1,
+            "childGameState": {
+                "type": "bidding",
+                "participatingHouses": ["stark", "lannister"],
+                "bids": [["lannister", -1]],
+            },
+        },
+    }
+
+    pending = build_observation(build_context(snapshot, "2"))["pendingDecision"]
+
+    assert pending["currentTrack"]["name"] == "Fiefdoms"
+    assert "wins a tied combat" in pending["currentTrack"]["meaning"]
+    assert "does not mean zero" in pending["bidFieldMeaning"]
+
+
 def test_observation_does_not_label_private_planning_drafts_as_revealed() -> None:
     snapshot = copy.deepcopy(planning_snapshot())
     ingame = snapshot["childGameState"]

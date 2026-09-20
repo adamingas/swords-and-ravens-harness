@@ -22,6 +22,37 @@ ORDER_LEGEND = {
     15: "Raid starred",
 }
 
+INFLUENCE_TRACKS = (
+    {
+        "id": "iron-throne",
+        "name": "Iron Throne",
+        "meaning": (
+            "Higher position acts earlier during the Action phase. The player in first place "
+            "holds the Iron Throne token and decides unresolved non-combat ties, including tied "
+            "influence bids. This track does not break combat ties."
+        ),
+    },
+    {
+        "id": "fiefdoms",
+        "name": "Fiefdoms",
+        "meaning": (
+            "Higher position wins a tied combat total. The player in first place holds the "
+            "Valyrian Steel Blade and may normally spend it once per round to add +1 to their "
+            "combat strength after House cards are revealed."
+        ),
+    },
+    {
+        "id": "kings-court",
+        "name": "King's Court",
+        "meaning": (
+            "Your position determines how many starred special Order tokens you may place each "
+            "round; higher positions receive more. The player in first place holds the Messenger "
+            "Raven and, after orders are revealed, may replace one of their orders or inspect the "
+            "top Wildling card."
+        ),
+    },
+)
+
 
 @dataclass(frozen=True)
 class HarnessContext:
@@ -94,6 +125,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
         "recentEvents": [_sanitize_event(item) for item in context.recent_events[-12:]],
         "orderLegend": ORDER_LEGEND,
     }
+    _explain_pending_decision(observation, context)
 
     child = snapshot.get("childGameState", {})
     if child.get("type") == "lobby":
@@ -116,10 +148,11 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
     house = context.house
     if context.ingame and game:
         settings = snapshot.get("gameSettings", {})
-        observation["map"] = load_map_reference(
+        map_reference = load_map_reference(
             int(settings.get("playerCount", 6)),
             bool(settings.get("addPortToTheEyrie", False)),
         )
+        observation["mapVariant"] = map_reference["variant"]
         observation["game"]["round"] = game.get("turn")
         observation["game"]["victoryPointsToWin"] = game.get(
             "victoryPointsCountNeededToWin"
@@ -179,7 +212,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
             "fiefdoms": game.get("fiefdomsTrack", []),
             "kingsCourt": game.get("kingsCourtTrack", []),
         }
-        revealed_orders = _revealed_orders(context.ingame, observation["map"])
+        revealed_orders = _revealed_orders(context.ingame, map_reference)
         revealed_orders_by_region = {
             item["regionId"]: item for item in revealed_orders
         }
@@ -202,6 +235,28 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
         if guidance:
             observation["actionGuidance"] = guidance
     return observation
+
+
+def _explain_pending_decision(
+    observation: dict[str, Any], context: HarnessContext
+) -> None:
+    """Add player-facing semantics that the serialized protocol leaves implicit."""
+
+    pending = observation.get("pendingDecision")
+    if not isinstance(pending, dict):
+        return
+    clash = find_state(context.path, "clash-of-kings")
+    if pending.get("type") in {"bidding", "resolve-ties"} and clash is not None:
+        track_index = clash.get("currentTrackI")
+        if isinstance(track_index, int) and 0 <= track_index < len(INFLUENCE_TRACKS):
+            pending["currentTrack"] = {
+                "index": track_index,
+                **INFLUENCE_TRACKS[track_index],
+            }
+        pending["bidFieldMeaning"] = (
+            "A bid value of -1 for another house means that house has submitted a secret "
+            "bid whose amount is hidden from you. It does not mean zero, pass, or withdrawal."
+        )
 
 
 def _public_house_card_status(house: dict[str, Any]) -> dict[str, Any]:
@@ -293,13 +348,13 @@ def _action_guidance(context: HarnessContext) -> dict[str, Any] | None:
                 "At most one destination may trigger combat.",
                 "Use only destinations listed for the selected starting region.",
                 (
-                    "Moves are processed in list order. The harness omits a move "
-                    "group that would exceed Supply after earlier kept groups."
+                    "Move groups are processed in list order. Every group must "
+                    "fit Supply after the earlier groups."
                 ),
             ],
             "safePass": (
-                "Call resolve_march with a listed starting_region_id, moves=[], "
-                "and leave_power_token=false to discard the order."
+                "An empty moves list discards the selected March order without "
+                "moving units or spending a control token."
             ),
         }
     if leaf_type in {"resolve-raid-order", "resolve-single-raid"}:
@@ -307,8 +362,7 @@ def _action_guidance(context: HarnessContext) -> dict[str, Any] | None:
             "decision": "raid",
             "legalOrderRegions": legal_raid_options(context),
             "safePass": (
-                "Call resolve_raid with a listed order_region_id and "
-                "target_region_id=null to discard the order."
+                "A null target_region_id discards the selected Raid order without raiding."
             ),
         }
     if leaf_type in {
@@ -331,15 +385,15 @@ def _action_guidance(context: HarnessContext) -> dict[str, Any] | None:
                 "siege-engine": 2,
                 "footmanUpgradeToKnightOrSiege": 1,
             },
-            "safePass": "Call skip_mustering to submit no recruits.",
+            "safePass": "Choose skip_mustering to recruit no units.",
         }
     if leaf_type == "replace-order":
         return {
             "decision": "raven-order-replacement",
             "legalReplacements": legal_raven_replacements(context),
             "safeChoices": [
-                "Call skip_raven_order_replacement to keep every order.",
-                "Call inspect_top_wildling_card to use the Raven on the Wildling deck.",
+                "Choose skip_raven_order_replacement to keep every order.",
+                "Choose inspect_top_wildling_card to use the Raven on the Wildling deck.",
             ],
         }
     return None

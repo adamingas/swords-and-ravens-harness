@@ -6,7 +6,7 @@ from copy import deepcopy
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Annotated, Any, Protocol
+from typing import TYPE_CHECKING, Annotated, Any, Protocol
 
 from agents import FunctionTool, RunContextWrapper, function_tool
 from agents.tool import default_tool_error_function
@@ -15,6 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..game.client import GameConnectionLost, OrderSubmission
 from .observation import HarnessContext, build_context, is_waiting_for_player
 from .tool_schema import inline_local_definitions
+
+if TYPE_CHECKING:
+    from .decision import DecisionContract
 
 Message = dict[str, Any]
 
@@ -169,6 +172,7 @@ class HarnessRunContext:
     action_taken: ActionTaken | None = None
     pending_strategy_note: str | None = None
     last_tool_error: str | None = None
+    decision: DecisionContract | None = None
     connection_generation: int = field(init=False)
     _action_lock: asyncio.Lock = field(
         default_factory=asyncio.Lock, init=False, repr=False

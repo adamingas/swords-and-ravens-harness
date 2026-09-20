@@ -17,7 +17,7 @@ from .errors import safe_error_text
 from .game.client import ConnectionFactory
 from .harness.strategic import StrategicHarness, StrategicModelRunner
 from .manager import AgentManager
-from .models.openai_agent import OpenAIAgentRunner
+from .models.runner import create_llm_runner
 from .rulebook import Rulebook
 from .schemas import (
     AgentCreate,
@@ -46,20 +46,8 @@ def create_app(
             endpoint=settings.otel_exporter_otlp_traces_endpoint,
             service_name=settings.otel_service_name,
         )
-        model_runner = runner or OpenAIAgentRunner(
-            api_key=settings.model_api_key,
-            base_url=settings.model_base_url,
-            request_timeout_seconds=settings.model_request_timeout_seconds,
-            run_timeout_seconds=settings.model_run_timeout_seconds,
-            max_output_tokens=settings.model_max_output_tokens,
-            session_database_path=settings.resolved_database_path,
-            session_history_items=settings.model_session_history_items,
-            checkpoint_store=store,
-            provider_routing_by_model=(
-                {"*": settings.openrouter_provider_routing}
-                if settings.uses_openrouter
-                else None
-            ),
+        model_runner = runner or create_llm_runner(
+            settings,
             rulebook=rulebook,
         )
         harness = StrategicHarness(model_runner, store)
@@ -123,8 +111,6 @@ def create_app(
             "modelApiConfigured": bool(settings.model_api_key),
             "modelProvider": settings.model_provider,
             "defaultModelId": settings.model_id,
-            "modelMaxOutputTokens": settings.model_max_output_tokens,
-            "modelSessionHistoryItems": settings.model_session_history_items,
             "databasePath": str(settings.resolved_database_path),
             "rulesPath": str(settings.resolved_rules_path),
             "rulesOracleAvailable": bool(

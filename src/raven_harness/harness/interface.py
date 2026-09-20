@@ -8,6 +8,7 @@ from agents import FunctionTool
 from ..models.openai_agent import ModelRunResult
 from ..schemas import AgentRecord
 from .actions import HarnessRunContext
+from .decision import DecisionContract
 from .observation import HarnessContext
 
 
@@ -16,9 +17,9 @@ class PreparedTurn:
     observation: dict[str, Any]
     tools: list[FunctionTool]
     instructions: str
-    game_tool_names: list[str]
     prompt_cache_key: str
     history_id: int | None = None
+    decision: DecisionContract | None = None
 
 
 @runtime_checkable
@@ -47,5 +48,3 @@ class PlayerHarness(Protocol):
     ) -> ModelRunResult: ...
 
     async def shutdown(self) -> None: ...
-
-    async def clear_agent_history(self, agent_id: str) -> None: ...

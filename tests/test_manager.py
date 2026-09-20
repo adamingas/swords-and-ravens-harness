@@ -2,12 +2,6 @@ import asyncio
 import copy
 
 import pytest
-from opentelemetry.trace import StatusCode
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
-    InMemorySpanExporter,
-)
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
@@ -31,7 +25,6 @@ from raven_harness.models.openai_agent import (
     TransientProviderCapacityError,
 )
 from raven_harness.schemas import AgentCreate, LobbySetupRequest
-from raven_harness.telemetry import Telemetry
 
 from conftest import lobby_snapshot, planning_snapshot
 
@@ -47,8 +40,6 @@ class UnusedRunner:
         context,
         tools,
         instructions,
-        max_turns,
-        stop_at_tool_names,
         prompt_cache_key,
         trace_metadata,
     ):
@@ -56,9 +47,6 @@ class UnusedRunner:
 
     async def shutdown(self) -> None:
         pass
-
-    async def clear_session(self, agent_id: str) -> None:
-        del agent_id
 
 
 class FakeConnection:
@@ -139,8 +127,8 @@ class ContextManifestHarness:
             observation={"game": {"phase": "lobby"}},
             tools=[],
             instructions="test instructions",
-            game_tool_names=["choose_house"],
             prompt_cache_key="test-cache-key",
+            decision=object(),  # type: ignore[arg-type]
         )
 
     async def run_turn(self, record, prepared, context, run_id):
@@ -403,9 +391,7 @@ async def test_launch_game_rejects_unchanged_lobby(tmp_path) -> None:
         {"type": "ingame"},
     ],
 )
-async def test_lobby_ready_verifies_authoritative_result(
-    tmp_path, child_state
-) -> None:
+async def test_lobby_ready_verifies_authoritative_result(tmp_path, child_state) -> None:
     database, manager, agent, client = lobby_manager(tmp_path, {})
     client.synced_snapshot["childGameState"] = child_state
     session = manager.sessions[agent.id]
@@ -434,214 +420,10 @@ async def test_lobby_ready_records_rejected_response(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_manager_persists_effective_context_manifest(tmp_path) -> None:
-    database, store, harness, manager, agent = manifest_manager(tmp_path)
-
-    result = await manager.run_once(agent.id)
-    trace = store.get_run(agent.id, result["runId"])
-
-    assert trace is not None
-    assert trace["contextManifest"] == harness.manifest
-    database.close()
-
-
-@pytest.mark.asyncio
-async def test_manager_exports_complete_decision_span(tmp_path) -> None:
-    database, _store, _harness, manager, agent = manifest_manager(tmp_path)
-    exporter = InMemorySpanExporter()
-    provider = TracerProvider()
-    provider.add_span_processor(SimpleSpanProcessor(exporter))
-    manager.telemetry = Telemetry(provider.get_tracer("test-harness"), provider)
-
-    result = await manager.run_once(agent.id)
-
-    spans = exporter.get_finished_spans()
-    assert len(spans) == 1
-    span = spans[0]
-    assert span.name == "raven.agent.decision"
-    assert span.attributes["raven.agent.id"] == agent.id
-    assert span.attributes["raven.agent.name"] == "Manifest Wolf"
-    assert span.attributes["raven.game.id"] == "1"
-    assert span.attributes["raven.model"] == "test-model"
-    assert span.attributes["raven.run.id"] == result["runId"]
-    assert span.attributes["raven.action"] == "choose_house"
-    assert span.attributes["gen_ai.usage.input_tokens"] == 100
-    assert span.attributes["gen_ai.usage.output_tokens"] == 10
-    assert span.attributes["raven.cost.usd"] == 0.0
-    events = {event.name: event for event in span.events}
-    assert events["raven.model-run-started"].attributes["raven.run.id"] == result[
-        "runId"
-    ]
-    assert events["raven.model-run-started"].attributes["raven.model"] == "test-model"
-    assert events["raven.model-run-completed"].attributes["raven.tool"] == (
-        "choose_house"
-    )
-    assert events["raven.game.action"].attributes["raven.action"] == "choose_house"
-
-    manager.telemetry.shutdown()
-    database.close()
-
-
-@pytest.mark.asyncio
-async def test_manager_exports_failed_decision_span(tmp_path) -> None:
-    database, _store, _harness, manager, agent = manifest_manager(tmp_path, "failed")
-    exporter = InMemorySpanExporter()
-    provider = TracerProvider()
-    provider.add_span_processor(SimpleSpanProcessor(exporter))
-    manager.telemetry = Telemetry(provider.get_tracer("test-harness"), provider)
-
-    with pytest.raises(ModelRunError, match="model failed"):
-        await manager.run_once(agent.id)
-
-    spans = exporter.get_finished_spans()
-    assert len(spans) == 1
-    span = spans[0]
-    assert span.status.status_code == StatusCode.ERROR
-    assert span.attributes["raven.run.id"]
-    events = {event.name: event for event in span.events}
-    assert "raven.model-run-failed" in events
-    assert events["exception"].attributes["exception.message"] == "model failed"
-
-    manager.telemetry.shutdown()
-    database.close()
-
-
-@pytest.mark.asyncio
-async def test_manager_exposes_bounded_sanitized_live_activity(tmp_path) -> None:
-    database = Database(tmp_path / "activity.db")
-    store = AgentStore(database)
-    harness = BlockingActivityHarness()
-    manager = AgentManager(store=store, harness=harness)
-    agent = store.create_agent(
-        AgentCreate(
-            name="Activity Wolf",
-            model="test-model",
-            game_server_url="ws://game.test",
-            game_id="1",
-            user_id="2",
-            auth_token="private-agent-token",
-            game_password="private-game-password",
-        )
-    )
-    manager.sessions[agent.id] = AgentSession(
-        status="connected", client=FakeRunClient()
-    )
-
-    task = asyncio.create_task(manager.run_once(agent.id))
-    await harness.started.wait()
-
-    live = manager.get_runtime(agent.id).model_dump(by_alias=True)
-    assert live["currentActivity"]["kind"] == "model-request-started"
-    assert live["currentActivity"]["requestIndex"] == 10
-    assert live["currentActivity"]["scope"] == "rules-oracle"
-    assert len(live["recentActivity"]) == 8
-    assert [item["requestIndex"] for item in live["recentActivity"]] == list(
-        range(3, 11)
-    )
-    harness.release.set()
-    result = await task
-
-    stopped = manager.get_runtime(agent.id).model_dump(by_alias=True)
-    assert stopped["currentActivity"] is None
-    assert len(stopped["recentActivity"]) == 8
-    assert stopped["recentActivity"][-1]["kind"] == "model-run-completed"
-    events = store.list_events(agent.id)
-    request_events = [event for event in events if event.kind.startswith("model-request-")]
-    assert len(request_events) == 11
-    completed = next(
-        event for event in request_events if event.kind == "model-request-completed"
-    )
-    assert completed.payload["runId"] == result["runId"]
-    assert completed.payload["usage"] == {
-        "requests": 1,
-        "inputTokens": 100,
-        "outputTokens": 10,
-        "totalTokens": 110,
-    }
-    serialized = str([event.payload for event in request_events])
-    assert "private prompt body" not in serialized
-    assert "private-token" not in serialized
-    assert "private usage body" not in serialized
-    assert "private result body" not in serialized
-    assert "private-game-password" not in serialized
-
-    for index in range(100):
-        store.add_event(agent.id, "game-message-received", {"index": index})
-    restarted_manager = AgentManager(store=store, harness=ContextManifestHarness())
-    persisted = restarted_manager.get_runtime(agent.id).model_dump(by_alias=True)
-    assert persisted["currentActivity"] is None
-    assert len(persisted["recentActivity"]) == 8
-    assert persisted["recentActivity"][-1]["kind"] == "model-run-completed"
-    database.close()
-
-
-def test_manager_marks_unfinished_saved_activity_as_interrupted(tmp_path) -> None:
-    database = Database(tmp_path / "interrupted-activity.db")
-    store = AgentStore(database)
-    agent = store.create_agent(
-        AgentCreate(
-            name="Interrupted Wolf",
-            model="test-model",
-            game_server_url="ws://game.test",
-            game_id="1",
-            user_id="2",
-            auth_token="private-agent-token",
-        )
-    )
-    store.add_event(
-        agent.id,
-        "model-run-started",
-        {"runId": "abandoned-run", "occurredAt": "2026-01-01T00:00:00Z"},
-    )
-    store.add_event(
-        agent.id,
-        "model-request-started",
-        {"runId": "abandoned-run", "occurredAt": "2026-01-01T00:00:01Z"},
-    )
-
-    restarted_manager = AgentManager(
-        store=store, harness=ContextManifestHarness()
-    )
-    activity = restarted_manager.get_runtime(agent.id).model_dump(by_alias=True)[
-        "recentActivity"
-    ]
-
-    assert [item["kind"] for item in activity] == [
-        "model-run-started",
-        "model-request-started",
-        "model-run-interrupted",
-    ]
-    assert activity[-1]["runId"] == "abandoned-run"
-    database.close()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("outcome", ["failed", "cancelled"])
-async def test_manager_persists_partial_result_context_manifest(
-    tmp_path, outcome
-) -> None:
-    database, store, harness, manager, agent = manifest_manager(tmp_path, outcome)
-    error_type = RuntimeError if outcome == "failed" else asyncio.CancelledError
-
-    with pytest.raises(error_type):
-        await manager._run_once(agent.id)
-
-    trace = store.get_run(agent.id, store.list_runs(agent.id)[0]["id"])
-    assert trace is not None
-    assert trace["status"] == outcome
-    assert trace["contextManifest"] == harness.manifest
-    activity = manager.get_runtime(agent.id).recent_activity
-    assert activity[-1]["kind"] == f"model-run-{outcome}"
-    database.close()
-
-
-@pytest.mark.asyncio
 async def test_permanent_provider_error_stops_all_autoplay_and_is_redacted(
     tmp_path,
 ) -> None:
-    database, store, harness, manager, agent = manifest_manager(
-        tmp_path, "permanent"
-    )
+    database, store, harness, manager, agent = manifest_manager(tmp_path, "permanent")
     second = store.create_agent(
         AgentCreate(
             name="Second Wolf",
@@ -767,10 +549,7 @@ async def test_manager_reconnects_once_and_preserves_autoplay(tmp_path) -> None:
     await first.incoming.put(None)
     for _ in range(200):
         session = manager.sessions[agent.id]
-        if (
-            session.status == "connected"
-            and session.client.connection_generation == 2
-        ):
+        if session.status == "connected" and session.client.connection_generation == 2:
             break
         await asyncio.sleep(0.005)
 

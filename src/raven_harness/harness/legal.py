@@ -138,6 +138,10 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
                 {
                     "regionId": target_id,
                     "type": static.get("type"),
+                    "castleLevel": static.get("castleLevel", 0),
+                    "castleAreasGainedIfCaptured": int(
+                        bool(static.get("castleLevel")) and controller != context.house_id
+                    ),
                     "garrison": target.get("garrison", 0),
                     "controller": controller,
                     "triggersCombat": bool(
@@ -166,6 +170,10 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
                 "orderId": order_id,
                 "order": _order_name(order_id),
                 "unitIds": [int(unit["id"]) for unit in units],
+                "castleAreasLostIfEmptiedWithoutToken": int(
+                    bool(source.get("castleLevel"))
+                    and (regions.get(region_id, {}).get("controlPowerToken") or source.get("homeController")) != context.house_id
+                ),
                 "reachableRegions": sorted(
                     destinations, key=lambda item: item["regionId"]
                 ),

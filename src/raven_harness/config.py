@@ -1,7 +1,6 @@
 import os
 import sys
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlsplit
 
 from pydantic import Field
@@ -10,7 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_ID = "z-ai/glm-5.3-flash"
-DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 16_384
+DEFAULT_OPENROUTER_PROVIDER_BLOCKLIST = (
+    "together,gmicloud,alibaba,novita,makora,siliconflow"
+)
 
 
 def _source_checkout_root() -> Path | None:
@@ -67,25 +68,11 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str = "https://api.openai.com/v1"
-    model_request_timeout_seconds: float = Field(default=120, gt=0, le=300)
-    model_run_timeout_seconds: float = Field(default=300, gt=0, le=1_800)
-    model_max_output_tokens: int = Field(
-        default=DEFAULT_MODEL_MAX_OUTPUT_TOKENS, ge=256, le=65_536
-    )
-    model_session_history_items: int = Field(default=32, ge=4, le=1_000)
     autoplay_max_consecutive_failures: int = Field(default=2, ge=1, le=20)
     autoplay_retry_base_seconds: float = Field(default=2, gt=0, le=60)
     autoplay_max_capacity_failures: int = Field(default=4, ge=1, le=20)
     autoplay_capacity_retry_base_seconds: float = Field(default=2, gt=0, le=60)
-    openrouter_provider_order: str = (
-        "reka,cloudflare,coreweave,fireworks,deepinfra,together"
-    )
-    openrouter_allow_unlisted_providers: bool = False
-    openrouter_provider_sort: str = Field(
-        default="throughput", pattern="^(price|throughput|latency)$"
-    )
-    openrouter_allow_fallbacks: bool = True
-    openrouter_require_parameters: bool = False
+    openrouter_provider_blocklist: str = DEFAULT_OPENROUTER_PROVIDER_BLOCKLIST
     otel_exporter_otlp_traces_endpoint: str = ""
     otel_service_name: str = "raven-harness"
 
@@ -115,22 +102,11 @@ class Settings(BaseSettings):
 
     @property
     def uses_openrouter(self) -> bool:
-        return self.model_provider == "openrouter.ai"
+        return bool(self.openrouter_token)
 
     @property
-    def openrouter_provider_routing(self) -> dict[str, Any]:
-        order = _comma_separated(self.openrouter_provider_order)
-        routing: dict[str, Any] = {
-            "allow_fallbacks": self.openrouter_allow_fallbacks,
-            "require_parameters": self.openrouter_require_parameters,
-        }
-        if order:
-            routing["order"] = order
-            if not self.openrouter_allow_unlisted_providers:
-                routing["only"] = order
-        else:
-            routing["sort"] = self.openrouter_provider_sort
-        return routing
+    def openrouter_blocked_providers(self) -> list[str]:
+        return _comma_separated(self.openrouter_provider_blocklist)
 
 
 def _comma_separated(value: str) -> list[str]:

@@ -2,21 +2,19 @@ import argparse
 import asyncio
 import json
 import socket
-import sqlite3
 from dataclasses import replace
 
 import pytest
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.harness.actions import HarnessRunContext, available_tools
+from raven_harness.harness.decision import build_decision_contract
 from raven_harness.config import Settings
 from raven_harness.database import Database
 from raven_harness.harness.observation import build_context
 from raven_harness.game.client import OrderSubmission
 from raven_harness.evaluation import (
     GAME_SERVER_DIR,
-    TOURNAMENT_HARNESS_ID,
-    TOURNAMENT_MODELS,
     run_game,
 )
 from raven_harness.protocol_smoke import (
@@ -39,24 +37,18 @@ class FakeClient:
         self.sent = []
         self.connection_generation = 1
 
-    async def send(
-        self, message, *, require_auth=True, expected_generation=None
-    ):
+    async def send(self, message, *, require_auth=True, expected_generation=None):
         del require_auth
         assert expected_generation == self.connection_generation
         self.sent.append(message)
 
-    async def sync_snapshot(
-        self, timeout=10, *, expected_generation=None
-    ):
+    async def sync_snapshot(self, timeout=10, *, expected_generation=None):
         del timeout
         assert expected_generation == self.connection_generation
         self.snapshot["leafStateId"] += "-accepted"
         return self.snapshot
 
-    async def submit_orders(
-        self, orders, timeout=10, *, expected_generation=None
-    ):
+    async def submit_orders(self, orders, timeout=10, *, expected_generation=None):
         del timeout
         assert expected_generation == self.connection_generation
         message = {
@@ -97,17 +89,12 @@ class BlockingProtocolRunner:
     async def shutdown(self) -> None:
         return None
 
-    async def clear_session(self, agent_id: str) -> None:
-        del agent_id
-
 
 def test_safe_planning_arguments_use_dynamic_action_order_plan() -> None:
     snapshot = planning_snapshot()
     context = build_context(snapshot, "2")
     submit_orders = available_tools(context)[0]
-    observation = {
-        "planningConstraints": {}
-    }
+    observation = {"planningConstraints": {}}
 
     arguments = _safe_tool_arguments(submit_orders, observation)
 
@@ -147,7 +134,7 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
     context = build_context(snapshot, "2")
     tools = available_tools(context)
     run_context = HarnessRunContext(client=client, user_id="2")
-    tool = tools[0]
+    run_context.decision = build_decision_contract(context, tools)
     observation = {
         "statePath": ["ingame", "planning", "place-orders"],
         "planningConstraints": {},
@@ -159,8 +146,6 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
         context=run_context,
         tools=tools,
         instructions="unused",
-        max_turns=1,
-        stop_at_tool_names=[tool.name],
         prompt_cache_key="unused",
         trace_metadata={},
     )
@@ -174,7 +159,6 @@ async def test_scripted_runner_invokes_dynamic_function_tool() -> None:
     ]
     assert client.sent[-1]["type"] == "submit-orders"
     assert len(client.sent) == 2
-    assert result.context_manifest["selectedTool"] == "submit_orders"
 
 
 def test_scripted_runner_fails_closed_with_dynamic_schema() -> None:
@@ -215,17 +199,9 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(
     assert result == output
     smoke = json.loads((output / "smoke.json").read_text())
     game_result = json.loads((output / "result.json").read_text())
-    assignments = json.loads((output / "assignments.json").read_text())
     assert smoke["status"] == "completed"
     assert smoke["providerRequests"] == 0
-    assert smoke["randomSeed"] == 1
-    assert game_result["randomSeed"] == smoke["randomSeed"]
     assert smoke["winner"] == game_result["winner"]
-    assert [assignment["model"] for assignment in assignments] == TOURNAMENT_MODELS
-    assert {assignment["harness"] for assignment in assignments} == {
-        TOURNAMENT_HARNESS_ID
-    }
-    assert len({assignment["promptSha256"] for assignment in assignments}) == 1
     assert set(smoke["toolCoverage"]["invoked"]) >= REQUIRED_TOOL_COVERAGE
     assert smoke["toolCoverage"]["required"] == REQUIRED_TOOL_COUNTS
     assert all(
@@ -245,25 +221,6 @@ async def test_real_server_protocol_smoke_writes_verified_artifacts(
     assert privacy_probe["ownerReceivedExactOrderIds"] is True
     assert privacy_probe["opponentReceivedOnlyHiddenOrders"] is True
     assert privacy_probe["observedOrderCount"] > 0
-    connection = sqlite3.connect(output / "harness.db")
-    try:
-        statuses = dict(
-            connection.execute(
-                "SELECT status, COUNT(*) FROM agent_runs GROUP BY status"
-            ).fetchall()
-        )
-        provider_requests = connection.execute(
-            """
-            SELECT COALESCE(SUM(json_extract(usage_json, '$.requests')), 0)
-            FROM agent_runs
-            """
-        ).fetchone()[0]
-    finally:
-        connection.close()
-    assert statuses == {
-        "completed": len(smoke["toolCoverage"]["sequence"]),
-    }
-    assert provider_requests == 0
 
 
 @pytest.mark.asyncio
@@ -332,6 +289,7 @@ async def test_real_server_resumes_saved_game_with_the_same_agents(tmp_path) -> 
     after_agent_ids = [record.id for record in AgentStore(database).list_agents()]
     database.close()
     assert after_agent_ids == before_agent_ids
-    assert result["winner"] in {assignment["house"] for assignment in json.loads(
-        (attempt_dir / "assignments.json").read_text()
-    )}
+    assert result["winner"] in {
+        assignment["house"]
+        for assignment in json.loads((attempt_dir / "assignments.json").read_text())
+    }
