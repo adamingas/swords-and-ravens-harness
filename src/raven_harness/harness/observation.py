@@ -2,7 +2,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..game.map_reference import load_map_reference
-from ..game.state import find_state, ingame_state, player_house, state_path
+from ..game.state import (
+    find_state,
+    ingame_state,
+    player_house,
+    region_is_blocked,
+    state_path,
+)
 
 ORDER_LEGEND = {
     1: "March -1",
@@ -222,6 +228,7 @@ def build_observation(context: HarnessContext) -> dict[str, Any]:
                 "id": region.get("id"),
                 "controlPowerToken": region.get("controlPowerToken"),
                 "garrison": region.get("garrison", 0),
+                "isBlocked": region_is_blocked(region),
                 "units": region.get("units", []),
                 "revealedOrder": revealed_orders_by_region.get(region.get("id")),
             }

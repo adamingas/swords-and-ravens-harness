@@ -3,6 +3,11 @@ from typing import Any
 JsonObject = dict[str, Any]
 
 
+def region_is_blocked(region: JsonObject) -> bool:
+    """Match Region.isBlocked: 1000 is an impassable-area marker, not strength."""
+    return region.get("garrison", 0) == 1_000
+
+
 def state_path(serialized_game: JsonObject) -> list[JsonObject]:
     path: list[JsonObject] = []
     state = serialized_game.get("childGameState")

@@ -273,12 +273,14 @@ def test_strategic_harness_prepares_prompt_tools_and_decision(tmp_path) -> None:
     names = [tool.name for tool in prepared.tools]
     assert "submit_orders" not in names
     assert "check_neighbours" in names
+    assert "reachable_areas" in names
     assert prepared.instructions.count("\n# Map\n") == 1
     assert "castle-black [land; crown=1]:" in prepared.instructions
     assert "map" not in prepared.observation
     assert prepared.observation["mapVariant"] == "westeros"
     assert "placing planning orders" in prepared.observation["decisionBriefing"]
     assert "check_neighbours looks up" in prepared.observation["decisionBriefing"]
+    assert "reachable_areas finds" in prepared.observation["decisionBriefing"]
     assert "not limited to one tool call" in prepared.observation["decisionBriefing"]
     assert "`submit_action`" in prepared.instructions
     assert "placing planning orders" not in prepared.instructions

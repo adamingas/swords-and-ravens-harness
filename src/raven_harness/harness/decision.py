@@ -55,6 +55,12 @@ def _simplify(schema: dict[str, Any]) -> dict[str, Any]:
         result["required"] = list(result["properties"])
     if result.get("type") == "array":
         result["items"] = _simplify(schema["items"])
+        if result["items"].get("type") == "object" and not result["items"].get("properties"):
+            result["items"]["description"] = (
+                "All fields in this item have fixed values supplied automatically. "
+                "Use an empty object {} for this item; do not add destination or unit fields. "
+                "An array containing [{}] selects the fixed item; an empty array [] selects none."
+            )
     for keyword in ("anyOf", "oneOf"):
         if keyword in result:
             result[keyword] = [_simplify(branch) for branch in schema[keyword]]
@@ -128,7 +134,13 @@ class DecisionContract:
                     {
                         "accepted": False,
                         "error": str(error),
-                        "instruction": "Correct the arguments and call submit_action again.",
+                        "instruction": (
+                            "Correct the arguments using expected_schema below and call submit_action again. "
+                            "For multiple actions, decision is an object containing action and that action's fields. "
+                            "An object with no properties must be {}. Fixed fields are supplied automatically; "
+                            "do not invent aliases. The rules oracle does not know this live action schema."
+                        ),
+                        "expected_schema": self.output_schema.json_schema(),
                     }
                 )
             current = tool_context.context.current_game_context()
@@ -344,8 +356,12 @@ def build_decision_contract(
             ids = move["unit_ids"]["items"].get("enum", [])
             if ids:
                 move["unit_ids"]["maxItems"] = len(ids)
-                schema["properties"]["moves"]["maxItems"] = max(
+                max_moves = max(
                     len(option["unitIds"]) for option in legal_march_options(context)
+                )
+                moves_schema = schema["properties"]["moves"]
+                moves_schema["maxItems"] = min(
+                    moves_schema.get("maxItems", max_moves), max_moves
                 )
         if tool.name == "select_units":
             name, field, description = _unit_selection(context)

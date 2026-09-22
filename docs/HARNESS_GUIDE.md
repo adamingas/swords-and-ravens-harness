@@ -572,6 +572,27 @@ terrain and castle information. Use the battlefield as the queried area when
 checking support. Direct adjacency differs from ship-transport reachability.
 This tool is available during in-game exploration.
 
+### reachable_areas(area)
+
+Returns geographic movement routes from any area, including empty or enemy-held
+areas, using the calling house's current player-visible board. Land origins imply
+land movement; sea and port origins imply ship movement. Land units can reach
+adjacent land and travel through chains of current friendly ships. Wounded ships
+still provide transport. Ships reach adjacent seas and ports; land routes cannot
+chain through intervening land areas.
+
+The result contains `houseId`, `source`, `movementType`, and `destinations`.
+Each destination has its ID, name, terrain, one shortest `route`, and the
+`transportShips` used by that route. Direct routes need no transports. Blocked
+areas are excluded from destinations and traversal; a blocked source returns no
+routes. The tool supports three- and six-player base games without vassals.
+
+This is not a legal-move list. Source occupants, wounds, orders, Supply, combat
+strength, and port ownership/capacity do not filter destinations. Use current
+`actionGuidance` and `submit_action` for move legality, and `check_neighbours` for
+adjacency and support reasoning. Every call reads a fresh snapshot and neither
+changes game state nor finishes the decision.
+
 ### recall_game_state(turns_ago)
 
 This tool returns one earlier stored base observation and the action selected
@@ -1091,3 +1112,18 @@ npm run generate-json-schemas
 
 Use HARNESS_TEST_MAX_TURNS=1 only for lifecycle smoke tests. Do not set it for a
 normal game.
+
+## Explicit output allowances and schema recovery
+
+`LLMAgentRunner(max_output_tokens=...)` can set a parent decision's output
+allowance without changing the rules oracle's separate 900-token allowance.
+The default is `None`, which omits the Responses API parameter and uses the
+upstream default; it does not mean unlimited output. Evaluators should choose
+an allowance supported by their model/provider and record it in provenance.
+The Cerebras-only OSS follow-up on 2026-09-22 explicitly requests 40,960.
+
+A schema-rejected `submit_action` now returns the exact current `expected_schema`
+with instructions on its action discriminator and automatically supplied fixed
+fields. Array items with every field fixed explicitly describe `{}` as selecting
+the fixed item and `[]` as selecting no items. Validation and restored gameplay
+values are unchanged; the model must correct and resubmit its own action.

@@ -389,9 +389,13 @@ class LLMAgentRunner:
         api_key: str,
         base_url: str,
         rulebook: Rulebook | None = None,
+        max_output_tokens: int | None = None,
     ) -> None:
+        if max_output_tokens is not None and max_output_tokens <= 0:
+            raise ValueError("max_output_tokens must be positive when specified")
         self.api_key = api_key
         self.rulebook = rulebook
+        self.max_output_tokens = max_output_tokens
         self.client = AsyncOpenAI(
             api_key=api_key or "not-configured",
             base_url=base_url,
@@ -494,7 +498,7 @@ class LLMAgentRunner:
                 tools=tools,
                 output_type=None,
                 model_settings=self._model_settings(
-                    max_tokens=None,
+                    max_tokens=self.max_output_tokens,
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
                     user=agent_record.id,

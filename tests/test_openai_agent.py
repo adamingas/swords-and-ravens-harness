@@ -304,3 +304,24 @@ async def test_failed_response_preserves_provider_error_details() -> None:
         )
     result = _partial_result([], {}, provider_responses=responses)
     assert result.response_items[0]["providerError"]["code"] == "server_error"
+
+
+@pytest.mark.asyncio
+async def test_parent_output_allowance_does_not_change_oracle_settings():
+    runner = OpenRouterAgentRunner(
+        api_key="test-key", base_url="https://openrouter.ai/api/v1",
+        provider_blocklist=["novita"], max_output_tokens=40960,
+    )
+    try:
+        oracle = runner._model_settings(max_tokens=900, prompt_cache_key=None, metadata=None)
+        assert oracle.max_tokens == 900
+        assert oracle.reasoning.effort == "high"
+        assert oracle.extra_body["provider"]["ignore"] == ["novita"]
+    finally:
+        await runner.shutdown()
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_invalid_explicit_output_allowance_is_rejected(limit):
+    with pytest.raises(ValueError, match="positive"):
+        OpenAIAgentRunner(api_key="test-key", base_url="https://api.test/v1", max_output_tokens=limit)

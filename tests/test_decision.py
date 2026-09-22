@@ -3,14 +3,15 @@ import json
 
 import httpx
 import pytest
+from agents.tool_context import ToolContext
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.decision import build_decision_contract
 from raven_harness.harness.decision_briefing import build_decision_briefing
-from raven_harness.harness.map_tools import check_neighbours
-from raven_harness.harness.observation import build_context
+from raven_harness.harness.map_tools import check_neighbours, neighbouring_areas
+from raven_harness.harness.observation import build_context, build_observation
 from raven_harness.harness.strategic import StrategicHarness
 from raven_harness.models.openai_agent import (
     ModelRunCancelled,
@@ -234,6 +235,117 @@ async def test_single_movable_unit_is_bound_without_removing_the_option_to_pass(
 
 
 @pytest.mark.asyncio
+async def test_three_player_blocked_castle_is_not_offered_or_submitted():
+    # Reproduce the OSS round-three Dragonstone -> Storm's End failure.
+    snapshot = march_snapshot()
+    snapshot["gameSettings"]["playerCount"] = 3
+    ingame = snapshot["childGameState"]
+    ingame["players"][0]["houseId"] = "baratheon"
+    ingame["game"]["houses"][0]["id"] = "baratheon"
+    ingame["childGameState"]["childGameState"]["houseId"] = "baratheon"
+    ingame["ordersOnBoard"] = [["dragonstone", 3], ["shipbreaker-bay", 7]]
+    ingame["game"]["world"]["regions"] = [
+        {
+            "id": "dragonstone",
+            "units": [
+                {"id": 9, "type": "footman", "allegiance": "baratheon"},
+                {"id": 10, "type": "knight", "allegiance": "baratheon"},
+            ],
+        },
+        {
+            "id": "shipbreaker-bay",
+            "units": [
+                {"id": 11, "type": "ship", "allegiance": "baratheon"},
+                {"id": 12, "type": "ship", "allegiance": "baratheon"},
+            ],
+        },
+        {"id": "storms-end", "garrison": 1000, "units": []},
+        {"id": "kingswood", "controlPowerToken": "baratheon", "units": []},
+        {"id": "crackclaw-point", "controlPowerToken": "baratheon", "units": []},
+    ]
+    context = build_context(snapshot, "2")
+    observation = build_observation(context)
+    targets = observation["actionGuidance"]["legalOrderRegions"][0]["reachableRegions"]
+    assert {target["regionId"] for target in targets} == {
+        "crackclaw-point",
+        "kingswood",
+    }
+    board = {region["id"]: region for region in observation["board"]}
+    assert board["storms-end"]["isBlocked"] is True
+    assert board["dragonstone"]["isBlocked"] is False
+    neighbours = {
+        region["id"]: region
+        for region in neighbouring_areas(context, "shipbreaker-bay")
+    }
+    assert neighbours["storms-end"]["isBlocked"] is True
+    from raven_harness.harness.legal import neutral_force_attack_is_legal
+
+    assert not neutral_force_attack_is_legal(
+        context, "dragonstone", "storms-end", [9, 10]
+    )
+    contract = contract_for(snapshot)
+    tool = contract.submission_tool()
+    destinations = tool.params_json_schema["properties"]["moves"]["items"][
+        "properties"
+    ]["destination_region_id"]["enum"]
+    assert destinations == ["crackclaw-point", "kingswood"]
+    assert "Storm's End (" not in build_decision_briefing(context, contract, [])
+    client = Client(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    invalid = json.dumps(
+        action(moves=[{"destination_region_id": "storms-end", "unit_ids": [9, 10]}])
+    )
+    rejected = json.loads(
+        await tool.on_invoke_tool(
+            ToolContext(
+                context=run_context,
+                tool_call_id="blocked",
+                tool_name="submit_action",
+                tool_arguments=invalid,
+            ),
+            invalid,
+        )
+    )
+    assert rejected["accepted"] is False
+    assert "storms-end" in rejected["error"]
+    assert client.sent == [] and run_context.action_taken is None
+    await contract.execute(
+        run_context,
+        action(
+            moves=[{"destination_region_id": "crackclaw-point", "unit_ids": [9, 10]}]
+        ),
+    )
+    assert client.sent[0]["moves"] == [["crackclaw-point", [9, 10]]]
+
+
+@pytest.mark.asyncio
+async def test_blocked_direct_destinations_leave_only_a_valid_pass_contract():
+    from raven_harness.harness.legal import _regions
+
+    snapshot = march_snapshot()
+    _, static = _regions(build_context(snapshot, "2"))
+    snapshot["childGameState"]["game"]["world"]["regions"].extend(
+        {"id": area, "garrison": 1000, "units": []}
+        for area in static["winterfell"]["neighbours"]
+    )
+    contract = contract_for(snapshot)
+    assert set(contract.submission_tool().params_json_schema["properties"]) == {
+        "strategic_handoff"
+    }
+    assert contract.actions[0].argument_schema["properties"]["moves"]["maxItems"] == 0
+    client = Client(snapshot)
+    run_context = HarnessRunContext(client=client, user_id="2")
+    with pytest.raises(ValueError):
+        await contract.execute(
+            run_context,
+            action(moves=[{"destination_region_id": "moat-cailin", "unit_ids": [1]}]),
+        )
+    assert client.sent == []
+    await contract.execute(run_context, action())
+    assert client.sent[0]["moves"] == []
+
+
+@pytest.mark.asyncio
 async def test_invalid_and_duplicate_selections_never_reach_the_server():
     snapshot = selection_snapshot()
     contract = contract_for(snapshot)
@@ -291,11 +403,13 @@ async def test_multiple_action_types_use_a_constrained_final_choice():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("output_limit", [None, 40960])
+@pytest.mark.parametrize("exploration_tool", ["check_neighbours", "reachable_areas"])
 @pytest.mark.parametrize(
     "reject,cancel", [(False, False), (True, False), (False, True)]
 )
 async def test_actual_wire_explores_then_submits_through_one_action_tool(
-    tmp_path, reject, cancel
+    tmp_path, reject, cancel, exploration_tool, output_limit
 ):
     database = Database(tmp_path / "structured.db")
     store = AgentStore(database)
@@ -306,6 +420,7 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
     runner = OpenAIAgentRunner(
         api_key="unused",
         base_url="https://api.test/v1",
+        max_output_tokens=output_limit,
     )
     harness = StrategicHarness(runner, store)
     context = HarnessRunContext(client=client, user_id="2")
@@ -313,6 +428,10 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
 
     def respond(request):
         body = json.loads(request.content)
+        if output_limit is None:
+            assert "max_output_tokens" not in body
+        else:
+            assert body["max_output_tokens"] == output_limit
         requests.append(body)
         assert body["tool_choice"] == "required"
         current_user = next(
@@ -321,6 +440,7 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
         assert "You MUST call submit_action" in current_user
         assert {tool["name"] for tool in body.get("tools", [])} == {
             "check_neighbours",
+            "reachable_areas",
             "inspect_house_card",
             "recall_game_state",
             "remember_strategy",
@@ -335,15 +455,27 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
         assert "Mammoth Riders imposes" not in body["instructions"]
         assert "Mammoth Riders imposes" in body["input"][0]["content"]
         assert client.sent == []
+        if len(requests) >= 2:
+            exploration_output = json.loads(next(
+                item["output"] for item in body["input"]
+                if item.get("type") == "function_call_output"
+                and item.get("call_id") == "explore-map"
+            ))
+            if exploration_tool == "reachable_areas":
+                assert exploration_output["source"]["id"] == "winterfell"
+                assert exploration_output["movementType"] == "land"
+                assert exploration_output["destinations"]
+            else:
+                assert any(area["id"] == "castle-black" for area in exploration_output)
         if len(requests) == 2 and cancel:
             raise asyncio.CancelledError
         if len(requests) == 1:
             output = [
                 {
                     "type": "function_call",
-                    "name": "check_neighbours",
+                    "name": exploration_tool,
                     "call_id": "explore-map",
-                    "arguments": '{"area":"Castle Black"}',
+                    "arguments": '{"area":"Winterfell"}',
                 }
             ]
         elif reject and len(requests) == 2:
@@ -411,3 +543,53 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
     finally:
         await harness.shutdown()
         database.close()
+
+
+@pytest.mark.asyncio
+async def test_schema_feedback_explains_fixed_move_and_recovery_sends_intended_units():
+    snapshot = march_snapshot(single_unit=True)
+    ingame = snapshot["childGameState"]
+    ingame["game"]["world"]["regions"][0]["id"] = "the-stony-shore"
+    ingame["ordersOnBoard"] = [["the-stony-shore", 2]]
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id="2")
+    contract = contract_for(snapshot)
+    tool = contract.submission_tool()
+
+    async def invoke(answer):
+        arguments = json.dumps(answer)
+        return json.loads(await tool.on_invoke_tool(ToolContext(
+            context=context, tool_call_id="schema-recovery", tool_name="submit_action",
+            tool_arguments=arguments), arguments))
+
+    rejected = await invoke(action(moves=[{"destination_region_id": "winterfell", "unit_ids": [1]}], leave_power_token=True))
+    assert rejected["accepted"] is False
+    item = rejected["expected_schema"]["properties"]["moves"]["items"]
+    assert item["properties"] == {}
+    assert "[{}]" in item["description"]
+    assert "[] selects none" in item["description"]
+    assert client.sent == []
+    await invoke(action(moves=[{}], leave_power_token=True))
+    assert context.action_taken is not None
+    assert client.sent[0]["moves"] == [["winterfell", [1]]]
+
+
+@pytest.mark.asyncio
+async def test_multi_action_schema_error_returns_nested_action_discriminator():
+    snapshot = planning_snapshot()
+    snapshot["childGameState"]["ordersOnBoard"] = [["winterfell", 2]]
+    snapshot["childGameState"]["childGameState"] = {
+        "type": "action", "childGameState": {"type": "replace-order", "houseId": "stark"}
+    }
+    contract = contract_for(snapshot)
+    arguments = json.dumps(action(decision="skip_raven_order_replacement"))
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id="2")
+    rejected = json.loads(await contract.submission_tool().on_invoke_tool(ToolContext(
+        context=context, tool_call_id="raven-schema", tool_name="submit_action", tool_arguments=arguments), arguments))
+    assert not rejected["accepted"]
+    branches = rejected["expected_schema"]["properties"]["decision"]["anyOf"]
+    branch = next(b for b in branches if b["properties"]["action"]["enum"] == ["skip_raven_order_replacement"])
+    assert branch["type"] == "object"
+    assert branch["required"] == ["action"]
+    assert client.sent == []

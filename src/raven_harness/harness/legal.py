@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections import deque
 from itertools import combinations
 from typing import Any
 
 from ..game.map_reference import load_map_reference
+from ..game.state import region_is_blocked
 from .observation import HarnessContext
 
 RAID_ORDER_IDS = {13, 14, 15}
@@ -103,6 +105,8 @@ def legal_march_options(context: HarnessContext) -> list[dict[str, Any]]:
             static_regions,
         ):
             target = regions.get(target_id, {})
+            if region_is_blocked(target):
+                continue
             static = static_regions.get(target_id, {})
             controller = _controller(target_id, regions, static_regions)
             if static.get("type") == "port":
@@ -244,7 +248,7 @@ def possible_neutral_force_support(
             target = regions.get(target_id, {})
             if (
                 int(target.get("garrison", 0)) <= 0
-                or int(target.get("garrison", 0)) == 1_000
+                or region_is_blocked(target)
                 or _controller(target_id, regions, static_regions) is not None
             ):
                 continue
@@ -270,6 +274,9 @@ def neutral_force_attack_is_legal(
 ) -> bool:
     """Match the base engine's strength gate for an uncontrolled garrison."""
 
+    regions, _ = _regions(context)
+    if region_is_blocked(regions.get(target_region_id, {})):
+        return False
     neutral_force = _neutral_force(context, target_region_id)
     if neutral_force is None:
         return True
@@ -569,7 +576,7 @@ def _neutral_force(
     required_strength = int(target.get("garrison", 0))
     if (
         required_strength <= 0
-        or required_strength == 1_000
+        or region_is_blocked(target)
         or _controller(target_region_id, regions, static_regions) is not None
     ):
         return None
@@ -840,7 +847,7 @@ def _march_counts_fit_supply(
 
     _, static_regions = _regions(context)
     return all(
-        _region_kind(static_regions.get(destination_id, {})) != "port"
+        static_regions.get(destination_id, {}).get("type") != "port"
         or counts.get(destination_id, 0) <= 3
         for destination_id, _ in moves
     )
@@ -903,20 +910,48 @@ def _reachable_regions(
     regions: dict[str, dict[str, Any]],
     static_regions: dict[str, dict[str, Any]],
 ) -> set[str]:
-    pending = list(static_regions.get(starting_region_id, {}).get("neighbours", []))
-    checked: set[str] = set()
-    reachable: set[str] = set()
+    return set(_reachable_routes(
+        starting_region_id, unit_kind, house_id, regions, static_regions
+    ))
+
+
+def _reachable_routes(
+    starting_region_id: str,
+    unit_kind: str,
+    house_id: str,
+    regions: dict[str, dict[str, Any]],
+    static_regions: dict[str, dict[str, Any]],
+    *,
+    exclude_blocked: bool = False,
+) -> dict[str, list[str]]:
+    """One shortest route per destination; only friendly transports bridge edges.
+
+    These are geometric routes. Callers apply blocked-area, port, Supply and
+    neutral-force restrictions. Wounded ships still transport per World.canActAsBridge.
+    """
+    pending = deque([[starting_region_id, target] for target in sorted(
+        static_regions.get(starting_region_id, {}).get("neighbours", [])
+    )])
+    checked = {starting_region_id}
+    routes: dict[str, list[str]] = {}
     while pending:
-        region_id = pending.pop()
+        route = pending.popleft()
+        region_id = route[-1]
         if region_id in checked:
             continue
-        static = static_regions.get(region_id, {})
-        if _region_kind(static) == unit_kind and region_id != starting_region_id:
-            reachable.add(region_id)
-        if _can_bridge(region_id, unit_kind, house_id, regions, static_regions):
-            pending.extend(static.get("neighbours", []))
         checked.add(region_id)
-    return reachable
+        if exclude_blocked and region_is_blocked(regions.get(region_id, {})):
+            continue
+        static = static_regions.get(region_id, {})
+        if _region_kind(static) == unit_kind:
+            routes[region_id] = route
+        if _can_bridge(region_id, unit_kind, house_id, regions, static_regions):
+            pending.extend(
+                [*route, neighbour]
+                for neighbour in sorted(static.get("neighbours", []))
+                if neighbour not in checked
+            )
+    return routes
 
 
 def _can_bridge(

@@ -27,6 +27,8 @@ from .decision import build_decision_contract
 from .decision_briefing import build_decision_briefing
 from .card_tools import inspect_house_card
 from .map_tools import check_neighbours
+from .reachability_tools import reachable_areas
+from .protocol_tools import _is_base_game
 from .observation import HarnessContext, build_observation
 
 
@@ -356,8 +358,11 @@ class StrategicHarness:
 
     def preview_tools(self, context: HarnessContext) -> list[FunctionTool]:
         exploration_tools = (
-            [check_neighbours, inspect_house_card] if context.game is not None else []
+            [check_neighbours, inspect_house_card]
+            if context.game is not None else []
         )
+        if context.game is not None and _is_base_game(context.snapshot):
+            exploration_tools.insert(1, reachable_areas)
         return self._tools_for_game(exploration_tools)
 
     def _tools_for_game(self, game_tools: list[FunctionTool]) -> list[FunctionTool]:

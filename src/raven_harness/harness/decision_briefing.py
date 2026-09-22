@@ -150,6 +150,12 @@ def describe_action(context: HarnessContext, tool: FunctionTool) -> str:
 
 
 _EXPLORATION_DESCRIPTIONS = {
+    "reachable_areas": (
+        "reachable_areas finds geographic movement routes from any area, even empty or "
+        "enemy-held, using your current ships for transport. It returns routes and "
+        "transport ships, not legal unit groups. Armies, orders, Supply, combat strength "
+        "and port control do not filter the results; use actionGuidance for legality."
+    ),
     "check_neighbours": (
         "check_neighbours looks up an area's direct neighbours and their current owners, units, "
         "wounds, orders, terrain and castles. Ask about the battlefield when checking possible "
