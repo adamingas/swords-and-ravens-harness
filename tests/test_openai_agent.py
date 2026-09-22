@@ -70,8 +70,8 @@ def _message(text: str, number: int) -> ResponseOutputMessage:
 
 
 class SubmittingModel(Model):
-    def __init__(self, *, text_before_submission: bool = False) -> None:
-        self.text_before_submission = text_before_submission
+    def __init__(self, *, text_completions: int = 0) -> None:
+        self.text_completions = text_completions
         self.inputs: list[list[dict[str, Any]]] = []
         self.settings: ModelSettings | None = None
 
@@ -83,7 +83,7 @@ class SubmittingModel(Model):
         assert [tool.name for tool in kwargs["tools"]] == ["submit_action"]
         output = (
             [_message("I have chosen Stark.", number)]
-            if self.text_before_submission and number == 1
+            if number <= self.text_completions
             else [
                 ResponseFunctionToolCall(
                     arguments=(
@@ -167,7 +167,7 @@ async def test_runner_submits_the_dynamic_action_tool(monkeypatch) -> None:
     ]
     assert result.usage["requests"] == 1
     assert model.settings is not None
-    assert model.settings.tool_choice == "required"
+    assert model.settings.tool_choice == "auto"
     assert model.settings.reasoning.effort == "high"
 
 
@@ -175,7 +175,7 @@ async def test_runner_submits_the_dynamic_action_tool(monkeypatch) -> None:
 async def test_text_completion_continues_the_same_decision_until_submission(
     monkeypatch,
 ) -> None:
-    model = SubmittingModel(text_before_submission=True)
+    model = SubmittingModel(text_completions=1)
     monkeypatch.setattr(
         "raven_harness.models.openai_agent._response_model", lambda **_: model
     )
@@ -191,6 +191,24 @@ async def test_text_completion_continues_the_same_decision_until_submission(
     assert "Current observation:" in model.inputs[1][0]["content"]
     assert any(item.get("role") == "assistant" for item in model.inputs[1])
     assert result.usage["requests"] == 2
+
+
+@pytest.mark.asyncio
+async def test_repeated_text_completions_stop_with_traceable_usage(monkeypatch) -> None:
+    model = SubmittingModel(text_completions=10)
+    monkeypatch.setattr(
+        "raven_harness.models.openai_agent._response_model", lambda **_: model
+    )
+    client = FakeClient()
+    context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
+    with pytest.raises(ModelRunError, match="three times without submitting") as caught:
+        await OpenAIAgentRunner(
+            api_key="test-key", base_url="https://api.openai.test/v1"
+        ).run_once(**turn_arguments(_record(), context))
+    assert len(model.inputs) == 3
+    assert caught.value.partial_result.usage["requests"] == 3
+    assert context.action_taken is None
+    assert client.sent == []
 
 
 @pytest.mark.asyncio
@@ -313,8 +331,10 @@ async def test_parent_output_allowance_does_not_change_oracle_settings():
         provider_blocklist=["novita"], max_output_tokens=40960,
     )
     try:
-        oracle = runner._model_settings(max_tokens=900, prompt_cache_key=None, metadata=None)
-        assert oracle.max_tokens == 900
+        from raven_harness.models.openai_agent import RULES_ORACLE_MAX_OUTPUT_TOKENS
+
+        oracle = runner._model_settings(max_tokens=RULES_ORACLE_MAX_OUTPUT_TOKENS, prompt_cache_key=None, metadata=None)
+        assert oracle.max_tokens == 16384
         assert oracle.reasoning.effort == "high"
         assert oracle.extra_body["provider"]["ignore"] == ["novita"]
     finally:

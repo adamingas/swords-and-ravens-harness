@@ -119,6 +119,8 @@ def test_any_land_origin_including_empty_enemy_and_wounded(player_count, occupan
         assert target["route"] == ["winterfell", target["id"]]
         assert target["transportShips"] == []
     assert "greywater-watch" not in destinations(snapshot)  # No chaining over land.
+    assert destinations(snapshot)["castle-black"]["castlePoints"] == 0
+    assert destinations(snapshot)["moat-cailin"]["castlePoints"] == 1
 
 
 @pytest.mark.parametrize("wounded", [False, True])
@@ -189,6 +191,7 @@ def test_supply_orders_neutral_strength_and_port_capacity_do_not_filter_routes()
         "type",
         "route",
         "transportShips",
+        "castlePoints",
     }
 
 

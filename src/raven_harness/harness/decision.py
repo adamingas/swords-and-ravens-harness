@@ -12,7 +12,10 @@ from agents.tool_context import ToolContext
 from jsonschema import Draft202012Validator, ValidationError
 
 from .actions import HarnessRunContext
-from .legal import legal_march_options, supply_safe_march_moves
+from .legal import (
+    legal_march_options, legal_mustering_options, supply_safe_march_moves,
+    validate_musterings,
+)
 from .observation import HarnessContext
 
 
@@ -44,26 +47,20 @@ def _fixed_value(schema: dict[str, Any]) -> Any:
 
 
 def _simplify(schema: dict[str, Any]) -> dict[str, Any]:
-    """Remove fixed object fields, including fields within destination groups."""
+    """Bind fixed top-level context, but keep explicit nested action operands.
+
+    A move must always show its destination and units, even with one choice.
+    Removing these produced opaque ``moves: [{}]`` contracts which caused
+    models to abandon intended moves while trying to repair valid-looking JSON.
+    """
     result = deepcopy(schema)
     if result.get("type") == "object":
         result["properties"] = {
-            key: _simplify(value)
+            key: deepcopy(value)
             for key, value in schema.get("properties", {}).items()
             if _fixed_value(value) is _UNSET
         }
         result["required"] = list(result["properties"])
-    if result.get("type") == "array":
-        result["items"] = _simplify(schema["items"])
-        if result["items"].get("type") == "object" and not result["items"].get("properties"):
-            result["items"]["description"] = (
-                "All fields in this item have fixed values supplied automatically. "
-                "Use an empty object {} for this item; do not add destination or unit fields. "
-                "An array containing [{}] selects the fixed item; an empty array [] selects none."
-            )
-    for keyword in ("anyOf", "oneOf"):
-        if keyword in result:
-            result[keyword] = [_simplify(branch) for branch in schema[keyword]]
     return result
 
 
@@ -136,7 +133,7 @@ class DecisionContract:
                         "error": str(error),
                         "instruction": (
                             "Correct the arguments using expected_schema below and call submit_action again. "
-                            "For multiple actions, decision is an object containing action and that action's fields. "
+                            "For multiple actions, decision contains action, its fields, and strategic_handoff together. "
                             "An object with no properties must be {}. Fixed fields are supplied automatically; "
                             "do not invent aliases. The rules oracle does not know this live action schema."
                         ),
@@ -186,24 +183,35 @@ class DecisionContract:
             )
         if context.action_taken is not None:
             raise ValueError("This decision already has an accepted action.")
-        handoff = str(answer[_STRATEGIC_HANDOFF]).strip()
+        values = dict(answer if len(self.actions) == 1 else answer["decision"])
+        handoff = str(values.pop(_STRATEGIC_HANDOFF)).strip()
         if not handoff:
             raise ValueError("The strategic handoff must not be empty.")
         context.pending_strategy_note = handoff
         if len(self.actions) == 1:
-            action, values = (
-                self.actions[0],
-                {
-                    key: value
-                    for key, value in answer.items()
-                    if key != _STRATEGIC_HANDOFF
-                },
-            )
+            action = self.actions[0]
         else:
-            values = dict(answer["decision"])
             name = values.pop("action")
             action = next(item for item in self.actions if item.name == name)
         arguments = action.arguments(values)
+        if action.tool.name == "resolve_raid" and arguments["target_region_id"] == "discard":
+            arguments["target_region_id"] = None
+        if action.tool.name == "muster_units":
+            arguments["musters"] = [
+                {
+                    "mustering_region_id": group["mustering_region_id"],
+                    "recruitments": [_decode_recruitment(choice) for choice in group["recruitments"]],
+                }
+                for group in arguments["musters"]
+            ]
+            from .protocol_tools import MusterGroup
+
+            # A model's submitted plan must be accepted intact or repaired.
+            # The low-level protocol helper's legacy best-effort truncation can
+            # otherwise turn intended recruitment into an accepted empty muster.
+            validate_musterings(
+                current, [MusterGroup(**muster) for muster in arguments["musters"]]
+            )
         # Structured submissions must not silently discard move groups or change
         # an explicit token-spending decision before executing the answer.
         if action.tool.name == "resolve_march":
@@ -342,6 +350,19 @@ def build_decision_contract(
         schema = deepcopy(tool.params_json_schema)
         name, description = tool.name, describe_action(context, tool)
         aliases = {}
+        if tool.name == "resolve_raid":
+            target = schema["properties"].pop("target_region_id")
+            choices = [choice for branch in target.get("anyOf", [])
+                       for choice in branch.get("enum", [])]
+            schema["properties"]["raid_target"] = {
+                "type": "string", "enum": [*choices, "discard"],
+                "description": "Exact enemy area to raid, or discard to remove this Raid without a target.",
+            }
+            schema["required"] = [
+                "raid_target" if key == "target_region_id" else key
+                for key in schema["required"]
+            ]
+            aliases["raid_target"] = "target_region_id"
         if tool.name == "resolve_march":
             schema["properties"]["moves"]["description"] = (
                 "Destination groups and moving unit IDs. Unlisted units stay in the source. "
@@ -384,6 +405,9 @@ def build_decision_contract(
                 )
             if (context.leaf or {}).get("selectedUnitsMustBeOfSameRegion"):
                 description += " All selected units must be in the same area."
+        if tool.name == "muster_units":
+            if not _constrain_mustering(schema, context):
+                continue
         actions.append(DecisionAction(tool, name, description, schema, aliases))
     if len(actions) == 1:
         schema = actions[0].output_schema
@@ -405,7 +429,7 @@ def build_decision_contract(
             "required": ["decision"],
             "additionalProperties": False,
         }
-    schema["properties"][_STRATEGIC_HANDOFF] = {
+    handoff_schema = {
         "type": "string",
         "minLength": 1,
         "maxLength": 2_000,
@@ -416,7 +440,12 @@ def build_decision_contract(
             "omit exploratory second-guessing and facts already obvious from the board."
         ),
     }
-    schema["required"].append(_STRATEGIC_HANDOFF)
+    payload_schemas = (
+        [schema] if len(actions) == 1 else schema["properties"]["decision"]["anyOf"]
+    )
+    for payload in payload_schemas:
+        payload["properties"][_STRATEGIC_HANDOFF] = deepcopy(handoff_schema)
+        payload["required"].append(_STRATEGIC_HANDOFF)
     return DecisionContract(
         context.snapshot.get("leafStateId"), actions, DecisionOutputSchema(schema)
     )
@@ -427,4 +456,51 @@ def fixed_details(action: DecisionAction) -> dict[str, Any]:
         key: value
         for key, schema in action.argument_schema["properties"].items()
         if (value := _fixed_value(schema)) is not _UNSET
+    }
+
+
+def _constrain_mustering(schema: dict[str, Any], context: HarnessContext) -> bool:
+    """Keep origins, destinations, piece types and upgrades related in the schema.
+
+    Aggregate supply, piece availability and point spending are still checked
+    by the authoritative pre-submit validator; per-item enums cannot express
+    all constraints on a combined recruitment plan.
+    """
+    groups = []
+    template = schema["properties"]["musters"]["items"]
+    for origin in legal_mustering_options(context)["origins"]:
+        group = deepcopy(template)
+        fields = group["properties"]
+        fields["mustering_region_id"]["enum"] = [origin["regionId"]]
+        recruits = []
+        for destination in origin["destinations"]:
+            for kind in destination["newUnitTypes"]:
+                cost = 1 if kind in {"footman", "ship"} else 2
+                if cost <= origin["musteringPoints"]:
+                    recruits.append(f"{destination['regionId']}/{kind}/new")
+                if destination["upgradeableFootmen"] > 0 and kind in {"knight", "siege-engine"}:
+                    recruits.append(f"{destination['regionId']}/{kind}/upgrade")
+        if recruits:
+            fields["recruitments"] = {
+                "type": "array", "minItems": 1,
+                "maxItems": origin["musteringPoints"],
+                "items": {"type": "string", "enum": recruits},
+                "description": (
+                    "Choose exact region/unit/new-or-upgrade entries. Each entry recruits "
+                    "ONE unit. Repeat an entry for multiple units if points, pieces and Supply "
+                    "permit. new footman/ship costs 1; new knight/siege-engine costs 2; "
+                    "upgrade replaces a Footman for 1 point. Points are local and expire."
+                ),
+            }
+            groups.append(group)
+    if groups:
+        schema["properties"]["musters"]["items"] = {"anyOf": groups}
+    return bool(groups)
+
+
+def _decode_recruitment(choice: str) -> dict[str, Any]:
+    region, unit, operation = choice.split("/")
+    return {
+        "region_id": region, "unit_type": unit,
+        "upgrade_from_footman": operation == "upgrade",
     }

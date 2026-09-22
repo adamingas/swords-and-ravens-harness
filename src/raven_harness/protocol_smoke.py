@@ -639,9 +639,13 @@ def _safe_house_card(
     )
     if not isinstance(allowed, list) or not allowed:
         raise UnsupportedSmokeDecision(f"{tool.name} did not expose exact card IDs")
+    own = next((house for house in observation.get("houses", [])
+                if house["id"] == observation.get("you", {}).get("houseId")), {})
     cards = {
         item.get("id"): item
-        for item in observation.get("you", {}).get("availableHouseCards", [])
+        for item in own.get("cards", {}).get(
+            "availableCards", observation.get("you", {}).get("availableHouseCards", [])
+        )
     }
     return max(
         allowed,

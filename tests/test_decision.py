@@ -76,6 +76,8 @@ def contract_for(snapshot):
 
 
 def action(**values):
+    if 'decision' in values:
+        return {'decision': action(**values['decision'])}
     return {
         **values,
         "strategic_handoff": "Preserve the current plan after this action.",
@@ -226,7 +228,8 @@ async def test_single_movable_unit_is_bound_without_removing_the_option_to_pass(
     fields = contract.output_schema.json_schema()["properties"]["moves"]["items"][
         "properties"
     ]
-    assert set(fields) == {"destination_region_id"}
+    assert set(fields) == {"destination_region_id", "unit_ids"}
+    assert fields["unit_ids"]["items"]["enum"] == [1]
     client = Client(snapshot)
     await contract.execute(
         HarnessRunContext(client=client, user_id="2"), action(moves=[])
@@ -433,7 +436,7 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
         else:
             assert body["max_output_tokens"] == output_limit
         requests.append(body)
-        assert body["tool_choice"] == "required"
+        assert body["tool_choice"] == "auto"
         current_user = next(
             item["content"] for item in body["input"] if item.get("role") == "user"
         )
@@ -546,7 +549,7 @@ async def test_actual_wire_explores_then_submits_through_one_action_tool(
 
 
 @pytest.mark.asyncio
-async def test_schema_feedback_explains_fixed_move_and_recovery_sends_intended_units():
+async def test_single_destination_and_unit_remain_explicit_and_recover_from_empty_object():
     snapshot = march_snapshot(single_unit=True)
     ingame = snapshot["childGameState"]
     ingame["game"]["world"]["regions"][0]["id"] = "the-stony-shore"
@@ -562,14 +565,13 @@ async def test_schema_feedback_explains_fixed_move_and_recovery_sends_intended_u
             context=context, tool_call_id="schema-recovery", tool_name="submit_action",
             tool_arguments=arguments), arguments))
 
-    rejected = await invoke(action(moves=[{"destination_region_id": "winterfell", "unit_ids": [1]}], leave_power_token=True))
+    rejected = await invoke(action(moves=[{}], leave_power_token=True))
     assert rejected["accepted"] is False
     item = rejected["expected_schema"]["properties"]["moves"]["items"]
-    assert item["properties"] == {}
-    assert "[{}]" in item["description"]
-    assert "[] selects none" in item["description"]
+    assert item["properties"]["destination_region_id"]["enum"] == ["winterfell"]
+    assert item["properties"]["unit_ids"]["items"]["enum"] == [1]
     assert client.sent == []
-    await invoke(action(moves=[{}], leave_power_token=True))
+    await invoke(action(moves=[{"destination_region_id": "winterfell", "unit_ids": [1]}], leave_power_token=True))
     assert context.action_taken is not None
     assert client.sent[0]["moves"] == [["winterfell", [1]]]
 
@@ -582,7 +584,7 @@ async def test_multi_action_schema_error_returns_nested_action_discriminator():
         "type": "action", "childGameState": {"type": "replace-order", "houseId": "stark"}
     }
     contract = contract_for(snapshot)
-    arguments = json.dumps(action(decision="skip_raven_order_replacement"))
+    arguments = json.dumps({"decision": "skip_raven_order_replacement"})
     client = Client(snapshot)
     context = HarnessRunContext(client=client, user_id="2")
     rejected = json.loads(await contract.submission_tool().on_invoke_tool(ToolContext(
@@ -591,5 +593,150 @@ async def test_multi_action_schema_error_returns_nested_action_discriminator():
     branches = rejected["expected_schema"]["properties"]["decision"]["anyOf"]
     branch = next(b for b in branches if b["properties"]["action"]["enum"] == ["skip_raven_order_replacement"])
     assert branch["type"] == "object"
-    assert branch["required"] == ["action"]
+    assert branch["required"] == ["action", "strategic_handoff"]
     assert client.sent == []
+
+
+def mustering_contract_snapshot():
+    snapshot = planning_snapshot()
+    ingame = snapshot['childGameState']
+    ingame['game']['houses'][0]['unitLimits'] = [
+        ['footman', 10], ['knight', 5], ['ship', 6], ['siege-engine', 2],
+    ]
+    ingame['game']['supplyRestrictions'] = [[2, 2], [3, 2], [3, 2, 2]]
+    ingame['game']['world']['regions'][1]['units'] = []
+    ingame['game']['world']['regions'][1]['controlPowerToken'] = 'stark'
+    ingame['childGameState'] = {
+        'type': 'westeros', 'childGameState': {
+            'type': 'player-mustering', 'house': 'stark', 'musteringType': 0,
+        },
+    }
+    return snapshot
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('target', ['karhold', 'discard'])
+async def test_raid_uses_exact_string_choices_and_decodes_discard(target):
+    snapshot = planning_snapshot()
+    ingame = snapshot['childGameState']
+    ingame['ordersOnBoard'] = [['winterfell', 13], ['karhold', 10]]
+    ingame['game']['world']['regions'].append({
+        'id': 'karhold',
+        'units': [{'id': 10, 'type': 'footman', 'allegiance': 'lannister'}],
+    })
+    ingame['childGameState'] = {
+        'type': 'resolve-raid-order',
+        'childGameState': {'type': 'resolve-single-raid', 'houseId': 'stark'},
+    }
+    contract = contract_for(snapshot)
+    field = contract.output_schema.json_schema()['properties']['raid_target']
+    assert field == {
+        'type': 'string', 'enum': ['karhold', 'discard'],
+        'description': 'Exact enemy area to raid, or discard to remove this Raid without a target.',
+    }
+    with pytest.raises(ValueError):
+        contract.output_schema.validate_json(json.dumps(action(raid_target=None)))
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id='2')
+    await contract.execute(context, action(raid_target=target))
+    assert context.action_taken.arguments['target_region_id'] == (
+        None if target == 'discard' else target
+    )
+    assert len(client.sent) == 1
+
+
+def muster_answer(origin, recruits):
+    return action(decision={'action': 'muster_units', 'musters': [{
+        'mustering_region_id': origin, 'recruitments': [
+            f"{r['region_id']}/{r['unit_type']}/{'upgrade' if r['upgrade_from_footman'] else 'new'}"
+            for r in recruits
+        ],
+    }]})
+
+
+@pytest.mark.parametrize('stage,expected', [
+    ('westeros', 'New units can receive orders and march THIS round'),
+    ('action', 'those new units cannot march this round'),
+])
+def test_mustering_briefing_distinguishes_timing_even_in_final_round(stage, expected):
+    snapshot = mustering_contract_snapshot()
+    snapshot['childGameState']['game']['turn'] = 10
+    snapshot['childGameState']['childGameState']['type'] = stage
+    context = build_context(snapshot, '2')
+    briefing = build_decision_briefing(context, contract_for(snapshot), [])
+    assert expected in briefing
+
+
+@pytest.mark.asyncio
+async def test_mustering_without_origins_exposes_only_skip():
+    snapshot = mustering_contract_snapshot()
+    for region in snapshot['childGameState']['game']['world']['regions']:
+        region['units'] = []
+        region['controlPowerToken'] = 'lannister'
+    contract = contract_for(snapshot)
+    assert [item.name for item in contract.actions] == ['skip_mustering']
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id='2')
+    await contract.execute(context, action())
+    assert client.sent == [{'type': 'muster', 'units': []}]
+
+
+def recruit(area, kind, upgrade=False):
+    return {'region_id': area, 'unit_type': kind, 'upgrade_from_footman': upgrade}
+
+
+@pytest.mark.parametrize('origin,recruitment', [
+    ('white-harbor', recruit('bay-of-ice', 'ship')),
+    ('winterfell', recruit('bay-of-ice', 'knight')),
+    ('white-harbor', recruit('white-harbor', 'knight')),
+    ('white-harbor', recruit('white-harbor', 'knight', True)),
+    ('winterfell', recruit('winterfell', 'footman', True)),
+])
+def test_mustering_schema_rejects_mismatched_origin_terrain_cost_and_upgrade(origin, recruitment):
+    contract = contract_for(mustering_contract_snapshot())
+    with pytest.raises(ValueError):
+        contract.output_schema.validate_json(json.dumps(muster_answer(origin, [recruitment])))
+
+
+@pytest.mark.asyncio
+async def test_mustering_rejects_combined_overspending_without_silently_dropping_units():
+    snapshot = mustering_contract_snapshot()
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id='2')
+    contract = contract_for(snapshot)
+    # Each recruitment is affordable alone, but together costs three of two points.
+    answer = muster_answer('winterfell', [
+        recruit('winterfell', 'knight'), recruit('bay-of-ice', 'ship'),
+    ])
+    contract.output_schema.validate_json(json.dumps(answer))
+    with pytest.raises(ValueError, match='mustering points'):
+        await contract.execute(context, answer)
+    assert client.sent == []
+    await contract.execute(context, muster_answer('winterfell', [
+        recruit('winterfell', 'knight', True), recruit('bay-of-ice', 'ship'),
+    ]))
+    assert context.action_taken.name == 'muster_units'
+    assert len(client.sent[0]['units'][0][1]) == 2
+
+
+@pytest.mark.asyncio
+async def test_mustering_rejects_combined_supply_overflow_without_partial_submission():
+    snapshot = mustering_contract_snapshot()
+    game = snapshot['childGameState']['game']
+    game['houses'][0]['supplyLevel'] = 0
+    game['supplyRestrictions'] = [[2]]
+    game['world']['regions'].append({
+        'id': 'bay-of-ice',
+        'units': [{'id': 30, 'type': 'ship', 'allegiance': 'stark'}],
+    })
+    client = Client(snapshot)
+    context = HarnessRunContext(client=client, user_id='2')
+    contract = contract_for(snapshot)
+    answer = muster_answer('winterfell', [
+        recruit('winterfell', 'footman'), recruit('bay-of-ice', 'ship'),
+    ])
+    contract.output_schema.validate_json(json.dumps(answer))
+    with pytest.raises(ValueError, match='supply limit'):
+        await contract.execute(context, answer)
+    assert client.sent == []
+    assert context.action_taken is None

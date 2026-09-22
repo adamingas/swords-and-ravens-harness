@@ -58,7 +58,7 @@ def house_card_details(context: HarnessRunContext, card_id: str) -> dict[str, An
     if len(matches) != 1:
         raise ValueError(
             f"Unknown or ambiguous House card {card_id!r}. Use an exact card ID or name "
-            "from availableHouseCards or houseCardStatus."
+            "from houses[].cards.availableCards in the current observation."
         )
     if matches[0]["abilityId"] is not None and matches[0]["abilityText"] is None:
         matches[0]["abilityText"] = (

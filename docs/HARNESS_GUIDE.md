@@ -234,16 +234,21 @@ action.
    checkpoint.
 7. The harness starts one Agents SDK run with the current observation and a
    fresh user-message briefing explaining the task, consequences and tool
-   purposes. Static rules and the compact map remain in the system prompt.
+   purposes. A concise base-game rules reference and the compact map remain in
+   the system prompt when the rules oracle is available; otherwise the full
+   rules are supplied. The oracle always retains the full rulebook and FAQ.
    Every model request has exploration tools and one state-specific
    `submit_action` tool.
-8. Tool choice is required. The briefing encourages liberal, iterative
-   exploration: inspect results, follow up on uncertainties and compare plans.
+8. Provider tool choice is automatic. Exploration resolves decision-relevant uncertainty:
+   inspect results, follow up on uncertainties and compare plans.
    Tool calls and their results continue within the same SDK run. The decision
    ends only after an accepted `submit_action` call. If the model stops with
    text, the harness appends a reminder to the same transcript and continues.
+   Three completions without submission fail with their usage and trace retained.
 9. The action contract validates the tool arguments and restores arguments that
-    have only one possible value. Unit-destruction selections explicitly use
+    have only one possible value at the top level. Nested moves always retain
+    explicit destination and unit fields, even for a singleton choice.
+    Unit-destruction selections explicitly use
     `unit_ids_to_destroy`.
 10. The original handler checks the latest state again and sends typed server messages. A
     per-run action lock admits only the first gameplay call if a provider emits
@@ -284,84 +289,52 @@ again for each decision.
 
 ## 6. The model observation
 
-The observation is JSON. It contains no credentials. Its main fields are:
+The model observation is a compact JSON projection of the authenticated player's
+snapshot. Canonical snapshots, base observation history and the dashboard retain
+their detailed representations. `agent_runs.observation_json` stores the actual
+model projection. Its main fields are:
 
 | Field | Content |
 | --- | --- |
-| game | Game ID, state ID, phase, round, victory target, and maximum rounds. |
-| you | House, resources, controlled regions, score, and available house cards. |
+| game | Game/state IDs, decision phase, explicit round stage, round, victory target, maximum rounds, Wildling strength and Blade usage. |
+| you | Your house ID; resources are in the matching `houses` entry. |
+| houses | One current scoreboard with power, supply, control, and public card status in `cards`. During combat, participating houses' available cards include printed ability text. |
 | isYourTurn | Whether the server currently waits for this user. |
-| pendingDecision | Data from the deepest active game state. |
-| statePath | Nested state types from the game root to the active state. |
-| recentEvents | Up to 12 compact server events and game-log entries. |
-| orderLegend | Mapping from upstream physical order-token IDs to readable order names. |
-| lobby | Lobby houses, available house IDs, seats, and ready users. Present only before launch. |
-| mapVariant | Identifier of the static map included in the system prompt. |
-| houses | Public score, control, power, and supply data for all houses. |
-| houseCardStatus | Public available-card details and available, used, and disabled counts for each house. Used-card identities are omitted. |
-| tracks | Iron Throne, Fiefdoms, and King's Court order. |
-| board | Occupied, controlled, garrisoned, or ordered regions, their units, and any currently revealed order. |
-| revealedOrders | Orders in the server's public post-reveal order map, with region and readable token name. |
-| actionGuidance | Harness-derived base-game sources, targets, units, and choices for march, raid, mustering, consolidate-power, and Raven states. |
-| strategicOverview | A deterministic score and resource summary. |
-| strategicMemory | The player's private structured notebook. |
-| historyIndex | A compact index of the current recorded decision state and earlier decision states. |
-| planningConstraints | Exact regions that can receive an order, starred-order limits, active order restrictions, per-category assignment capacities, and the number of restricted dummy orders required by exhausted token inventory. |
-| previousAttemptError | The most recent error in the current connected session. It is usually an autoplay retry error, but is not guaranteed to belong to the same leaf state. |
-| decisionBriefing | Fresh task and tool-purpose prose, rendered after the observation in the user message. |
-| retryInstruction | Present with a prior error. Explains that the previous action was not accepted and asks the model to correct it. |
+| pendingDecision | Data from the deepest active game state, with named influence tracks and hidden-bid semantics. |
+| statePath | State types from the game root to the active state. |
+| recentEvents | Recent sanitized events, excluding empty transport notifications. |
+| orderLegend | Physical order-token IDs and readable names. |
+| lobby | Lobby houses, available seats and ready users before launch. |
+| mapVariant | Identifier of the static map in the system prompt. |
+| tracks | Iron Throne, Fiefdoms and King's Court, highest position first. |
+| board | Every playable area, explicit current controller, castle points, units and revealed order. Empty areas remain visible. |
+| blockedAreas | IDs of areas that cannot be entered or crossed. |
+| boardLegend | Semantics of omitted zero/empty fields and hidden planning orders. |
+| combat | Player-visible parent combat state: attacker, defender, participating unit IDs, battlefield, declared support, revealed cards/modifiers and server combat statistics. Present only during combat. |
+| supplyLimit | Exact current army slots, armies and singleton areas. |
+| actionGuidance | Current sources, targets, units and constraints for supported actions. |
+| strategicMemory | Latest private model plan and lessons. Duplicate generated summaries and old plans remain stored but are not repeatedly injected. |
+| historyIndex | At most four recent decision entries; full base observations are available through recall. |
+| planningConstraints | Eligible regions, assignment count, starred allowance and current restrictions. |
+| previousAttemptError | Most recent failed attempt for this same decision state. |
+| decisionBriefing | Task prose rendered after the observation in the user message. |
+| retryInstruction | Instructions to repair a rejected action. |
 
-The map reference is complete, but the board field is sparse. Empty regions
-without a garrison, control token, or revealed order do not appear in board.
-Use the system-prompt map for adjacency and printed board features. Use board for current pieces,
-control, and revealed orders.
+The board's `controller` includes units, control tokens and home control. Both
+castles and strongholds have `castlePoints: 1`; the static map's `castle=2`
+means a stronghold's mustering capacity. Omitted units means empty and omitted
+wounded means false. Omitted orders means no **revealed** order, not proof that
+an opponent has no secret planning order. Orders come only from the server's
+public `ordersOnBoard`, never another player's planning draft.
 
-House-card status uses only cards present in this player's upstream snapshot.
-It exposes the card faces that the normal client shows as available and reports
-used and disabled totals without copying hidden card identities. When the
-upstream server hides a house's cards, `detailsVisible` is false and the harness
-does not infer them. The harness builds `revealedOrders` only from
-`ordersOnBoard`, which the server fills after orders are revealed. It never
-copies private `planning.placedOrders` into that public field.
+Card and combat data come only from this player's already-redacted snapshot.
+The harness does not infer hidden card selections. Static ability text is added
+only for cards whose identities are already visible. The combat army IDs matter:
+some units shown at the attacker's origin may have been left behind.
 
-This shortened planning observation shows the shape. A real observation
-contains the complete map, all public houses, the full sparse board, the
-automatic notebook, and up to 12 history entries.
-
-~~~json
-{
-  "game": {"id": "1", "stateId": "leaf-2", "phase": "place-orders", "round": 1},
-  "you": {
-    "userId": "2",
-    "houseId": "stark",
-    "powerTokens": 5,
-    "supply": 2,
-    "controlledRegions": ["winterfell", "white-harbor"]
-  },
-  "isYourTurn": true,
-  "pendingDecision": {"type": "place-orders", "readyHouses": []},
-  "statePath": ["ingame", "planning", "place-orders"],
-  "board": [
-    {
-      "id": "winterfell",
-      "units": [{"id": 1, "type": "footman", "allegiance": "stark"}]
-    }
-  ],
-  "actionGuidance": null,
-  "strategicMemory": {
-    "roundNumber": 0,
-    "situationAssessment": "",
-    "objectives": [],
-    "modelPlan": ""
-  },
-  "historyIndex": [{"stateId": "leaf-2", "phase": "place-orders"}],
-  "planningConstraints": {
-    "eligibleRegionIds": ["winterfell", "white-harbor"],
-    "requiredAssignmentCount": 2,
-    "maxStarredOrders": 1
-  }
-}
-~~~
+The common strategy instructions are identical for all six houses. They emphasize
+net castle gains, transport dependencies, complete combat totals, free mustering,
+actual supply slots and final-round scoring below the immediate-victory target.
 
 ## 7. How the harness limits illegal actions
 
@@ -529,18 +502,28 @@ messages. The active state determines which actions the final schema permits.
 | `resolve_consolidate_power(region_id, choice)` | `resolve-consolidate-power`; `resolve-single-consolidate-power` | Resolve one base-game order. Choose `gain_power_tokens`, or choose `muster_units` for a starred order on a castle. |
 | `call_for_support_against_neutral_force()` | `resolve-single-march`, before a support request | Ask for support during a march against a neutral force. The harness exposes it only when a reachable neutral force has at least one eligible foreign supporting house. |
 
-`UnitMove` has `destination_region_id` and a non-empty `unit_ids` list. The
-state-specific `select_units` schema lists the permitted unit IDs and fixes the
-minimum and maximum list length to the required total. A recruitment
-has `unit_type`, `region_id`, and `upgrade_from_footman`. Set the boolean when
-the target unit should replace an existing Footman; the harness selects the
-engine-compatible Footman internally. `muster_units` requires a non-empty
-`musters` list. Each muster group has `mustering_region_id` and a non-empty
-`recruitments` list. Recruitment order is priority order. Legal upgrades are
-kept because they do not change army size. For each castle, later recruitments
-that exceed its Mustering Points are omitted. The remaining list is then
-filtered for Supply in the same priority order. If every requested recruitment
-is unsafe, the harness submits an empty mustering plan to finish the decision.
+`UnitMove` always exposes `destination_region_id` and a non-empty `unit_ids`
+list, even when a nested value has only one option. An empty move list still
+passes. The state-specific unit-selection schema lists permitted IDs and counts;
+runtime validation rejects duplicate selections.
+
+For model-facing raids, `raid_target` offers exact area IDs plus `discard`.
+The latter decodes to the protocol's null target. Multi-action submissions place
+`strategic_handoff` inside `decision`, beside `action` and its parameters; a
+single-action submission is flat. Mustering briefings explicitly distinguish
+Westeros recruitment before Planning from Consolidate Power after marches.
+
+Model-facing mustering groups contain `mustering_region_id` and a non-empty
+`recruitments` array of exact strings such as `winterfell/knight/upgrade` or
+`bay-of-ice/ship/new`. Each entry describes one recruitment; repeating an entry
+requests multiple units. The schema relates each origin to its legal destinations,
+terrain-compatible types, affordable individual purchases and available upgrades.
+The harness decodes these choices into the original protocol's recruitment objects.
+It validates the combined plan's points, pieces, port capacity and Supply before
+sending anything. Overspending or excess Supply is rejected for correction, rather
+than silently dropping units. The low-level protocol helper retains its legacy
+best-effort behavior for direct callers; model `submit_action` pre-validation
+prevents that truncation from changing a model's intended plan.
 
 `leave_power_token=true` requires an eligible land source and every listed
 source unit to leave. When no offered source is eligible, the state-specific
@@ -951,7 +934,7 @@ before the tournament.
 The command checks the configured endpoint's live model catalog once before it
 creates the output directory and schedules attempts. It stops when an exact
 model ID is absent. It also rejects an advertised model that does not support
-required tool calls. If the endpoint adapter supports a budget check, the
+tool calling. If the endpoint adapter supports a budget check, the
 command rejects an exhausted key or account before it creates an attempt.
 These checks do not write the key to an artifact.
 
@@ -959,12 +942,11 @@ The tournament requires an API key for the configured endpoint and ignores
 `MODEL_ID`. OpenRouter runs use the same shared provider blocklist as the
 dashboard and game runner. Direct OpenAI runs do not receive OpenRouter routing
 fields. Every decision request uses
-`tool_choice=required`. Memory and the rules oracle remain available as tools.
-Every attempt sends the complete current observation without older SDK history.
-This prevents obsolete gameplay tools from an earlier state from contaminating
-the current tool set. A retry also reduces the available tools to the required
-gameplay tools. The manager still rejects a nonconforming response that does not
-take a game action.
+`tool_choice=auto`; an accepted submission is still mandatory. Memory and the
+rules oracle remain available as tools. Every attempt sends the compact current
+observation without older SDK transcripts. Exploration and submission within
+one attempt retain their transcript. A fresh attempt reconstructs the tools
+for the current state. Three text-only completions fail with their trace retained.
 
 The harness sends stable provider prompt-cache keys. Player calls use a key for
 the model and current tool set. Rules-oracle calls use a separate key for the
@@ -1116,7 +1098,7 @@ normal game.
 ## Explicit output allowances and schema recovery
 
 `LLMAgentRunner(max_output_tokens=...)` can set a parent decision's output
-allowance without changing the rules oracle's separate 900-token allowance.
+allowance without changing the rules oracle's separate 16,384-token allowance (including high reasoning).
 The default is `None`, which omits the Responses API parameter and uses the
 upstream default; it does not mean unlimited output. Evaluators should choose
 an allowance supported by their model/provider and record it in provenance.

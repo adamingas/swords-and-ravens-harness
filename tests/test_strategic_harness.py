@@ -23,7 +23,8 @@ from conftest import lobby_snapshot, planning_snapshot
 
 
 def final_answer(value):
-    value = {**value, "strategic_handoff": "Continue the current plan next decision."}
+    payload = value.get('decision', value)
+    payload['strategic_handoff'] = "Continue the current plan next decision."
     return ResponseFunctionToolCall(
         arguments=json.dumps(value),
         call_id="final-action",
@@ -90,7 +91,7 @@ class MapThenOrdersModel(Model):
 
     async def get_response(self, *args, **kwargs):
         self.calls += 1
-        assert kwargs["model_settings"].tool_choice == "required"
+        assert kwargs["model_settings"].tool_choice == "auto"
         assert kwargs["output_schema"] is None
         assert "submit_orders" not in {tool.name for tool in kwargs["tools"]}
         assert "submit_action" in {tool.name for tool in kwargs["tools"]}
@@ -524,3 +525,32 @@ async def test_pending_strategy_is_not_committed_without_returned_accepted_actio
     assert memory["modelPlan"] == "Original plan"
     assert memory["revision"] == original["revision"]
     database.close()
+
+
+def test_base_game_instructions_are_identical_for_all_six_houses(tmp_path):
+    database = Database(tmp_path / 'shared-instructions.db')
+    store = AgentStore(database)
+    runner = HarnessStubRunner()
+    runner.rules_oracle_available = True
+    harness = StrategicHarness(runner, store)
+    prompts = []
+    try:
+        for house in ['stark', 'lannister', 'baratheon', 'greyjoy', 'tyrell', 'martell']:
+            snapshot = planning_snapshot()
+            ingame = snapshot['childGameState']
+            ingame['players'][0]['houseId'] = house
+            ingame['game']['houses'][0]['id'] = house
+            for region in ingame['game']['world']['regions']:
+                for unit in region['units']:
+                    unit['allegiance'] = house
+            record = store.create_agent(AgentCreate(
+                name=house, user_id='2', auth_token='test', model='openai/gpt-oss-120b',
+            ))
+            prepared = harness.prepare_turn(record, build_context(snapshot, '2'), None)
+            prompts.append(prepared.instructions)
+            assert 'Base-game decision reference' in prepared.instructions
+            assert prepared.display_observation['you']['powerTokens'] == 5
+            assert prepared.observation['you'] == {'houseId': house}
+        assert len(set(prompts)) == 1
+    finally:
+        database.close()

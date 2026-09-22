@@ -41,6 +41,7 @@ def movement_reachability(context: HarnessContext, area: str) -> dict[str, Any]:
         result["destinations"].append(
             {
                 **{key: static[target_id][key] for key in ("id", "name", "type")},
+                "castlePoints": int(bool(static[target_id].get("castleLevel"))),
                 "route": route,
                 "transportShips": [
                     {
@@ -66,7 +67,8 @@ async def reachable_areas(ctx: RunContextWrapper[HarnessRunContext], area: str) 
     Land origins imply land movement; sea/port origins imply ship movement.
     Land routes include transport through your CURRENT ships (wounded ships
     still transport). Returns destinations and one shortest route to each,
-    identifying any transport ships. Blocked areas cannot be entered or crossed;
+    identifying any transport ships and castlePoints (0 or 1) at each target.
+    Blocked areas cannot be entered or crossed;
     a blocked origin returns no destinations. Land movement cannot chain across
     intervening land areas. Ships reach adjacent seas/ports only.
     This is NOT a legal-move list: unit counts, wounds, orders, Supply, combat

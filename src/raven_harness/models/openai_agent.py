@@ -36,6 +36,7 @@ SUBMISSION_REMINDER = (
     "Only an accepted submit_action call finishes the decision."
 )
 CONTEXT_POLICY_NAME = "current-decision-with-continuation"
+RULES_ORACLE_MAX_OUTPUT_TOKENS = 16_384
 
 
 def _caused_by_connection_loss(error: BaseException) -> GameConnectionLost | None:
@@ -431,9 +432,9 @@ class LLMAgentRunner:
             + "\n\nHow to complete this decision:\n"
             "You MUST call submit_action to submit your gameplay action. A text response "
             "does not submit anything. Use the exact fields and enum values in the current "
-            "submit_action schema. Explore liberally with the other tools whenever they can "
-            "test a route, target, threat, rule, memory, or assumption. Inspect the results, "
-            "then call submit_action. Exploration tools do not submit an action."
+            "submit_action schema. Use the other tools to resolve relevant uncertainty, "
+            "then call submit_action. Use only listed tool names; there is no tool named json. "
+            "Exploration tools do not submit an action."
         )
         run_manifest = _ContextManifest(
             current_input=current_input,
@@ -473,7 +474,7 @@ class LLMAgentRunner:
                             response_attribution_sink=response_attribution,
                         ),
                         model_settings=self._model_settings(
-                            max_tokens=900,
+                            max_tokens=RULES_ORACLE_MAX_OUTPUT_TOKENS,
                             prompt_cache_key=(
                                 f"raven-rules-{agent_record.model}-"
                                 f"{self.rulebook.cache_fingerprint}"
@@ -502,7 +503,10 @@ class LLMAgentRunner:
                     prompt_cache_key=prompt_cache_key,
                     metadata=trace_metadata,
                     user=agent_record.id,
-                    tool_choice="required",
+                    # Some providers reject text-only completions before the
+                    # reminder loop can recover them. Submission is enforced
+                    # by action_taken, not by treating prose as an action.
+                    tool_choice="auto",
                 ),
                 tool_use_behavior=_stop_after_submission,
                 reset_tool_choice=False,
@@ -526,6 +530,7 @@ class LLMAgentRunner:
 
         try:
             results = []
+            unsubmitted_completions = 0
             run_input: str | list[dict[str, Any]] = current_input
             while context.action_taken is None:
                 result = await Runner.run(
@@ -538,6 +543,9 @@ class LLMAgentRunner:
                 )
                 results.append(result)
                 if context.action_taken is None:
+                    unsubmitted_completions += 1
+                    if unsubmitted_completions >= 3:
+                        raise RuntimeError("Model completed three times without submitting an action")
                     run_input = result.to_input_list()
                     run_input.append({"role": "user", "content": SUBMISSION_REMINDER})
         except asyncio.CancelledError as error:

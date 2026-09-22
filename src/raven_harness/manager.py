@@ -416,7 +416,7 @@ class AgentManager:
                 session.capacity_failures = 0
             prepared = harness.prepare_turn(record, game_context, previous_error)
             observation = prepared.observation
-            session.observation = observation
+            session.observation = prepared.display_observation or observation
             tools = prepared.tools
             session.current_tools = [tool.name for tool in tools]
             if prepared.decision is None:

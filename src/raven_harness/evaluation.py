@@ -26,6 +26,7 @@ from .harness.strategic import StrategicHarness, StrategicModelRunner
 from .manager import AgentManager
 from .models.openai_agent import (
     CONTEXT_POLICY_NAME,
+    RULES_ORACLE_MAX_OUTPUT_TOKENS,
 )
 from .models.runner import create_llm_runner
 from .rulebook import Rulebook
@@ -1372,14 +1373,15 @@ def _build_provenance(
                 settings.autoplay_capacity_retry_base_seconds
             ),
             "reasoningEffort": "high",
-            "toolChoice": "required",
+            "toolChoice": "auto",
+            "maxUnsubmittedCompletions": 3,
             "actionSubmission": "submit-action-tool",
             "contextPolicy": CONTEXT_POLICY_NAME,
             "historyMode": "current-observation-only",
             "parallelToolCalls": False,
             "store": False,
             "resetToolChoice": False,
-            "rulesOracleMaxOutputTokens": 900,
+            "rulesOracleMaxOutputTokens": RULES_ORACLE_MAX_OUTPUT_TOKENS,
         },
         "rules": {
             "available": rules_path.is_file(),
@@ -1547,7 +1549,7 @@ def _system_prompt() -> str:
 
 def _effective_instructions() -> str:
     return StrategicHarness.build_instructions(
-        _system_prompt(), map_reference=load_map_reference(6)
+        _system_prompt(), map_reference=load_map_reference(6), compact_rules=True
     )
 
 

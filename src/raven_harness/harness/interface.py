@@ -20,6 +20,7 @@ class PreparedTurn:
     prompt_cache_key: str
     history_id: int | None = None
     decision: DecisionContract | None = None
+    display_observation: dict[str, Any] | None = None
 
 
 @runtime_checkable

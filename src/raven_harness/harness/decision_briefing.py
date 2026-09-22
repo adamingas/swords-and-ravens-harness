@@ -49,11 +49,14 @@ _ACTION_DESCRIPTIONS = {
     ),
     "resolve_raid": (
         "You are resolving one Raid order. Choose an eligible adjacent enemy order to remove, "
-        "or choose a null target to discard your Raid without raiding. Your units do not move."
+        "or choose discard to remove your Raid without raiding. Your units do not move."
     ),
     "choose_combat_house_card": (
         "A battle is underway. Choose an available House card for this combat. Its strength, "
-        "icons and ability affect the battle, and playing it spends that card until it is recovered."
+        "icons and ability affect the battle, and playing it spends that card until it is recovered. "
+        "Use combat for the battlefield, participating armies and declared support. "
+        "force_valyrian_blade_decision only requests a later Blade question; it does NOT use "
+        "the Blade now. Do not count +1 unless you can and will use it at that later decision."
     ),
     "declare_support": (
         "You are deciding whom to support in the current battle. Your supporting units remain "
@@ -122,6 +125,19 @@ def describe_action(context: HarnessContext, tool: FunctionTool) -> str:
     description = _ACTION_DESCRIPTIONS.get(
         tool.name, tool.description.split("\n\nArgs:", 1)[0]
     )
+    if tool.name in {"muster_units", "skip_mustering"}:
+        if "westeros" in path:
+            description += (
+                " Timing: this is WESTEROS, BEFORE this round's Planning and Action phases. "
+                "New units can receive orders and march THIS round, including the final round. "
+                "Final scoring has not happened. Mustering spends no power tokens."
+            )
+        elif "action" in path:
+            description += (
+                " Timing: this is during the ACTION phase. Recruitment from Consolidate "
+                "Power occurs AFTER marches; those new units cannot march this round. "
+                "Mustering spends no power tokens."
+            )
     if tool.name in {
         "submit_bid",
         "select_orders",
@@ -384,24 +400,18 @@ def build_decision_briefing(
     paragraphs.extend(_board_briefing(context, contract))
     if exploration_tools:
         paragraphs.append(
-            "Explore liberally before deciding. Use the tools whenever they can test a route, "
-            "target, threat, rule, memory, or assumption. Do not avoid a useful tool call merely "
-            "to save tokens. The available tools have these purposes:"
+            "Use exploration when a route, battle, rule or assumption is uncertain. "
+            "The tools have these purposes:"
         )
         paragraphs.extend(
             _EXPLORATION_DESCRIPTIONS[tool.name] for tool in exploration_tools
         )
         paragraphs.append(
-            "These tools do not submit a gameplay action. After a tool returns, inspect its result "
-            "and follow up wherever uncertainty remains. Use multiple calls when they test different "
-            "targets, threats, rules, or memories. Treat tool results as evidence and revise your "
-            "plan when they contradict an assumption. You are not limited to one tool call."
+            "These tools do not submit an action. Inspect their results and revise assumptions; "
+            "you are not limited to one tool call."
         )
     paragraphs.append(
-        "Explore as deeply as the decision warrants. Tool calls return evidence to this same run, "
-        "so inspect each result and continue exploring when useful. When ready, you MUST call "
-        "submit_action with arguments matching its current schema. That tool is the only way to "
-        "submit the action and finish this decision. The harness checks it against the current "
-        "game state before sending it to the server."
+        "When ready, you MUST call submit_action with its current schema. "
+        "The harness validates the action before sending it to the server."
     )
     return "\n\n".join(paragraphs)
