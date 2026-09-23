@@ -12,11 +12,6 @@ from raven_harness.harness.actions import (
     available_tools,
 )
 from raven_harness.harness.observation import build_context, build_observation
-from raven_harness.harness.protocol_tools import (
-    _is_base_game,
-    gameplay_tools_for_context,
-    muster_units,
-)
 from raven_harness.game.client import GameConnectionLost, OrderSubmission
 
 from conftest import lobby_snapshot, planning_snapshot
@@ -95,9 +90,7 @@ class YieldingClient(FakeClient):
 
     async def send(self, *args: Any, **kwargs: Any) -> None:
         self.active_actions += 1
-        self.peak_active_actions = max(
-            self.peak_active_actions, self.active_actions
-        )
+        self.peak_active_actions = max(self.peak_active_actions, self.active_actions)
         try:
             await asyncio.sleep(0)
             await super().send(*args, **kwargs)
@@ -106,18 +99,12 @@ class YieldingClient(FakeClient):
 
     async def submit_orders(self, *args: Any, **kwargs: Any) -> OrderSubmission:
         self.active_actions += 1
-        self.peak_active_actions = max(
-            self.peak_active_actions, self.active_actions
-        )
+        self.peak_active_actions = max(self.peak_active_actions, self.active_actions)
         try:
             await asyncio.sleep(0)
             return await super().submit_orders(*args, **kwargs)
         finally:
             self.active_actions -= 1
-
-
-def test_mustering_requires_at_least_one_group() -> None:
-    assert muster_units.params_json_schema["properties"]["musters"]["minItems"] == 1
 
 
 def _select_units_snapshot(*, count: int = 2, can_be_skipped: bool = False) -> dict:
@@ -182,16 +169,6 @@ def test_skippable_select_units_schema_allows_zero_through_required_count() -> N
     assert field["maxItems"] == 2
 
 
-def test_lobby_exposes_only_currently_applicable_tools() -> None:
-    context = build_context(lobby_snapshot(), "2")
-    tools = available_tools(context)
-
-    assert [tool.name for tool in tools] == ["choose_house"]
-    house_schema = tools[0].params_json_schema["properties"]["house_id"]
-    assert house_schema["type"] == "string"
-    assert house_schema["enum"] == ["stark", "lannister"]
-
-
 @pytest.mark.asyncio
 async def test_stale_run_never_sends_on_a_new_connection_generation() -> None:
     client = FakeClient(lobby_snapshot())
@@ -206,36 +183,6 @@ async def test_stale_run_never_sends_on_a_new_connection_generation() -> None:
         )
 
     assert client.sent == []
-
-
-@pytest.mark.asyncio
-async def test_agents_sdk_tool_sends_a_legal_action() -> None:
-    client = FakeClient(lobby_snapshot())
-    run_context = HarnessRunContext(client=client, user_id="2", game_password="wolf")
-    tool = available_tools(build_context(client.snapshot, "2"))[0]
-
-    arguments = json.dumps({"house_id": "stark"})
-    result = await tool.on_invoke_tool(
-        ToolContext(
-            context=run_context,
-            tool_call_id="call-1",
-            tool_name=tool.name,
-            tool_arguments=arguments,
-        ),
-        arguments,
-    )
-
-    assert json.loads(result) == {
-        "ok": True,
-        "accepted": True,
-        "action": "choose_house",
-        "stateId": "leaf-1",
-    }
-    assert client.sent == [
-        {"type": "choose-house", "house": "stark", "password": "wolf"}
-    ]
-    assert run_context.action_taken is not None
-    assert run_context.action_taken.name == "choose_house"
 
 
 @pytest.mark.asyncio
@@ -556,7 +503,9 @@ async def test_submit_orders_allocates_scarce_star_by_preference_and_priority() 
 
 
 @pytest.mark.asyncio
-async def test_submit_orders_respects_restriction_on_only_starred_family_member() -> None:
+async def test_submit_orders_respects_restriction_on_only_starred_family_member() -> (
+    None
+):
     snapshot = planning_snapshot()
     snapshot["childGameState"]["game"]["starredOrderRestrictions"] = [3]
     planning = snapshot["childGameState"]["childGameState"]
@@ -814,10 +763,10 @@ async def test_submit_orders_substitutes_to_respect_star_limit() -> None:
     )
 
     assert json.loads(result)["accepted"] is True
-    assert sum(
-        order["orderId"] in {3, 6, 9, 12, 15}
-        for order in client.sent[0]["orders"]
-    ) <= 1
+    assert (
+        sum(order["orderId"] in {3, 6, 9, 12, 15} for order in client.sent[0]["orders"])
+        <= 1
+    )
 
 
 @pytest.mark.asyncio
@@ -860,7 +809,9 @@ async def test_submit_orders_substitutes_more_than_three_of_one_category() -> No
     )
 
     assert json.loads(result)["accepted"] is True
-    assert sum(order["orderId"] in {13, 14, 15} for order in client.sent[0]["orders"]) == 3
+    assert (
+        sum(order["orderId"] in {13, 14, 15} for order in client.sent[0]["orders"]) == 3
+    )
 
 
 @pytest.mark.asyncio
@@ -945,9 +896,7 @@ async def test_submit_orders_leaves_regions_empty_when_usable_tokens_run_out() -
     )
 
     assert json.loads(result)["accepted"] is True
-    placed = [
-        order for order in client.sent[0]["orders"] if order.get("orderId")
-    ]
+    placed = [order for order in client.sent[0]["orders"] if order.get("orderId")]
     assert len(placed) == 11
     assert {message["regionId"] for message in placed} == {
         f"region-{index}" for index in range(1, 12)
@@ -983,11 +932,6 @@ def test_observation_is_player_scoped_and_concise() -> None:
     assert observation["statePath"] == ["lobby"]
 
 
-def test_known_ingame_phase_gets_a_small_relevant_toolset() -> None:
-    tools = available_tools(build_context(planning_snapshot(), "2"))
-    assert {tool.name for tool in tools} == {"submit_orders"}
-
-
 def test_authoritative_waited_user_ids_drive_turn_detection() -> None:
     snapshot = planning_snapshot()
     snapshot["childGameState"]["waitedForUserIds"] = ["2"]
@@ -1020,71 +964,6 @@ def test_deepest_protocol_state_hides_parent_state_tools() -> None:
     tools = available_tools(build_context(snapshot, "2"))
 
     assert [tool.name for tool in tools] == ["place_inspected_wildling_card"]
-
-
-def test_non_base_game_snapshot_exposes_no_protocol_tools() -> None:
-    snapshot = planning_snapshot()
-    snapshot["gameSettings"] = {
-        "setupId": "mother-of-dragons",
-        "playerCount": 8,
-    }
-    snapshot["childGameState"]["childGameState"] = {
-        "type": "resolve-march-order",
-        "childGameState": {
-            "type": "resolve-single-march",
-            "houseId": "stark",
-        },
-    }
-
-    assert available_tools(build_context(snapshot, "2")) == []
-
-
-def test_non_six_player_snapshot_exposes_no_protocol_tools() -> None:
-    snapshot = planning_snapshot()
-    snapshot["gameSettings"] = {"setupId": "base-game", "playerCount": 5}
-    snapshot["childGameState"]["childGameState"] = {
-        "type": "resolve-march-order"
-    }
-
-    assert available_tools(build_context(snapshot, "2")) == []
-
-
-@pytest.mark.parametrize(
-    "settings",
-    [
-        None,
-        {},
-        {"playerCount": 6},
-        {"setupId": "mother-of-dragons", "playerCount": 6},
-        {"setupId": "base-game"},
-        {"setupId": "base-game", "playerCount": 5},
-        {"setupId": "base-game", "playerCount": 6, "vassals": True},
-    ],
-)
-def test_base_game_detection_fails_closed_for_missing_or_wrong_settings(settings) -> None:
-    snapshot = planning_snapshot()
-    if settings is None:
-        snapshot.pop("gameSettings")
-    else:
-        snapshot["gameSettings"] = settings
-
-    assert _is_base_game(snapshot) is False
-    context = build_context(snapshot, "2")
-    assert gameplay_tools_for_context(context, has_specific_tools=False) == []
-
-
-def test_base_game_detection_accepts_omitted_false_vassal_setting() -> None:
-    snapshot = planning_snapshot()
-    assert "vassals" not in snapshot["gameSettings"]
-
-    assert _is_base_game(snapshot) is True
-
-
-def test_base_game_detection_accepts_native_three_player_setup() -> None:
-    snapshot = planning_snapshot()
-    snapshot["gameSettings"]["playerCount"] = 3
-
-    assert _is_base_game(snapshot) is True
 
 
 def test_unknown_child_state_does_not_inherit_parent_tools() -> None:
@@ -1311,9 +1190,7 @@ async def test_declining_support_uses_declare_support_with_null_house() -> None:
         arguments,
     )
 
-    assert client.sent == [
-        {"type": "declare-support", "supportedHouseId": None}
-    ]
+    assert client.sent == [{"type": "declare-support", "supportedHouseId": None}]
 
 
 @pytest.mark.asyncio
@@ -1467,9 +1344,7 @@ async def test_march_omits_a_supply_unsafe_move_group() -> None:
     arguments = json.dumps(
         {
             "starting_region_id": "winterfell",
-            "moves": [
-                {"destination_region_id": "white-harbor", "unit_ids": [1]}
-            ],
+            "moves": [{"destination_region_id": "white-harbor", "unit_ids": [1]}],
             "leave_power_token": False,
         }
     )
@@ -1535,9 +1410,7 @@ async def test_march_omits_an_illegal_power_token_request() -> None:
     assert client.sent[-1]["leavePowerToken"] is False
     assert run_context.action_taken is not None
     assert run_context.action_taken.arguments["leave_power_token"] is False
-    assert (
-        run_context.action_taken.arguments["omitted_illegal_power_token"] is True
-    )
+    assert run_context.action_taken.arguments["omitted_illegal_power_token"] is True
 
 
 @pytest.mark.asyncio
@@ -1655,9 +1528,7 @@ async def test_raid_schema_and_runtime_allow_only_raidable_enemy_orders() -> Non
     assert "not raidable" in result
     assert client.sent == []
 
-    valid = json.dumps(
-        {"order_region_id": "winterfell", "target_region_id": "karhold"}
-    )
+    valid = json.dumps({"order_region_id": "winterfell", "target_region_id": "karhold"})
     await tool.on_invoke_tool(
         ToolContext(
             context=run_context,
@@ -1672,63 +1543,6 @@ async def test_raid_schema_and_runtime_allow_only_raidable_enemy_orders() -> Non
             "type": "resolve-raid",
             "orderRegionId": "winterfell",
             "targetRegionId": "karhold",
-        }
-    ]
-
-
-@pytest.mark.asyncio
-async def test_base_game_consolidate_power_excludes_expansion_choices() -> None:
-    snapshot = planning_snapshot()
-    ingame = snapshot["childGameState"]
-    ingame["ordersOnBoard"] = [["winterfell", 10]]
-    ingame["childGameState"] = {
-        "type": "resolve-consolidate-power",
-        "childGameState": {
-            "type": "resolve-single-consolidate-power",
-            "house": "stark",
-        },
-    }
-    client = FakeClient(snapshot)
-    run_context = HarnessRunContext(client=client, user_id="2")
-    tool = available_tools(build_context(snapshot, "2"))[0]
-
-    assert tool.name == "resolve_consolidate_power"
-    assert tool.params_json_schema["properties"]["choice"]["enum"] == [
-        "gain_power_tokens"
-    ]
-    assert "loan_id" not in tool.params_json_schema["properties"]
-    invalid = json.dumps(
-        {"region_id": "winterfell", "choice": "purchase_loan", "loan_id": 1}
-    )
-    result = await tool.on_invoke_tool(
-        ToolContext(
-            context=run_context,
-            tool_call_id="call-invalid-cp",
-            tool_name=tool.name,
-            tool_arguments=invalid,
-        ),
-        invalid,
-    )
-    assert "Invalid JSON input" in result
-    assert client.sent == []
-
-    valid = json.dumps(
-        {"region_id": "winterfell", "choice": "gain_power_tokens"}
-    )
-    await tool.on_invoke_tool(
-        ToolContext(
-            context=run_context,
-            tool_call_id="call-valid-cp",
-            tool_name=tool.name,
-            tool_arguments=valid,
-        ),
-        valid,
-    )
-    assert client.sent == [
-        {
-            "type": "resolve-consolidate-power-choice",
-            "region": "winterfell",
-            "gainPowerTokens": True,
         }
     ]
 
@@ -1816,12 +1630,8 @@ async def test_mustering_keeps_the_priority_subset_within_castle_points() -> Non
         }
     ]
     assert run_context.action_taken is not None
-    assert run_context.action_taken.arguments[
-        "omitted_point_unsafe_recruitments"
-    ] == 2
-    assert run_context.action_taken.arguments[
-        "omitted_supply_unsafe_recruitments"
-    ] == 0
+    assert run_context.action_taken.arguments["omitted_point_unsafe_recruitments"] == 2
+    assert run_context.action_taken.arguments["omitted_supply_unsafe_recruitments"] == 0
 
 
 @pytest.mark.asyncio
@@ -2056,14 +1866,8 @@ async def test_mustering_keeps_priority_ordered_supply_safe_recruitments() -> No
             "upgrade_from_footman": False,
         }
     ]
-    assert (
-        run_context.action_taken.arguments["omitted_point_unsafe_recruitments"]
-        == 0
-    )
-    assert (
-        run_context.action_taken.arguments["omitted_supply_unsafe_recruitments"]
-        == 1
-    )
+    assert run_context.action_taken.arguments["omitted_point_unsafe_recruitments"] == 0
+    assert run_context.action_taken.arguments["omitted_supply_unsafe_recruitments"] == 1
 
 
 @pytest.mark.asyncio

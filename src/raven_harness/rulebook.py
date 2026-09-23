@@ -17,6 +17,7 @@ from agents import (
     FunctionTool,
     ModelSettings,
     RunConfig,
+    RunContextWrapper,
     RunHooks,
     RunResult,
     function_tool,
@@ -24,12 +25,13 @@ from agents import (
 from pydantic import BaseModel, ConfigDict, Field
 from pypdf import PdfReader
 
+from .harness.actions import HarnessRunContext
 
 RULES_ORACLE_TOOL_NAME = "ask_rules_oracle"
 RULES_ORACLE_DESCRIPTION = (
     "Ask a private rules specialist one focused question when a rule is unclear. "
     "The specialist reads the official rulebook and FAQ. This does not submit a "
-    "gameplay action. After reading the answer, continue exploring or call submit_action."
+    "gameplay action. After reading the answer, continue exploring or finish your decision."
 )
 
 # The Supply track on page 8 is artwork in the official PDF, so PDF text
@@ -510,6 +512,27 @@ def main() -> None:
         f"Wrote {len(data.sections)} rule sections from "
         f"{len(data.sources)} official sources to {args.output.resolve()}"
     )
+
+
+@function_tool(
+    name_override=RULES_ORACLE_TOOL_NAME,
+    description_override=RULES_ORACLE_DESCRIPTION,
+)
+async def ask_rules_oracle(
+    ctx: RunContextWrapper[HarnessRunContext],
+    question: Annotated[
+        str,
+        Field(
+            min_length=3,
+            max_length=1_200,
+            description="A focused question about one game rule.",
+        ),
+    ],
+) -> str:
+    """Tool definition bound to the nested oracle by the gameplay pipeline."""
+
+    del ctx, question
+    raise RuntimeError("The rules oracle is not configured")
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ class UnitMove(ToolInput):
 
 
 class Recruitment(ToolInput):
-    unit_type: str = Field(
+    unit_type: Literal["footman", "knight", "ship", "siege-engine"] = Field(
         description="Unit type to create, such as footman, knight, ship, or siege-engine."
     )
     region_id: str = Field(

@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -64,6 +65,9 @@ class Settings(BaseSettings):
     database_path: Path | None = None
     rules_path: Path | None = None
     model_id: str = Field(default=DEFAULT_MODEL_ID, min_length=1, max_length=100)
+    harness_mode: Literal["structured", "two-stage"] = "two-stage"
+    harness_max_turns: int = Field(default=20, ge=1)
+    model_max_output_tokens: int | None = Field(default=None, gt=0)
     openrouter_token: str = Field(default="", repr=False)
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openai_api_key: str = Field(default="", repr=False)

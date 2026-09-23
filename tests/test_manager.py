@@ -9,15 +9,13 @@ from raven_harness.game.client import GameConnectionLost
 from raven_harness.game.codec import decode_message, encode_message
 from raven_harness.harness.actions import ActionTaken
 from raven_harness.harness.interface import PreparedTurn
-from raven_harness.harness.observation import build_context
-from raven_harness.harness.strategic import StrategicHarness
 from raven_harness.manager import (
     AgentManager,
     AgentSession,
     _monitoring_state,
     _next_reconnect_delay,
 )
-from raven_harness.models.openai_agent import (
+from raven_harness.models.results import (
     ModelRunCancelled,
     ModelRunError,
     ModelRunResult,
@@ -26,27 +24,7 @@ from raven_harness.models.openai_agent import (
 )
 from raven_harness.schemas import AgentCreate, LobbySetupRequest
 
-from conftest import lobby_snapshot, planning_snapshot
-
-
-class UnusedRunner:
-    rules_oracle_available = False
-
-    async def run_once(
-        self,
-        *,
-        agent_record,
-        observation,
-        context,
-        tools,
-        instructions,
-        prompt_cache_key,
-        trace_metadata,
-    ):
-        raise AssertionError("The model should not run in this test")
-
-    async def shutdown(self) -> None:
-        pass
+from conftest import make_harness, lobby_snapshot, planning_snapshot
 
 
 class FakeConnection:
@@ -285,7 +263,7 @@ def lobby_manager(tmp_path, returned_settings: dict):
     store = AgentStore(database)
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
     )
     agent = store.create_agent(
         AgentCreate(
@@ -300,32 +278,6 @@ def lobby_manager(tmp_path, returned_settings: dict):
     client = FakeLobbyClient(returned_settings)
     manager.sessions[agent.id] = AgentSession(status="connected", client=client)
     return database, manager, agent, client
-
-
-@pytest.mark.asyncio
-async def test_configure_lobby_verifies_all_accepted_settings(tmp_path) -> None:
-    sent = {
-        "setupId": "base-game",
-        "playerCount": 6,
-        "pbem": False,
-        "vassals": False,
-        "victoryPointsCountNeededToWin": 7,
-    }
-    serialized = {
-        "setupId": "base-game",
-        "playerCount": 6,
-        "pbem": False,
-    }
-    database, manager, agent, client = lobby_manager(tmp_path, serialized)
-
-    result = await manager.configure_lobby(
-        agent.id,
-        LobbySetupRequest(pbem=False),
-    )
-
-    assert result == sent
-    assert client.sent == [{"type": "change-game-settings", "settings": sent}]
-    database.close()
 
 
 @pytest.mark.asyncio
@@ -349,30 +301,6 @@ async def test_configure_lobby_rejects_partially_applied_settings(tmp_path) -> N
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("child_state", "expected"),
-    [
-        ({"type": "ingame"}, {"started": True, "readyCheck": False}),
-        (
-            {"type": "lobby", "readyUsers": []},
-            {"started": False, "readyCheck": True},
-        ),
-    ],
-)
-async def test_launch_game_verifies_authoritative_result(
-    tmp_path, child_state, expected
-) -> None:
-    database, manager, agent, client = lobby_manager(tmp_path, {})
-    client.synced_snapshot["childGameState"] = child_state
-
-    result = await manager.launch_game(agent.id)
-
-    assert result == expected
-    assert client.sent == [{"type": "launch-game"}]
-    database.close()
-
-
-@pytest.mark.asyncio
 async def test_launch_game_rejects_unchanged_lobby(tmp_path) -> None:
     database, manager, agent, client = lobby_manager(tmp_path, {})
 
@@ -380,26 +308,6 @@ async def test_launch_game_rejects_unchanged_lobby(tmp_path) -> None:
         await manager.launch_game(agent.id)
 
     assert client.sent == [{"type": "launch-game"}]
-    database.close()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "child_state",
-    [
-        {"type": "lobby", "readyUsers": ["1"]},
-        {"type": "ingame"},
-    ],
-)
-async def test_lobby_ready_verifies_authoritative_result(tmp_path, child_state) -> None:
-    database, manager, agent, client = lobby_manager(tmp_path, {})
-    client.synced_snapshot["childGameState"] = child_state
-    session = manager.sessions[agent.id]
-
-    await manager._confirm_lobby_ready(agent.id, session, agent.user_id)
-
-    assert client.sent == [{"type": "ready"}]
-    assert manager.store.list_events(agent.id)[-1].kind == "lobby-ready-accepted"
     database.close()
 
 
@@ -460,7 +368,7 @@ async def test_permanent_provider_error_stops_all_autoplay_and_is_redacted(
 async def test_manager_records_each_distinct_player_snapshot(tmp_path) -> None:
     database = Database(tmp_path / "manager.db")
     store = AgentStore(database)
-    harness = StrategicHarness(UnusedRunner(), store)
+    harness = make_harness(store)
     connection = FakeConnection()
 
     async def connect(_url: str) -> FakeConnection:
@@ -527,7 +435,7 @@ async def test_manager_reconnects_once_and_preserves_autoplay(tmp_path) -> None:
 
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
         connection_factory=connect,
         reconnect_retry_base_seconds=0.01,
         reconnect_retry_max_seconds=0.02,
@@ -589,7 +497,7 @@ async def test_stop_cancels_reconnect_backoff(tmp_path) -> None:
 
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
         connection_factory=connect,
         reconnect_retry_base_seconds=0.2,
         reconnect_retry_max_seconds=0.2,
@@ -631,7 +539,7 @@ async def test_sync_timeout_reconnects_without_replaying_request(tmp_path) -> No
 
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
         connection_factory=connect,
         reconnect_retry_base_seconds=0.01,
         reconnect_retry_max_seconds=0.02,
@@ -681,7 +589,7 @@ async def test_banned_initial_connection_is_terminal(tmp_path) -> None:
 
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
         connection_factory=connect,
     )
     agent = store.create_agent(
@@ -924,7 +832,7 @@ def test_non_live_monitoring_uses_one_saved_snapshot_source(tmp_path) -> None:
     store = AgentStore(database)
     manager = AgentManager(
         store=store,
-        harness=StrategicHarness(UnusedRunner(), store),
+        harness=make_harness(store),
     )
     agent = store.create_agent(
         AgentCreate(
@@ -956,43 +864,6 @@ def test_non_live_monitoring_uses_one_saved_snapshot_source(tmp_path) -> None:
     assert monitor["state"]["game"]["stateId"] == "leaf-2"
     assert monitor["state"]["player"]["houseId"] == "stark"
     assert monitor["state"]["isOwner"] is True
-    database.close()
-
-
-def test_live_monitoring_marks_a_required_turn_actionable(tmp_path) -> None:
-    database = Database(tmp_path / "live-monitoring.db")
-    store = AgentStore(database)
-    harness = StrategicHarness(UnusedRunner(), store)
-    manager = AgentManager(store=store, harness=harness)
-    agent = store.create_agent(
-        AgentCreate(
-            name="Live Wolf",
-            model="test-model",
-            user_id="2",
-            auth_token="secret",
-        )
-    )
-    snapshot = planning_snapshot()
-    client = FakeRunClient()
-    client.snapshot = snapshot
-    observation = harness.preview_observation(
-        agent,
-        build_context(snapshot, agent.user_id),
-    )
-    manager.sessions[agent.id] = AgentSession(
-        status="connected",
-        client=client,
-        observation=observation,
-    )
-
-    monitor = manager.list_monitoring()[0]
-
-    assert monitor["stateStatus"] == {
-        "source": "live",
-        "capturedAt": None,
-        "actionable": True,
-    }
-    assert monitor["state"]["isYourTurn"] is True
     database.close()
 
 

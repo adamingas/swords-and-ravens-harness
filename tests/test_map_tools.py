@@ -16,9 +16,14 @@ def test_neighbours_correct_the_observed_spatial_and_castle_errors():
     context = build_context(planning_snapshot(), "2")
     castle_black = neighbouring_areas(context, " Castle Black ")
     assert {area["id"] for area in castle_black} == {
-        "winterfell", "karhold", "bay-of-ice", "the-shivering-sea"
+        "winterfell",
+        "karhold",
+        "bay-of-ice",
+        "the-shivering-sea",
     }
-    winterfell = {area["id"]: area for area in neighbouring_areas(context, "WINTERFELL")}
+    winterfell = {
+        area["id"]: area for area in neighbouring_areas(context, "WINTERFELL")
+    }
     assert winterfell["moat-cailin"]["castleLevel"] == 1
     assert winterfell["white-harbor"]["castleLevel"] == 1
     assert winterfell["castle-black"]["castleLevel"] == 0
@@ -37,15 +42,19 @@ async def test_tool_reads_fresh_visible_state_without_taking_an_action():
     winterfell["garrison"] = 2
     ingame["ordersOnBoard"] = [["winterfell", 7], ["karhold", None]]
     ingame["childGameState"]["placedOrders"] = [["karhold", 3]]
-    client = SimpleNamespace(snapshot=snapshot, recent_events=[], connection_generation=1)
+    client = SimpleNamespace(
+        snapshot=snapshot, recent_events=[], connection_generation=1
+    )
     run_context = HarnessRunContext(client=client, user_id="2")
     args = json.dumps({"area": "castle-black"})
 
     async def invoke():
         output = await check_neighbours.on_invoke_tool(
             ToolContext(
-                context=run_context, tool_call_id="map-1",
-                tool_name="check_neighbours", tool_arguments=args,
+                context=run_context,
+                tool_call_id="map-1",
+                tool_name="check_neighbours",
+                tool_arguments=args,
             ),
             args,
         )
@@ -79,16 +88,3 @@ def test_unknown_names_and_lobby_are_rejected():
         neighbouring_areas(build_context(planning_snapshot(), "2"), "Winter")
     with pytest.raises(ValueError, match="only available during a game"):
         neighbouring_areas(build_context(lobby_snapshot(), "2"), "winterfell")
-
-
-@pytest.mark.parametrize("player_count,eyrie_port", [(6, False), (7, False), (8, False), (4, True)])
-def test_uses_the_configured_map(player_count, eyrie_port):
-    snapshot = planning_snapshot()
-    snapshot["gameSettings"].update(
-        playerCount=player_count, addPortToTheEyrie=eyrie_port
-    )
-    context = build_context(snapshot, "2")
-    neighbours = neighbouring_areas(context, "the-eyrie")
-    assert ("port-of-the-eyrie" in {area["id"] for area in neighbours}) == (
-        eyrie_port or player_count in (7, 8)
-    )

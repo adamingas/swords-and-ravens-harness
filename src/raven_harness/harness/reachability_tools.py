@@ -71,7 +71,7 @@ async def reachable_areas(ctx: RunContextWrapper[HarnessRunContext], area: str) 
     intervening land areas. Ships reach adjacent seas/ports only.
     This is NOT a legal-move list: unit counts, wounds, orders, Supply, combat
     strength, and port ownership/capacity do not filter destinations. Check
-    actionGuidance and submit_action for move legality. For adjacency/support
+    actionGuidance and final action validation for move legality. For adjacency/support
     use check_neighbours. This read-only query does not finish your decision.
 
     Args:

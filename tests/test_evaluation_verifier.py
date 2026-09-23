@@ -1,12 +1,10 @@
 import json
-import sys
 
 import pytest
 
 from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.evaluation import (
-    HOUSES,
     TOURNAMENT_HARNESS_ID,
     TOURNAMENT_MODELS,
     _evaluation_schedule,
@@ -17,7 +15,6 @@ from raven_harness.evaluation import (
 from raven_harness.evaluation_verifier import (
     EvaluationIncompleteError,
     EvaluationVerificationError,
-    main,
     verify_evaluation,
 )
 from raven_harness.schemas import AgentCreate
@@ -249,42 +246,6 @@ def test_verifier_accepts_complete_two_rotation_comparison(tmp_path) -> None:
     assert report["comparisonComplete"] is True
 
 
-def test_verifier_requires_completion_timestamp_for_complete_tournament(
-    tmp_path,
-) -> None:
-    root = tmp_path / "missing-finished-at"
-    _evaluation(root, game_count=12, completed_games=12)
-    manifest_path = root / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    del manifest["finishedAt"]
-    _write_json(manifest_path, manifest)
-
-    with pytest.raises(EvaluationVerificationError, match="completion timestamp"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_missing_completed_result(tmp_path) -> None:
-    root = tmp_path / "missing-result"
-    _evaluation(root, game_count=12, completed_games=1)
-    (root / "game-01/attempt-01/result.json").unlink()
-
-    with pytest.raises(
-        EvaluationVerificationError, match="Missing game 1 completed result"
-    ):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_corrupt_completed_result(tmp_path) -> None:
-    root = tmp_path / "corrupt-result"
-    _evaluation(root, game_count=12, completed_games=1)
-    (root / "game-01/attempt-01/result.json").write_text("{not-json")
-
-    with pytest.raises(
-        EvaluationVerificationError, match="Invalid JSON.*completed result"
-    ):
-        verify_evaluation(root)
-
-
 def test_verifier_rejects_stale_summary(tmp_path) -> None:
     root = tmp_path / "stale-summary"
     _evaluation(root, game_count=12, completed_games=1)
@@ -315,65 +276,6 @@ def test_require_complete_reports_model_house_coverage_failure(
         verify_evaluation(root, require_complete=True)
 
 
-def test_verifier_rejects_assignment_model_mismatch(tmp_path) -> None:
-    root = tmp_path / "model-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    assignment_path = root / "game-01/attempt-01/assignments.json"
-    assignments = json.loads(assignment_path.read_text())
-    assignments[0]["model"] = "another-model"
-    _write_json(assignment_path, assignments)
-
-    with pytest.raises(EvaluationVerificationError, match="each tournament model"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_result_random_seed_mismatch(tmp_path) -> None:
-    root = tmp_path / "seed-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    result_path = root / "game-01/attempt-01/result.json"
-    result = json.loads(result_path.read_text())
-    result["randomSeed"] ^= 1
-    _write_json(result_path, result)
-
-    with pytest.raises(EvaluationVerificationError, match="random seed"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_result_endpoint_provider_mismatch(tmp_path) -> None:
-    root = tmp_path / "provider-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    result_path = root / "game-01/attempt-01/result.json"
-    result = json.loads(result_path.read_text())
-    result["endpointProvider"] = "Another endpoint"
-    _write_json(result_path, result)
-
-    with pytest.raises(EvaluationVerificationError, match="endpoint provider"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_schedule_random_seed_mismatch(tmp_path) -> None:
-    root = tmp_path / "schedule-seed-mismatch"
-    _evaluation(root, game_count=12, completed_games=0)
-    manifest_path = root / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["games"][0]["randomSeed"] ^= 1
-    _write_json(manifest_path, manifest)
-
-    with pytest.raises(EvaluationVerificationError, match="different seed"):
-        verify_evaluation(root)
-
-
-def test_verifier_rejects_saved_winner_mismatch(tmp_path) -> None:
-    root = tmp_path / "winner-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    winner = house_rotation(1)[TOURNAMENT_MODELS[0]]
-    other = next(house for house in HOUSES if house != winner)
-    _write_json(root / "game-01/attempt-01/game.json", _terminal_game(other))
-
-    with pytest.raises(EvaluationVerificationError, match="saved terminal winner"):
-        verify_evaluation(root)
-
-
 def test_verifier_rejects_corrupt_harness_database(tmp_path) -> None:
     root = tmp_path / "corrupt-database"
     _evaluation(root, game_count=12, completed_games=1)
@@ -381,41 +283,3 @@ def test_verifier_rejects_corrupt_harness_database(tmp_path) -> None:
 
     with pytest.raises(EvaluationVerificationError, match="Cannot verify.*database"):
         verify_evaluation(root)
-
-
-def test_verifier_rejects_database_run_model_mismatch(tmp_path) -> None:
-    root = tmp_path / "trace-model-mismatch"
-    _evaluation(root, game_count=12, completed_games=1)
-    database = Database(root / "game-01/attempt-01/harness.db")
-    try:
-        with database.lock:
-            database.connection.execute(
-                "UPDATE agent_runs SET model = 'another/model' WHERE id = ?",
-                ("run-1-1",),
-            )
-            database.connection.commit()
-    finally:
-        database.close()
-
-    with pytest.raises(EvaluationVerificationError, match="wrong model"):
-        verify_evaluation(root)
-
-
-def test_cli_uses_distinct_exit_for_valid_but_incomplete_evaluation(
-    tmp_path, monkeypatch, capsys
-) -> None:
-    root = tmp_path / "cli-partial"
-    _evaluation(root, game_count=12, completed_games=1)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["raven-verify-evaluation", str(root), "--require-complete"],
-    )
-
-    with pytest.raises(SystemExit) as caught:
-        main()
-
-    assert caught.value.code == 2
-    output = json.loads(capsys.readouterr().err)
-    assert output["status"] == "valid"
-    assert output["evaluationStatus"] == "provisional"

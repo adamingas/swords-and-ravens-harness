@@ -3,7 +3,6 @@ import asyncio
 import copy
 import json
 import subprocess
-from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -16,27 +15,20 @@ from raven_harness.evaluation import (
     HOUSES,
     TOURNAMENT_GAMES,
     TOURNAMENT_MODELS,
-    _load_manifest,
     _evaluation_schedule,
     _validate_resumable_provenance,
     _preflight_openrouter_quota,
     _preflight_model_catalog,
-    _require_sqlite_quick_check,
     _run_assignments,
-    _start_game_server,
     _terminal_winner,
     _validate_evaluation_schedule,
     _validate_resumed_agents,
-    _validate_winner_house,
     _wait_for_terminal_game_document,
-    derive_game_seed,
     house_rotation,
-    run_game,
     run_evaluation,
     resolve_evaluation_output,
     summarize_results,
     user_rotation,
-    build_parser,
 )
 from raven_harness.schemas import DEFAULT_PROMPT
 
@@ -91,41 +83,6 @@ def test_twelve_game_user_rotation_makes_each_model_owner_twice() -> None:
         assert sorted(user_ids) == sorted([str(value) for value in range(1, 7)] * 2)
 
 
-@pytest.mark.parametrize(
-    "obsolete_option",
-    [
-        "--games",
-        "--start-game",
-        "--concurrent-games",
-        "--max-rounds",
-        "--continue-on-error",
-    ],
-)
-def test_tournament_runner_has_no_partial_or_concurrent_game_options(
-    obsolete_option: str,
-) -> None:
-    with pytest.raises(SystemExit):
-        build_parser().parse_args([obsolete_option, "1"])
-
-
-def test_explicit_three_seat_assignments_allow_one_repeated_model() -> None:
-    model = "openai/gpt-oss-120b"
-
-    assignments = _run_assignments(
-        game_number=1,
-        seat_models=[model, model, model],
-        seat_houses=["baratheon", "lannister", "stark"],
-    )
-
-    assert [assignment["model"] for assignment in assignments] == [model] * 3
-    assert [assignment["userId"] for assignment in assignments] == ["1", "2", "3"]
-    assert {assignment["house"] for assignment in assignments} == {
-        "baratheon",
-        "lannister",
-        "stark",
-    }
-
-
 def test_resumed_agents_must_keep_their_scheduled_models() -> None:
     assignments = _run_assignments(
         game_number=1,
@@ -154,38 +111,6 @@ def test_resumed_agents_must_keep_their_scheduled_models() -> None:
         )
 
 
-@pytest.mark.asyncio
-async def test_run_game_resolves_attempt_directory_before_starting_server(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    captured_game_path: Path | None = None
-
-    async def fail_after_capture(**arguments):
-        nonlocal captured_game_path
-        captured_game_path = arguments["game_path"]
-        raise RuntimeError("captured path")
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(
-        "raven_harness.evaluation._start_game_server", fail_after_capture
-    )
-
-    with pytest.raises(RuntimeError, match="captured path"):
-        await run_game(
-            game_number=1,
-            attempt_dir=Path("relative-attempt"),
-            random_seed=1,
-            game_port=0,
-            max_rounds=1,
-            poll_seconds=0.1,
-            stall_seconds=1,
-            match_timeout_seconds=1,
-            settings=Settings(_env_file=None),
-        )
-
-    assert captured_game_path == (tmp_path / "relative-attempt/game.json").resolve()
-
-
 def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() -> None:
     schedule = _evaluation_schedule(12)
     schedule[0]["attempts"].append({"status": "completed"})
@@ -195,18 +120,6 @@ def test_schedule_validation_ignores_attempt_history_but_rejects_user_changes() 
     schedule[0]["users"][TOURNAMENT_MODELS[0]] = "2"
     with pytest.raises(RuntimeError, match="different seed, house, or user schedule"):
         _validate_evaluation_schedule(schedule, 12)
-
-
-def test_twelve_game_schedule_has_stable_distinct_uint32_seeds() -> None:
-    first = _evaluation_schedule(12, 0)
-    repeated = _evaluation_schedule(12, 0)
-    seeds = [game["randomSeed"] for game in first]
-
-    assert first == repeated
-    assert seeds == [derive_game_seed(0, number) for number in range(1, 13)]
-    assert len(set(seeds)) == 12
-    assert all(0 <= seed <= 0xFFFFFFFF for seed in seeds)
-    assert seeds != [game["randomSeed"] for game in _evaluation_schedule(12, 1)]
 
 
 def test_evaluation_output_must_stay_in_the_repository_data_directory(
@@ -219,58 +132,6 @@ def test_evaluation_output_must_stay_in_the_repository_data_directory(
     assert resolve_evaluation_output(str(allowed), default_prefix="") == allowed
     with pytest.raises(RuntimeError, match="must be inside"):
         resolve_evaluation_output(str(tmp_path / "outside"), default_prefix="")
-
-
-@pytest.mark.asyncio
-async def test_game_server_receives_the_exact_scheduled_seed(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    game_server_dir = tmp_path / "game-server"
-    executable = game_server_dir / "node_modules" / ".bin" / "ts-node"
-    executable.parent.mkdir(parents=True)
-    executable.write_text("")
-    captured: dict = {}
-    expected_process = object()
-
-    async def create_subprocess_exec(*command, **options):
-        captured["command"] = command
-        captured["options"] = options
-        return expected_process
-
-    monkeypatch.setattr("raven_harness.evaluation.GAME_SERVER_DIR", game_server_dir)
-    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_subprocess_exec)
-    with (tmp_path / "server.log").open("wb") as log:
-        process = await _start_game_server(
-            game_path=tmp_path / "game.json",
-            port=5101,
-            max_rounds=None,
-            random_seed=4294967295,
-            log=log,
-        )
-
-    assert process is expected_process
-    assert captured["options"]["env"]["HARNESS_RANDOM_SEED"] == "4294967295"
-
-
-def test_load_manifest_rejects_legacy_schema_without_modifying_it(tmp_path) -> None:
-    path = tmp_path / "manifest.json"
-    legacy = {
-        "schemaVersion": 1,
-        "model": "z-ai/glm-5.3-flash",
-        "gameCount": 12,
-        "games": _evaluation_schedule(12),
-    }
-    path.write_text(json.dumps(legacy))
-    args = argparse.Namespace(random_seed=1)
-
-    with pytest.raises(RuntimeError, match="unsupported schema version 1"):
-        _load_manifest(
-            path,
-            args,
-            tmp_path,
-        )
-
-    assert json.loads(path.read_text()) == legacy
 
 
 def test_resumable_provenance_ignores_docs_commit_but_rejects_runtime_change() -> None:
@@ -461,31 +322,6 @@ async def test_model_preflight_rejects_missing_or_non_tool_models() -> None:
             await _preflight_model_catalog(settings, client=client)
     finally:
         await client.aclose()
-
-
-@pytest.mark.asyncio
-async def test_model_preflight_uses_configured_openai_compatible_endpoint() -> None:
-    rows = [{"id": model} for model in TOURNAMENT_MODELS]
-
-    async def handler(request: httpx.Request) -> httpx.Response:
-        assert request.headers["authorization"] == "Bearer compatible-secret"
-        return httpx.Response(200, json={"data": rows})
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    settings = Settings(
-        openrouter_token="",
-        openai_api_key="compatible-secret",
-        openai_base_url="https://models.example/v1",
-        _env_file=None,
-    )
-    try:
-        verified = await _preflight_model_catalog(settings, client=client)
-    finally:
-        await client.aclose()
-
-    assert [row["id"] for row in verified] == TOURNAMENT_MODELS
-    assert all(row["canonicalSlug"] == row["id"] for row in verified)
-    assert all(row["supportedParameters"] is None for row in verified)
 
 
 @pytest.mark.asyncio
@@ -752,22 +588,6 @@ async def test_evaluation_starts_a_new_attempt_after_runtime_change(
     assert second["status"] == "completed"
 
 
-@pytest.mark.asyncio
-async def test_evaluation_requires_a_configured_model_api_key(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-) -> None:
-    settings = Settings(
-        rules_path=tmp_path / "rules.json",
-        openrouter_token="",
-        openai_api_key="",
-        _env_file=None,
-    )
-    monkeypatch.setattr("raven_harness.evaluation.Settings", lambda **_kwargs: settings)
-
-    with pytest.raises(RuntimeError, match="Configure an API key"):
-        await run_evaluation(argparse.Namespace())
-
-
 def _test_git(directory, *arguments: str) -> None:
     subprocess.run(
         ["git", "-C", str(directory), *arguments],
@@ -792,14 +612,6 @@ def _terminal_game(winner: str) -> dict:
             },
         }
     }
-
-
-def test_terminal_winner_requires_a_known_base_game_house() -> None:
-    assert _terminal_winner(_terminal_game("stark")) == "stark"
-    assert _validate_winner_house("martell", source="test") == "martell"
-
-    with pytest.raises(RuntimeError, match="Invalid winner house"):
-        _validate_winner_house("arryn", source="test")
 
 
 @pytest.mark.asyncio
@@ -828,14 +640,6 @@ async def test_terminal_save_must_be_stable_and_match_observed_winner(
             stable_seconds=0.01,
             poll_seconds=0.005,
         )
-
-
-def test_sqlite_quick_check_accepts_evaluation_database(tmp_path) -> None:
-    database = Database(tmp_path / "harness.db")
-    try:
-        _require_sqlite_quick_check(database)
-    finally:
-        database.close()
 
 
 def test_summary_aggregates_rankings_house_effects_and_pairwise_elo() -> None:

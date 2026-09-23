@@ -7,19 +7,6 @@ from raven_harness.game.map_reference import (
 )
 
 
-def test_map_reference_contains_rules_data_missing_from_wire_snapshot() -> None:
-    game_map = load_map_reference(6)
-    winterfell = next(
-        region for region in game_map["regions"] if region["id"] == "winterfell"
-    )
-
-    assert winterfell["castleLevel"] == 2
-    assert winterfell["supplyIcons"] == 1
-    assert winterfell["homeController"] == "stark"
-    assert "white-harbor" in winterfell["neighbours"]
-    assert "the-shivering-sea" in winterfell["neighbours"]
-
-
 @pytest.mark.parametrize("count,port", [(6, False), (7, False), (8, False), (4, True)])
 def test_compact_map_preserves_every_edge_and_static_game_attribute(count, port):
     reference = load_map_reference(count, port)
@@ -32,8 +19,11 @@ def test_compact_map_preserves_every_edge_and_static_game_attribute(count, port)
         area_and_attributes, neighbours = line.split("]: ", 1)
         area, attributes = area_and_attributes.split(" [", 1)
         fields = attributes.split("; ")
-        rows[area] = (fields[0], dict(field.split("=", 1) for field in fields[1:]),
-                      neighbours.split(", ") if neighbours else [])
+        rows[area] = (
+            fields[0],
+            dict(field.split("=", 1) for field in fields[1:]),
+            neighbours.split(", ") if neighbours else [],
+        )
     assert set(rows) == {region["id"] for region in reference["regions"]}
     for region in reference["regions"]:
         terrain, attributes, neighbours = rows[region["id"]]

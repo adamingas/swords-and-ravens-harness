@@ -1,5 +1,38 @@
 from typing import Any
 
+from raven_harness.config import Settings
+from raven_harness.harness.configure import create_game_harness
+
+
+def make_harness(
+    store,
+    *,
+    api_key="test-key",
+    base_url="https://api.test/v1",
+    rulebook=None,
+    provider_blocklist=None,
+    max_output_tokens=None,
+    mode="structured",
+    max_turns=20,
+):
+    """Exercise the production composition with explicit, offline test settings."""
+    router = provider_blocklist is not None
+    return create_game_harness(
+        Settings(
+            openai_api_key="" if router else api_key,
+            openai_base_url=base_url,
+            openrouter_token=api_key if router else "",
+            openrouter_base_url=base_url,
+            openrouter_provider_blocklist=",".join(provider_blocklist or []),
+            harness_mode=mode,
+            harness_max_turns=max_turns,
+            model_max_output_tokens=max_output_tokens,
+            _env_file=None,
+        ),
+        store,
+        rulebook=rulebook,
+    )
+
 
 def lobby_snapshot() -> dict[str, Any]:
     return {

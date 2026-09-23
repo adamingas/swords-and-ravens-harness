@@ -104,7 +104,7 @@ async def check_neighbours(ctx: RunContextWrapper[HarnessRunContext], area: str)
     actionGuidance for the current March decision.
     For support, query the BATTLEFIELD, not the marching army's origin.
     This read-only tool does not submit an action or finish your decision.
-    After reading the result, continue exploring or call submit_action.
+    After reading the result, continue exploring or finish your decision.
 
     Args:
         area: Exact area ID or display name, case-insensitive (e.g. winterfell).

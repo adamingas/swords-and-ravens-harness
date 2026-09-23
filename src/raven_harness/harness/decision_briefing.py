@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from agents import FunctionTool
@@ -24,7 +23,7 @@ _ACTION_DESCRIPTIONS = {
     "submit_orders": (
         "You are placing planning orders for this round. Assign an order preference to each "
         "required occupied area, respecting the displayed restrictions and starred-order limit. "
-        "submit_action submits the whole order draft and marks your house ready. "
+        "Your final action submits the whole order draft and marks your house ready. "
         "These orders determine what your armies can do later; this decision does not move units. "
         "A single land unit can capture an empty castle with a March order. Defence and Support "
         "orders do not move that unit or claim neighbouring land. Consolidate Power in an open "
@@ -45,7 +44,7 @@ _ACTION_DESCRIPTIONS = {
         "Supply. Leaving a control token costs one available power token and preserves control "
         "of the source when you legally vacate it. Compare castles gained and lost, and count "
         "support around the destination battlefield before choosing an attack. "
-        "submit_action resolves this one order; another remaining order is a later decision."
+        "Your final action resolves this one order; another remaining order is a later decision."
     ),
     "resolve_raid": (
         "You are resolving one Raid order. Choose an eligible adjacent enemy order to remove, "
@@ -179,21 +178,6 @@ _EXPLORATION_DESCRIPTIONS = {
         "It explains rules; it does not choose or submit your action."
     ),
 }
-
-
-def _fixed_detail_sentence(name: str, value: object) -> str:
-    area = str(value).replace("-", " ").title()
-    if name == "starting_region_id":
-        return f"This march starts in {area}."
-    if name in {"region_id", "order_region_id"}:
-        return f"The area for this choice is {area}."
-    if name == "leave_power_token" and value is False:
-        return "No control token will be spent."
-    if name == "moves" and value == []:
-        return "No units can move; this choice only removes the March order."
-    if name == "unit_ids_to_destroy":
-        return f"All eligible units must be removed: {json.dumps(value)}."
-    return f"{name.replace('_', ' ').capitalize()} is fixed at {json.dumps(value)}."
 
 
 def _board_briefing(context: HarnessContext, contract: DecisionContract) -> list[str]:
@@ -353,8 +337,6 @@ def build_decision_briefing(
     contract: DecisionContract,
     exploration_tools: list[FunctionTool],
 ) -> str:
-    from .decision import fixed_details
-
     identity = (
         f"You are playing House {(context.house or {}).get('name', context.house_id)}"
         if context.house_id
@@ -373,14 +355,6 @@ def build_decision_briefing(
             if len(contract.actions) == 1
             else f"{action.name}: {action.description}"
         )
-        fixed = fixed_details(action)
-        if fixed:
-            paragraphs.append(
-                " ".join(
-                    _fixed_detail_sentence(name, value) for name, value in fixed.items()
-                )
-                + " These details are already settled. submit_action only needs the remaining choices."
-            )
     paragraphs.extend(_board_briefing(context, contract))
     if exploration_tools:
         paragraphs.append(
@@ -399,9 +373,9 @@ def build_decision_briefing(
         )
     paragraphs.append(
         "Explore as deeply as the decision warrants. Tool calls return evidence to this same run, "
-        "so inspect each result and continue exploring when useful. When ready, you MUST call "
-        "submit_action with arguments matching its current schema. That tool is the only way to "
-        "submit the action and finish this decision. The harness checks it against the current "
+        "so inspect each result and continue exploring when useful. Follow the completion "
+        "instructions to return your chosen action using the required output schema. "
+        "The harness checks it against the current "
         "game state before sending it to the server."
     )
     return "\n\n".join(paragraphs)

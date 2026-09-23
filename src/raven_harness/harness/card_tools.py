@@ -81,7 +81,7 @@ async def inspect_house_card(
     Use this before choosing a combat card or evaluating an opponent's possible
     card play. Printed House-card information and discard status are public.
     This read-only lookup does not submit an action or finish the decision. Call
-    submit_action when you have made the final choice.
+    return your final action when you have made the final choice.
     """
 
     return json.dumps(house_card_details(ctx.context, card_id))

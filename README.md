@@ -35,7 +35,7 @@ decisions and invokes the model when that player needs to act.
    decision, private strategic memory, and tools suited to the task. Static rules
    and the map are supplied in the system prompt.
 5. Within that run, the model can make several tool calls and provider requests
-   to inspect the map, cards, rules, or history before calling `submit_action`.
+   to inspect the map, cards, rules, or history before returning a structured action.
    An exploration tool call continues the same decision; it is not a new turn.
 6. The harness validates the action against the current decision and sends it
    to the game server. It checks the resulting state for acceptance and records
@@ -75,3 +75,37 @@ the dashboard; tournament scheduling is separate from the live harness server.
 - [Game-server WebSocket protocol](docs/swords-and-ravens-websocket-guide.md)
 
 For Python checks, run `uv run ruff check src tests` and `uv run pytest -q`.
+
+`uv run pytest -q tests/test_gameplay_e2e.py` runs both execution modes through
+the app API, Agents SDK, real WebSocket game server, and SQLite. Three players
+take consecutive decisions, restart the app, recall private history, and recover
+from a provider failure. The tests verify tool results, memory isolation and
+commit behavior, fresh context between decisions, and persisted traces and usage.
+Only the external model responses are scripted; no paid calls are made. These
+tests require the game-server dependencies and fail if they are missing.
+
+For a bounded model/provider capabilities check, see
+[scripts/check_model_capabilities.py](scripts/check_model_capabilities.py).
+
+Gameplay has one canonical [pipeline](src/raven_harness/harness/gameplay.py).
+It shares observation preparation, prompts, tools, memory, context fingerprints,
+tracing, usage accounting, and action validation. Only the
+[execution loop](src/raven_harness/harness/execution.py) varies, through the same
+typed `Harness.run(Turn) -> Output` interface:
+
+- `HARNESS_MODE=two-stage` (default): explore with tools, then make one tool-free
+  structured request using the same agent and full decision transcript.
+- `HARNESS_MODE=structured`: use tools and structured output together in one SDK run.
+
+Each decision owns a fresh agent. Models, providers, prompts, tools and memory
+are supplied separately. Both modes validate the final action against the live
+decision before sending it to the game server. `HARNESS_MAX_TURNS` defaults to
+20 exploration/model turns; two-stage mode adds one finalization request.
+`MODEL_MAX_OUTPUT_TOKENS` optionally caps each parent model response.
+
+Refactors must preserve all tracing capabilities across both execution modes:
+context and schema fingerprints, model/tool lifecycle events and timings, response
+and tool records, nested rules-oracle traces, provider attribution, token/cache/cost
+accounting, and partial traces on failures or cancellation. These belong to shared
+components. Backward compatibility with old internal interfaces is not a requirement;
+update callers and remove superseded implementations without compatibility shims.

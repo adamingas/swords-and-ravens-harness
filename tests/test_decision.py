@@ -1,23 +1,12 @@
-import asyncio
 import json
 
-import httpx
 import pytest
-from agents.tool_context import ToolContext
 
-from raven_harness.agent_store import AgentStore
-from raven_harness.database import Database
 from raven_harness.harness.actions import HarnessRunContext, available_tools
 from raven_harness.harness.decision import build_decision_contract
 from raven_harness.harness.decision_briefing import build_decision_briefing
 from raven_harness.harness.map_tools import check_neighbours, neighbouring_areas
 from raven_harness.harness.observation import build_context, build_observation
-from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.models.openai_agent import (
-    ModelRunCancelled,
-    OpenAIAgentRunner,
-)
-from raven_harness.schemas import AgentCreate
 
 from conftest import planning_snapshot
 
@@ -102,13 +91,12 @@ def test_destruction_briefing_states_the_penalty_and_what_selection_does():
     snapshot = selection_snapshot()
     context = build_context(snapshot, "2")
     contract = contract_for(snapshot)
-    assert contract.submission_tool().name == "submit_action"
     briefing = build_decision_briefing(context, contract, [check_neighbours])
     assert "Mammoth Riders" in briefing
     assert "Selected units are removed from the board" in briefing
     assert "Choose exactly 2 distinct units" in briefing
     assert "not limited to one tool call" in briefing
-    assert "you MUST call submit_action" in briefing
+    assert "required output schema" in briefing
     schema = contract.output_schema.json_schema()
     assert set(schema["properties"]) == {"unit_ids_to_destroy", "strategic_handoff"}
     field = schema["properties"]["unit_ids_to_destroy"]
@@ -173,16 +161,22 @@ def test_crow_killers_distinguishes_destruction_from_downgrade(step, field):
 
 
 @pytest.mark.asyncio
-async def test_fully_determined_selection_is_bound_but_waits_for_final_submission():
+async def test_fully_determined_selection_requires_explicit_unit_ids():
     snapshot = selection_snapshot(count=3)
     client = Client(snapshot)
     contract = contract_for(snapshot)
     assert set(contract.output_schema.json_schema()["properties"]) == {
-        "strategic_handoff"
+        "unit_ids_to_destroy",
+        "strategic_handoff",
     }
     assert client.sent == []
     context = HarnessRunContext(client=client, user_id="2")
-    await contract.execute(context, action())
+    with pytest.raises(ValueError, match="unit_ids_to_destroy"):
+        await contract.execute(context, action())
+    with pytest.raises(ValueError):
+        await contract.execute(context, action(unit_ids_to_destroy=[1, 1, 2]))
+    assert client.sent == []
+    await contract.execute(context, action(unit_ids_to_destroy=[1, 2, 3]))
     assert context.action_taken.name == "select_units"
     assert client.sent == [
         {"type": "select-units", "units": [["winterfell", [1, 2, 3]]]}
@@ -190,12 +184,13 @@ async def test_fully_determined_selection_is_bound_but_waits_for_final_submissio
 
 
 @pytest.mark.asyncio
-async def test_march_binds_source_and_token_flag_but_retains_splits():
+async def test_march_requires_explicit_source_and_token_flag_and_retains_splits():
     snapshot = march_snapshot()
     contract = contract_for(snapshot)
-    assert contract.submission_tool().name == "submit_action"
     assert set(contract.output_schema.json_schema()["properties"]) == {
         "moves",
+        "starting_region_id",
+        "leave_power_token",
         "strategic_handoff",
     }
     client = Client(snapshot)
@@ -203,10 +198,12 @@ async def test_march_binds_source_and_token_flag_but_retains_splits():
     await contract.execute(
         context,
         action(
+            starting_region_id="winterfell",
+            leave_power_token=False,
             moves=[
                 {"destination_region_id": "white-harbor", "unit_ids": [1]},
                 {"destination_region_id": "moat-cailin", "unit_ids": [2]},
-            ]
+            ],
         ),
     )
     assert client.sent == [
@@ -220,16 +217,17 @@ async def test_march_binds_source_and_token_flag_but_retains_splits():
 
 
 @pytest.mark.asyncio
-async def test_single_movable_unit_is_bound_without_removing_the_option_to_pass():
+async def test_single_movable_unit_is_explicit_without_removing_the_option_to_pass():
     snapshot = march_snapshot(single_unit=True)
     contract = contract_for(snapshot)
     fields = contract.output_schema.json_schema()["properties"]["moves"]["items"][
         "properties"
     ]
-    assert set(fields) == {"destination_region_id"}
+    assert set(fields) == {"destination_region_id", "unit_ids"}
     client = Client(snapshot)
     await contract.execute(
-        HarnessRunContext(client=client, user_id="2"), action(moves=[])
+        HarnessRunContext(client=client, user_id="2"),
+        action(starting_region_id="winterfell", leave_power_token=False, moves=[]),
     )
     assert client.sent[0]["moves"] == []
 
@@ -284,8 +282,7 @@ async def test_three_player_blocked_castle_is_not_offered_or_submitted():
         context, "dragonstone", "storms-end", [9, 10]
     )
     contract = contract_for(snapshot)
-    tool = contract.submission_tool()
-    destinations = tool.params_json_schema["properties"]["moves"]["items"][
+    destinations = contract.output_schema.json_schema()["properties"]["moves"]["items"][
         "properties"
     ]["destination_region_id"]["enum"]
     assert destinations == ["crackclaw-point", "kingswood"]
@@ -293,26 +290,21 @@ async def test_three_player_blocked_castle_is_not_offered_or_submitted():
     client = Client(snapshot)
     run_context = HarnessRunContext(client=client, user_id="2")
     invalid = json.dumps(
-        action(moves=[{"destination_region_id": "storms-end", "unit_ids": [9, 10]}])
-    )
-    rejected = json.loads(
-        await tool.on_invoke_tool(
-            ToolContext(
-                context=run_context,
-                tool_call_id="blocked",
-                tool_name="submit_action",
-                tool_arguments=invalid,
-            ),
-            invalid,
+        action(
+            starting_region_id="dragonstone",
+            leave_power_token=False,
+            moves=[{"destination_region_id": "storms-end", "unit_ids": [9, 10]}],
         )
     )
-    assert rejected["accepted"] is False
-    assert "storms-end" in rejected["error"]
+    with pytest.raises(ValueError, match="storms-end"):
+        await contract.execute(run_context, json.loads(invalid))
     assert client.sent == [] and run_context.action_taken is None
     await contract.execute(
         run_context,
         action(
-            moves=[{"destination_region_id": "crackclaw-point", "unit_ids": [9, 10]}]
+            starting_region_id="dragonstone",
+            leave_power_token=False,
+            moves=[{"destination_region_id": "crackclaw-point", "unit_ids": [9, 10]}],
         ),
     )
     assert client.sent[0]["moves"] == [["crackclaw-point", [9, 10]]]
@@ -329,8 +321,11 @@ async def test_blocked_direct_destinations_leave_only_a_valid_pass_contract():
         for area in static["winterfell"]["neighbours"]
     )
     contract = contract_for(snapshot)
-    assert set(contract.submission_tool().params_json_schema["properties"]) == {
-        "strategic_handoff"
+    assert set(contract.output_schema.json_schema()["properties"]) == {
+        "starting_region_id",
+        "moves",
+        "leave_power_token",
+        "strategic_handoff",
     }
     assert contract.actions[0].argument_schema["properties"]["moves"]["maxItems"] == 0
     client = Client(snapshot)
@@ -338,10 +333,17 @@ async def test_blocked_direct_destinations_leave_only_a_valid_pass_contract():
     with pytest.raises(ValueError):
         await contract.execute(
             run_context,
-            action(moves=[{"destination_region_id": "moat-cailin", "unit_ids": [1]}]),
+            action(
+                starting_region_id="winterfell",
+                leave_power_token=False,
+                moves=[{"destination_region_id": "moat-cailin", "unit_ids": [1]}],
+            ),
         )
     assert client.sent == []
-    await contract.execute(run_context, action())
+    await contract.execute(
+        run_context,
+        action(starting_region_id="winterfell", leave_power_token=False, moves=[]),
+    )
     assert client.sent[0]["moves"] == []
 
 
@@ -400,196 +402,3 @@ async def test_multiple_action_types_use_a_constrained_final_choice():
     )
     assert context.action_taken.name == "skip_mustering"
     assert client.sent == [{"type": "muster", "units": []}]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("output_limit", [None, 40960])
-@pytest.mark.parametrize("exploration_tool", ["check_neighbours", "reachable_areas"])
-@pytest.mark.parametrize(
-    "reject,cancel", [(False, False), (True, False), (False, True)]
-)
-async def test_actual_wire_explores_then_submits_through_one_action_tool(
-    tmp_path, reject, cancel, exploration_tool, output_limit
-):
-    database = Database(tmp_path / "structured.db")
-    store = AgentStore(database)
-    record = store.create_agent(
-        AgentCreate(name="Stark", model="test-model", user_id="2", auth_token="unused")
-    )
-    client = Client(selection_snapshot())
-    runner = OpenAIAgentRunner(
-        api_key="unused",
-        base_url="https://api.test/v1",
-        max_output_tokens=output_limit,
-    )
-    harness = StrategicHarness(runner, store)
-    context = HarnessRunContext(client=client, user_id="2")
-    requests = []
-
-    def respond(request):
-        body = json.loads(request.content)
-        if output_limit is None:
-            assert "max_output_tokens" not in body
-        else:
-            assert body["max_output_tokens"] == output_limit
-        requests.append(body)
-        assert body["tool_choice"] == "required"
-        current_user = next(
-            item["content"] for item in body["input"] if item.get("role") == "user"
-        )
-        assert "You MUST call submit_action" in current_user
-        assert {tool["name"] for tool in body.get("tools", [])} == {
-            "check_neighbours",
-            "reachable_areas",
-            "inspect_house_card",
-            "recall_game_state",
-            "remember_strategy",
-            "submit_action",
-        }
-        submission = next(
-            tool for tool in body["tools"] if tool["name"] == "submit_action"
-        )
-        assert "unit_ids_to_destroy" in submission["parameters"]["properties"]
-        assert body["instructions"] == requests[0]["instructions"]
-        assert "`submit_action`" in body["instructions"]
-        assert "Mammoth Riders imposes" not in body["instructions"]
-        assert "Mammoth Riders imposes" in body["input"][0]["content"]
-        assert client.sent == []
-        if len(requests) >= 2:
-            exploration_output = json.loads(next(
-                item["output"] for item in body["input"]
-                if item.get("type") == "function_call_output"
-                and item.get("call_id") == "explore-map"
-            ))
-            if exploration_tool == "reachable_areas":
-                assert exploration_output["source"]["id"] == "winterfell"
-                assert exploration_output["movementType"] == "land"
-                assert exploration_output["destinations"]
-            else:
-                assert any(area["id"] == "castle-black" for area in exploration_output)
-        if len(requests) == 2 and cancel:
-            raise asyncio.CancelledError
-        if len(requests) == 1:
-            output = [
-                {
-                    "type": "function_call",
-                    "name": exploration_tool,
-                    "call_id": "explore-map",
-                    "arguments": '{"area":"Winterfell"}',
-                }
-            ]
-        elif reject and len(requests) == 2:
-            output = [
-                {
-                    "type": "function_call",
-                    "name": "submit_action",
-                    "call_id": "invalid-action",
-                    "arguments": json.dumps(action(unit_ids_to_destroy=[99, 2])),
-                }
-            ]
-        else:
-            assert len(requests) in {2, 3}
-            assert any(
-                item.get("type") == "function_call_output"
-                and item.get("call_id") == "explore-map"
-                for item in body["input"]
-            )
-            if reject:
-                assert any(
-                    item.get("type") == "function_call_output"
-                    and item.get("call_id") == "invalid-action"
-                    for item in body["input"]
-                )
-            output = [
-                {
-                    "type": "function_call",
-                    "name": "submit_action",
-                    "call_id": "accepted-action",
-                    "arguments": json.dumps(action(unit_ids_to_destroy=[1, 2])),
-                }
-            ]
-        return httpx.Response(
-            200,
-            json={
-                "id": f"response-{len(requests)}",
-                "object": "response",
-                "created_at": 0,
-                "status": "completed",
-                "model": "test-model",
-                "output": output,
-                "usage": {
-                    "input_tokens": 100,
-                    "output_tokens": 30,
-                    "total_tokens": 130,
-                },
-            },
-        )
-
-    await runner.client._client.aclose()
-    runner.client._client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
-    prepared = harness.prepare_turn(record, build_context(client.snapshot, "2"), None)
-    try:
-        if cancel:
-            with pytest.raises(ModelRunCancelled) as failure:
-                await harness.run_turn(record, prepared, context, "test-run")
-            assert client.sent == []
-            assert failure.value.partial_result.usage["requests"] == 1
-        else:
-            result = await harness.run_turn(record, prepared, context, "test-run")
-            assert context.action_taken.name == "select_units"
-            assert len(client.sent) == 1
-            assert "accepted" in result.output_text
-        assert len(requests) == (3 if reject else 2)
-    finally:
-        await harness.shutdown()
-        database.close()
-
-
-@pytest.mark.asyncio
-async def test_schema_feedback_explains_fixed_move_and_recovery_sends_intended_units():
-    snapshot = march_snapshot(single_unit=True)
-    ingame = snapshot["childGameState"]
-    ingame["game"]["world"]["regions"][0]["id"] = "the-stony-shore"
-    ingame["ordersOnBoard"] = [["the-stony-shore", 2]]
-    client = Client(snapshot)
-    context = HarnessRunContext(client=client, user_id="2")
-    contract = contract_for(snapshot)
-    tool = contract.submission_tool()
-
-    async def invoke(answer):
-        arguments = json.dumps(answer)
-        return json.loads(await tool.on_invoke_tool(ToolContext(
-            context=context, tool_call_id="schema-recovery", tool_name="submit_action",
-            tool_arguments=arguments), arguments))
-
-    rejected = await invoke(action(moves=[{"destination_region_id": "winterfell", "unit_ids": [1]}], leave_power_token=True))
-    assert rejected["accepted"] is False
-    item = rejected["expected_schema"]["properties"]["moves"]["items"]
-    assert item["properties"] == {}
-    assert "[{}]" in item["description"]
-    assert "[] selects none" in item["description"]
-    assert client.sent == []
-    await invoke(action(moves=[{}], leave_power_token=True))
-    assert context.action_taken is not None
-    assert client.sent[0]["moves"] == [["winterfell", [1]]]
-
-
-@pytest.mark.asyncio
-async def test_multi_action_schema_error_returns_nested_action_discriminator():
-    snapshot = planning_snapshot()
-    snapshot["childGameState"]["ordersOnBoard"] = [["winterfell", 2]]
-    snapshot["childGameState"]["childGameState"] = {
-        "type": "action", "childGameState": {"type": "replace-order", "houseId": "stark"}
-    }
-    contract = contract_for(snapshot)
-    arguments = json.dumps(action(decision="skip_raven_order_replacement"))
-    client = Client(snapshot)
-    context = HarnessRunContext(client=client, user_id="2")
-    rejected = json.loads(await contract.submission_tool().on_invoke_tool(ToolContext(
-        context=context, tool_call_id="raven-schema", tool_name="submit_action", tool_arguments=arguments), arguments))
-    assert not rejected["accepted"]
-    branches = rejected["expected_schema"]["properties"]["decision"]["anyOf"]
-    branch = next(b for b in branches if b["properties"]["action"]["enum"] == ["skip_raven_order_replacement"])
-    assert branch["type"] == "object"
-    assert branch["required"] == ["action"]
-    assert client.sent == []

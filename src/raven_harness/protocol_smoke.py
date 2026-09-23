@@ -24,8 +24,9 @@ from .evaluation import (
 )
 from .game.map_reference import observation_map_reference
 from .harness.actions import HarnessRunContext
-from .models.openai_agent import ModelRunResult
-from .schemas import AgentRecord
+from .harness.preparation import DecisionPreparation
+from .harness.memory import PersistentGameMemory, _automatic_notes
+from .models.results import ModelRunResult
 
 
 PROTOCOL_SMOKE_RANDOM_SEED = 1
@@ -49,7 +50,7 @@ class UnsupportedSmokeDecision(RuntimeError):
     """The real server requested a decision the safe smoke policy does not cover."""
 
 
-class ScriptedProtocolRunner:
+class ScriptedProtocolHarness:
     """Coordinate six deterministic players without a model-provider request."""
 
     rules_oracle_available = False
@@ -64,40 +65,30 @@ class ScriptedProtocolRunner:
         self._private_order_expectation: dict[str, Any] | None = None
         self.order_privacy_probe: dict[str, Any] | None = None
 
-    async def run_once(
-        self,
-        *,
-        agent_record: AgentRecord,
-        observation: dict[str, Any],
-        context: HarnessRunContext,
-        tools: list[FunctionTool],
-        instructions: str,
-        prompt_cache_key: str,
-        trace_metadata: dict[str, str],
-    ) -> ModelRunResult:
-        async with self._decision_lock:
-            return await self._run_once(
-                agent_record=agent_record,
-                observation=observation,
-                context=context,
-                tools=tools,
-                instructions=instructions,
-                prompt_cache_key=prompt_cache_key,
-                trace_metadata=trace_metadata,
-            )
+    def bind(self, store):
+        self.preparation = DecisionPreparation(store)
+        return self
 
-    async def _run_once(
-        self,
-        *,
-        agent_record: AgentRecord,
-        observation: dict[str, Any],
-        context: HarnessRunContext,
-        tools: list[FunctionTool],
-        instructions: str,
-        prompt_cache_key: str,
-        trace_metadata: dict[str, str],
-    ) -> ModelRunResult:
-        del agent_record, instructions, tools, prompt_cache_key, trace_metadata
+    def preview_tools(self, context):
+        return self.preparation.preview_tools(context)
+
+    def preview_observation(self, record, context):
+        return self.preparation.preview_observation(record, context)
+
+    def prepare_turn(self, record, context, previous_error):
+        return self.preparation.prepare_turn(record, context, previous_error)
+
+    async def run_turn(self, record, prepared, context, run_id):
+        context.decision = prepared.decision
+        context.memory = PersistentGameMemory(self.preparation.store, record.id)
+        async with self._decision_lock:
+            result = await self._run_decision(prepared.observation, context)
+        context.memory.set_notes(
+            _automatic_notes(record, prepared, context, context.memory.get_notes())
+        )
+        return result
+
+    async def _run_decision(self, observation, context):
         house_id = str(observation.get("you", {}).get("houseId"))
         self._check_private_order_mask(context, house_id)
         if context.decision is None:
@@ -798,7 +789,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
         autoplay_retry_base_seconds=0.1,
         _env_file=None,
     )
-    runner = ScriptedProtocolRunner()
+    runner = ScriptedProtocolHarness()
     try:
         result = await run_game(
             game_number=1,
@@ -810,7 +801,7 @@ async def run_protocol_smoke(args: argparse.Namespace) -> Path:
             stall_seconds=args.stall_seconds,
             match_timeout_seconds=args.timeout_seconds,
             settings=settings,
-            model_runner=runner,
+            harness_factory=runner.bind,
         )
         invoked_tools = [item["tool"] for item in runner.invocations]
         invoked_counts = Counter(invoked_tools)

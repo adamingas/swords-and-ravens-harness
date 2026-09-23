@@ -9,6 +9,7 @@ import os
 import signal
 import subprocess
 from collections import Counter
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
@@ -22,12 +23,11 @@ from .config import PROJECT_ROOT, Settings
 from .database import Database
 from .errors import safe_error_text
 from .game.map_reference import load_map_reference
-from .harness.strategic import StrategicHarness, StrategicModelRunner
+from .harness.configure import create_game_harness
+from .harness.interface import PlayerHarness
+from .harness.prompts import build_instructions
 from .manager import AgentManager
-from .models.openai_agent import (
-    CONTEXT_POLICY_NAME,
-)
-from .models.runner import create_llm_runner
+from .models.tracing import CONTEXT_POLICY_NAME
 from .rulebook import Rulebook
 from .schemas import AgentCreate, DEFAULT_PROMPT, LobbySetupRequest
 from .telemetry import Telemetry
@@ -352,7 +352,7 @@ async def run_game(
     stall_seconds: float,
     match_timeout_seconds: float,
     settings: Settings,
-    model_runner: StrategicModelRunner | None = None,
+    harness_factory: Callable[[AgentStore], PlayerHarness] | None = None,
     resume: bool = False,
     seat_models: list[str] | None = None,
     seat_houses: list[str] | None = None,
@@ -387,7 +387,6 @@ async def run_game(
     store: AgentStore | None = None
     manager: AgentManager | None = None
     telemetry: Telemetry | None = None
-    runner: StrategicModelRunner | None = model_runner
     records: list[Any] = []
     completed_result: dict[str, Any] | None = None
     game_mtime_ns: int | None = None
@@ -410,12 +409,11 @@ async def run_game(
             endpoint=settings.otel_exporter_otlp_traces_endpoint,
             service_name=settings.otel_service_name,
         )
-        if runner is None:
-            runner = create_llm_runner(
-                settings,
-                rulebook=rulebook,
-            )
-        harness = StrategicHarness(runner, store)
+        harness = (
+            harness_factory(store)
+            if harness_factory
+            else create_game_harness(settings, store, rulebook=rulebook)
+        )
         manager = AgentManager(
             store=store,
             harness=harness,
@@ -1546,9 +1544,7 @@ def _system_prompt() -> str:
 
 
 def _effective_instructions() -> str:
-    return StrategicHarness.build_instructions(
-        _system_prompt(), map_reference=load_map_reference(6)
-    )
+    return build_instructions(_system_prompt(), map_reference=load_map_reference(6))
 
 
 def _sha256_text(value: str) -> str:

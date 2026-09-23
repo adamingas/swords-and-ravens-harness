@@ -232,23 +232,21 @@ action.
    game server atomically saves the game before it replies. The harness waits
    until `game.json` contains the same leaf-state ID and a random-stream
    checkpoint.
-7. The harness starts one Agents SDK run with the current observation and a
-   fresh user-message briefing explaining the task, consequences and tool
-   purposes. Static rules and the compact map remain in the system prompt.
-   Every model request has exploration tools and one state-specific
-   `submit_action` tool.
-8. Tool choice is required. The briefing encourages liberal, iterative
-   exploration: inspect results, follow up on uncertainties and compare plans.
-   Tool calls and their results continue within the same SDK run. The decision
-   ends only after an accepted `submit_action` call. If the model stops with
-   text, the harness appends a reminder to the same transcript and continues.
-9. The action contract validates the tool arguments and restores arguments that
-    have only one possible value. Unit-destruction selections explicitly use
-    `unit_ids_to_destroy`.
-10. The original handler checks the latest state again and sends typed server messages. A
-    per-run action lock admits only the first gameplay call if a provider emits
-    duplicate calls despite the single-call setting. This lock does not affect
-    concurrency between agents.
+7. The harness starts the configured execution loop with the current observation
+   and a fresh user-message briefing. Static rules and the compact map remain in
+   the system prompt. Exploration and memory tools are supplied separately from
+   the final action schema.
+8. Tool choice is automatic. In `HARNESS_MODE=two-stage` (the default), exploration
+   ends when the model returns text; the same agent then receives the full transcript
+   for one structured-output request with no tools. In `structured` mode, the output
+   schema is available alongside tools throughout one SDK run.
+9. The SDK validates the final structured output. All required fields remain
+   explicit, including fields with only one legal value. Unit-destruction
+   selections explicitly use `unit_ids_to_destroy`.
+10. The decision contract checks the latest leaf state and invokes the typed
+    gameplay handler. The handler checks legality and sends the server message.
+    Per-run action locking prevents duplicate network commands without serializing
+    different players. No gameplay submission tool is exposed to the model.
 11. The harness requests a fresh player-scoped snapshot with sync-game.
 12. The harness infers acceptance from a changed leaf state, changed turn
     ownership, a disappeared tool, or an occupied lobby seat.
@@ -256,8 +254,11 @@ action.
     the model queued a plan and the game action was accepted, the harness also
     saves that plan, saves the attempt, and links the action to its source state.
 
-The run has no harness turn limit and uses high reasoning effort. Only an
-accepted action commits the proposed strategy note. Cancellation sends no action.
+The run uses high reasoning effort and a default limit of 20 model turns
+(`HARNESS_MAX_TURNS`). Two-stage mode permits one additional finalization request.
+Invalid output fails the attempt; autoplay retries are bounded separately. Only an
+accepted action commits the proposed strategy note. Cancellation before submission
+sends no action; cancellation cannot undo a command already sent to the server.
 
 SQLite retains the run's input, tool results and returned model items.
 Earlier turns' SDK messages are excluded from the next decision's model input;
@@ -487,9 +488,8 @@ Example:
 For this example, the full path is:
 
 1. The current leaf state is `place-orders`.
-2. The harness builds the observation and offers only `submit_orders` plus the
-   support tools.
-3. The model calls `submit_orders` with the JSON above.
+2. The harness builds the observation, exploration tools and structured order schema.
+3. The model explores, then returns the order draft as its structured final output.
 4. Pydantic checks the object shape. The harness checks region eligibility,
    order inventory, starred limits, and current turn ownership.
 5. The harness converts semantic orders to physical order tokens. It sends one
@@ -500,10 +500,11 @@ For this example, the full path is:
 7. SQLite stores the input observation, instructions, offered tool schemas,
    SDK response items, selected arguments, usage, timing, and any error.
 
-If the model stops without an accepted gameplay action, the harness keeps that
-decision's model and tool items, appends a direct reminder to call
-`submit_action`, and continues. A later game decision starts from a clean
-transcript and the newest authoritative observation.
+In two-stage mode, the exploration transcript, including tool results, is carried
+into finalization. The structured output is validated before the game action is
+sent. A later decision starts with a clean transcript and the newest authoritative
+observation. Invalid final output ends the attempt; the old submission-reminder
+loop has been removed.
 
 ## 9. Core protocol gameplay tools
 
@@ -589,7 +590,7 @@ routes. The tool supports three- and six-player base games without vassals.
 
 This is not a legal-move list. Source occupants, wounds, orders, Supply, combat
 strength, and port ownership/capacity do not filter destinations. Use current
-`actionGuidance` and `submit_action` for move legality, and `check_neighbours` for
+`actionGuidance` and final action validation for move legality, and `check_neighbours` for
 adjacency and support reasoning. Every call reads a fresh snapshot and neither
 changes game state nor finishes the decision.
 
@@ -1113,17 +1114,28 @@ npm run generate-json-schemas
 Use HARNESS_TEST_MAX_TURNS=1 only for lifecycle smoke tests. Do not set it for a
 normal game.
 
-## Explicit output allowances and schema recovery
+## Execution mode, output allowances and validation
 
-`LLMAgentRunner(max_output_tokens=...)` can set a parent decision's output
-allowance without changing the rules oracle's separate 900-token allowance.
-The default is `None`, which omits the Responses API parameter and uses the
-upstream default; it does not mean unlimited output. Evaluators should choose
-an allowance supported by their model/provider and record it in provenance.
-The Cerebras-only OSS follow-up on 2026-09-22 explicitly requests 40,960.
+`harness/gameplay.py` contains the canonical gameplay pipeline used by the
+dashboard and evaluations. Both execution modes share observation preparation,
+prompts, exploration tools, persistent memory, automatic summaries, context
+manifest hashing, raw response capture, usage reconciliation, and live action
+validation. `harness/configure.py` composes these with the selected provider and
+execution loop; the previous runner and submission-tool loop have been removed.
 
-A schema-rejected `submit_action` now returns the exact current `expected_schema`
-with instructions on its action discriminator and automatically supplied fixed
-fields. Array items with every field fixed explicitly describe `{}` as selecting
-the fixed item and `[]` as selecting no items. Validation and restored gameplay
-values are unchanged; the model must correct and resubmit its own action.
+`HARNESS_MODE` selects `two-stage` (default) or `structured`, independently of
+OpenAI/OpenRouter endpoint selection. Both implement the same typed interface in
+`harness/execution.py`. Each decision creates its own SDK agent; both stages reuse
+that agent. There is no shared-agent configuration lock.
+
+`MODEL_MAX_OUTPUT_TOKENS` sets the parent response allowance without changing the
+rules oracle's separate 900-token allowance. When unset, it uses the provider's
+default. `HARNESS_MAX_TURNS` defaults to 20; two-stage mode adds one final request.
+
+The SDK receives the current decision through its custom structured-output schema
+interface. JSON Schema validates the entire result before game submission. Every
+required field remains explicit, including fields with only one allowed value.
+Marches include their source, destination groups, unit IDs, and control-token
+choice; `moves: []` declines movement. No fields are stripped or restored. Invalid
+output ends the attempt with a recorded error rather than repeatedly requesting
+submission inside the model loop. Autoplay's existing failure limits still apply.

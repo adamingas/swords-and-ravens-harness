@@ -5,7 +5,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from agents import FunctionTool
 
-from ..models.openai_agent import ModelRunResult
+from ..models.results import ModelRunResult
 from ..schemas import AgentRecord
 from .actions import HarnessRunContext
 from .decision import DecisionContract

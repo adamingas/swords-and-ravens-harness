@@ -16,8 +16,6 @@ from raven_harness.agent_store import AgentStore
 from raven_harness.database import Database
 from raven_harness.harness.actions import HarnessRunContext
 from raven_harness.harness.observation import build_context
-from raven_harness.harness.strategic import StrategicHarness
-from raven_harness.models.openai_agent import OpenAIAgentRunner
 from raven_harness.rulebook import (
     RuleSection,
     RuleSectionId,
@@ -27,7 +25,7 @@ from raven_harness.rulebook import (
 )
 from raven_harness.schemas import AgentCreate
 
-from conftest import lobby_snapshot
+from conftest import make_harness, lobby_snapshot
 
 
 def sample_rulebook() -> Rulebook:
@@ -107,14 +105,21 @@ class OracleThenActionModel(Model):
                     type="function_call",
                 )
             else:
-                output = ResponseFunctionToolCall(
-                    arguments=(
-                        '{"house_id":"stark","strategic_handoff":'
-                        '"Begin with Stark and plan the first expansion."}'
-                    ),
-                    call_id="choose-house",
-                    name="submit_action",
-                    type="function_call",
+                output = ResponseOutputMessage(
+                    id="final-action",
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[
+                        ResponseOutputText(
+                            type="output_text",
+                            annotations=[],
+                            text=(
+                                '{"house_id":"stark","strategic_handoff":'
+                                '"Begin with Stark and plan the first expansion."}'
+                            ),
+                        )
+                    ],
                 )
         return ModelResponse(
             output=[output],
@@ -182,7 +187,7 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
 ) -> None:
     fake_model = OracleThenActionModel()
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
+        "raven_harness.models.tracing._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle.db")
@@ -191,13 +196,8 @@ async def test_rules_oracle_reads_a_section_then_returns_to_game_action(
         AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="x")
     )
     rulebook = sample_rulebook()
-    harness = StrategicHarness(
-        OpenAIAgentRunner(
-            api_key="test-key",
-            base_url="https://api.test/v1",
-            rulebook=rulebook,
-        ),
-        store,
+    harness = make_harness(
+        store, api_key="test-key", base_url="https://api.test/v1", rulebook=rulebook
     )
     client = FakeClient()
     prepared = harness.prepare_turn(
@@ -242,7 +242,7 @@ async def test_rules_oracle_failure_returns_control_to_game_action(
 ) -> None:
     fake_model = OracleThenActionModel(oracle_never_finishes=True)
     monkeypatch.setattr(
-        "raven_harness.models.openai_agent._response_model",
+        "raven_harness.models.tracing._response_model",
         lambda **_kwargs: fake_model,
     )
     database = Database(tmp_path / "oracle-contained-failure.db")
@@ -250,13 +250,11 @@ async def test_rules_oracle_failure_returns_control_to_game_action(
     record = store.create_agent(
         AgentCreate(name="Wolf", model="test-model", user_id="2", auth_token="x")
     )
-    harness = StrategicHarness(
-        OpenAIAgentRunner(
-            api_key="test-key",
-            base_url="https://api.test/v1",
-            rulebook=sample_rulebook(),
-        ),
+    harness = make_harness(
         store,
+        api_key="test-key",
+        base_url="https://api.test/v1",
+        rulebook=sample_rulebook(),
     )
     client = FakeClient()
     prepared = harness.prepare_turn(

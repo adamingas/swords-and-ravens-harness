@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -15,9 +15,9 @@ from .config import Settings
 from .database import Database
 from .errors import safe_error_text
 from .game.client import ConnectionFactory
-from .harness.strategic import StrategicHarness, StrategicModelRunner
+from .harness.configure import create_game_harness
+from .harness.interface import PlayerHarness
 from .manager import AgentManager
-from .models.runner import create_llm_runner
 from .rulebook import Rulebook
 from .schemas import (
     AgentCreate,
@@ -32,7 +32,7 @@ from .telemetry import Telemetry
 def create_app(
     settings: Settings | None = None,
     *,
-    runner: StrategicModelRunner | None = None,
+    harness_factory: Callable[[AgentStore], PlayerHarness] | None = None,
     connection_factory: ConnectionFactory | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
@@ -46,11 +46,11 @@ def create_app(
             endpoint=settings.otel_exporter_otlp_traces_endpoint,
             service_name=settings.otel_service_name,
         )
-        model_runner = runner or create_llm_runner(
-            settings,
-            rulebook=rulebook,
+        harness = (
+            harness_factory(store)
+            if harness_factory
+            else create_game_harness(settings, store, rulebook=rulebook)
         )
-        harness = StrategicHarness(model_runner, store)
         manager = AgentManager(
             store=store,
             harness=harness,
@@ -70,7 +70,7 @@ def create_app(
         app.state.database = database
         app.state.store = store
         app.state.manager = manager
-        app.state.rules_oracle_available = model_runner.rules_oracle_available
+        app.state.rules_oracle_available = rulebook is not None
         try:
             yield
         finally:
