@@ -57,6 +57,9 @@ Decision procedure:
    Ships must be adjacent to the BATTLEFIELD to support, not just the attacking
    origin. Ships transport land units without a March order and may support at
    the same time.
+   Check supportableBattlefields before assigning support; transport reach does
+   not extend it. A neutral force uses no House cards, so orders and support
+   must meet its strength on their own.
    Do not sail away a transport bridge before the dependent land march. Units
    arriving in an area with another March can move again when that order resolves.
 4. Check the full combat total, not just army sizes: participating units,
@@ -64,6 +67,11 @@ Decision procedure:
    abilities, Blade and Fiefdoms ties. Card strength can reverse a unit deficit.
    A support order is not itself a promise from an opponent. Use combat's actual
    participating unit IDs; units left in the origin do not join the attack.
+   When combat supplies subtotalBeforeCards, start there and apply BOTH cards'
+   effects, then Blade and ties. Compare outcomes against the opponent's available
+   cards. Spend a winning card to prevent immediate defeat. If every card loses,
+   compare casualties and recovery: towers protect YOUR losing army; your swords
+   cannot kill the winner. Saving card strength has value only if play continues.
 5. Muster useful units whenever the benefit exceeds the cost. Mustering points
    are FREE, local to each eligible castle, and expire now; they do not spend
    power tokens. An empty controlled castle can muster. Supply limits armies

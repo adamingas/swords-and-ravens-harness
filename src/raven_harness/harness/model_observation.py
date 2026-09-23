@@ -6,6 +6,8 @@ from typing import Any
 from .card_tools import _ability_texts
 from .legal import _controller, _regions, _supply_guidance
 from .observation import HarnessContext
+from .protocol_tools import _is_base_game
+from .tactical_observation import combat_components, supportable_battlefields
 
 
 def compact_observation(
@@ -85,6 +87,13 @@ def compact_observation(
                  if key != "wounded" or value}
                 for unit in raw["units"]
             ]
+            if (
+                _is_base_game(context.snapshot)
+                and entry["controller"] == context.house_id
+                and result["game"]["roundStage"] in {"planning", "action"}
+                and not context.combat
+            ):
+                entry["supportableBattlefields"] = supportable_battlefields(context, area)
         if raw.get("revealedOrder"):
             order = raw["revealedOrder"]
             entry["order"] = order["order"]
@@ -97,6 +106,8 @@ def compact_observation(
         "no revealed order (planning orders may be hidden); omitted wounded means false. "
         "controller includes control tokens and home control, not just occupying units. "
         "blockedAreas cannot be entered. Static terrain, icons and connections are in the map."
+        " supportableBattlefields is direct support geometry from that area, NOT movement "
+        "reachability: a Support order and declaration are still required."
     )
 
     # These facts live above the leaf decision in the server state tree. Copy
@@ -116,4 +127,11 @@ def compact_observation(
             "origin may include units left behind. supporters lists declared support by house. "
             "A null card is not revealed. Use the battlefield's neighbours for support."
         )
+        if _is_base_game(context.snapshot):
+            components = combat_components(context)
+            if components is not None:
+                result["combat"] = components
+                for key in ("houseCardModifiers", "stats"):
+                    if context.combat.get(key):
+                        result["combat"][key] = deepcopy(context.combat[key])
     return result
