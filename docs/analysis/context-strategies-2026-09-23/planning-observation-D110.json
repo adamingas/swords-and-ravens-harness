@@ -1,0 +1,1301 @@
+{
+  "game": {
+    "id": "1",
+    "name": "Local Test Game",
+    "stateId": "14d1d7f1-cb2c-4e1c-a687-576ba327ffbd",
+    "phase": "place-orders",
+    "round": 8,
+    "victoryPointsToWin": 7,
+    "maxRounds": 10
+  },
+  "you": {
+    "userId": "1",
+    "houseId": "baratheon",
+    "powerTokens": 9,
+    "supply": 4,
+    "currentVictoryPoints": 5,
+    "controlledLandAreas": 7,
+    "controlledCastleAreas": 5,
+    "controlledSupplyIcons": 4,
+    "controlledRegions": [
+      "blackwater",
+      "kings-landing",
+      "the-reach",
+      "kingswood",
+      "crackclaw-point",
+      "harrenhal",
+      "shipbreaker-bay",
+      "dragonstone",
+      "port-of-dragonstone"
+    ],
+    "availableHouseCards": [
+      {
+        "id": "salladhor-saan",
+        "name": "Salladhor Saan",
+        "strength": 1,
+        "swords": 0,
+        "towers": 0,
+        "ability": "salladhor-saan"
+      },
+      {
+        "id": "melisandre",
+        "name": "Melisandre",
+        "strength": 1,
+        "swords": 1,
+        "towers": 0,
+        "ability": null
+      },
+      {
+        "id": "ser-davos-seaworth",
+        "name": "Ser Davos Seaworth",
+        "strength": 2,
+        "swords": 0,
+        "towers": 0,
+        "ability": "ser-davos-seaworth"
+      },
+      {
+        "id": "brienne-of-tarth",
+        "name": "Brienne of Tarth",
+        "strength": 2,
+        "swords": 1,
+        "towers": 1,
+        "ability": null
+      },
+      {
+        "id": "renly-baratheon",
+        "name": "Renly Baratheon",
+        "strength": 3,
+        "swords": 0,
+        "towers": 0,
+        "ability": "renly-baratheon"
+      }
+    ]
+  },
+  "isYourTurn": true,
+  "pendingDecision": {
+    "type": "place-orders",
+    "readyHouses": []
+  },
+  "statePath": [
+    "ingame",
+    "planning",
+    "place-orders"
+  ],
+  "recentEvents": [
+    {
+      "type": "game-log",
+      "event": "player-mustered",
+      "details": {
+        "house": "lannister",
+        "musterings": [
+          [
+            "lannisport",
+            [
+              {
+                "region": "lannisport",
+                "from": null,
+                "to": "siege-engine"
+              }
+            ]
+          ],
+          [
+            "moat-cailin",
+            [
+              {
+                "region": "moat-cailin",
+                "from": "footman",
+                "to": "knight"
+              }
+            ]
+          ],
+          [
+            "riverrun",
+            [
+              {
+                "region": "riverrun",
+                "from": null,
+                "to": "siege-engine"
+              }
+            ]
+          ],
+          [
+            "seagard",
+            [
+              {
+                "region": "seagard",
+                "from": null,
+                "to": "knight"
+              }
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "game-state-change"
+    },
+    {
+      "type": "add-units",
+      "regionId": "winterfell"
+    },
+    {
+      "type": "add-units",
+      "regionId": "white-harbor"
+    },
+    {
+      "type": "game-log",
+      "event": "player-mustered",
+      "details": {
+        "house": "stark",
+        "musterings": [
+          [
+            "winterfell",
+            [
+              {
+                "region": "winterfell",
+                "from": null,
+                "to": "footman"
+              },
+              {
+                "region": "winterfell",
+                "from": null,
+                "to": "footman"
+              }
+            ]
+          ],
+          [
+            "white-harbor",
+            [
+              {
+                "region": "white-harbor",
+                "from": null,
+                "to": "footman"
+              }
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "proceed-westeros-card"
+    },
+    {
+      "type": "game-log",
+      "event": "westeros-card-executed",
+      "details": {
+        "westerosCardType": "last-days-of-summer",
+        "westerosDeckI": 1
+      }
+    },
+    {
+      "type": "proceed-westeros-card"
+    },
+    {
+      "type": "game-log",
+      "event": "westeros-card-executed",
+      "details": {
+        "westerosCardType": "feast-for-crows",
+        "westerosDeckI": 2
+      }
+    },
+    {
+      "type": "vassal-relations"
+    },
+    {
+      "type": "game-log",
+      "event": "planning-phase-began",
+      "details": {
+        "forVassals": false
+      }
+    },
+    {
+      "type": "game-state-change"
+    }
+  ],
+  "orderLegend": {
+    "1": "March -1",
+    "2": "March +0",
+    "3": "March +1",
+    "4": "Defense +1",
+    "5": "Defense +1",
+    "6": "Defense +2 starred",
+    "7": "Support +0",
+    "8": "Support +0",
+    "9": "Support +1 starred",
+    "10": "Consolidate Power",
+    "11": "Consolidate Power",
+    "12": "Consolidate Power starred",
+    "13": "Raid",
+    "14": "Raid",
+    "15": "Raid starred"
+  },
+  "mapVariant": "westeros",
+  "houses": [
+    {
+      "id": "baratheon",
+      "name": "Baratheon",
+      "powerTokens": 9,
+      "supply": 4,
+      "currentVictoryPoints": 5,
+      "controlledLandAreas": 7,
+      "controlledCastleAreas": 5,
+      "controlledSupplyIcons": 4,
+      "controlledRegions": [
+        "blackwater",
+        "kings-landing",
+        "the-reach",
+        "kingswood",
+        "crackclaw-point",
+        "harrenhal",
+        "shipbreaker-bay",
+        "dragonstone",
+        "port-of-dragonstone"
+      ]
+    },
+    {
+      "id": "lannister",
+      "name": "Lannister",
+      "powerTokens": 2,
+      "supply": 4,
+      "currentVictoryPoints": 4,
+      "controlledLandAreas": 5,
+      "controlledCastleAreas": 4,
+      "controlledSupplyIcons": 4,
+      "controlledRegions": [
+        "stoney-sept",
+        "riverrun",
+        "lannisport",
+        "the-golden-sound",
+        "port-of-lannisport",
+        "seagard",
+        "moat-cailin"
+      ]
+    },
+    {
+      "id": "stark",
+      "name": "Stark",
+      "powerTokens": 0,
+      "supply": 2,
+      "currentVictoryPoints": 2,
+      "controlledLandAreas": 2,
+      "controlledCastleAreas": 2,
+      "controlledSupplyIcons": 1,
+      "controlledRegions": [
+        "winterfell",
+        "port-of-winterfell",
+        "white-harbor",
+        "the-shivering-sea",
+        "port-of-white-harbor"
+      ]
+    }
+  ],
+  "houseCardStatus": [
+    {
+      "houseId": "baratheon",
+      "houseName": "Baratheon",
+      "detailsVisible": true,
+      "totalCount": 7,
+      "availableCount": 5,
+      "usedCount": 2,
+      "disabledCount": 0,
+      "availableCards": [
+        {
+          "id": "salladhor-saan",
+          "name": "Salladhor Saan",
+          "strength": 1,
+          "swords": 0,
+          "towers": 0,
+          "ability": "salladhor-saan"
+        },
+        {
+          "id": "melisandre",
+          "name": "Melisandre",
+          "strength": 1,
+          "swords": 1,
+          "towers": 0,
+          "ability": null
+        },
+        {
+          "id": "ser-davos-seaworth",
+          "name": "Ser Davos Seaworth",
+          "strength": 2,
+          "swords": 0,
+          "towers": 0,
+          "ability": "ser-davos-seaworth"
+        },
+        {
+          "id": "brienne-of-tarth",
+          "name": "Brienne of Tarth",
+          "strength": 2,
+          "swords": 1,
+          "towers": 1,
+          "ability": null
+        },
+        {
+          "id": "renly-baratheon",
+          "name": "Renly Baratheon",
+          "strength": 3,
+          "swords": 0,
+          "towers": 0,
+          "ability": "renly-baratheon"
+        }
+      ]
+    },
+    {
+      "houseId": "lannister",
+      "houseName": "Lannister",
+      "detailsVisible": true,
+      "totalCount": 7,
+      "availableCount": 4,
+      "usedCount": 3,
+      "disabledCount": 0,
+      "availableCards": [
+        {
+          "id": "ser-kevan-lannister",
+          "name": "Ser Kevan Lannister",
+          "strength": 1,
+          "swords": 0,
+          "towers": 0,
+          "ability": "ser-kevan-lannister"
+        },
+        {
+          "id": "tyrion-lannister",
+          "name": "Tyrion Lannister",
+          "strength": 1,
+          "swords": 0,
+          "towers": 0,
+          "ability": "tyrion-lannister"
+        },
+        {
+          "id": "ser-jaime-lannister",
+          "name": "Ser Jaime Lannister",
+          "strength": 2,
+          "swords": 1,
+          "towers": 0,
+          "ability": null
+        },
+        {
+          "id": "the-hound",
+          "name": "The Hound",
+          "strength": 2,
+          "swords": 0,
+          "towers": 2,
+          "ability": null
+        }
+      ]
+    },
+    {
+      "houseId": "stark",
+      "houseName": "Stark",
+      "detailsVisible": true,
+      "totalCount": 7,
+      "availableCount": 5,
+      "usedCount": 2,
+      "disabledCount": 0,
+      "availableCards": [
+        {
+          "id": "ser-rodrick-cassel",
+          "name": "Ser Rodrick Cassel",
+          "strength": 1,
+          "swords": 0,
+          "towers": 2,
+          "ability": null
+        },
+        {
+          "id": "the-blackfish",
+          "name": "The Blackfish",
+          "strength": 1,
+          "swords": 0,
+          "towers": 0,
+          "ability": "the-blackfish"
+        },
+        {
+          "id": "roose-bolton",
+          "name": "Roose Bolton",
+          "strength": 2,
+          "swords": 0,
+          "towers": 0,
+          "ability": "roose-bolton"
+        },
+        {
+          "id": "greatjon-umber",
+          "name": "Greatjon Umber",
+          "strength": 2,
+          "swords": 1,
+          "towers": 0,
+          "ability": null
+        },
+        {
+          "id": "robb-stark",
+          "name": "Robb Stark",
+          "strength": 3,
+          "swords": 0,
+          "towers": 0,
+          "ability": "robb-stark"
+        }
+      ]
+    }
+  ],
+  "tracks": {
+    "ironThrone": [
+      "baratheon",
+      "lannister",
+      "stark"
+    ],
+    "fiefdoms": [
+      "baratheon",
+      "lannister",
+      "stark"
+    ],
+    "kingsCourt": [
+      "baratheon",
+      "lannister",
+      "stark"
+    ]
+  },
+  "revealedOrders": [],
+  "board": [
+    {
+      "id": "blackwater",
+      "controlPowerToken": "baratheon",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "kings-landing",
+      "controlPowerToken": "baratheon",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 23,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "the-reach",
+      "controlPowerToken": "baratheon",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 16,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "kingswood",
+      "controlPowerToken": "baratheon",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 10,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "baratheon"
+        },
+        {
+          "id": 14,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "crackclaw-point",
+      "controlPowerToken": "baratheon",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 19,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "harrenhal",
+      "controlPowerToken": null,
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 15,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "baratheon"
+        },
+        {
+          "id": 22,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "stoney-sept",
+      "controlPowerToken": "lannister",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "riverrun",
+      "controlPowerToken": "lannister",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 8,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "lannister"
+        },
+        {
+          "id": 26,
+          "type": "siege-engine",
+          "wounded": false,
+          "allegiance": "lannister"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "lannisport",
+      "controlPowerToken": null,
+      "garrison": 2,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 6,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "lannister"
+        },
+        {
+          "id": 24,
+          "type": "siege-engine",
+          "wounded": false,
+          "allegiance": "lannister"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "pyke",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "the-golden-sound",
+      "controlPowerToken": null,
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 7,
+          "type": "ship",
+          "wounded": false,
+          "allegiance": "lannister"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "port-of-pyke",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "seagard",
+      "controlPowerToken": "lannister",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 27,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "lannister"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "winterfell",
+      "controlPowerToken": null,
+      "garrison": 2,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 2,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "stark"
+        },
+        {
+          "id": 28,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "stark"
+        },
+        {
+          "id": 29,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "stark"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "white-harbor",
+      "controlPowerToken": "stark",
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 30,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "stark"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "the-shivering-sea",
+      "controlPowerToken": null,
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 4,
+          "type": "ship",
+          "wounded": false,
+          "allegiance": "stark"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "moat-cailin",
+      "controlPowerToken": null,
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 25,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "lannister"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "the-eyrie",
+      "controlPowerToken": null,
+      "garrison": 6,
+      "isBlocked": false,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "shipbreaker-bay",
+      "controlPowerToken": null,
+      "garrison": 0,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 11,
+          "type": "ship",
+          "wounded": false,
+          "allegiance": "baratheon"
+        },
+        {
+          "id": 12,
+          "type": "ship",
+          "wounded": false,
+          "allegiance": "baratheon"
+        },
+        {
+          "id": 18,
+          "type": "ship",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "dragonstone",
+      "controlPowerToken": null,
+      "garrison": 2,
+      "isBlocked": false,
+      "units": [
+        {
+          "id": 20,
+          "type": "knight",
+          "wounded": false,
+          "allegiance": "baratheon"
+        },
+        {
+          "id": 21,
+          "type": "footman",
+          "wounded": false,
+          "allegiance": "baratheon"
+        }
+      ],
+      "revealedOrder": null
+    },
+    {
+      "id": "port-of-sunspear",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "sunspear",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "salt-shore",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "storms-end",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "port-of-storms-end",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "the-boneway",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "princes-pass",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "yronwood",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "three-towers",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "starfall",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "port-of-oldtown",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "oldtown",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "highgarden",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    },
+    {
+      "id": "dornish-marches",
+      "controlPowerToken": null,
+      "garrison": 1000,
+      "isBlocked": true,
+      "units": [],
+      "revealedOrder": null
+    }
+  ],
+  "strategicOverview": {
+    "round": 8,
+    "victoryPoints": {
+      "baratheon": 5,
+      "lannister": 4,
+      "stark": 2
+    },
+    "housePositions": [
+      {
+        "houseId": "baratheon",
+        "castles": 5,
+        "strongholds": 2,
+        "landAreas": 7,
+        "supplyIconsControlled": 4,
+        "crownIconsControlled": 5,
+        "powerTokens": 9,
+        "supplyTrack": 4,
+        "victoryPoints": 5,
+        "controlledRegions": [
+          "blackwater",
+          "kings-landing",
+          "the-reach",
+          "kingswood",
+          "crackclaw-point",
+          "harrenhal",
+          "shipbreaker-bay",
+          "dragonstone",
+          "port-of-dragonstone"
+        ]
+      },
+      {
+        "houseId": "lannister",
+        "castles": 4,
+        "strongholds": 3,
+        "landAreas": 5,
+        "supplyIconsControlled": 4,
+        "crownIconsControlled": 3,
+        "powerTokens": 2,
+        "supplyTrack": 4,
+        "victoryPoints": 4,
+        "controlledRegions": [
+          "stoney-sept",
+          "riverrun",
+          "lannisport",
+          "the-golden-sound",
+          "port-of-lannisport",
+          "seagard",
+          "moat-cailin"
+        ]
+      },
+      {
+        "houseId": "stark",
+        "castles": 2,
+        "strongholds": 1,
+        "landAreas": 2,
+        "supplyIconsControlled": 1,
+        "crownIconsControlled": 1,
+        "powerTokens": 0,
+        "supplyTrack": 2,
+        "victoryPoints": 2,
+        "controlledRegions": [
+          "winterfell",
+          "port-of-winterfell",
+          "white-harbor",
+          "the-shivering-sea",
+          "port-of-white-harbor"
+        ]
+      }
+    ],
+    "victoryCondition": "Reach 7 victory points, or lead after round 10."
+  },
+  "strategicMemory": {
+    "modelPlan": "Mustered to reinforce borders and prepare attacks: upgraded Dragonstone footman to knight and added a footman there; placed footmen at Kings Landing, The Reach, Crackclaw Point, and Harrenhal. All fits supply 4.",
+    "roundNumber": 8,
+    "situationAssessment": "Round 8, phase player-mustering: baratheon controls 5 castle regions and 7 land areas, with 9 power tokens and supply 4.",
+    "objectives": [
+      "Reach the castle victory threshold before all opponents.",
+      "Protect controlled castles while expanding toward the nearest attainable one.",
+      "Keep armies supply-compatible and preserve decisive house cards."
+    ],
+    "opponentModels": [
+      "lannister: 4 castles, 5 land areas, 2 power tokens",
+      "stark: 2 castles, 2 land areas, 0 power tokens"
+    ],
+    "commitments": [
+      "Round 7 resolve-ties: used resolve_track_ties {\"preferred_house_ids\":[\"baratheon\",\"lannister\",\"stark\"],\"applied_house_ids\":[\"baratheon\",\"lannister\",\"stark\"]}",
+      "Round 7 bidding: used submit_bid {\"amount\":0}",
+      "Round 7 resolve-ties: used resolve_track_ties {\"preferred_house_ids\":[\"baratheon\",\"lannister\",\"stark\"],\"applied_house_ids\":[\"baratheon\",\"lannister\",\"stark\"]}",
+      "Round 7 place-orders: used submit_orders {\"assignments\":[{\"region_id\":\"the-reach\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"crackclaw-point\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"harrenhal\",\"preferred_order\":\"support\",\"starred_preference\":\"prefer\",\"priority\":80},{\"region_id\":\"shipbreaker-bay\",\"preferred_order\":\"support\",\"starred_preference\":\"prefer\",\"priority\":70},{\"region_id\":\"dragonstone\",\"preferred_order\":\"consolidate_power\",\"starred_preference\"",
+      "Round 7 replace-order: used replace_raven_order {\"region_id\":\"the-reach\",\"order_id\":6}",
+      "Round 7 resolve-single-march: used resolve_march {\"starting_region_id\":\"crackclaw-point\",\"moves\":[{\"destination_region_id\":\"kingswood\",\"unit_ids\":[10,14]}],\"leave_power_token\":false,\"omitted_supply_unsafe_move_groups\":0,\"omitted_illegal_power_token\":false}",
+      "Round 8 simple-choice: used choose_option {\"choice_index\":0}",
+      "Round 8 player-mustering: used muster_units {\"musters\":[{\"mustering_region_id\":\"crackclaw-point\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"crackclaw-point\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"dragonstone\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"dragonstone\",\"upgrade_from_footman\":true},{\"unit_type\":\"footman\",\"region_id\":\"dragonstone\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"harrenhal\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"harrenhal\",\"upgrade_from_footman\":false}]},{\"mus"
+    ],
+    "lessons": [],
+    "decisionJournal": [
+      "Round 7 player-mustering: Skip mustering this round to preserve power tokens for influence bidding and avoid exceeding supply while focusing on upcoming attacks on Lannister positions.",
+      "Round 7 bidding: Bid 0 to retain Iron Throne position while conserving power for upcoming Fiefdoms and King’s Court bids.",
+      "Round 7 resolve-ties: Maintain Iron Throne lead by ordering Baratheon first, then Lannister, then Stark. This preserves our tie-breaking advantage for upcoming bids and actions. Keep focus on securing castles and supply while preparing for next round attacks.",
+      "Round 7 bidding: Bid 0 to preserve power tokens; opponents have no available power, so we retain first place on Fiefdoms (Valyrian Steel Blade) and maintain combat advantage while conserving resources for future bids and actions.",
+      "Round 7 resolve-ties: Maintain Valyrian Steel Blade advantage by keeping Baratheon first on Fiefdoms. Prioritize protecting our castles while expanding toward Lannister holdings. Preserve power tokens for future bids and combat. Keep supply safe and prepare March orders for next round.",
+      "Round 7 bidding: Bid 0 to preserve power tokens; opponents have no power, so we retain first place on King's Court, keeping our special order advantage while conserving resources for upcoming Iron Throne and Fiefdoms bids and combat.",
+      "Round 7 resolve-ties: Maintain King's Court lead to keep special orders advantage; rank Baratheon highest, then Lannister, then Stark.",
+      "Round 7 place-orders: Focus on expanding towards Lannister holdings. Use The Reach March to push footman toward Searoad Marches and eventually Lannisport. Move knights from Crackclaw Point towards Kings Landing to reinforce our stronghold. Provide starred Support from Harrenhal and Shipbreaker Bay to boost any upcoming attacks. Consolidate Power at Dragonstone to gain extra power token. Maintain supply and prepare for potential combat next round.",
+      "Round 7 replace-order: Replace The Reach's March +0 with a starred Defense +2 order (order ID 6) to fortify our castle against potential Lannister attacks, preserving our expansion momentum and securing a key stronghold.",
+      "Round 7 resolve-single-march: Moved both knights from Crackclaw Point to Kingswood to consolidate forces near shipbreaker bay, enabling future ship‑transport attacks toward Lannisport while retaining control of the castle at Crackclaw Point via existing power token. No combat triggered and supply remains within limits.",
+      "Round 8 simple-choice: Choose Mustering to use our 5 mustering points from Kings Landing, Dragonstone, and The Reach. Muster a footman at The Reach, two footmen at Kings Landing (stronghold), and upgrade the existing footman at Dragonstone to a knight plus add a new footman there. This adds 5 units without exceeding supply, strengthening future attacks toward Lannister and preserving our castles.",
+      "Round 8 player-mustering: Mustered to reinforce borders and prepare attacks: upgraded Dragonstone footman to knight and added a footman there; placed footmen at Kings Landing, The Reach, Crackclaw Point, and Harrenhal. All fits supply 4."
+    ],
+    "revision": 44,
+    "updatedAt": "2026-09-22T21:52:11.148965+00:00"
+  },
+  "historyIndex": [
+    {
+      "id": 110,
+      "stateId": "14d1d7f1-cb2c-4e1c-a687-576ba327ffbd",
+      "round": 8,
+      "phase": "place-orders",
+      "action": null,
+      "arguments": null,
+      "createdAt": "2026-09-22T21:52:26.025014+00:00"
+    },
+    {
+      "id": 107,
+      "stateId": "dc2be903-33f9-4d86-bdca-944034838243",
+      "round": 8,
+      "phase": "player-mustering",
+      "action": "muster_units",
+      "arguments": {
+        "musters": [
+          {
+            "mustering_region_id": "crackclaw-point",
+            "recruitments": [
+              {
+                "unit_type": "footman",
+                "region_id": "crackclaw-point",
+                "upgrade_from_footman": false
+              }
+            ]
+          },
+          {
+            "mustering_region_id": "dragonstone",
+            "recruitments": [
+              {
+                "unit_type": "knight",
+                "region_id": "dragonstone",
+                "upgrade_from_footman": true
+              },
+              {
+                "unit_type": "footman",
+                "region_id": "dragonstone",
+                "upgrade_from_footman": false
+              }
+            ]
+          },
+          {
+            "mustering_region_id": "harrenhal",
+            "recruitments": [
+              {
+                "unit_type": "footman",
+                "region_id": "harrenhal",
+                "upgrade_from_footman": false
+              }
+            ]
+          },
+          {
+            "mustering_region_id": "kings-landing",
+            "recruitments": [
+              {
+                "unit_type": "footman",
+                "region_id": "kings-landing",
+                "upgrade_from_footman": false
+              }
+            ]
+          }
+        ],
+        "omitted_point_unsafe_recruitments": 0,
+        "omitted_supply_unsafe_recruitments": 1
+      },
+      "createdAt": "2026-09-22T21:52:05.708729+00:00"
+    },
+    {
+      "id": 106,
+      "stateId": "097fa501-61f1-4bbe-93a5-8d9c99223d36",
+      "round": 8,
+      "phase": "simple-choice",
+      "action": "choose_option",
+      "arguments": {
+        "choice_index": 0
+      },
+      "createdAt": "2026-09-22T21:52:02.258165+00:00"
+    },
+    {
+      "id": 103,
+      "stateId": "d08d66e5-ef66-4792-b0cf-d58bd50113a1",
+      "round": 7,
+      "phase": "resolve-single-march",
+      "action": "resolve_march",
+      "arguments": {
+        "starting_region_id": "crackclaw-point",
+        "moves": [
+          {
+            "destination_region_id": "kingswood",
+            "unit_ids": [
+              10,
+              14
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_supply_unsafe_move_groups": 0,
+        "omitted_illegal_power_token": false
+      },
+      "createdAt": "2026-09-22T21:51:55.536555+00:00"
+    },
+    {
+      "id": 102,
+      "stateId": "0bd2271d-1183-4824-9509-2ecd47bd66a8",
+      "round": 7,
+      "phase": "replace-order",
+      "action": "replace_raven_order",
+      "arguments": {
+        "region_id": "the-reach",
+        "order_id": 6
+      },
+      "createdAt": "2026-09-22T21:51:50.137161+00:00"
+    },
+    {
+      "id": 101,
+      "stateId": "5fb1ef23-72e5-4c13-a99b-6cca0a39868b",
+      "round": 7,
+      "phase": "place-orders",
+      "action": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "the-reach",
+            "preferred_order": "march",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "crackclaw-point",
+            "preferred_order": "march",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "harrenhal",
+            "preferred_order": "support",
+            "starred_preference": "prefer",
+            "priority": 80
+          },
+          {
+            "region_id": "shipbreaker-bay",
+            "preferred_order": "support",
+            "starred_preference": "prefer",
+            "priority": 70
+          },
+          {
+            "region_id": "dragonstone",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          }
+        ],
+        "applied_orders": [
+          {
+            "region_id": "the-reach",
+            "order_id": 2,
+            "order": "march"
+          },
+          {
+            "region_id": "crackclaw-point",
+            "order_id": 1,
+            "order": "march"
+          },
+          {
+            "region_id": "harrenhal",
+            "order_id": 9,
+            "order": "support"
+          },
+          {
+            "region_id": "shipbreaker-bay",
+            "order_id": 7,
+            "order": "support"
+          },
+          {
+            "region_id": "dragonstone",
+            "order_id": 10,
+            "order": "consolidate_power"
+          }
+        ]
+      },
+      "createdAt": "2026-09-22T21:51:46.162046+00:00"
+    },
+    {
+      "id": 98,
+      "stateId": "53111fec-dd40-41f0-9f89-7f376bd409f1",
+      "round": 7,
+      "phase": "resolve-ties",
+      "action": "resolve_track_ties",
+      "arguments": {
+        "preferred_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ],
+        "applied_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ]
+      },
+      "createdAt": "2026-09-22T21:51:45.336508+00:00"
+    },
+    {
+      "id": 97,
+      "stateId": "5059f0fd-d892-4768-8e86-a586d81b3ef5",
+      "round": 7,
+      "phase": "bidding",
+      "action": "submit_bid",
+      "arguments": {
+        "amount": 0
+      },
+      "createdAt": "2026-09-22T21:51:43.509986+00:00"
+    },
+    {
+      "id": 96,
+      "stateId": "2878fcd3-8264-49b4-b3de-827eeb54d492",
+      "round": 7,
+      "phase": "resolve-ties",
+      "action": "resolve_track_ties",
+      "arguments": {
+        "preferred_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ],
+        "applied_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ]
+      },
+      "createdAt": "2026-09-22T21:51:42.275523+00:00"
+    },
+    {
+      "id": 95,
+      "stateId": "dd85484a-0631-41b0-9522-cd5ac634ef13",
+      "round": 7,
+      "phase": "bidding",
+      "action": "submit_bid",
+      "arguments": {
+        "amount": 0
+      },
+      "createdAt": "2026-09-22T21:51:40.545584+00:00"
+    },
+    {
+      "id": 94,
+      "stateId": "e797d369-bec0-420e-a8a4-17150c74d89e",
+      "round": 7,
+      "phase": "resolve-ties",
+      "action": "resolve_track_ties",
+      "arguments": {
+        "preferred_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ],
+        "applied_house_ids": [
+          "baratheon",
+          "lannister",
+          "stark"
+        ]
+      },
+      "createdAt": "2026-09-22T21:51:39.587293+00:00"
+    },
+    {
+      "id": 93,
+      "stateId": "a795d898-7caa-4a26-b805-6020cd27d2c2",
+      "round": 7,
+      "phase": "bidding",
+      "action": "submit_bid",
+      "arguments": {
+        "amount": 0
+      },
+      "createdAt": "2026-09-22T21:51:38.388057+00:00"
+    }
+  ],
+  "planningConstraints": {
+    "eligibleRegionCount": 7,
+    "eligibleRegionIds": [
+      "kings-landing",
+      "the-reach",
+      "kingswood",
+      "crackclaw-point",
+      "harrenhal",
+      "shipbreaker-bay",
+      "dragonstone"
+    ],
+    "requiredAssignmentCount": 7,
+    "maxStarredOrders": 3,
+    "restrictedOrderCategories": [
+      "consolidate_power"
+    ],
+    "restrictedStarredOrderCategories": [
+      "consolidate_power"
+    ],
+    "requiredRestrictedOrders": 0
+  }
+}
