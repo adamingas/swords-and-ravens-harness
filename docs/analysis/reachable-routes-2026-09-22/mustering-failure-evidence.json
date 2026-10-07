@@ -1,0 +1,153 @@
+{
+  "runId": "673bf8bb-c19c-4e44-998c-03127917072b",
+  "submittedCallCount": 75,
+  "reconstructedSchemaInvalidCount": 75,
+  "originalToolOutputsPresent": false,
+  "actionOutputSchema": {
+    "type": "object",
+    "properties": {
+      "decision": {
+        "anyOf": [
+          {
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "muster_units"
+                ]
+              },
+              "musters": {
+                "description": "Mustering castles and recruitments in priority order. The harness\nomits later recruitments that exceed the origin's Mustering Points or\nSupply. It keeps legal upgrades. The applied plan can be empty when no\nrequested recruitment fits.",
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "mustering_region_id": {
+                      "title": "Mustering Region Id",
+                      "type": "string",
+                      "enum": [
+                        "crackclaw-point",
+                        "dragonstone",
+                        "harrenhal",
+                        "the-reach"
+                      ]
+                    },
+                    "recruitments": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "unit_type": {
+                            "description": "Unit type to create, such as footman, knight, ship, or siege-engine.",
+                            "title": "Unit Type",
+                            "type": "string",
+                            "enum": [
+                              "footman",
+                              "knight",
+                              "ship",
+                              "siege-engine"
+                            ]
+                          },
+                          "region_id": {
+                            "description": "Region where the resulting unit will be placed.",
+                            "title": "Region Id",
+                            "type": "string",
+                            "enum": [
+                              "blackwater-bay",
+                              "crackclaw-point",
+                              "dragonstone",
+                              "harrenhal",
+                              "port-of-dragonstone",
+                              "shipbreaker-bay",
+                              "the-narrow-sea",
+                              "the-reach"
+                            ]
+                          },
+                          "upgrade_from_footman": {
+                            "description": "Whether to upgrade an existing Footman instead of creating a new unit. Only knight and siege-engine upgrades are valid.",
+                            "title": "Upgrade From Footman",
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "unit_type",
+                          "region_id",
+                          "upgrade_from_footman"
+                        ],
+                        "title": "Recruitment",
+                        "type": "object"
+                      },
+                      "minItems": 1,
+                      "title": "Recruitments",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "mustering_region_id",
+                    "recruitments"
+                  ],
+                  "title": "MusterGroup",
+                  "type": "object"
+                },
+                "minItems": 1,
+                "title": "Musters",
+                "type": "array",
+                "maxItems": 4
+              }
+            },
+            "required": [
+              "action",
+              "musters"
+            ],
+            "title": "muster_units_args",
+            "type": "object",
+            "additionalProperties": false,
+            "description": "You are recruiting units at the eligible mustering areas. Spend their mustering points on new pieces or Footman upgrades, using available pieces and legal destinations. The resulting armies must fit your current Supply. Upgrading a Footman replaces it with the chosen unit and does not increase that army's number of units."
+          },
+          {
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "skip_mustering"
+                ]
+              }
+            },
+            "title": "skip_mustering_args",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action"
+            ],
+            "description": "Decline this mustering opportunity and recruit no units."
+          }
+        ]
+      },
+      "strategic_handoff": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000,
+        "description": "Concise private handoff to your future decisions. Record the current goal, ordered dependencies, immediate threats, reserved resources, assumptions that need checking, and why this action advances the plan. Summarize conclusions; omit exploratory second-guessing and facts already obvious from the board."
+      }
+    },
+    "required": [
+      "decision",
+      "strategic_handoff"
+    ],
+    "additionalProperties": false
+  },
+  "firstCall": {
+    "arguments": "{\"decision\":{\"mustering_units\":[{\"origin_region_id\":\"crackclaw-point\",\"destination_region_id\":\"crackclaw-point\",\"unit_type\":\"knight\"},{\"origin_region_id\":\"harrenhal\",\"destination_region_id\":\"harrenhal\",\"unit_type\":\"knight\"},{\"origin_region_id\":\"the-reach\",\"destination_region_id\":\"the-reach\",\"unit_type\":\"footman\"},{\"origin_region_id\":\"dragonstone\",\"destination_region_id\":\"dragonstone\",\"unit_type\":\"footman\"},{\"origin_region_id\":\"dragonstone\",\"destination_region_id\":\"port-of-dragonstone\",\"unit_type\":\"ship\"}]},\"strategic_handoff\":\"Muster: upgrade footmen at Crackclaw Point and Harrenhal to Knights, add footmen at The Reach and Dragonstone, and a ship at Port of Dragonstone. All within supply and piece limits.\"}",
+    "call_id": "bed4bd11d",
+    "name": "submit_action",
+    "type": "function_call",
+    "id": "fc_tmp_cx4w58xc329",
+    "status": "completed"
+  },
+  "lastCall": {
+    "arguments": "{\"decision\":{\"mustering_units\":[{\"region_id\":\"crackclaw-point\",\"unit_type\":\"Knight\"},{\"region_id\":\"harrenhal\",\"unit_type\":\"Knight\"},{\"region_id\":\"the-reach\",\"unit_type\":\"Footman\"},{\"region_id\":\"dragonstone\",\"unit_type\":\"Footman\"},{\"region_id\":\"port-of-dragonstone\",\"unit_type\":\"Ship\"}]}}",
+    "call_id": "aa78e9f26",
+    "name": "submit_action",
+    "type": "function_call",
+    "id": "fc_tmp_cr22yvl8bv6",
+    "status": "completed"
+  }
+}

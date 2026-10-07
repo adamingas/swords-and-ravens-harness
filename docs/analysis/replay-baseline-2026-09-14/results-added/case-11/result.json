@@ -1,0 +1,361 @@
+{
+  "case": 11,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              48
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "white-harbor",
+      "moves": [
+        {
+          "destination_region_id": "winterfell",
+          "unit_ids": [
+            48
+          ]
+        }
+      ],
+      "leave_power_token": false,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 16352,
+    "outputTokens": 437,
+    "totalTokens": 16789
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 16352,
+      "input_tokens_details": {
+        "cached_tokens": 768
+      },
+      "output_tokens": 437,
+      "output_tokens_details": {
+        "reasoning_tokens": 385
+      },
+      "total_tokens": 16789,
+      "cost": 0.00605095,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00605095,
+        "upstream_inference_input_cost": 0.0057232,
+        "upstream_inference_output_cost": 0.00032775
+      },
+      "scope": "agent",
+      "response_id": "gen-1789376060-I8e0FpPecy6o8GobUo25",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789376060-I8e0FpPecy6o8GobUo25",
+      "output": [
+        {
+          "id": "rs_tmp_v37i6cyakzp",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the current march order. Starting region? pendingDecision shows resolve-single-march for house Stark. Which order is being resolved? In actionGuidance legalOrderRegions list both castle-black and white-harbor have orders. We must pick one. Likely must resolve the March order from white-harbor (orderId 2) or castle-black (orderId1). Which hasn't been resolved yet? Both have March orders pending. We need to choose one move. Probably resolve the order from white-harbor moving unit 48? Actually unit 48 is knight in white-harbor. Also unit 3 footman in castle-black. We can move either. Which is more beneficial? We want to strengthen winterfell perhaps. Castle Black can move into winterfell (garrison 2) but would trigger combat? Winterfell is controlled by Stark, so no combat. Could move footman/knight to winterfell to increase garrison. That aids defense. Also can move unit from white-harbor to castle-black to reinforce. Which is better? Probably move white-harbor's knight to castle-black to strengthen border and maybe later attack. But castle-black is also a march order; moving from castle-black to winterfell adds to stronghold. However we already have a unit at castle-black (footman, knight, footman). Adding more might help with future attack northwards but not needed.\n\nWe must choose exactly one tool. Resolve_march. Choose starting_region_id \"white-harbor\", move unit 48 to \"castle-black\". leave_power_token? canLeavePowerToken true. Should we leave token? If we vacate white-harbor, we could leave token to retain control. White-harbor is a land region with castle level 1, we control it. Leaving token keeps control. Yes.\n\nSo call resolve_march with that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[48]}],\"leave_power_token\":true}",
+          "call_id": "9127396bd",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_g9lgwtq0mr",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "68ee9d198f34207bc64ede8aebfcec38b8c33439b83caef90c25fb6236835311",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 3,
+    "removedObservationItemCount": 5,
+    "removedObservationCharacters": 199949,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_1nw8vo7rq58",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit orders for this turn. Eligible regions are bay-of-ice, castle-black, white-harbor, the-shivering-sea. No starred orders allowed (maxStarredOrders 0). We should prioritize securing castles. Stark has castles at Winterfell (2) and White Harbor (1). Already have castle at Winterfell, White Harbor is a castle level 1. We want to protect them and maybe expand. Nearest castle? Maybe target the castle at White Harbor is already held. Could try to march from bay-of-ice (ship) towards White Harbor? But we have a ship at bay-of-ice and a ship at the shivering sea, plus footmen at castle-black and white-harbor. We might want to defend those. No stars, so orders are normal.\n\nWe have units: bay-of-ice ship (id40), castle-black footman+knight, white-harbor footman ids3 and 32, the shivering sea ship (id4). Probably want to defend castle-black and the shivering sea because they are near enemy? Opponent forces? Lannister at lannisport, etc. Threat maybe from Baratheon at shipbreaker bay? Not adjacent. Probably keep defense.\n\nSo assign defense to castle-black and the shivering sea? But we have no order for shivering sea? It's eligible region. Use defense there. White harbor maybe consolidate power to get tokens? We have 4 tokens already, maybe want more. But we need to preserve supply. Having more tokens helps bidding later. So consolidate power at white harbor and bay-of-ice? Bay-of-ice is sea, you can consolidate power there (allowed). So assign consolidate at bay-of-ice and white harbor. Defense at castle-black and shivering sea.\n\nSubmit orders accordingly.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"white-harbor\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+        "call_id": "ae2d5a9c6",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_tfu6t7nfa7c",
+        "status": "completed"
+      },
+      {
+        "call_id": "ae2d5a9c6",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"2797a6cd-9d26-4e69-84a0-cd5d63387838\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_h30ti6be18",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for our 4 regions. Choose best plan. Likely want to march to expand toward castle. Castles: Winterfell (2), White Harbor (1). Nearest unattained castle? The nearest castle is White Harbor (already castle level1). Next target could be Castle Black (no castle) or move towards The North? Probably march from Winterfell to White Harbor already done earlier, now we have units at White Harbor (footman). We could march from White Harbor to Winterfell? No need. Perhaps march from White Harbor to... neighbor is Moat Cailin (castle level1) not owned. Could try to take Moat Cailin? But need supply? We have supply 1, army 2 footmen at White Harbor, could march to Moat Cailin (land) if we have a unit there? Actually need a unit in White Harbor to march. We have footman unit 3 and 32 at White Harbor. Could march one footman to Moat Cailin. But Moat Cailin currently neutral, castle level1, no supply. Taking it gives castle but no supply. Good for castle count. Let's do march from White Harbor to Moat Cailin. Also defend Winterfell? We have no units there now (just moved footman). Winterfell has garrison 2 but no units. Could place defense there via power token? Need unit to place defense. We have no units in Winterfell. Could place defense at Castle Black (has footman and knight). Good to hold position. Also consolidate power at Bay of Ice (ship) and The Shivering Sea (ship). That seems fine. So assignments: white-harbor march, castle-black defense, bay-of-ice consolidate, the-shivering-sea consolidate. Need 4 assignments. Priorities high. Use no starred.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"white-harbor\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+        "call_id": "cd6da7d9f",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_m8antj383u",
+        "status": "completed"
+      },
+      {
+        "call_id": "cd6da7d9f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"a7f4a21b-3081-44ac-ba6e-08a451d5f602\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_rs5wwmu01ab",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the march order for White Harbor. Options: move units to reachable regions. Units IDs 3 and 32 are footmen. Could move to winterfell (friendly) safe, or other lands maybe attack? Adjacent reachable list includes castle-black (land, no garrison), karhold, moat-cailin, widows-watch, winterfell. All are land, no enemy garrison except winterfell is ours. No combat needed. Goal to expand? Maybe move to castle-black to reinforce. Leave power token allowed if vacating? Starting region white-harbor will be empty (units moved). Could leave power token to keep control of White Harbor (castle level 1). We have 4 power tokens, White Harbor has none currently. Leaving token would give us control token there. Good for influence. So we should move units to a destination and leave power token true.\n\nWhich destination best? Reinforce castle-black (adjacent, no garrison, but it's land we control already). Could also go to moat-cailin to later expand toward the north. Maybe best to move to moat-cailin to pressure? But no immediate combat. I think moving to moat-cailin places troops closer to central board. However castle-black is also strategic to protect north. I'll choose move both units to castle-black, leave token true.\n\nCheck constraint: each unit ID may be moved at most once; at most one destination may trigger combat (none). Use only destinations listed. Good.\n\nThus call resolve_march with moves to castle-black unit_ids [3,32], leave_power_token:true.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[3,32]}],\"leave_power_token\":true}",
+        "call_id": "93dd6a2ab",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_s6ard0ljgjd",
+        "status": "completed"
+      },
+      {
+        "call_id": "93dd6a2ab",
+        "output": "An error occurred while running the tool. Please try again. Error: The game server did not accept 'resolve_march'; its authoritative state did not reflect the action",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_9j33mmxdb8",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need a valid move: from white harbor we have units 3 and 32. Can move to one destination only. Choose perhaps castle-black. leave_power_token true allowed. Let's do that.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[3,32]}],\"leave_power_token\":true}",
+        "call_id": "e82cf93cb",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_5oxirok6p6m",
+        "status": "completed"
+      },
+      {
+        "call_id": "e82cf93cb",
+        "output": "An error occurred while running the tool. Please try again. Error: The game server did not accept 'resolve_march'; its authoritative state did not reflect the action",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_22e5ndzk8i7",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to move from White Harbor but maybe only one unit? Actually units ids 3 and 32 both at White Harbor. Both can move? Constraint each unit at most once, okay. Destination castle-black triggers combat? castle-black has defense +1 and units footman and knight. Combat allowed. Might be okay. But maybe cannot leave power token? canLeavePowerToken true. But error suggests starting region not correct? Current pendingDecision is resolve-single-march for house Stark. Starting region should be where order is placed: White Harbor has march order. That's correct. Why rejected? Possibly because need to specify moves empty to pass? Could be that cannot move because no combat? Actually combat allowed but maybe need to specify only one destination? It's allowed. Might be that unit ids must be exactly those listed? They are [3,32]. Should be okay. Maybe need to include leave_power_token false? Try safe pass? No we want to move. Maybe must target winterfell only? reachableRegions list includes castle-black, karhold, moat-cailin, widows-watch, winterfell. All okay. Try moving only footman id3? Let's try moving only one unit.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+        "call_id": "02d8b22a4",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_zowp3lo6wj",
+        "status": "completed"
+      },
+      {
+        "call_id": "02d8b22a4",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"841328de-0807-44b6-8b6f-87944b2e0e0a\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_4tnwly1e5bl",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose mustering. We have supply 1, current armies: castle-black has 3 units, that's an army size 3 occupying one army slot. Supply limit allows army sizes [3,2]; we have one army size 3, okay. Single unit regions: bay-of-ice (ship), the-shivering-sea (ship), white-harbor (footman). Those are single units, safe.\n\nMustering options: origins white-harbor (1 point) and winterfell (2 points). Mustering points = supply tokens? Actually mustering points = supply track value? White-harbor has 1 point, winterfell 2. We have 4 power tokens, can spend up to points? Mustering uses power tokens equal to mustering points? Likely must spend that many tokens. We have 4 tokens, can muster both? Probably we can choose one origin group? MaxOriginGroups 2, so can muster up to 2 origins. We have 4 tokens, each origin cost its musteringPoints. Could spend 3 total? We have 4, could do both origins total 3 points, leaving 1 token.\n\nWe want to increase forces. Options: at winterfell, can recruit footman, knight, siege-engine (upgradeable footman 0). At white-harbor origin, can recruit footman, knight, siege-engine at white-harbor; ship at port-of-white-harbor; ship at the-shivering-sea.\n\nWe have supply 1, meaning only one army slot. Currently we have army at castle-black (size3). Single unit regions are okay but each counts as separate army? Single unit regions use no army slot. So we can add more units in single regions without exceeding supply.\n\nGoal: protect castles and expand. Maybe recruit a knight at winterfell to strengthen defense and future march. Also recruit a ship at port-of-white-harbor to increase naval mobility. But must respect supply safe new units when chosen alone: winterfell new unit safe 2, white-harbor new unit safe 1. If we choose both, maybe still okay? The mustering safe for each region when chosen alone; combined must obey supply. Likely okay.\n\nWe have 4 tokens, winterfell costs 2, white-harbor costs1, total3 leaving 1 token unused. Could also recruit at white-harbor footman? Already have footman there; could upgrade to knight costing 1 upgrade (cost 1). That uses extra token? Upgrade cost footmanUpgradeToKnightOrSiege =1. We could upgrade the footman at white-harbor to knight. That would strengthen. Use remaining token.\n\nThus recruit: at winterfell recruit knight (cost2). At white-harbor upgrade footman to knight (cost1). At port-of-white-harbor recruit ship (cost1). Total cost 4 tokens exactly. Must ensure supply safe: winterfell new unit safe 2, okay. White-harbor upgrade footman okay? upgrade counts as new unit? Probably allowed.\n\nConstruct muster request.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"winterfell\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"winterfell\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"white-harbor\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"white-harbor\",\"upgrade_from_footman\":true},{\"unit_type\":\"ship\",\"region_id\":\"port-of-white-harbor\",\"upgrade_from_footman\":false}]}]}",
+        "call_id": "ad2804d27",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_6v7nhsie7lm",
+        "status": "completed"
+      },
+      {
+        "call_id": "ad2804d27",
+        "output": "An error occurred while running the tool. Please try again. Error: recruitments exceed the origin's mustering points",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_m2h3qf2kgv",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Need to respect mustering points: winterfell has 2 points, so can recruit up to 2 units (footman cost 1, knight cost 2). Already have 0 units there. We could recruit a knight (cost 2) uses both points. White harbor has 1 point, can recruit 1 unit footman upgrade to knight? upgrade costs 1 point? upgrade from footman to knight costs 1 point (since footman already there). We have a footman there (id32). Upgrading to knight uses 1 point. Also can recruit ship? but mustering points only 1 so cannot both. Choose either upgrade footman to knight or recruit ship at port. Better to upgrade footman to knight for stronger defense. So winterfell recruit knight (cost2). White harbor upgrade footman to knight (cost1). That's within points.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"winterfell\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"winterfell\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"white-harbor\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"white-harbor\",\"upgrade_from_footman\":true}]}]}",
+        "call_id": "76a63f441",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_dlg8zxsaqsp",
+        "status": "completed"
+      },
+      {
+        "call_id": "76a63f441",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"7f89bc77-ad83-46e4-9634-e5aae03ce178\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_9y2ezle9uf6",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for now. We have 5 eligible regions, need assign orders. We have 0 starred allowed and defense is restricted, so cannot assign defense. Must assign orders among march, support, consolidate_power, raid. Currently we have units: bay-of-ice has a ship, castle-black has footman, knight, footman, winterfell has a knight, white-harbor has knight, the-shivering-sea has ship. Supply is 1, need ensure armies supply-compatible. Our army sizes: at winterfell we have 1 knight (supply 1). At white-harbor we have knight (1). At castle-black we have 3 units (footman, knight, footmen) = 3 supply? footman=1, knight=2? Actually knight counts as 2 supply? In game knights count as 2? I think knight counts as 2 supply. So castle-black has 1 knight (2) + 2 footmen (2) =4 supply, exceeds supply 1 -> illegal? But maybe they are not a single army? They are separate? They occupy same region, form one army. This seems over-supply; maybe we need to split via march? Could move some units. We have a ship at bay-of-ice can support? Ships don't count for supply? They allow movement over sea.\n\nGoal: expand toward nearest unattained castle: next castle maybe at Winterfell already castle, next at... We have only 2 castles currently (Winterfell and maybe? Actually we control Winterfell (castle) and White Harbor (castle level 1). Need 7 castles. We should aim to capture nearby castle like Karhold? It's land with castleLevel0. Maybe target the nearest castle: maybe at the Shivering Sea is sea. Could march from White Harbor to Winterfell? Already adjacent. Perhaps march knight from White Harbor to Winterfell to reinforce.\n\nWe need orders: cannot use defense. So assign March to a region with units to move. We have 5 regions, need assign orders to all? RequiredAssignmentCount 5, so must assign each. Choose priorities. Likely: March from White Harbor (priority high) to Winterfell to add defender. March from Castle Black maybe to Winterfell? But can't exceed supply. Might want to march some units out to reduce supply. Could raid? No enemy adjacent? Adjacent enemies? None. Support maybe for future battles; but no immediate battles.\n\nThus assign:\n- white-harbor: march (move knight to winterfell)\n- castle-black: march (move footman? maybe move footman to winterfell)\n- bay-of-ice: consolidate_power (to gain power)\n- the-shivering-sea: consolidate_power\n- winterfell: consolidate_power? we have already order maybe? But we need assign something; could support (to aid potential battle). Use support.\n\nStarredPreference avoid.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"white-harbor\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"winterfell\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "cf2821d92",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_vvuthb0shn",
+        "status": "completed"
+      },
+      {
+        "call_id": "cf2821d92",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"f21a06d3-288b-4606-b6ab-da4efabaee8b\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 46862,
+    "currentInputSha256": "a2d563778f9df9813b9193f43aa8fc03e996ef6610ae4507e14872a2f01c5dd7",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 72319,
+        "inputSha256": "68ee9d198f34207bc64ede8aebfcec38b8c33439b83caef90c25fb6236835311",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

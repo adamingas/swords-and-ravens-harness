@@ -1,0 +1,222 @@
+{
+  "case": 17,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 8,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 7104,
+    "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "port-of-pyke",
+          [
+            7,
+            8
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [7, 8]\n}",
+    "{\"unit_ids_to_destroy\":[7,8]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 73623,
+    "outputTokens": 214,
+    "totalTokens": 73837
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36793,
+      "input_tokens_details": {
+        "cached_tokens": 34304
+      },
+      "output_tokens": 160,
+      "output_tokens_details": {
+        "reasoning_tokens": 135
+      },
+      "total_tokens": 36953,
+      "cost": 0.01299755,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01299755,
+        "upstream_inference_input_cost": 0.01287755,
+        "upstream_inference_output_cost": 0.00012
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431506-sDLA4U2bRizRsKRKCxnC",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 36830,
+      "input_tokens_details": {
+        "cached_tokens": 34048
+      },
+      "output_tokens": 54,
+      "output_tokens_details": {
+        "reasoning_tokens": 34
+      },
+      "total_tokens": 36884,
+      "cost": 0.012931,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.012931,
+        "upstream_inference_input_cost": 0.0128905,
+        "upstream_inference_output_cost": 4.05e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431507-jtpCdUCDUOws28Ybueui",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431506-sDLA4U2bRizRsKRKCxnC",
+      "output": [
+        {
+          "id": "rs_tmp_ojfokop3tab",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to choose losses. Which units to sacrifice? Prefer keep land units for castles. Greyjoy has castles at Pyke (stronghold) and maybe others? Controlled castles: pyke (stronghold), seagard (none), flints-finger (none), greywater-watch (none), moat-cailin (none). To hold Pyke, need ship in port? Ship in port not needed for holding castle; castle is land. The ship is in port of pyke, which is adjacent to pyke land. Losing ships reduces transport ability. Keep knights for future invasions. Probably sacrifice ships. Choose both ship IDs 7 and 8.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_7c7kwla61bq",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [7, 8]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431507-jtpCdUCDUOws28Ybueui",
+      "output": [
+        {
+          "id": "rs_tmp_5nfzhsm2wbt",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need choose 2 units to destroy. Must consider preserving castles. Ships less useful? Probably destroy ships 7 and 8. That's two distinct. Return JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_ahobgyto1em",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"unit_ids_to_destroy\":[7,8]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28018,
+    "currentInputSha256": "34074dab238ee4a4ac7f5d0eccc01e7b279253eff687bc895a6d50e4202498ae",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 31640,
+        "inputSha256": "52fac0bb9f2286b5a71171fc50e4239ca3497de250efa9701a2d940df7f9b361",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 33805,
+        "inputSha256": "320aa92b38431e1f546a1c4cd1eb87840618f22efd0a9674d4fe8ed9864f4feb",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              7,
+              8,
+              9,
+              6,
+              37
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "a2c9ee0ae7aebd38febee4c189174dd6deeb1c5d3b992a02a20d474f90ef3579"
+  }
+}

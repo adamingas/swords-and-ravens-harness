@@ -1,0 +1,187 @@
+{
+  "case": 14,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "greyjoy",
+  "round": 2,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 1209,
+    "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"stream closed with reason: error\"}",
+  "serverActionsExecuted": false,
+  "errorChain": [
+    {
+      "type": "ModelRunError",
+      "message": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"stream closed with reason: error\"}"
+    },
+    {
+      "type": "RuntimeError",
+      "message": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"stream closed with reason: error\"}"
+    }
+  ],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 39667,
+    "outputTokens": 733,
+    "totalTokens": 40400
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39667,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 733,
+      "output_tokens_details": {
+        "reasoning_tokens": 733
+      },
+      "total_tokens": 40400,
+      "cost": 0,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0127797,
+        "upstream_inference_input_cost": 0.0119001,
+        "upstream_inference_output_cost": 0.0008796
+      },
+      "scope": "agent",
+      "response_id": "gen-1789456967-PqvRndFE3sZ6nkib0U2O",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "scope": "agent",
+      "status": "failed",
+      "responseId": "gen-1789456967-PqvRndFE3sZ6nkib0U2O",
+      "incompleteDetails": {
+        "value": "None"
+      },
+      "providerError": {
+        "code": "server_error",
+        "message": "stream closed with reason: error"
+      },
+      "output": [
+        {
+          "id": "rs_tmp_xo8vuu4qnr",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze the situation. I'm Greyjoy, round 2, planning phase. I have units in: pyke (footman+knight), ironmans-bay (1 ship), port-of-pyke (1 ship), greywater-watch (1 footman). 4 eligible regions, must assign 4.\n\nMaxStarredOrders: 0 (I'm last on King's Court). So no starred orders.\n\nGoals: capture castle areas. Flint's Finger and Seagard are undefended castles reachable.\n\nLet me check neighbours to plan marches.\n\nPyke: 1 castle area (my home). My units: footman+knight = army of 2, supply 2 allows army sizes 3,2,2. OK.\n\nGreywater-watch footman: single unit. From greywater-watch can reach Flint's Finger (castle), Moat Cailin (castle), Seagard (castle). \n\nLet me think: Pyke army (footman+knight = 3 str) could march to... Pyke neighbors: ironmans-bay, port-of-pyke. Pyke is island, so land units need ship transport. From Pyke, using ships in ironmans-bay, can reach? Pyke connects to ironmans-bay (sea). Ships in ironmans-bay... ship transport: consecutive sea areas with friendly ships. Ironmans-bay connects to seagard, riverrun, pyke, sunset-sea, the-golden-sound, flints-finger, greywater-watch, port-of-pyke.\n\nSo from Pyke, via ironmans-bay ship, land units can reach coastal areas adjacent to ironmans-bay: seagard, riverrun, flints-finger, greywater-watch. So Pyke army could march to Seagard (castle, undefended) or Flint's Finger (castle, undefended).\n\nGreywater-watch footman: neighbors bay-of-ice, flints-finger, ironmans-bay, moat-cailin, seagard. Land connections: flints-finger, moat-cailin, seagard. All castles undefended. So greywater-watch single footman can march to capture one.\n\nBut wait, if greywater-watch footman marches away, greywater-watch becomes empty. It's a supply=1 land area but contributes 0 castle. Not critical. But it's a land area for tiebreakers. We could leave control with power token (we have 6 power).\n\nLet me think about which castles to grab. Flint's Finger and Seagard are undefended. Moat Cailin is undefended too (castle). Actually let me check: moat-cailin castle=1. Not in current board units, controlPowerToken null — uncontrolled. So undefended.\n\nSo I could capture 2 castles this round: one from Pyke army (Seagard or Flint's Finger) and one from greywater-watch footman (Moat Cailin or Flint's Finger/Seagard).\n\nLet me be careful about supply. Pyke army marching: if it leaves Pyke, Pyke is home so stays mine. Good. Army moves to Seagard, becomes army of 2 (footman+knight) at Seagard. Supply 2 allows 3,2,2. Fine.\n\nGreywater-watch: single footman marching to Flint's Finger. Fine.\n\nBut careful: only one combat per march order. All targets undefended, no combat.\n\nNow orders. I need 4 assignments:\n- pyke: march (to move army out) — high priority\n- greywater-watch: march (to move footman out) — high priority\n- ironmans-bay: ? ship there. Consolidate power in sea earns no power. Maybe support order to help? Or raid?\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 25011,
+    "currentInputSha256": "8d0ee10e7de90d891e3252a65e5d50907d2409fc3d2b39a852e9ef8ee8fa3a38",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 27883,
+        "inputSha256": "fc6cd78b9d133ab0f2126b0e49980003467dd50f7e85943097b084edde65532e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "pyke",
+                  "ironmans-bay",
+                  "port-of-pyke",
+                  "greywater-watch"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "90e0da3fa4d2ef2e8235eae4198588f3e790c5a25a88c841d3fb73f3743c8471"
+  }
+}

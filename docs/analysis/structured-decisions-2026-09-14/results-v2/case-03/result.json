@@ -1,0 +1,163 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "winterfell",
+      "moves": [
+        [
+          "flints-finger",
+          [
+            45
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38986,
+    "outputTokens": 1240,
+    "totalTokens": 40226
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38986,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1240,
+      "output_tokens_details": {
+        "reasoning_tokens": 1253
+      },
+      "total_tokens": 40226,
+      "cost": 0.0022593,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0022593,
+        "upstream_inference_input_cost": 0.0019493,
+        "upstream_inference_output_cost": 0.00031
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425694-RArQUDtnN3D7lbvaRPfb",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425694-RArQUDtnN3D7lbvaRPfb",
+      "output": [
+        {
+          "id": "rs_tmp_1e584n3hth3",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to choose how to resolve March order from Winterfell (unit ID 45, a Stark knight). Reachable destinations listed: castle-black (stark, no combat), flints-finger (greyjoy, no combat), greywater-watch (greyjoy, triggers combat), karhold (stark), moat-cailin (greyjoy), the-stony-shore (neutral), white-harbor (neutral). No control token needed.\n\nWe need to consider supply: Stark supply =1, currently one army? Let's see Stark units: winterfell (knight), castle-black (2 knights), karhold (knight), bay-of-ice (ship), the-narrow-sea (ship). Armies are groups of 2+ units in same area. Currently:\n\n- castle-black has 2 knights => army size 2 (counts as one army)\n- karhold has 1 knight => single unit, not army\n- winterfell has 1 knight => single unit\n- bay-of-ice ship alone? ship alone is single unit, not army\n- the-narrow-sea ship alone also single\nThus Stark currently has one army (castle-black). Supply 1 allows allowed army sizes per table: supply 1 permits army sizes 3,2. Actually supply 1 -> permitted army sizes 3,2 (one army of up to 3, plus one army of up to 2?). Table: Supply 1: 3,2. Means can have up to two armies: one up to 3 units, another up to 2 units? Actually supply track: each entry lists sizes of armies allowed. For supply 1, they list \"3, 2\". Means you can have up to two armies, one of max 3, another max 2. So Stark can have up to two armies, total units maybe up to 5. Currently one army of 2 at castle-black. Moving the knight from winterfell could create second army if moved to a destination with another unit, else single unit not army.\n\nCheck each destination:\n\n- castle-black: currently 2 knights (stark). Moving our knight there would make 3 knights, still one army size 3 (allowed). No combat, just reinforce. Would increase army size but still within supply (max 3). No new castle gained (already owned). No castle capture.\n\n- flints-finger: currently controlled by Greyjoy (no Stark units). Destination would be empty, so moving there would vacate winterfell (leaving control token not needed). Capture would gain castle (flints-finger is a castle). No combat because empty neutral area? It's owned by Greyjoy through control token? Actually controlPowerToken for flints-finger is \"greyjoy\". So Greyjoy controls via power token. Moving a unit into an area with opponent's power token but no units does not cause combat; the token is removed (discarded) and Stark gains control without combat. So we would capture castle without combat. That gives +1 castle area. That seems strong.\n\n- greywater-watch: triggers combat (Greyjoy has units there: footman, knight, knight). Would be combat. Need support check. We could consider but maybe risky.\n\n- karhold: already Stark castle, already have own knight there (unit ID 29). Moving another knight there would make two knights. That area currently has 1 knight (unit 29). Adding second makes army of 2 knights, counts as army size 2. Since winterfell would be empty, still control via home symbol. No new castle gained.\n\n- moat-cailin: controlled by Greyjoy, empty units. Capture castle? Moat-cailin is a castle owned by Greyjoy via power token but no units. Moving there would capture without combat, gaining castle. Good.\n\n- the-stony-shore: neutral (no controller). Capture gives castle? It's listed as land; castle? It has supply=1 but no castle attribute. So not castle, just land with supply. It would give supply icon but not castle. Might be less valuable than castle.\n\n- white-harbor: neutral, castle=1, so capture gives castle without combat. Also supply=0? Actually white-harbor has castle=1 supply not listed (just castle). So capture gives castle.\n\nWe need to consider supply after move: If we move to flints-finger (empty), we'll have army at castle-black (2 knights) plus possibly a lone knight at flints-finger (single unit not army). That's okay. Supply limit: we would still have only one army (castle-black) size 2. Single unit not counted. So within supply.\n\nAlso note we have a ship at bay-of-ice and the-narrow-sea but irrelevant.\n\nThus best is to capture a castle without combat: either flints-finger, moat-cailin, white-harbor. Which is best? Maybe choose flints-finger (adjacent) capture a new castle area, increasing victory points. Also achieve gaining a castle area (stark currently 1 castle; more is good). Moat-cailin also castles, but maybe Greyjoy may retaliate later. White-harbor also castle, but further away? It's reachable from Winterfell per list yes.\n\nWhich to pick? Perhaps capture flints-finger, as it's directly adjacent and currently Greyjoy's power token, likely to provoke but good. Choose flints-finger.\n\nThus moves list: move unit 45 to flints-finger.\n\nWe must output final JSON with moves. Format likely: {\"moves\":[{\"unitId\":45,\"toRegionId\":\"flints-finger\"}]}. Need to confirm schema? Not provided but similar tasks. Assume required field: \"moves\". Provide list of objects with unitId and destination regionId.\n\nWe'll output that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_l2c1hffqubp",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 36173,
+    "currentInputSha256": "76913f512d788a16493e4c016618272c1366f927bb82db721034f7ddfba0fb80",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 41118,
+        "inputSha256": "b6be6e43b43773f24da75fcd10ef14a03d8d304f29cc2311d37111bc16069029",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "flints-finger",
+                  "greywater-watch",
+                  "karhold",
+                  "moat-cailin",
+                  "the-stony-shore",
+                  "white-harbor"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "d4f717f41f6a6ec47d5f2e42249c9ff479ab365f1e80c926b66ff52d7394f735"
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 2344,
+    "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "kingswood",
+      "moves": [
+        [
+          "the-reach",
+          [
+            25,
+            26
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}",
+    "{\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":false}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 77658,
+    "outputTokens": 372,
+    "totalTokens": 78030
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38487,
+      "input_tokens_details": {
+        "cached_tokens": 35968
+      },
+      "output_tokens": 315,
+      "output_tokens_details": {
+        "reasoning_tokens": 262
+      },
+      "total_tokens": 38802,
+      "cost": 0.0137067,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0137067,
+        "upstream_inference_input_cost": 0.01347045,
+        "upstream_inference_output_cost": 0.00023625
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431501-E7XBW41LssDRnJkTMiSS",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 39171,
+      "input_tokens_details": {
+        "cached_tokens": 28544
+      },
+      "output_tokens": 57,
+      "output_tokens_details": {
+        "reasoning_tokens": 21
+      },
+      "total_tokens": 39228,
+      "cost": 0.0137526,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0137526,
+        "upstream_inference_input_cost": 0.01370985,
+        "upstream_inference_output_cost": 4.275e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431502-QTiRa2N0M5SAcubgnZid",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431501-E7XBW41LssDRnJkTMiSS",
+      "output": [
+        {
+          "id": "rs_tmp_fyn4lqpuae7",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide move. From actionGuidance reachable regions: storms-end (land, castleLevel 1 owned, no combat), the-boneway (land, no castle), the-reach (land, castleLevel1, triggers combat? castleAreasGainedIfCaptured 1, controller null, triggersCombat false). No combat likely. We have units 25 footman and 26 knight in Kingswood. Supply track is 2, allowed armies: supply 2 -> permitted sizes 3,2,2. Currently we have one army of 2 units. Moving both to same dest okay. We could move both to the-reach to capture a castle (reach has castle). That would give us castle area. No combat (no enemy units). So we would vacate Kingswood losing its castle (none). Actually Kingswood has no castle. So no loss. Could also move both to storms-end but no gain. The-boneway no castle. So best is move both to the-reach to capture castle. Need to leave power token? Vacating Kingswood (no units) no control token needed because no castle/stronghold? No need to preserve. So leave_power_token false. Moves: destination the-reach, unit_ids [25,26]. Done.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_gnsv3csklqd",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431502-QTiRa2N0M5SAcubgnZid",
+      "output": [
+        {
+          "id": "rs_tmp_9yugq5m38mf",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We decided to move both units to The Reach, no power token. That matches earlier. Return JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_3vfacmwo6g5",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":false}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 34853,
+    "currentInputSha256": "1a734e56a859ad7c44618c57e7fc1661366a829a0adb427b31a04135137234ad",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 39289,
+        "inputSha256": "d93ede8b4c37bdf48ca50796deba18ba0857a8f20aa8dc8ed2cd4921c56c208c",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 43986,
+        "inputSha256": "69cc315487b7a90ef58eba9a183a686f94da16c67f1f692e48a7639eac8e985b",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "storms-end",
+                  "the-boneway",
+                  "the-reach"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    25,
+                    26
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "492b30e74813fde68ff78611e98f87b9476e7dc9ba7b9b38deefaffd1e77387e"
+  }
+}

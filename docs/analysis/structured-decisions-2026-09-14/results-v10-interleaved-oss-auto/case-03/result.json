@@ -1,0 +1,105 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "variant": "interleaved-tools-and-structured-output",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Error code: 404 - {'error': {'message': 'No endpoints found that can handle the requested parameters. To learn more about provider routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection', 'code': 404, 'metadata': {'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 24}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 23}, {'step': 'Filter by Tool Compatibility', 'endpoint_count': 18}], 'failed_routing_step': 'Filter by Parameters'}}}",
+  "serverActionsExecuted": false,
+  "errorChain": [
+    {
+      "type": "ModelRunError",
+      "message": "Error code: 404 - {'error': {'message': 'No endpoints found that can handle the requested parameters. To learn more about provider routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection', 'code': 404, 'metadata': {'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 24}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 23}, {'step': 'Filter by Tool Compatibility', 'endpoint_count': 18}], 'failed_routing_step': 'Filter by Parameters'}}}"
+    },
+    {
+      "type": "NotFoundError",
+      "message": "Error code: 404 - {'error': {'message': 'No endpoints found that can handle the requested parameters. To learn more about provider routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection', 'code': 404, 'metadata': {'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 24}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 23}, {'step': 'Filter by Tool Compatibility', 'endpoint_count': 18}], 'failed_routing_step': 'Filter by Parameters'}}}"
+    },
+    {
+      "type": "HTTPStatusError",
+      "message": "Client error '404 Not Found' for url 'https://openrouter.ai/api/v1/responses'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+    }
+  ],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 39338,
+    "currentInputSha256": "6d9ee94702f6c5fa31504aa4ab30c1d1894f430ea0cdbdf0832e010a14b4180d",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 44402,
+        "inputSha256": "9b5127e99da977fdd409a557942b13040be78e07ff1bcf1f96bbed9bdc353557",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "flints-finger",
+                  "greywater-watch",
+                  "karhold",
+                  "moat-cailin",
+                  "the-stony-shore",
+                  "white-harbor"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "82c0db77268e1437a2efc943eaafdc7fb8994b64a3410fffb39685b2b688586f"
+  }
+}

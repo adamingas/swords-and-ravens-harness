@@ -1,0 +1,354 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              45
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "winterfell",
+      "moves": [
+        {
+          "destination_region_id": "castle-black",
+          "unit_ids": [
+            45
+          ]
+        }
+      ],
+      "leave_power_token": false,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 15942,
+    "outputTokens": 153,
+    "totalTokens": 16095
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 15942,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 153,
+      "output_tokens_details": {
+        "reasoning_tokens": 116
+      },
+      "total_tokens": 16095,
+      "cost": 0.00569445,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00569445,
+        "upstream_inference_input_cost": 0.0055797,
+        "upstream_inference_output_cost": 0.00011475
+      },
+      "scope": "agent",
+      "response_id": "gen-1789375005-pB8oFiYLJYYINENKAYer",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789375005-pB8oFiYLJYYINENKAYer",
+      "output": [
+        {
+          "id": "rs_tmp_iyr61aiw0g8",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the march order for Winterfell. Options reachable regions listed. No combat triggers except greywater-watch triggers combat. Likely want to avoid combat. Best to move knight to Karhold or Castle Black to consolidate? Already have units there. Maybe move to Greywater Watch to attack Greyjoy? But combat would involve their units and possibly support from Greyjoy? Greyjoy has units in Greywater Watch (footman, knights). Combat would be tough. Probably better to discard the march (no move) as safe pass. Use resolve_march with empty moves.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[],\"leave_power_token\":false}",
+          "call_id": "13eb49e5e",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_w1kz9uxbj1b",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "56e2cda05f77423337d5b6e3e2a827d1d8176de58711421308740124b8a9a30c",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 306998,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_n7g216bhd5o",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in bidding phase round 4. Need to submit a bid. We have 3 power tokens. Opponents have many. Current bids empty. We should bid to improve iron throne or other tracks? Our house is Stark, position on iron throne track is 5th (greyjoy, lannister, baratheon, tyrell, stark, martell). We want to move up. Bidding amount determines order on track? Usually higher bid moves up. We have 3 tokens, opponents have many. Likely not worth spending many. Might bid 1 to try gain position? But we already have 0 tokens spent this round. We could bid 1 token to possibly move up if others bid 0. We'll bid 1.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":1}",
+        "call_id": "6ec717d84",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_32lsp8inebs",
+        "status": "completed"
+      },
+      {
+        "call_id": "6ec717d84",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"2b8775fb-bd57-4ebf-9ace-17a2d32fbebb\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_q6ppemesxuf",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in bidding phase, need to submit bid. We have 2 power tokens left. Need decide amount. Opponents bids: only martell has -1 (meaning passed?). The bidding results shown earlier: final order track gave order list. Our previous bids: round2 we bid 8, round4 we bid 0 then 1. Now this is a new decision? pendingDecision type bidding with bids: [[\"martell\",-1]] meaning only martell passed? We have 2 tokens, can bid 0-2. To improve position on tracks, probably bid 2 to get Iron Throne? Iron Throne order currently: greyjoy, lannister, baratheon, tyrell, stark, martell. We are last. Bidding can move us up. We have 2 tokens, others have more. If we bid 2, likely we stay last. Maybe bid 0 to conserve tokens for future. Strategic: need power tokens for future bids on tracks. Probably conserve. So submit_bid amount 0.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":0}",
+        "call_id": "2f8f1ffa7",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_cne1dn518rf",
+        "status": "completed"
+      },
+      {
+        "call_id": "2f8f1ffa7",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"14bf819c-82ce-4d39-9f7f-e2f8b9136e2d\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_r1m7db9uyg",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Now need to bid again? Bidding phase pendingDecision with participating houses includes us and others. We must submit a bid amount. We have 2 power tokens. Need to consider value: iron throne track currently position: order list shows ironThrone track order: [\"greyjoy\",\"lannister\",\"baratheon\",\"tyrell\",\"stark\",\"martell\"]; Stark is 5th. Better to move up? Bidding for Iron Throne? This is wildlings-attack bidding, likely for track? Probably bidding for Iron Throne? Not sure. We should bid modestly to improve position. Opponents have many tokens. Greyjoy has 5, Lannister 3, Baratheon 0, Tyrell 2, Martell 0. To move up one spot, need to outbid current holder (greyjoy) by at least 1 token? Actually bids are secret for each track? Might be a single bid for all tracks? Hard. We'll bid 2 to try improve.\n\nSubmit_bid amount 2.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "7b4673aab",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_sf5e5frmd2",
+        "status": "completed"
+      },
+      {
+        "call_id": "7b4673aab",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"4d82261a-d978-4aef-a838-a19e4afb14d6\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_co963kt3b7",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Need to place orders for 5 regions. We must choose orders. Likely want defense on stronghold borders, support for potential attacks, consolidate power for supply. We have no starred orders allowed. Provide assignments. Let's pick: winterfell defense, bay-of-ice consolidate, castle-black support, karhold support, the-narrow-sea consolidate. priority accordingly.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "92ba2915c",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_z6do4wdmham",
+        "status": "completed"
+      },
+      {
+        "call_id": "92ba2915c",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"548acfb9-7447-483d-b595-b86eac616c25\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_igunxdoclr",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders now. We must assign 5 orders as done before. Likely want defense on winterfell, support on adjacent, consolidate power where safe. Already used similar. Could improve: maybe march from winterfell to expand? But supply 1 only, need supply token. Cannot exceed supply. Currently have 1 supply icon controlled at Winterfell (garrison 2). Expanding may exceed supply. Better defend. So keep same as previous. Submit_orders with same assignments.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "b09b97974",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_ncycshtm50g",
+        "status": "completed"
+      },
+      {
+        "call_id": "b09b97974",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"13f86755-d814-4a52-bf52-1b3064c6055f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_nr04nkstq2o",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders again for round 6. Same assignments likely fine. Submit_orders with same.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "b32c23b5f",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_u483900c35m",
+        "status": "completed"
+      },
+      {
+        "call_id": "b32c23b5f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"380ebfeb-ad35-415b-a326-e2ceab587f1d\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_d25ai2r3nzi",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to decide mustering. We have supply 1, currently one army at castle-black (2 units) counts as army size 2, allowed army sizes [3,2]; we have single-unit regions winterfell, bay-of-ice, port-of-winterfell, the-shivering-sea. Mustering points 2 at winterfell. Options: recruit footman at winterfell, or ship at bay-of-ice, or ship at port-of-winterfell, or ship at the-shivering-sea. Supply limit: only one army slot? Supply=1 means max one army total size? Actually supply icons =1, so only one army slot total size? Allowed sizes [3,2] means you can have up to 2 armies? But with supply 1 you get 1 army slot? I think supply icons control total number of armies, not size. So must keep total armies <=1. Currently have one army at castle-black (2 units). If we add footman to winterfell, that creates a new army (single unit region counts as army? rule: only regions with two or more units use an army slot. Single unit regions not count towards army slot. So adding footman at winterfell is okay; supply still 1 army (castle-black). Adding ship at bay-of-ice creates ship unit, single unit, not count? Ships are sea units not army. So okay. We have supply safe new units when chosen alone: winterfell supplySafeNewUnitsWhenChosenAlone 2, so we could recruit two units there? But mustering points 2 allows 2 points; footman costs 1, knight 2, siege-engine 2. Could recruit footman (1) and upgrade footman to knight? No footman present? There is one footman at winterfell already. Upgrade from footman allowed for knight or siege-engine costing extra 1. Could upgrade that footman to knight costing 2 total? That would use 2 points. That would create a knight at winterfell, army size still 1 unit, okay. Might be stronger. Better to upgrade to knight for defense. Let's do upgrade footman to knight at winterfell. Must specify upgrade_from_footman true and unit_type knight. Must also ensure supply safe; upgrade uses 2 points total (footman already present, upgrade cost 1? unit_cost footmanUpgradeToKnightOrSiege =1, plus footman cost? Actually unitCosts footman 1, upgrade cost 1, total 2. SupplySafeNewUnitsWhenChosenAlone=2, so okay.\n\nThus mustering: one recruitment: unit_type knight, region_id winterfell, upgrade_from_footman true. No other recruitments. Use muster_units.\n\n",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"winterfell\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"winterfell\",\"upgrade_from_footman\":true}]}]}",
+        "call_id": "76dc18bd2",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_w3poyy6d4y",
+        "status": "completed"
+      },
+      {
+        "call_id": "76dc18bd2",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"4f432655-9a41-4176-8fd5-f2772a5a65b0\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_c5lmmptrhun",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders. Restrictions: defense is restricted? Means cannot assign defense? Actually restrictedOrderCategories [\"defense\"] means defense orders are currently restricted (maybe by Westeros card). So we cannot assign defense orders; they will be substituted. We must still assign orders to 5 regions. Preferred orders currently have defense for winterfell - not allowed. Should choose another order maybe march or support. Need priority high for winterfell. Probably want to attack? But limited units: winterfell has knight (1), plus maybe extra knight from muster now? Actually after muster, winterfell has knight id45 and also upgraded from footman? The muster added knight upgrading from footman at winterfell, so now winterfell has two knights? Initially had one knight, plus upgraded footman to knight, so now two knights. So can march. Let's set winterfell -> march (prefer starred? but maxStarredOrders 0, cannot. So plain march). Bay of Ice has ship only, can consolidate power or raid? ship can't march. So consolidate power is fine. Castle Black has two knights, could support winterfell or march. Karhold has knight. The Narrow Sea has ship. We need support orders to boost attacks. Winterfell will march maybe to neighboring region like castle-black or karhold? Both adjacent. Might want to attack winterfell? Actually we attack enemy? Adjacent enemies? Castle Black is our region, karhold also ours. No enemy adjacent. Maybe plan to move towards White Harbor? But need march through winterfell to white harbor? White harbor is land with supply? Not controlled. But need ship? Probably cannot. Let's just set winterfell march (maybe to winterfell itself? March must move). Might be waste. Better set winterfell support? But support only supports adjacent battles. No battles. Defense is prohibited. So best is to assign march to winterfell to move into white harbor? Adjacent? Yes winterfell neighbours white harbor via land. White harbor is neutral with no units, but castle level 1. Could capture? Need march into white harbor, need enough strength. We have two knights (strength 2 each) =2? Knight strength = 1? Actually unit strength: footman 1, knight 2. So two knights =4. No enemy there, so will occupy after move and may get castle? Capture would give castle? Not immediate? Might get control token. Anyway assign march.\n\nCastle Black: support to winterfell? support to winterfell's attack. So support.\n\nKarhold: support to winterfell as well.\n\nThe Narrow Sea: consolidate power (to get power token). Bay of Ice: consolidate power.\n\nThus assignments: winterfell march, castle-black support, karhold support, bay-of-ice consolidate, the-narrow-sea consolidate.\n\nAll avoid starred. priority high for winterfell.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "898cd2bf6",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_0ibr01re95cl",
+        "status": "completed"
+      },
+      {
+        "call_id": "898cd2bf6",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"b98118c0-19af-449d-b39d-caa8cf5b14ba\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 45878,
+    "currentInputSha256": "fd0a423e657058abc4db913c1ea7bf00fd812d6356e1cd48efbf582de6c6712e",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 67306,
+        "inputSha256": "56e2cda05f77423337d5b6e3e2a827d1d8176de58711421308740124b8a9a30c",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

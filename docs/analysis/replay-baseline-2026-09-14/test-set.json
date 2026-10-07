@@ -1,0 +1,846 @@
+{
+  "purpose": "Current ten-case prompt experiment set. Eight exact baseline repeats and two user-retained Stark failures with changed actions.",
+  "comparison": "Tool names and parsed arguments, captured before execution; reasoning prose is not required to repeat.",
+  "repeatability_limit": "One observed successful replay per selected case; selection conditions on observed repeatability and does not estimate general model repeat rates.",
+  "supersedes_for_test_selection": "cases.json (original screening candidates remain unchanged for audit)",
+  "cases": [
+    {
+      "case": 1,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "a8d4a87b-ead8-4e12-a6a2-b8154f050bc2",
+      "prior_report_ref": "A03",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 1,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "66af03cad223f9c8b60f896611d13b2e93b22d69e1d2e860322ffbd170ea675a",
+      "sdk_message_id": 56,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "karhold",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Leaves White Harbor without a permitted control token, losing a castle.",
+      "test_set_index": 1,
+      "selection_basis": "User requested retention: poor expansion decision persists despite changed move.",
+      "baseline_replay": {
+        "result_file": "results/case-01/result.json",
+        "status": "different",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "white-harbor",
+              "moves": [
+                {
+                  "destination_region_id": "karhold",
+                  "unit_ids": [
+                    3
+                  ]
+                }
+              ],
+              "leave_power_token": false
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "white-harbor",
+              "moves": [
+                {
+                  "destination_region_id": "winterfell",
+                  "unit_ids": [
+                    3
+                  ]
+                }
+              ],
+              "leave_power_token": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 2,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "f2da7d80-f31f-4571-82df-57e1e20c4519",
+      "prior_report_ref": "A15",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 5,
+      "phase": "place-orders",
+      "original_input_sha256": "d7c4db24a986d85fb699d9337d2b1bd4ee8c1bc232d1df4526da2480a8e46f26",
+      "sdk_message_id": 407,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "submit_orders",
+      "accepted_arguments": {
+        "assignments": [
+          {
+            "region_id": "winterfell",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "bay-of-ice",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "castle-black",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "karhold",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "the-narrow-sea",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          }
+        ],
+        "applied_orders": [
+          {
+            "region_id": "winterfell",
+            "order_id": 4,
+            "order": "defense"
+          },
+          {
+            "region_id": "bay-of-ice",
+            "order_id": 10,
+            "order": "consolidate_power"
+          },
+          {
+            "region_id": "castle-black",
+            "order_id": 7,
+            "order": "support"
+          },
+          {
+            "region_id": "karhold",
+            "order_id": 8,
+            "order": "support"
+          },
+          {
+            "region_id": "the-narrow-sea",
+            "order_id": 11,
+            "order": "consolidate_power"
+          }
+        ]
+      },
+      "failure_to_recheck": "Claims supply blocks expansion; assigns no marches and two zero-income sea consolidation orders.",
+      "test_set_index": 2,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results/case-02/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "submit_orders",
+            "arguments": {
+              "assignments": [
+                {
+                  "region_id": "winterfell",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 100
+                },
+                {
+                  "region_id": "bay-of-ice",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 90
+                },
+                {
+                  "region_id": "castle-black",
+                  "preferred_order": "support",
+                  "starred_preference": "avoid",
+                  "priority": 80
+                },
+                {
+                  "region_id": "karhold",
+                  "preferred_order": "support",
+                  "starred_preference": "avoid",
+                  "priority": 70
+                },
+                {
+                  "region_id": "the-narrow-sea",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 60
+                }
+              ]
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "submit_orders",
+            "arguments": {
+              "assignments": [
+                {
+                  "region_id": "winterfell",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 100
+                },
+                {
+                  "region_id": "bay-of-ice",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 90
+                },
+                {
+                  "region_id": "castle-black",
+                  "preferred_order": "support",
+                  "starred_preference": "avoid",
+                  "priority": 80
+                },
+                {
+                  "region_id": "karhold",
+                  "preferred_order": "support",
+                  "starred_preference": "avoid",
+                  "priority": 70
+                },
+                {
+                  "region_id": "the-narrow-sea",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 60
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 3,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "af30a98d-e3bc-4fd3-afea-78dc20db8c69",
+      "prior_report_ref": "A19",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "fd0a423e657058abc4db913c1ea7bf00fd812d6356e1cd48efbf582de6c6712e",
+      "sdk_message_id": 609,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              45
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Reinforces owned Castle Black instead of taking empty White Harbor.",
+      "test_set_index": 3,
+      "selection_basis": "User requested retention: poor expansion decision persists despite changed move.",
+      "baseline_replay": {
+        "result_file": "results/case-03/result.json",
+        "status": "different",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "winterfell",
+              "moves": [
+                {
+                  "destination_region_id": "castle-black",
+                  "unit_ids": [
+                    45
+                  ]
+                }
+              ],
+              "leave_power_token": false
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "winterfell",
+              "moves": [],
+              "leave_power_token": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 4,
+      "database": "data/evaluations/gpt-oss-120b-house-test-4747688/game-01/attempt-01/harness.db",
+      "run_id": "1be3bc72-ccd8-47a5-8f90-7487dd80fb2a",
+      "prior_report_ref": "B36",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 10,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "b6738b2f19cd15283b29d22ec8c7303c0e5ab65cdebfbcf19d5d74a86953eb44",
+      "sdk_message_id": 1185,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48,
+              55
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Abandons Moat Cailin in round 10 instead of retaining it and taking empty White Harbor with one knight.",
+      "test_set_index": 4,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results/case-04/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "moat-cailin",
+              "moves": [
+                {
+                  "destination_region_id": "winterfell",
+                  "unit_ids": [
+                    48,
+                    55
+                  ]
+                }
+              ],
+              "leave_power_token": false
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "moat-cailin",
+              "moves": [
+                {
+                  "destination_region_id": "winterfell",
+                  "unit_ids": [
+                    48,
+                    55
+                  ]
+                }
+              ],
+              "leave_power_token": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 6,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "1b4dc8b5-f13c-4c44-82e8-a550e4a597a3",
+      "prior_report_ref": "D10",
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 3,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "152c7b4827b819109900421c7d3aeefe173e005e71fd33965d8b94c706d3d1dc",
+      "sdk_message_id": 229,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "storms-end",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Returns to owned Storms End instead of taking the empty castle at the Reach.",
+      "test_set_index": 5,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results/case-06/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "kingswood",
+              "moves": [
+                {
+                  "destination_region_id": "storms-end",
+                  "unit_ids": [
+                    25,
+                    26
+                  ]
+                }
+              ],
+              "leave_power_token": true
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "kingswood",
+              "moves": [
+                {
+                  "destination_region_id": "storms-end",
+                  "unit_ids": [
+                    25,
+                    26
+                  ]
+                }
+              ],
+              "leave_power_token": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 8,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "eb12ba74-4853-482b-b41c-f77d153076b4",
+      "prior_report_ref": "E20",
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 6,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "d56e477ed9a262bd249dd81bb6b6f04eb11b4796d26cf4f8e2cd524b89dfbd2e",
+      "sdk_message_id": 503,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ],
+        "leave_power_token": true,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Reinforces owned Greywater Watch instead of taking empty White Harbor while retaining Moat Cailin.",
+      "test_set_index": 6,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results/case-08/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "moat-cailin",
+              "moves": [
+                {
+                  "destination_region_id": "greywater-watch",
+                  "unit_ids": [
+                    6,
+                    37
+                  ]
+                }
+              ],
+              "leave_power_token": true
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "moat-cailin",
+              "moves": [
+                {
+                  "destination_region_id": "greywater-watch",
+                  "unit_ids": [
+                    6,
+                    37
+                  ]
+                }
+              ],
+              "leave_power_token": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 10,
+      "database": "data/evaluations/model-tournament-ebae98a/game-02/attempt-01/harness.db",
+      "run_id": "9dec0d3a-4d7e-4a17-b692-b9ea0e3d2568",
+      "prior_report_ref": null,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 3,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "cd8e241db93dd0a97d58177992846c373e6c8eb9ba360dfe48325855efbe9838",
+      "sdk_message_id": 1263,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [],
+        "leave_power_token": false,
+        "omitted_supply_unsafe_move_groups": 0,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Discards a march despite reachable empty Starfall, which would add a castle and retain the same number of supply icons.",
+      "test_set_index": 7,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results/case-10/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "princes-pass",
+              "moves": [],
+              "leave_power_token": false
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "resolve_march",
+            "arguments": {
+              "starting_region_id": "princes-pass",
+              "moves": [],
+              "leave_power_token": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 12,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "518d3106-b81a-4986-8af4-f8bd299af1ef",
+      "prior_report_ref": "D30",
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "phase": "select-units",
+      "original_input_sha256": "67fed0f043baa553ff968a2490e256c917c6cf55cb67866aff44cc850300f61f",
+      "sdk_message_id": 710,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "select_units",
+      "accepted_arguments": {
+        "selections": [
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              27,
+              46
+            ]
+          }
+        ]
+      },
+      "failure_to_recheck": "Destroys its last two land units during a Wildling attack, retaining only a ship; confuses removal with retreat.",
+      "test_set_index": 8,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results-added/case-12/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "select_units",
+            "arguments": {
+              "selections": [
+                {
+                  "region_id": "starfall",
+                  "unit_ids": [
+                    27,
+                    46
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "select_units",
+            "arguments": {
+              "selections": [
+                {
+                  "region_id": "starfall",
+                  "unit_ids": [
+                    27,
+                    46
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 14,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "ed77f82f-b3d6-427c-8a7a-d76a3d480dda",
+      "prior_report_ref": "E03",
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "phase": "place-orders",
+      "original_input_sha256": "a4e72c8b09f9254ad606e3881f260c063d68eaadf7cc5ff1adf98925c1f04d15",
+      "sdk_message_id": 105,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "submit_orders",
+      "accepted_arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 50
+          }
+        ],
+        "applied_orders": [
+          {
+            "region_id": "pyke",
+            "order_id": 4,
+            "order": "defense"
+          },
+          {
+            "region_id": "greywater-watch",
+            "order_id": 5,
+            "order": "defense"
+          },
+          {
+            "region_id": "port-of-pyke",
+            "order_id": 10,
+            "order": "consolidate_power"
+          },
+          {
+            "region_id": "ironmans-bay",
+            "order_id": 11,
+            "order": "consolidate_power"
+          }
+        ]
+      },
+      "failure_to_recheck": "Places no marches for a second round despite available ship transport and nearby empty castles; uses a zero-income consolidation order in Ironmans Bay.",
+      "test_set_index": 9,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results-added-2/case-14/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "submit_orders",
+            "arguments": {
+              "assignments": [
+                {
+                  "region_id": "pyke",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 80
+                },
+                {
+                  "region_id": "greywater-watch",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 70
+                },
+                {
+                  "region_id": "port-of-pyke",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 60
+                },
+                {
+                  "region_id": "ironmans-bay",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 50
+                }
+              ]
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "submit_orders",
+            "arguments": {
+              "assignments": [
+                {
+                  "region_id": "pyke",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 80
+                },
+                {
+                  "region_id": "greywater-watch",
+                  "preferred_order": "defense",
+                  "starred_preference": "avoid",
+                  "priority": 70
+                },
+                {
+                  "region_id": "port-of-pyke",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 60
+                },
+                {
+                  "region_id": "ironmans-bay",
+                  "preferred_order": "consolidate_power",
+                  "starred_preference": "avoid",
+                  "priority": 50
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": 17,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "98c55649-281e-4dbc-a43d-c6ae319cad10",
+      "prior_report_ref": "E26",
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "phase": "select-units",
+      "original_input_sha256": "d37fa08dac06650b6eb5a5109da5c167f114e2b0cf71660971e57addd58079aa",
+      "sdk_message_id": 694,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "select_units",
+      "accepted_arguments": {
+        "selections": [
+          {
+            "region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ]
+      },
+      "failure_to_recheck": "Selects its two knights for destruction during a Wildling attack while reasoning that it should keep knights for defense; could instead sacrifice two ships in port.",
+      "test_set_index": 10,
+      "selection_basis": "Requested tool name and parsed arguments repeated exactly in one live baseline replay.",
+      "baseline_replay": {
+        "result_file": "results-added-5/case-17/result.json",
+        "status": "same",
+        "original_operations": [
+          {
+            "name": "select_units",
+            "arguments": {
+              "selections": [
+                {
+                  "region_id": "greywater-watch",
+                  "unit_ids": [
+                    6,
+                    37
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "replay_operations": [
+          {
+            "name": "select_units",
+            "arguments": {
+              "selections": [
+                {
+                  "region_id": "greywater-watch",
+                  "unit_ids": [
+                    6,
+                    37
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "additional_screening": {
+    "candidate_manifest": "added-candidates.json",
+    "selected": [
+      12,
+      14,
+      17
+    ],
+    "changed_and_not_selected": [
+      11,
+      15,
+      16
+    ],
+    "provider_unavailable": [
+      13
+    ],
+    "result_directories": [
+      "results-added",
+      "results-added-2",
+      "results-added-3",
+      "results-added-4",
+      "results-added-5"
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "winterfell",
+      "moves": [],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": []\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38723,
+    "outputTokens": 1084,
+    "totalTokens": 39807
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38723,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1084,
+      "output_tokens_details": {
+        "reasoning_tokens": 1151
+      },
+      "total_tokens": 39807,
+      "cost": 0.00220715,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00220715,
+        "upstream_inference_input_cost": 0.00193615,
+        "upstream_inference_output_cost": 0.000271
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425566-PgG7Ova1OK6Tx3gZQqp0",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425566-PgG7Ova1OK6Tx3gZQqp0",
+      "output": [
+        {
+          "id": "rs_tmp_v1dgpgi7pql",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve March order from Winterfell. ActionGuidance shows reachableRegions list with details: castle-black, flints-finger, greywater-watch (triggersCombat true), karhold, moat-cailin, the-stony-shore, white-harbor. We have one unit: unit 45 is a knight at Winterfell (after mustering upgrade). Supply is 1, we have supply limit 1 (means we can have up to 2 armies: sizes 3,2? Wait supply track 1 gives permitted army sizes 3,2 per table. Supply 1 allows 2 armies: size 3 and size 2. Currently we have armies? Units: at Winterfell one knight, at Castle Black two knights, at Karhold one knight, plus ships at Bay of Ice and The Narrow Sea. Ships count as units, each may form armies. Our supply of 1 (supply icons controlled =1) means we can have at most 2 armies with sizes up to 3 and 2. Currently armies: Army1: knights at Castle Black (2 knights = 2 units) => size 2. Army2: knights at Karhold (1 unit) + Winterfell (1) not adjacent? They are not adjacent directly but both are separate areas, each single unit not an army. Also ship at Bay of Ice (sea) alone unit forms army size 1 (but single unit not an army). Ship at Narrow Sea same. So supply okay.\n\nWe must ensure after moving, we don't exceed supply. Moving the knight from Winterfell to a destination could join another army possibly exceeding size limit.\n\nCheck each destination:\n\n- castle-black: currently 2 knights (size 2). Adding another knight => size 3, still within allowed sizes (3 and 2). That would be a single army of size 3 at Castle Black. That uses up the 3-slot army; other armies: ship at Bay of Ice and ship at Narrow Sea (size1 each not count), maybe fine. No other armies >2 size.\n\n- flints-finger: currently no Stark units. It's a land area controlled by Greyjoy (controller greyjoy). Moving there would be combat? triggersCombat false indicates no enemy units; but it's controlled by Greyjoy (owner). Combat occurs if enemy units present; there are none. So moving there would just occupy without combat, but would vacate Winterfell. If we vacate Winterfell and leave no unit, we would lose control of Winterfell (a castle). No control token can be placed because canLeavePowerToken false (as per actionGuidance). So we would lose the castle and possibly victory points. Not good.\n\n- greywater-watch: triggersCombat true, controller greyjoy, enemy units present? Greywater-watch has Greyjoy units (footman, knights). So moving there triggers combat; we would attack there.\n\n- karhold: controller Stark, already have a knight there. Moving there would join with that knight forming army of 2 knights (size2) which is okay.\n\n- moat-cailin: controller Greyjoy, no Stark units. No combat (no enemy units). Would vacate Winterfell and lose castle.\n\n- the-stony-shore: controller null, no units. No combat, vacate Winterfell lose castle.\n\n- white-harbor: controller null, no units. Same.\n\nThus best is to attack greywater-watch (combat) possibly to gain castles/strongholds? Greywater-watch is a land area with supply 1 but no castle/stronghold. It does not give victory point. Castle Black and Karhold have no castles (they are just land areas with no castle? castle-black is a land area with no castle but maybe has a supply? No castle/stronghold attribute not listed. So moving to Castle Black would give us control of that area (no castle) but we would lose Winterfell castle. Not good.\n\nGoal: preserve castle count. So maybe we should stay (i.e., not move) to avoid losing Winterfell. But we must resolve the March order now; we could discard it with empty moves list, vacating nothing. That would keep knights at Winterfell, but we would waste March order. Is there any advantage to moving? Could we move to Karhold to strengthen there, still keep Winterfell? Wait we must move the knight from Winterfell; the unit will vacate Winterfell, leaving Winterfell empty of units. Since canLeavePowerToken false, we cannot place power token, thus we would lose Winterfell control. That would lose a castle, dropping us to 0 castles? Actually we would still have other castle? Stark controls only Winterfell as castle. Losing it would give us 0 castles, terrible.\n\nThus the optimal decision is to discard the March order (empty moves), preserving Winterfell.\n\nThus final answer should be empty moves list.\n\nJSON format? Need to follow action schema for resolve-march-order. Likely it's {\"moves\": []}. The schema not given but typical. From earlier description: \"An empty moves list discards the selected March order without moving units\". So we return {\"moves\": []}.\n\nLet's output that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_3nbeyn5i61d",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": []\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 35333,
+    "currentInputSha256": "c37bfe03b737a76bf59bd3e83f6b70a4f67438b6fe93a9ef06eaa4cc2ddb2cd8",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 40272,
+        "inputSha256": "3459cb7e8807de44df59aa9155113b7204d9911c53c80f5914f2face391ab9cb",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "flints-finger",
+                  "greywater-watch",
+                  "karhold",
+                  "moat-cailin",
+                  "the-stony-shore",
+                  "white-harbor"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "6a20c22ce74d8be7a2bdbb1417d3bf74cadb9bb0d6aaae1d09685197e37ff9b3"
+  }
+}

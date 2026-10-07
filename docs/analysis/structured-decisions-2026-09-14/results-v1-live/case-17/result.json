@@ -1,0 +1,155 @@
+{
+  "case": 17,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7104,
+    "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "greywater-watch",
+          [
+            9
+          ]
+        ],
+        [
+          "port-of-pyke",
+          [
+            8
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\"unit_ids_to_destroy\":[9,8]}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36288,
+    "outputTokens": 741,
+    "totalTokens": 37029
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36288,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 741,
+      "output_tokens_details": {
+        "reasoning_tokens": 712
+      },
+      "total_tokens": 37029,
+      "cost": 0.00199965,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00199965,
+        "upstream_inference_input_cost": 0.0018144,
+        "upstream_inference_output_cost": 0.00018525
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425770-Iv4skq51KRnvF8NStRv7",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425770-Iv4skq51KRnvF8NStRv7",
+      "output": [
+        {
+          "id": "rs_tmp_oqfndtms9hd",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select exactly 2 distinct units to be removed due to Mammoth Riders wildling victory. possibleUnits list: [7,8,9,6,37] these are unit IDs. Need to choose 2 distinct. Must ensure they are our units (Greyjoy). Look at board: units with ids:\n\n- id 7: ship at port-of-pyke (Greyjoy)\n- id 8: ship at port-of-pyke (Greyjoy)\n- id 9: footman at greywater-watch (Greyjoy)\n- id 6: knight at greywater-watch (Greyjoy)\n- id 37: knight at greywater-watch (Greyjoy)\n\nAlso note we have footman? unit 6 is knight, 37 knight, 9 footman.\n\nWe need to choose which units to lose. Strategy: preserve key units. Our goal: maintain castle control and supply. We have supply 3, currently controlling 5 land areas, 4 castle areas. Our units: two ships at port-of-pyke, and three land units (1 footman, 2 knights) at greywater-watch. We could afford to lose a ship maybe less impactful? Ships help transport, but we have only two ships. Losing one ship reduces ability to transport but still have one. Also we have control of seagard etc via ships? Actually we used ships to move between seagard and moat-cailin earlier. Currently we have no units at seagard (we moved them). So our frontline is likely greywater-watch controlling that area (castle). Losing a knight maybe reduces combat strength but still have other knight. Losing footman maybe fine. I'd preserve at least one ship for transport and maybe one knight for defense.\n\nThus choose to lose unit 8 (one ship) and unit 9 (footman) maybe. Or lose a knight 37 and a ship 8. Which is better? Knights are stronger (2 strength). Footman only 1, but footman may be needed for supply/army size? Supply limit 3 means we can have up to 4 armies sizes as per supply 3? Actually supply 3 permits Army sizes 3,2,2,2 (four armies). We have maybe two armies: one at greywater-watch (3 units) counts as one army. Ships are separate army at port. Losing a ship reduces that army size (ships count as unit). Not a big deal.\n\nI think sacrifice footman (id 9) and one ship (id 8) to keep knights for defense. We'll select ids 9 and 8.\n\nMake final JSON with selectedUnits: [9,8]? Schema? The pendingDecision expects we submit action presumably with chosen unit IDs. Need to know action schema for select-units. Probably expects {\"selectedUnitIds\":[...]}? Not given. Let's infer from similar tasks. Usually in this harness, the action for \"select-units\" requires \"unitIds\": array. In pendingDecision, fields: count, possibleUnits. The final answer may be something like {\"unitIds\":[9,8]}. Let's check other examples? Not given. We'll guess the key \"unitIds\". Could be \"selectedUnits\". But I'll assume \"unitIds\". Might be \"selectedUnitIds\". To be safe, maybe include both? Not allowed.\n\nWe can look at internal naming in pendingDecision: \"possibleUnits\". Could be \"unitIds\". I'll output {\"unitIds\":[9,8]}.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_qykfox2571k",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"unit_ids_to_destroy\":[9,8]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 26105,
+    "currentInputSha256": "3f57dff1efc67c5e2c65df3bd4c157e09e080489c8b0aaa945044c9403799a07",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 29666,
+        "inputSha256": "643e96218dc94000d579f04743f1107447e0ccc182baa17f2138ca1f740969c3",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              7,
+              8,
+              9,
+              6,
+              37
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "a2c9ee0ae7aebd38febee4c189174dd6deeb1c5d3b992a02a20d474f90ef3579"
+  }
+}

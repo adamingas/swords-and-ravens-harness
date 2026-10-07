@@ -1,0 +1,163 @@
+{
+  "case": 10,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "interleaved-tools-and-structured-output",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "princes-pass",
+      "moves": [
+        [
+          "yronwood",
+          [
+            27
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"yronwood\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37442,
+    "outputTokens": 5711,
+    "totalTokens": 43153
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37442,
+      "input_tokens_details": {
+        "cached_tokens": 28688
+      },
+      "output_tokens": 5711,
+      "output_tokens_details": {
+        "reasoning_tokens": 6226
+      },
+      "total_tokens": 43153,
+      "cost": 0.00209413,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00209413,
+        "upstream_inference_input_cost": 0.00112326,
+        "upstream_inference_output_cost": 0.00097087
+      },
+      "scope": "agent",
+      "response_id": "gen-1789478947-Z2YHtsnxC9yJrTB3hwCg",
+      "response_model": "openai/gpt-oss-120b",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789478947-Z2YHtsnxC9yJrTB3hwCg",
+      "output": [
+        {
+          "id": "rs_tmp_myynn29z9p",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "The problem: we are playing Martell house in round 3. The current phase: resolve single march. The March order we need to resolve is at Princes Pass (region \"princes-pass\"). The order is March +0 (orderId 2). Starting region has unit(s): According to board state, Princes Pass has a footman unit belonging to Martell, id 27. Also location Yronwood (the unit moved last round) appears to have a footman? Actually Yronwood is controlled by none; it has no units. It was previously empty after the previous march. In round 2, they moved unit 27 from Yronwood to Princes Pass (that was their March order there). That was resolved. So now unit 27 is at Princes Pass.\n\nMake note: we also have a footman in Sunspear (id 26?), actually Knights in Sunspear: Id 26 is a knight. There's also a ship unit (id24) at Sea of Dorne. Also other units for Martell: possibly more units such as footmen, knights etc. Need to view the full board for Martell's units.\n\nLet's scan the board JSON:\n\nIn board entries: we saw Sunspear (martell knight id 26). Sea of Dorne has a ship id 24 (martell). Princes Pass has footman id 27. That's it. No other Martell units currently displayed. So Martell only has two units: a knight in Sunspear, a ship in Sea of Dorne, a footman in Princes Pass.\n\nThere may also be additional units in Yronwood but not shown. In board data we saw Yronwood not present (?), but Yronwood region is also on board but no entry; maybe because Yronwood had a footman earlier? Let's check initial board: The board list only includes areas with at least something; Yronwood doesn't have any entry which would mean it has no units or control token. So Martell has no unit there.\n\nThus at Princes Pass there's a single footman (unit id 27). According to March rules, an army requires at least 2 units; a single unit can't be considered an army for supply constraint, but moving it out would vacate the area. The rule: If you vacate an area without leaving a control token, you lose control of that area (including any castle/stronghold). Since Princes Pass is a castle (castleLevel=1 from map). Martell controls Princes Pass currently with footman unit, which also provides control; when you move the unit away, you lose that castle area unless you leave a power token (control token). However, the decision says \"No control token will be spent\" and \"Leaving at least one unit preserves it.\" So we need to decide if we keep the footman there (i.e., not moving it) or maybe move it but not lose castle? But cannot place control token because we have no power tokens (martell powerTokens=0). So we cannot place a control token. So moving unit away would lose the castle area.\n\nGiven that Princes Pass is a castle area (value 1). It's currently contributing 1 castle area to Martell's victory points? The strategic overview shows Martell has 1 castle area controlled (probably from Sunspear, which is a stronghold? Actually Sunspear is castle=2 stronghold, which also counts as one castle area for victory. So they have 1 castle area (Sunspear stronghold). Princes Pass is a castle but they currently have a footman there, maybe also counts as castle area; but is that counted? The board says \"controlledCastleAreas:1\" for Martell, which means they probably count only Sunspear's stronghold. Princes Pass is not counted because maybe it's not designated as a castle? Wait, in the map, Princes Pass is \"castle=1\". So yes, that is a castle. However, the strategic overview says controlledCastleAreas:1, so they might not be counting Princes Pass because they currently control it but maybe it's not counted? Actually, under controlledCastleAreas they might count total number of Castle and Stronghold areas controlled. So they have Sunners? Let's examine controlledRegions list: includes \"port-of-sunspear\",\"sunspear\",\"sea-of-dorne\",\"salt-shore\",\"princes-pass\". So they currently control Prince's Pass. So why controlledCastleAreas=1? It should be 2. Let's count theirs: Sunspear is stronghold (castle=2) counts as castle area. Princes Pass is castle (castle=1) also counts. So they should have 2 castle/stronghold areas controlled. But the data says 1. Possibly their \"controlledCastleAreas\" counts \"castle\" but not stronghold? Wait stronghold also counts. Or perhaps they only count castles/strongholds that have garrisons? That seems wrong. Let's verify other houses: Lannister has controlledCastleAreas:2, and controlledRegions: [\"harrenhal\",\"lannisport\",\"the-golden-sound\",\"port-of-lannisport\"]. Harrenhal is a castle (castle=1), Lannisport is a castle (castle=2?). Actually Lannisport is a castle (castle=2? Let's check map: Lannisport is \"castle=2\". So both are castles/strongholds. So Lannister counts both. So they have 2. So Martell's count being 1 suggests they don't count Princes Pass for some reason? Maybe they lost it? Wait, but controlledRegions includes Princes Pass. However, their \"controlledCastleAreas\" count maybe excludes castle areas if they have no Garrison token? No that's not rule. Or the map may treat Princes Pass as a \"castle\"? Yes castle=1. So should count. Maybe the data updates incorrectly, but let's trust the board state: they control Princes Pass. The hill is a castle. So they have 2 castle areas controlled (Sunspear stronghold + Princes Pass castle). But strategic overview says 1. Might be a bug or they treat stronghold as 1 but castle as not count? However Lannister's controlledCastleAreas is 2, with Harrenhal (castle) and Lannisport (castle). So they count castle=1 and castle=2 toggles both.\n\nThus Martell's controlledCastleAreas probably is erroneous; but we must consider the game's current state: they currently have at least 2 castle/stronghold areas (Sunspear stronghold, Princes Pass castle). If they lose Princes Pass, they'd drop to 1.\n\nGoal: Martell wants to increase controlled castle/stronghold areas to win. Currently they have 1 (maybe only Sunspear). If they lose Princes Pass, they risk lower points.\n\nThe reachable destinations from Princes Pass are listed in actionGuidance: dornish-marches, starfall, the-boneway, three-towers, yronwood. For each, castleLevel info: dornish-marches castleLevel 0; starfall has castleLevel 1 (castle); the-boneway castleLevel 0; three-towers castleLevel 0; yronwood castleLevel 1 (castle). The \"castleAreasGainedIfCaptured\": 0 for dornish-marches, 1 for starfall, 0 for the-boneway, 0 for three-towers, 1 for yronwood.\n\nThus moving to starfall would capture a castle (Starfall) which is currently unoccupied (controller: null). That would net +1 castle area, but you would lose Princes Pass (unless you keep footman). So net effect: no change (if you also lose Princes Pass). Actually you lose 1, gain 1, net 0. But you might gain strategic position.\n\nMoving to yronwood would capture a castle as well (currently controller null). Same net effect: lose Princes Pass, gain Yronwood.\n\nMoving to any other area no castle: you'd lose 1 castle area net -1.\n\nWe need to also consider supply: moving footman to a new area may create an army? With only a single unit, it's not an army; supply constraints irrelevant.\n\nBut we must consider support for combat if moving onto an enemy-controlled area: each reachable area may have enemy units or control tokens. Let's check each.\n\n- Dornish Marches: currently has a footman belonging to Tyrell (units list: footman id 23). The board entry: \"dornish-marches\" units: Tyrell footman. The controller is null? ControlledRegion of Tyrell includes \"dornish-marches\". Actually Tyrell listed \"dornish-marches\". The board shows \"controller\" null for Dornish Marches. That likely means control token not present? But control is determined by units present. Since Tyrell footman there, they control. Possibly the control token is not displayed. In board's \"dornish-marches\" entry, there is \"controlPowerToken\": null meaning no power token present; but they have a unit. So controller is Tyrell due to unit presence, but no power token.\n\nThus moving footman into Dornish Marches would cause combat with Tyrell footman (defender). That triggers combat. Need to evaluate support: Surrounding support orders could help. Which areas are adjacent to Dornish Marches? Let's examine map: dune: From map we have \"dornish-marches [land; crown=1]: highgarden, oldtown, princes-pass, the-boneway, three-towers\". So adjacent areas: Highgarden (Tyrell stronghold), Oldtown (Tyrell control), Princes Pass (source), The Boneway (Baratheon footman), Three Towers (Tyrell footman?). Actually three towers has no unit (looking at board, three towers entry no units). The Boneway has a Baratheon footman id 19.\n\nThus support might be from adjacent Support orders: we must check which adjacent areas have Support orders currently. In revealedOrders list: The support orders currently are at Sea of Dorne (Support +0), The Golden Sound (Support +0). No support orders in areas adjacent to Dornish Marches. Also note that we are currently resolving Martell March order; other houses have placed support orders elsewhere. Only Martell has a Support order at Sea of Dorne (but Sea of Dorne not adjacent to Dornish Marches); So no support adjacent.\n\nThus moving to Dornish Marches would be a combat with Tyrell footman, with no support. Also defender gets any Defense order in Dornish Marches? But the order there is Consolidate Power, not Defense. So defender has no defense bonus.\n\nCombat strength: Attacker (Martell footman) strength = 1; March order of +0 (no modifier). Total attacker = 1. Defender (Tyrell footman) strength = 1 (footman). No defense bonus. So combat tie: 1 vs 1. Tie is broken by Fiefdoms track: \"tie in combat\" goes to higher position on Fiefdoms track. The Fiefdoms track currently: order \"tyrell\",\"greyjoy\",\"martell\",\"baratheon\",\"stark\",\"lannister\". So Martell is 3rd, Tyrell is 1st. So Tyrell wins ties (higher position). Therefore Martell would lose combat if they go to Dornish Marches, losing footman and the castle (Princes Pass). That's obviously bad.\n\nThus we should not attack Dornish Marches.\n\n- Starfall: that's a castle area, currently unoccupied (controller null). It's adjacent to Princes Pass? The map says Starfall has adjacency: East Summer Sea, Princes Pass, The Boneway, West Summer Sea, Yronwood. So Starfall is reachable via regular adjacency (land). No enemy units present. So moving there is just movement, not combat, capturing castle.\n\nPotential support: We need to consider support orders adjacent to Starfall. Adjacent areas to Starfall: East Summer Sea (sea), Princes Pass (source), The Boneway (land - Baratheon footman), West Summer Sea (sea), Yronwood (castle). Among these, support orders: The Boneway currently has March -1 order, not support. East Summer Sea is sea, no support order. There's no support orders adjacent. So no support.\n\nThus moving footman to Starfall would be simple march. As footman unit alone, no army.\n\n- Yronwood: also a castle area, currently unoccupied (controller null). Adjacent to Princes Pass? Check map: Yronwood neighbours: Princes Pass, Salt Shore, Sea of Dorne, Starfall, Sunspear, The Boneway. So Yronwood reachable.\n\nPotential support: Adjacent areas to Yronwood include Salt Shore (which has Martell control token; no unit), Sea of Dorne (Martell ship and support order), Sunspear (Martell knight), The Boneway (Baratheon footman), Starfall (castle). We have a support order at Sea of Dorne, but support orders must be adjacent to the embattled area (which is the combat area). Since moving to Yronwood is not a combat (no enemy units), support not relevant. So movement straightforward.\n\n- The Boneway: currently occupied by Baratheon footman (id 19). This would be combat with Baratheon footman.\n\nWe need to examine support adjacent to The Boneway: Adjacent areas to The Boneway: Dornish Marches, Kingswood, Prince's Pass, Sea of Dorne, Storm's End, The Reach, Yronwood.\n\nWe have a support order at Sea of Dorne (our own support). So we can support our attack.\n\nOther houses may have support orders adjacent: Let's check revealed orders: only Sea of Dorne (Support +0, belonging to Martell). Also maybe there is a Support order elsewhere but not visible (maybe hidden). The board mentions support order only at Sea of Dorne and Golden Sound. So only Martell support order reachable from The Boneway is Sea of Dorne.\n\nSupport from Sea of Dorne will be contributed by units present there: a Martell ship (id 24). Units can contribute to support if they are in a Support order area (sea). Ships can support adjacent combat, yes. So support from Sea of Dorne can be given.\n\nThus combat: Attacker footman (1) +March order +0 = 1. Defender footman (Baratheon) 1 + potential defense order? The Boneway has a March -1 order, not defense. So no defense. There's also a support from Sea of Dorne if granted. In combat step, both attacker and defender can request support from adjacent Support orders. Only the Martell support can be used. The Baratheon may have a support somewhere else adjacent to The Boneway that we don't see: maybe in Kingswood? No support there.\n\nThus we could have support from Sea of Dorne: The ship contributes 1 combat strength as support.\n\nThus attacker gets 1 (footman) + 1 (ship support) =2. Defender has 1. If tie or higher, attacker wins. So Martell would win if they secure support.\n\nBut does the support token get removed after combat? No, support orders are not removed after combat. So safe.\n\nThus moving footman to The Boneway would give us a combat with Baratheon, potentially winning and capturing The Boneway (which has no castle, but would give us an additional land area and maybe control. However there is a footman there, after combat if we win, the defender's unit would be destroyed (Baratheon footman). Then we would move our footman into The Boneway, occupying it. This would capture a land area but not a castle. We would also lose Princes Pass castle. So net on castle area: lose Prince's Pass (castle) and gain no castle => net -1 castle area.\n\nThus not desirable for win condition.\n\n- Three Towers: currently unoccupied, no castle (castleLevel 0). So movement just loses castle - net -1.\n\nThus best move for castle count is to move to a castle area (Starfall or Yronwood) and accept losing Princes Pass, net castle count unchanged (if we capture new castle). But there are consequences: losing Princes Pass may allow opponents to move in later etc. Also consider strategic positioning.\n\nAlternatively, we could choose to not move footman, discard march order (empty moves list). That would keep Prince's Pass under our control (keeping castle), but no gain. The order would be removed with no movement. That would preserve our castle count (still have two? Actually they already count 2 but the strategic overview says 1; but if we keep footman, we keep that castle). The alternative, moving to capture Yronwood or Starfall yields same number of castles (since we lose one and gain one). However could be more beneficial to capture a strategically valuable castle or open position.\n\nConsider geography: Yronwood is near Sunspear, Starfall is near the coast, near east summer sea, near Port of Sunspear and Sunspear. Yronwood is also adjacent to Sunspear (our stronghold). We already control Sunspear (stronghold). Capturing Yronwood would give us a castle near our stronghold, possibly consolidates presence in Dorne region, and allows us to later support or deploy further. Also Yronwood is adjacent to Sea of Dorne (where we have a ship and support order). That could provide better support in future attacks.\n\nAlternatively, Starfall is adjacent to Yronwood and The Boneway; not directly near Sunspear but also near west summer sea. Both might be beneficial.\n\nWe need to see supply constraints: moving footman to Yronwood would place a single unit there; we still have knight at Sunspear (maybe an army of 1, not army). That's fine.\n\nNow we need to consider support for Yronwood after moving there if any. Not relevant.\n\nPotential future moves: We might want to expand towards something else maybe Greyjoy's positions or to fight for more castles. The nearest major castle not controlled is The New castle in Dornish Marches (Tyrell). That's not reachable from Princes Pass directly; you'd have to go to Starfall, then to Yronwood, then to ... maybe some chain to get to Dornish Marches? Actually Dorne area: Princes Pass adjacent to Dornish Marches (bad), to Starfall (castle), to Yronwood (castle), to The Boneway (Baratheon footman) or three towers. We could capture Yronwood now; then later we could move from Yronwood to Princes Pass (if we left units elsewhere) maybe to chain.\n\nBut note that by moving footman from Princes Pass, the area becomes empty; we cannot leave a power token as we have none. So we lose control of Princes Pass castle. That could be taken by opponents later.\n\nIf we capture Yronwood, we might later use the Yronwood footman to attack Princes Pass back? But we lost control; we could try to retake later.\n\nConsider also that we have ship at Sea of Dorne and support order, and we may want to attack a castle via ship transport from Sea of Dorne. However, Sea of Dorne is adjacent to Yronwood; huge.\n\nPotential scenario: Capturing Yronwood gives us a castle but also gives us a footman there, enabling us to support later actions across Dorne and maybe using Yronwood as a port? Not a port.\n\nAlternatively, capturing Starfall also gives castle but doesn't position near our other holdings. Starfall adjacent to Yronwood anyway but south.\n\nWhich castle is more valuable? Let's check control distribution: Sunspur stronghold is at 1, plus Yronwood is maybe close to a sea route to Sea of Dorne and to our ship.\n\nPerhaps it's better to keep Prince's Pass as castle (to retain a foothold between our holdings and Tyrell's area). But losing it may allow Tyrell to recapture and push further.\n\nWe could also consider moving footman to The Boneway to capture a baratheon footman, but that loses a castle.\n\nWhat about moving to Dornish Marches? As we saw it's a combat they'd win due to tie break. So not good.\n\nThus likely best action: Stay (no movement) to preserve castle; but Martell has only 1 supply icon; we are supply 2; we have an army of size 2? Actually we have a knight at Sunspear and a ship at Sea of Dorne and now footman at Princes Pass; those are separate units, each alone not an army; supply constraints allow us to have multiple single units as they don't count as armies. So we can keep footman where it is.\n\nThus we can discard March order without moving. This yields no change in area control, but we lose one March order token.\n\nBut the decision: We have to \"resolve one of your March orders\". We have to choose moves list (empty list) to discard the March order, or move footman to starfall or yronwood. The decision is asking to \"compare castles gained and lost, and count support around the destination battlefield before choosing an attack\". So we need to evaluate best move for Martell's objective: \"Reach the castle victory threshold before all opponents.\" Currently they have 1 castle area (maybe 2). To win they need 7. They likely need to expand. They might need to capture other castles, not necessarily preserve existing ones. Might consider moving to a new castle area even if net 0 to expand into other region.\n\nPotentially, staying puts them at same count, but moving to Yronwood would open new lines: Yronwood is a castle adjacent to Sunspear and Sea of Dorne, which could enable ship transport from Sea of Dorne for further expansion eastwards. It also is adjacent to starfall, Yronwood to the east? Actually Yronwood also adjacent to Sunspear (stronghold). So controlling both Sunspear (stronghold) and Yronwood (castle) gives them two castles in Dorne region.\n\nIf they lose Princes Pass, they still have 2 castle areas (Sunspear and Yronwood). Wait, that moves footman to Yronwood and we lose Princes Pass, so castle count remains 2 if we assume they had 2 previously. But the strategic overview says they have 1, but that might be outdated. Regardless, preserving castle count is fine.\n\nHowever, is there any strategic benefit to keep Prince's Pass? It is located near Tyrell areas highgarden, oldtown, etc. Controlling a castle there might prevent Tyrell expansion. But we have no army to defend it maybe. If we keep footman there, it's just a single unit, vulnerable. Tyrell could later attack with more units. If we move footman elsewhere, they lose that castle, but Tyrell could capture, but maybe we can later use Yronwood or other locations to push.\n\nThus perhaps we should move footman to Yronwood to gain a castle closer to our stronghold and ship, and potentially create a stronger position. That seems reasonable.\n\nNeed to verify support: none needed. Move footman from Princes Pass to Yronwood, losing Princes Pass castle, gaining Yronwood castle. Any enemy units at Yronwood? No.\n\nThus outcome: moves list contains one move: destination Yronwood, unit ID 27.\n\nBut we must also consider supplies: Are we safe after moving? The footman alone remains not an army; it doesn't affect supply.\n\nThus legal.\n\nNow also note that the \"canLeavePowerToken\" is false, so cannot leave power token. So vacating Princes Pass empties it; we lose control. That's fine.\n\nThus final answer: moves with destination_region_id \"yronwood\". Unit IDs [27].\n\nBut also note that in actionGuidance reachableRegions list: includes \"yronwood\" with attribute \"castleAreasGainedIfCaptured\":1. Good.\n\nNow we must consider alternative potential support for a combat at The Boneway. However, net castle change would be -1, less optimal.\n\nThus produce final action JSON.\n\nCheck schema: moves is an array of objects each with destination_region_id. They also require other fields? Actually moves items have only destination_region_id in description. But we need also to specify unit IDs? Wait schema defines each item \"additionalProperties\":false, \"properties\": {\"destination_region_id\": { \"title\":\"Destination Region Id\",\"type\":\"string\",\"enum\": ... } }, required [\"destination_region_id\"]. It does not have direct unit_ids field. Wait the description says \"Destination groups and moving unit IDs. Unlisted units stay in the source.\" But schema only includes destination_region_id. That's odd; maybe they omitted unit mapping because they could infer from known unit selection? Possibly they require a property \"unit_ids\"? But not defined in schema. Actually earlier schema in the problem statement includes moves items with subsequent additionalProperties false and only destination_region_id. It does not specify unit IDs. How will the server know which units moved? Perhaps they assume each move group moves all units from the source? No: The description. Let's check the original code for \"resolve_march\" request: maybe they send moves as list of move groups, each includes destination_region_id and unit_ids array. The schema in instructions seems incomplete. But earlier text says \"Destination groups and moving unit IDs\". Perhaps they omitted unit_ids extra property inadvertently? Actually the schema not containing unit_ids might cause mismatch. However we need to follow the schema exactly as given. Possibly they treat \"unit IDs\" as not required because there is only one unit, so it's implicitly moved? Or they might have omitted to reduce complexity for this prompt.\n\nBetter to include unit IDs field even if not allowed? According to schema, additionalProperties false, so any extra property not defined will cause validation error. So we must only provide destination_region_id.\n\nBut \"unit IDs\" might be inferred by the order ID? How does the server know which unit(s) we move? The system may treat moving \"any number of units\" as \"the appropriate units that can legally move\" i.e., we can move all or part? In this case, only one unit exists, so the decision is unambiguous: moving footman. So perhaps you just specify destination; server knows you move all possible units (or maybe you could choose none). But if you wanted to move none (i.e., discard order), you give empty moves list. That seems to be the intended.\n\nThus to move footman to Yronwood we specify moves: [{\"destination_region_id\":\"yronwood\"}]. The server would assume moving all units (i.e., footman) as there is no specification.\n\nBut note if we had a choice of splitting units, then each move group must specify unit IDs. However schema doesn't allow. But as only one unit we can choose to move it or not. We choose to move it.\n\nThus final JSON: {\"moves\":[{\"destination_region_id\":\"yronwood\"}]}\n\nDouble-check enumeration: enum includes [\"dornish-marches\",\"starfall\",\"the-boneway\",\"three-towers\",\"yronwood\"]; okay.\n\nThus final answer. Make sure any extra fields not allowed.\n\nNow output final JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_itbspbg92di",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"yronwood\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 31143,
+    "currentInputSha256": "70527f2b2496c5cbd1afd409bdb86ff3b56ce041b80937c1827957613434478f",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 34881,
+        "inputSha256": "679fd9262703901ded3d9a2550d46b166366f46c7caf5b437b0a52e0c321343a",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "5c8a2d4dce99e2aa4bcf16f859a80b06b8ed0625668e96ea5a9a649ae11dee00"
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "promptVariant": "full-rules",
+  "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+  "instructionsCharacters": 122479,
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "same",
+  "assertionFailure": null,
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "storms-end",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "storms-end",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "kingswood",
+      "moves": [
+        {
+          "destination_region_id": "storms-end",
+          "unit_ids": [
+            25,
+            26
+          ]
+        }
+      ],
+      "leave_power_token": true,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 40409,
+    "outputTokens": 552,
+    "totalTokens": 40961
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 40409,
+      "input_tokens_details": {
+        "cached_tokens": 26368
+      },
+      "output_tokens": 552,
+      "output_tokens_details": {
+        "reasoning_tokens": 499
+      },
+      "total_tokens": 40961,
+      "cost": 0.01455715,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01455715,
+        "upstream_inference_input_cost": 0.01414315,
+        "upstream_inference_output_cost": 0.000414
+      },
+      "scope": "agent",
+      "response_id": "gen-1789377231-riFMhGUqVoPQTNdfrVsP",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789377231-riFMhGUqVoPQTNdfrVsP",
+      "output": [
+        {
+          "id": "rs_tmp_ya73d8n31xh",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve this March. Starting region is kingswood with units 25 footman, 26 knight. Moves options: reachable regions: storms-end, the-boneway, the-reach. Currently control: kingswood has no power token. We can leave power token if we vacate? leave_power_token true allowed. Must decide where to move. Any combat? Check target areas for enemy units. Storms-end has footman (martell) unit 35, own unit, no enemy. The-boneway currently empty (no units). The-reach empty. No enemy units, so no combat. We can move any subset, perhaps move both to one destination. Must consider supply: Martell supply 2, currently have armies? Units: at kingswood (2 units), at storms-end (footman 35), at sea-of-dorne (ship 24), at sunspear (footman 36), at yronwood (footman 27). Army definitions: armies are 2+ units in same area. Currently armies: kingswood has 2 units = army size 2. storms-end has 1 footman alone not army. sea-of-dorne ship alone not army. sunspear footman alone. yronwood footman alone. So supply 2 allows armies sizes: 3,2,2. Currently have one army size2, okay. If we move both units to e.g., the-boneway making army size2 there, still okay. Could also split? But moving both to same is simplest. Choose perhaps to advance towards storms-end to later push? Storms-end already has own footman, could combine for bigger army but still size2. Might aim to control storm's end for power token? Already have power token there. Leaving power token in vacated kingswood gives control of kingswood. Might be useful. So we should leave power token. Then move both units to the-boneway or storms-end? If we move to storms-end, then storms-end will have footman + footman+knight = 3 units (size3) army, still within supply (max 3). That consolidates forces. Also storms-end already has power token, okay. Leaving power token at kingswood gives control of kingswood (has crown icon). That's good. So move both units to storms-end. Use leave_power_token true. That's legal. Let's do resolve_march.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"kingswood\",\"moves\":[{\"destination_region_id\":\"storms-end\",\"unit_ids\":[25,26]}],\"leave_power_token\":true}",
+          "call_id": "c201ee6f9",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_tr9xa06m2m",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "17c2937f93ff38f61fa498798d090cd3cdb37a2587b9863a8de6da3576de3e05",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 279671,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_zvsny0e3m",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve our march order. Choose a starting region. Likely move from Sunspear? It has footman and knight, can move to adjacent. Probably want to expand toward Storm's End? But reachable list includes salt-shore, storms-end, the-boneway, yronwood. No enemy there. Maybe move footman to storms-end to start expansion. Choose one destination. Could also move both units. We'll resolve march from sunspear moving both units to storms-end. leave_power_token false (cannot). Use resolve_march.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"sunspear\",\"moves\":[{\"destination_region_id\":\"storms-end\",\"unit_ids\":[25,26]}],\"leave_power_token\":false}",
+        "call_id": "40badd96d",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_xoecddwym6k",
+        "status": "completed"
+      },
+      {
+        "call_id": "40badd96d",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"fbcef490-1260-412b-9600-840e3b3c0da5\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_q5rl76hjnn",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need next action: resolve-single-march pending. We must resolve the march from either salt-shore or sea-of-dorne. Already resolved sunspear. Need choose one. Look at legal moves: salt-shore can move unit 27 to starfall, sunspear, yronwood. Likely expand towards Starfall (no castle) or Yronwood (castle level1). Better to aim for castle Yronwood to increase castles. Move footman from salt-shore to Yronwood. No combat (Yronwood empty). can leave power token yes but must leave if want keep control; leaving token maybe keep control of Salt Shore but we may want keep. We have 5 tokens, can leave. So resolve_march with starting_region_id salt-shore, moves to yronwood unit 27, leave_power_token true.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"salt-shore\",\"moves\":[{\"destination_region_id\":\"yronwood\",\"unit_ids\":[27]}],\"leave_power_token\":true}",
+        "call_id": "f7eefcf09",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_wryhpyiht",
+        "status": "completed"
+      },
+      {
+        "call_id": "f7eefcf09",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"8c73f746-ff39-476c-8a40-e282da5ed214\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_8ehr3ky7oiv",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the remaining march order: sea-of-dorne. The action guidance says safe pass is resolve_march with empty moves. So we should discard the march. Use resolve_march with starting_region_id sea-of-dorne, moves empty, leave_power_token false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"sea-of-dorne\",\"moves\":[],\"leave_power_token\":false}",
+        "call_id": "0bcca00b9",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_35ommb7e027",
+        "status": "completed"
+      },
+      {
+        "call_id": "0bcca00b9",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"f8d57592-ee3e-495b-a09b-f8c293d7b34d\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_tlrm8sd8mq",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in bidding phase. Need to submit a bid. We have 5 power tokens. We must bid some amount. Evaluate value: we have 3 castles already, need 7. Need to win bids on tracks: Iron Throne, Fiefdoms, King's Court. Currently Iron Throne order is baratheon, lannister, stark, martell, greyjoy, tyrell. So Martell 4th. Want to improve position. Probably bid moderate, say 2 tokens to try get higher on Iron Throne? We have 5 tokens total, need preserve for future. I'd bid 2.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "fc0b4aa97",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_p9nxhauu2g",
+        "status": "completed"
+      },
+      {
+        "call_id": "fc0b4aa97",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"59fbeaa2-9633-4e7a-b6ff-f29a18ab5b5c\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_9d0lpt9yeq6",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for eligible regions: sea-of-dorne, storms-end, yronwood. We have units: storms-end has our two units now (footman, knight). yronwood has footman. sea-of-dorne has ship.\n\nWe should consider objectives: protect castles, expand. Likely march from storms-end to... maybe from storms-end to port-of-storms-end? But port not listed as eligible (only three regions). So we must assign orders to those three regions. Options: march, defense, support, consolidate, raid. Probably march from storms-end to ??? cannot move to sea? maybe to sea-of-dorne? Adjacent: storms-end neighbours east-summer-sea, kingswood, port-of-storms-end, sea-of-dorne, shipbreaker-bay, the-boneway. Sea-of-dorne is eligible. So march from storms-end to sea-of-dorne moving units there. Yronwood could march to salt-shore or sunsp... but those not eligible. Could support storms-end? Support from yronwood to storms-end? They are not adjacent (yronwood neighbours salt-shore, sea-of-dorne, starfall, sunspear, the-boneway). It is adjacent to sea-of-dorne, so could support storms-end's march into sea-of-dorne? Support must be placed on origin region to support its march into adjacent. So support from sea-of-dorne to support storms-end? Sea-of-dorne adjacent to storms-end, yes. So place support in sea-of-dorne to support storms-end's march. And perhaps defense on yronwood or consolidate. Probably defense on yronwood to protect. So assignments: storms-end -> march (prefer starred), sea-of-dorne -> support (avoid starred), yronwood -> defense (avoid starred). Priorities: storms-end high, sea-of-dorne medium, yronwood low.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"storms-end\",\"preferred_order\":\"march\",\"starred_preference\":\"prefer\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"yronwood\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "91e660af2",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_6hn52jc19ju",
+        "status": "completed"
+      },
+      {
+        "call_id": "91e660af2",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"1fdf7698-9d28-4e38-8f59-9581152fda9c\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_7sk2k5qiogi",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the march for storms-end. Starting region storms-end has units 25 footman and 26 knight. Legal reachable: kingswood (enemy), sunspear (own), the-boneway, yronwood (own). We want to advance towards castles. Nearest castle target is maybe King's Landing? But we can't reach. Better to move into yronwood? Already have unit there. Could move into kingswood to contest? That may trigger combat with baratheon control. Maybe we want to attack baratheon to reduce their power. Our plan: expand toward Kingswood to get a castle? Kingswood is a castle (level0 but has crown icon). It's controlled by baratheon currently with power token. Could attack. So move both units into Kingswood, triggering combat. Need to ensure leave power token? can leave token at storms-end if we vacate. CanLeavePowerToken true. Probably want to leave token to maintain control of storms-end (stronghold). So leave_power_token = true. Must move all listed units if leaving token. Yes. So resolve_march with moves to kingswood, leave token true.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"storms-end\",\"moves\":[{\"destination_region_id\":\"kingswood\",\"unit_ids\":[25,26]}],\"leave_power_token\":true}",
+        "call_id": "4ea9ee43f",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_zym6xzd5xfi",
+        "status": "completed"
+      },
+      {
+        "call_id": "4ea9ee43f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"66f3ef7b-4501-434f-9e50-24be1cb0c5c2\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_j20d11qm41j",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to muster. Must choose muster_units or skip. We have supply 2, currently units: we have footman at yronwood, plus footman/knight at kingswood but those are armies. Supply limit: allowed armies sizes [3,2,2]; currently one army at kingswood size2 uses one slot size2. So we have remaining supply capacity for another army up to size3? Supply icons 2 so total allowed army sizes 3,2,2 meaning we can have up to three armies with those sizes. Currently one army size2, so we can muster new units up to total size3 maybe. Mustering points: storms-end 1, sunspear 2, yronwood 1. We have 2 power tokens, can musters up to that many points? Mustering type 0 likely regular mustering, you can spend up to your power tokens. So we have 2 points to allocate across regions.\n\nWe should prioritize gaining a new footman or knight in our castle region Sunspear (has 2 supply icons). Also we have already a ship at sea-of-dorne. Perhaps recruit a footman in Sunspear to increase army size. Also maybe a footman in storms-end (castle) but that's a castle region with no units currently. Could upgrade footman to knight? we have no footman there. We could recruit footman at storms-end using 1 point, and footman at sunspear using 1 point (or knight cost 2). So allocate one point each.\n\nThus muster_units with two recruitments: storms-end footman, sunspear footman.\n\nCheck supply safe: each alone safe new units when chosen alone 3, so okay.\n\nReturn muster_units.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"storms-end\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"storms-end\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"sunspear\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"sunspear\",\"upgrade_from_footman\":false}]}]}",
+        "call_id": "21a23ac90",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_awh1vx5b4h",
+        "status": "completed"
+      },
+      {
+        "call_id": "21a23ac90",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"6305bbc0-7e56-406b-9dd2-35d04b483b26\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_14xxejjlypt",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for all eligible regions (5). We have currently units in regions: kingswood (2 units), sunspear (footman), sea-of-dorne (ship), storms-end (footman), yronwood (footman). Need to assign orders. Priorities: likely want march from kingswood towards? Kingswood adjacent to storms-end and the-boneway etc. Our goal expand towards more castles maybe The Boneway region has a castle? It has crown icon but no castle. We need castle victory 7. Currently have 3 castles. Probably aim to take Storm's End (already have) and maybe move into Sea of Dorne? Already have ship there. Could march from storms-end to Sea of Dorne to gather? Actually ship already there. Might want march from storms-end to Kingswood (already did) now at Kingswood with 2 units. Next could march from Kingswood to The Boneway to approach Dorne? But need supply for armies. Supply track 2, already have supply icons 3, supply 2 means max 2 armies? supply icons controlled 3 > supply, but supply limit? Actually supply icons controlled count, supply track indicates max armies. If exceed, must remove tokens. We have units: kingswood 2, storms-end 1, sunspear 1, sea-of-dorne ship, yronwood footman. That's 5 armies, supply 2 so over. Must leave power tokens when vacating? Already have power tokens on storms-end and salt-shore. Need to reduce armies maybe by consolidating. But we must place orders now. Likely want to consolidate power in some regions to reduce armies. Choose consolidate power in kingswood (to remove some units?) Actually consolidate doesn't remove units. Must likely raid support? Maybe we should defend to keep positions.\n\nWe need assign 5 orders. Let's assign:\n- kingswood: march (prefer starred) to The Boneway (move both units?). Could move both footman? Destination must be adjacent and have capacity. The Boneway currently empty. Good.\n- sunspear: defense (to hold castle)\n- sea-of-dorne: support (to support possible attack on Storm's End? but we have ship there)\n- storms-end: consolidate power (to maybe get power token)\n- yronwood: defense\n\nPriorities: give high to kingswood march. starred prefer if possible.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"kingswood\",\"preferred_order\":\"march\",\"starred_preference\":\"prefer\",\"priority\":100},{\"region_id\":\"sunspear\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"storms-end\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"prefer\",\"priority\":40},{\"region_id\":\"yronwood\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":20}]}",
+        "call_id": "12cac1b58",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_j8dgkaictv",
+        "status": "completed"
+      },
+      {
+        "call_id": "12cac1b58",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"82605712-b3b5-410c-b89b-7923b49bce3a\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 41942,
+    "currentInputSha256": "152c7b4827b819109900421c7d3aeefe173e005e71fd33965d8b94c706d3d1dc",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 61860,
+        "inputSha256": "17c2937f93ff38f61fa498798d090cd3cdb37a2587b9863a8de6da3576de3e05",
+        "instructionsCharacters": 122479,
+        "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

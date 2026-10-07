@@ -1,0 +1,153 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [24, 27]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35498,
+    "outputTokens": 463,
+    "totalTokens": 35961
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35498,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 463,
+      "output_tokens_details": {
+        "reasoning_tokens": 469
+      },
+      "total_tokens": 35961,
+      "cost": 0.00189065,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00189065,
+        "upstream_inference_input_cost": 0.0017749,
+        "upstream_inference_output_cost": 0.00011575
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425773-pCObCVSPsSPDPu0JCLpe",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425773-pCObCVSPsSPDPu0JCLpe",
+      "output": [
+        {
+          "id": "rs_tmp_5oogj7k7hac",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select exactly 2 distinct units from eligible list: [24,27,46]. They are ship in East Summer Sea (id24), footman in Starfall (id27), knight in Starfall (id46). Need to choose two. Consider strategic: we have ship at East Summer Sea, footman and knight at Starfall. Losing units may affect strength and control. Our controlled regions include starfall, east-summer-sea, etc. We probably want to keep the ship for mobility and the knight for combat strength. Footman is weakest. So choose to lose footman (27) and ship (24) maybe? But losing ship reduces ability to move. However we have only one ship in east summer sea; we also have ships elsewhere? No other Martell ships. Losing ship may reduce ability to transport later. Knight is stronger; we likely keep it. So choose units 24 and 27 (ship and footman). Must ensure they are distinct and eligible. Yes. Return JSON with selected unit ids.\n\nCheck schema for action. The pendingDecision type is \"select-units\". Usually action format: {\"selected_units\": [ids]}? Need to infer from prior decisions. Look at earlier actions maybe. Search in history for similar decision. None. But typical schema for select-units might be \"selectedUnits\": [int]. Need to guess. The prompt says \"When you are ready, return one final JSON answer matching the response schema.\" The schema not given explicitly, but likely {\"selected_units\": [24,27]}. Could be \"unitIds\". I'll check typical A Game of Thrones engine? Unknown. Use key \"unitIds\". But safer: use \"selectedUnits\". Hmm.\n\nLook at earlier action submissions in history: e.g., action \"submit_orders\" used \"assignments\". \"resolve_march\" used \"starting_region_id\". \"choose_combat_house_card\" used \"house_card_id\". For select-units likely \"unit_ids\". Let's see similar decision type maybe \"select-units\". Might be {\"unit_ids\":[...]}.\n\nI'll output {\"unit_ids\":[24,27]}.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_vdjynbycdv",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 22941,
+    "currentInputSha256": "6eac1494b62091a0dcd675497660c91edab95a1a64fcdd8716e3153b080400a1",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 25974,
+        "inputSha256": "a2d08ee15a667d655beca242cb902d9ed39f8b0b42729fdbdee7991109f0ca14",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

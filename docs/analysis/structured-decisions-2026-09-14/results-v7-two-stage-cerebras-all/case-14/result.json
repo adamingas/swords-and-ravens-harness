@@ -1,0 +1,408 @@
+{
+  "case": 14,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 2,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 1209,
+    "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "pyke",
+          "orderId": 1
+        },
+        {
+          "regionId": "ironmans-bay",
+          "orderId": 7
+        },
+        {
+          "regionId": "port-of-pyke",
+          "orderId": 4
+        },
+        {
+          "regionId": "greywater-watch",
+          "orderId": 2
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"assignments\": [\n    {\n      \"region_id\": \"pyke\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"ironmans-bay\",\n      \"preferred_order\": \"support\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"port-of-pyke\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    },\n    {\n      \"region_id\": \"greywater-watch\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    }\n  ]\n}",
+    "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100}]}"
+  ],
+  "requestCount": 4,
+  "explorationCalls": [
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "pyke"
+      }
+    },
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "greywater-watch"
+      }
+    }
+  ],
+  "usage": {
+    "requests": 4,
+    "inputTokens": 144704,
+    "outputTokens": 2141,
+    "totalTokens": 146845
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35560,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 48,
+      "output_tokens_details": {
+        "reasoning_tokens": 22
+      },
+      "total_tokens": 35608,
+      "cost": 0.012482,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.012482,
+        "upstream_inference_input_cost": 0.012446,
+        "upstream_inference_output_cost": 3.6e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431369-YJHIyTBDfnmmYmevhh6m",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 35792,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 65,
+      "output_tokens_details": {
+        "reasoning_tokens": 32
+      },
+      "total_tokens": 35857,
+      "cost": 0.01257595,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01257595,
+        "upstream_inference_input_cost": 0.0125272,
+        "upstream_inference_output_cost": 4.875e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431370-8b0na2grNg7ox5haZjmA",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 36204,
+      "input_tokens_details": {
+        "cached_tokens": 35712
+      },
+      "output_tokens": 1156,
+      "output_tokens_details": {
+        "reasoning_tokens": 977
+      },
+      "total_tokens": 37360,
+      "cost": 0.0135384,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0135384,
+        "upstream_inference_input_cost": 0.0126714,
+        "upstream_inference_output_cost": 0.000867
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431371-1gcZqiqGqVhi9kB18MyG",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 37148,
+      "input_tokens_details": {
+        "cached_tokens": 28160
+      },
+      "output_tokens": 872,
+      "output_tokens_details": {
+        "reasoning_tokens": 761
+      },
+      "total_tokens": 38020,
+      "cost": 0.0136558,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0136558,
+        "upstream_inference_input_cost": 0.0130018,
+        "upstream_inference_output_cost": 0.000654
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431373-WRYyw9d6YhU7GwIfLzFn",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431369-YJHIyTBDfnmmYmevhh6m",
+      "output": [
+        {
+          "id": "rs_tmp_7a38ymna5zg",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide orders. Likely want March from pyke to Flint's Finger? Need check neighbours.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"area\":\"pyke\"}",
+          "call_id": "2e6cbc194",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_41b0ds2f0zo",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431370-8b0na2grNg7ox5haZjmA",
+      "output": [
+        {
+          "id": "rs_tmp_9rwkspo1swc",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need orders for four regions: pyke, ironmans-bay, port-of-pyke, greywater-watch. Check neighbours of greywater-watch.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"area\":\"greywater-watch\"}",
+          "call_id": "c2e95c5ca",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_1slavvdhpib",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431371-1gcZqiqGqVhi9kB18MyG",
+      "output": [
+        {
+          "id": "rs_tmp_hgtt458fevl",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need assign orders for four regions: pyke, ironmans-bay, port-of-pyke, greywater-watch. We have supply 2, units: pyke footman+knight (2 units = army), ironmans-bay ship (single unit not army), port-of-pyke ship, greywater-watch footman.\n\nWe have no starred orders (max 0). So all regular orders. Need assign exactly one order to each occupied area. Choose priorities: want to expand to capture Flint's Finger (castle) from pyke via land? Pyke adjacent? Check neighbours: pyke neighbours? Use check_neighbours on pyke gave only ironmans-bay and port-of-pyke. No land adjacent. To reach Flint's Finger need ship transport? Flint's Finger is land adjacent to bay-of-ice etc. From pyke we have ship in ironmans-bay which is adjacent to bay-of-ice? Actually ironmans-bay neighbours: greyjoy? check: ironmans-bay neighbours include ... earlier map: ironmans-bay [sea]: flints-finger, greywater-watch, port-of-pyke, pyke, riverrun, seagard, sunset-sea, the-golden-sound. So from ironmans-bay we can march ship to flint's finger? Ship cannot march into land directly, must use port? Actually ships can only move in sea areas and ports, cannot march onto land. To capture a land castle, need land units. Could transport footman via ship transport: need a chain of sea areas with ships to adjacent land. From pyke, we have footman and knight on pyke (land). To move onto flint's finger, need adjacent sea with ship then ship transport. Pyke neighbors: ironmans-bay (sea) and port-of-pyke (port). Ship in ironmans-bay, so can transport footman from pyke to a land area adjacent to ironmans-bay. Which lands adjacent to ironmans-bay: flints-finger, greywater-watch, seagard, sunset-sea (sea), the-golden-sound (sea). So footman could be transported to flints-finger or greywater-watch or seagard. Those have castles/strongholds. So assign a March order to pyke (prefer March +1? We have regular March orders: one -1 and one +0. No starred. We can choose which March order? Preference 'march' and we can specify priority. Use high priority for pyke to try capture. Use prefer star but no star. So assign March order to pyke with priority high 100.\n\nIronmans-bay: we have ship. Could use March order to move ship somewhere else? Might want to threaten seagard or flints-finger via ship but cannot capture. Could use Support to help elsewhere. We might need support for battle if we attack. No immediate battle. Perhaps assign Defense to protect ship? Not needed. Could assign Raid to remove enemy support near? No enemy orders nearby unknown. Probably assign Consolidate Power to collect power (but sea consolidation yields no power). So better assign Support to aid future attacks from pyke? Support from ironmans-bay could support attack on flints-finger (if we transport). Support orders can support either attacker or defender. Use Support from ironmans-bay to support our attack from pyke. So assign Support to ironmans-bay with high priority maybe 80.\n\nPort-of-pyke: currently ship unit, could assign Defense to protect ship? No enemy nearby. Could assign Raid to remove enemy support near? Unlikely. Could assign Consolidate Power (but port? Consolidate Power works normally but no power tokens there). Might assign Defense to keep ship safe. Use low priority.\n\nGreywater-watch: land with footman. From there we can march land unit to flints-finger (adjacent) directly. Yes neighbours include flints-finger (castle). So we could assign March from greywater-watch to capture flints-finger. That would be a direct march. Use March order. Priority high.\n\nWe have two March orders available (one -1, one +0). Need decide which gets which. Prefer higher combat strength for capture maybe +0. Assign the +0 to the area where we want to capture (greywater-watch). The -1 to pyke maybe still okay but could be weaker. Both still okay. Priorities.\n\nThus assignments:\npyke: march (prefer -1) priority 70\nironmans-bay: support priority 80\nport-of-pyke: defense priority 60\ngreywater-watch: march priority 100\n\nCheck starred_preference avoid.\n\nReturn intended action.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_zrsx1ez87r",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"assignments\": [\n    {\n      \"region_id\": \"pyke\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"ironmans-bay\",\n      \"preferred_order\": \"support\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"port-of-pyke\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    },\n    {\n      \"region_id\": \"greywater-watch\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431373-WRYyw9d6YhU7GwIfLzFn",
+      "output": [
+        {
+          "id": "rs_tmp_f1wcf7jq9fq",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need final assignments. Ensure each region gets one order. No starred orders allowed (maxStarredOrders 0). So starred_preference avoid is fine. Provide any order categories. Need to consider supply: Greyjoy supply=2, currently units: footman+knight at pyke (2 units = army size 2) and ship at ironmans-bay, ship at port-of-pyke, footman at greywater-watch. That's 4 units, but army count? Ship at ironmans-bay is alone in sea area (army size 1 doesn't count). Ship at port-of-pyke also alone. So only army is pyke (2 units) counts as one army size 2. Supply=2 allows armies sizes: from table supply 2: permitted sizes 3,2,2. So can have up to 3 armies: one up to 3 units, two up to 2 units. Currently only one army size 2, so fine. March order from pyke could move units possibly splitting but must not exceed supply. Could move footman to Flint's Finger (land) leaving only knight behind, still army size1? Actually footman moving would vacate pyke leaving knight alone (single unit not an army). That's okay. So assign March at pyke. Ironmans-bay we have ship, could support? Support order requires adjacent support to combat; but we might want support to assist possible attack from pyke? If we march from pyke into Flint's Finger, combat may occur if enemy there (none). So support not needed. Could assign Defense at ironmans-bay to protect ship? No combat there. Could assign Consolidate Power but sea gives no power. Better assign Support to potentially support attack from pyke? Support orders can support adjacent combat. Ironman's Bay is adjacent to pyke (sea) but support only works for land combat? Ship units may support adjacent combat in sea area or land area? Support order can support combat in adjacent area, but ship units can support combat in sea area or land area? rule: Ship units may support adjacent combat in a sea area or a land area. So support at ironmans-bay could support pyke attack into flint's finger? Attack would be land area, adjacent? pyke adjacent to ironmans-bay (sea) not land. The combat would be in flint's finger, which is not adjacent to ironmans-bay (distance: pyke->ironmans-bay->? need ship transport maybe). Actually ship transport: ship at ironmans-bay can transport footmen/knights from pyke to flint's finger? Need consecutive sea areas connecting? Pyke adjacent to ironmans-bay (sea). Ironmans-bay adjacent to flint's finger? Check map: ironmans-bay neighbours: flints-finger? Yes flints-finger listed as neighbour of ironmans-bay. So using ship transport, footman could move from pyke through ironmans-bay to flint's finger in one march. That would involve ship transport, so need a ship in ironmans-bay. Support order at ironmans-bay could support the attacker? Actually support order adds combat strength from that area. Might be okay. We'll assign support there.\n\nPort-of-pyke: we have ship in port. Could assign Defense to protect ship. Defense order gives +1 to defender if attacked. Probably okay.\n\nGreywater-watch: we have footman. Could assign March to attempt capture Flint's Finger or Moat Cailin or Seagard. Probably March highest priority. So final assignments as earlier but maybe change priorities? Not needed. Provide JSON.\n\nLet's output assignments as chosen.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_68cxdbaeis2",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 25011,
+    "currentInputSha256": "108e944828ac7661a7d03c5ca3a9054b476001a885504d510804d98b5b022a31",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 27883,
+        "inputSha256": "f881ce82f8c93262faf515d5b5581251b5e9c3486424e655d0969a412761de8a",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "exploration",
+        "inputItemCount": 4,
+        "inputCharacters": 28926,
+        "inputSha256": "3feac54e15dbbae76e1be0499b51352a59c46bc424087c5521e11865e8a2bdee",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 3,
+        "stage": "exploration",
+        "inputItemCount": 7,
+        "inputCharacters": 30533,
+        "inputSha256": "c96fe711b0e7b47a4310fdb78eee095404828dc65f8d08f52adf11c1039bdaad",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 4,
+        "stage": "submission",
+        "inputItemCount": 10,
+        "inputCharacters": 38741,
+        "inputSha256": "aa042cb83bc11eb3b1014df4407934c0b777f61774a83e5fb6cb74e3ffc519f4",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "pyke",
+                  "ironmans-bay",
+                  "port-of-pyke",
+                  "greywater-watch"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "90e0da3fa4d2ef2e8235eae4198588f3e790c5a25a88c841d3fb73f3743c8471"
+  }
+}

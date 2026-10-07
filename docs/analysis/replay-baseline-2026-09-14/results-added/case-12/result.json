@@ -1,0 +1,357 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "same",
+  "assertionFailure": null,
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              27,
+              46
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              27,
+              46
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "select_units",
+    "arguments": {
+      "selections": [
+        {
+          "region_id": "starfall",
+          "unit_ids": [
+            27,
+            46
+          ]
+        }
+      ]
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 12421,
+    "outputTokens": 152,
+    "totalTokens": 12573
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 12421,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 152,
+      "output_tokens_details": {
+        "reasoning_tokens": 114
+      },
+      "total_tokens": 12573,
+      "cost": 0.00446135,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00446135,
+        "upstream_inference_input_cost": 0.00434735,
+        "upstream_inference_output_cost": 0.000114
+      },
+      "scope": "agent",
+      "response_id": "gen-1789376063-2bQcZ5F5FVJhkgcklK5P",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789376063-2bQcZ5F5FVJhkgcklK5P",
+      "output": [
+        {
+          "id": "rs_tmp_yn61taug0j",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select units: pendingDecision select-units choose 2 of possibleUnits [24,27,46] count 2. Must select exactly 2 units. Choose likely those that are farthest? We have units: 24 is ship at east-summer-sea, 27 footman at starfall, 46 knight at starfall. Need 2 same region? selectedUnitsMustBeOfSameRegion false, so any. Probably keep army together: pick 27 and 46 both at starfall to form land army. Choose those.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"selections\":[{\"region_id\":\"starfall\",\"unit_ids\":[27,46]}]}",
+          "call_id": "32153b179",
+          "name": "select_units",
+          "type": "function_call",
+          "id": "fc_tmp_vv2gzagume",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 326168,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_lrxu23yoi9n",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit orders. Currently restricted category is defense, so cannot place defense? Actually restricted orders are defense, meaning cannot assign defense? Must choose other orders. Eligible regions are sunspear, sea-of-dorne, salt-shore, dornish-marches. Need assign 4 orders. Max starred 1. Choose likely march to expand. We have units: sunspear has knight, sea-of-dorne has ship, salt-shore has footman, dornish-marches has footmen and knight. We want to move towards a castle. Nearest castle? Our castles: Sunspear (already), maybe try to take Starfall? Not castle. Maybe aim for The Boneway? Already controlled. Could aim for The Reach? Not reachable. Probably want to march from Sunspear to Sea of Dorne? Already adjacent. Could march from Sea of Dorne to Storm's End? Already controlled. Maybe march from Salt Shore to Yronwood? Already have. I think we should place a march order in Sunspear to move knight to Sea of Dorne? Actually unit ids? Not needed. Just assign orders; harness will allocate tokens.\n\nWe'll assign:\nsunspear: march (priority high)\nsea-of-dorne: march (priority)\nsalt-shore: march (priority)\ndornish-marches: consolidate power? maybe need power token but we have only 1 token and already placed elsewhere. We have 1 power token left but we may need to keep. Could avoid starred. Use support? but restricted only defense, support allowed. Let's assign support to dornish-marches.\n\nStarred preference avoid.\n\nProceed.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"sunspear\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"salt-shore\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"dornish-marches\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "6bf807d7f",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_ul2rr08dcb",
+        "status": "completed"
+      },
+      {
+        "call_id": "6bf807d7f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"b98118c0-19af-449d-b39d-caa8cf5b14ba\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_7b9rzc0tpke",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the current march. Options: resolve with moves or discard. From actionGuidance, safePass is resolve_march with empty moves, leave_power_token=false. Must choose one. Likely we want to move? The unit ids: for each starting region we have orders: salt-shore (unit 27 footman) can move to starfall, sunspear, yronwood. sea-of-dorne (unit 24 ship) can move to east-summer-sea. sunspear (unit 46 knight) can move to several lands. We should pick best move. Probably attack? No enemy there. Might want to consolidate power by leaving token? Can't leave token. So maybe discard? But we have march orders already placed; we must resolve them now. Might be better to discard to avoid wasted moves. However we could move unit from sunspear to storms-end to extend influence toward The Boneway? storms-end already ours. Could move knight to storms-end to secure? storms-end has no units, but it's already controlled. Could move to the-boneway to expand further. The Boneway is also controlled but no units. Might be okay to move to strengthen. I'd move the knight from sunspear to the-boneway (reachable). That gives presence. Also move ship from sea-of-dorne to east-summer-sea maybe to prepare naval movement. Move footman from salt-shore? can't leave token, but can move away maybe to starfall to gain foothold. Might be beneficial. Let's move all three: from salt-shore unit 27 to starfall, from sea-of-dorne unit 24 to east-summer-sea, from sunspear unit 46 to the-boneway. Ensure each starting region only one move? Allowed multiple moves from same region? constraints: each unit ID may be moved at most once. At most one destination may trigger combat. All okay. We'll resolve with those moves.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"salt-shore\",\"moves\":[{\"destination_region_id\":\"starfall\",\"unit_ids\":[27]}],\"leave_power_token\":false}",
+        "call_id": "3bf23710d",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_tsu26n9a2ke",
+        "status": "completed"
+      },
+      {
+        "call_id": "3bf23710d",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"c59f2a9e-f615-4ea3-bb73-78d70b1583eb\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_go7waolxk5u",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose a house card. Choose one from available. Likely want strong card now as combat pending? We are in choose-house-card phase after combat? Likely combat just occurred? Need to play a card to resolve combat at starfall? Probably choose highest needed. We have 4 victory points, need 7. We should pick strongest available: the-red-viper (strength4). Use force_valyrian_blade_decision false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"house_card_id\":\"the-red-viper\",\"force_valyrian_blade_decision\":false}",
+        "call_id": "4a09bf4f3",
+        "name": "choose_combat_house_card",
+        "type": "function_call",
+        "id": "fc_tmp_8qal2uzx4j",
+        "status": "completed"
+      },
+      {
+        "call_id": "4a09bf4f3",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"choose_combat_house_card\", \"stateId\": \"452445e6-2750-4ddb-934c-923d88897ccc\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_dvnblae0m1o",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to select a region for select-region decision: options are princes-pass or the-boneway. Which is better? We control the-boneway already with power token and no units. Princes Pass is adjacent to our Dornish Marches and starfall. Controlling Princes Pass gives a castle? It's land with no castle. Might be strategic to move there to get closer to Three Towers? Our goal: castle victory 7. We have 4 castles. Next castle nearest is maybe Three Towers (Tyrell) or Highgarden (Tyrell). Princes Pass adjacent to Three Towers and Starfall. Capturing Princes Pass gives a region but not castle. Boneway is already ours, moving token there maybe to secure? We have 1 power token, currently on the-boneway. Selecting region will place power token? The select-region likely to place power token to claim region. We have 1 token, can place on either region to claim. We already control the-boneway with token. Selecting Princes Pass would give us control of that region, expanding area and possibly future castle. That seems beneficial. So choose princes-pass.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"region_id\":\"princes-pass\"}",
+        "call_id": "e035793d4",
+        "name": "select_region",
+        "type": "function_call",
+        "id": "fc_tmp_03f5s0zck50u",
+        "status": "completed"
+      },
+      {
+        "call_id": "e035793d4",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"select_region\", \"stateId\": \"fc84a993-ebab-4647-bb28-dc58ea88432c\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_mol9lcvmocd",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in resolve-single-march phase, pendingDecision shows type resolve-single-march, houseId martell. Need to resolve the march. Actionable options: either move units according to legal moves from starting region. According to actionGuidance legalOrderRegions list includes sea-of-dorne and sunspear. We must choose one starting region to resolve. We can also discard by safePass (resolve_march with empty moves). Must pick exactly one tool. We should consider best move. Units: sea-of-dorne has unit 24 ship (martell). Moves list shows reachable region east-summer-sea (sea). No combat, probably not beneficial. Sunspear has unit 46 knight. Reachable lands: salt-shore (enemy? it's Martell controlled), storms-end (Martell), the-boneway (Martell), yronwood (Martell). All are owned, no combat. Could move to capture? All already owned. Perhaps better to move ship to sea for later naval? East-summer-sea is neutral sea, could later attack? Might be useful. No combat now. Might consider discarding? But we have to resolve this order; could move ship to east-summer-sea to position for future. Let's do that. Use resolve_march with starting_region_id \"sea-of-dorne\", move unit 24 to east-summer-sea, leave_power_token false (cannot leave).",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"sea-of-dorne\",\"moves\":[{\"destination_region_id\":\"east-summer-sea\",\"unit_ids\":[24]}],\"leave_power_token\":false}",
+        "call_id": "d80bb9150",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_ynlv43taxc",
+        "status": "completed"
+      },
+      {
+        "call_id": "d80bb9150",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"0e7cb556-0ad2-4c23-9a04-e4c3536f77d9\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_6yc9x4gkdcl",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose a house card now. Choose best. We have available cards list. We have 5 options. Need to win. Currently Martell at 4 VP, need 7. Likely need strong combat. Opponent Tyrell attacked? Currently combat maybe? No combat pending? Probably need to pick a house card for upcoming combat? Choose highest strength: Areo Hotah (strength3, towers1). Use that.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"house_card_id\":\"areo-hotah\",\"force_valyrian_blade_decision\":false}",
+        "call_id": "96ccf0f6e",
+        "name": "choose_combat_house_card",
+        "type": "function_call",
+        "id": "fc_tmp_tppjk0nvkdc",
+        "status": "completed"
+      },
+      {
+        "call_id": "96ccf0f6e",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"choose_combat_house_card\", \"stateId\": \"3ad5beb1-0e63-4b9c-9cff-160d30178882\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_0wdkclqw00fk",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to act: phase resolve-single-march, pending decision resolve-single-march, we must choose a legal action. Options: either move units from a listed starting region (only sunspear listed) or safe pass (no moves). We have starting region sunspear with unit 46 knight. Reachable: salt-shore, starfall, storms-end, yronwood. No power token left. We should decide best move. Currently our controlled regions include those reachable. Expanding maybe to take a castle? None of those have castles. Starfall has castle level1 already our control token? It's controlled by us (no token). It has our footman unit 27 already there. Adding knight strengthens. Could also move to salt-shore (our region) to reinforce. Probably best to reinforce starfall to prepare future attacks on Tyrell? Starfall neighbors Princes Pass (Tyrell) and Yronwood (our). Might later attack Tyrell. So move knight 46 to starfall. Use resolve_march.\n\nProceed.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"sunspear\",\"moves\":[{\"destination_region_id\":\"starfall\",\"unit_ids\":[46]}],\"leave_power_token\":false}",
+        "call_id": "844611bc8",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_qfz10y31puc",
+        "status": "completed"
+      },
+      {
+        "call_id": "844611bc8",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"8826fd73-75fe-47e5-aca9-471deb3bd774\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_d3iq0c1ruch",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit a bid. We have 1 power token. Bidding participants include all houses, but we have only 1 token. We should bid 0 or 1. Likely bid 0 to conserve token for future. We'll submit_bid amount 0.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":0}",
+        "call_id": "d6cbc2de8",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_vepsqpvhxd",
+        "status": "completed"
+      },
+      {
+        "call_id": "d6cbc2de8",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"8826fd73-75fe-47e5-aca9-471deb3bd774\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 34399,
+    "currentInputSha256": "67fed0f043baa553ff968a2490e256c917c6cf55cb67866aff44cc850300f61f",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 51577,
+        "inputSha256": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

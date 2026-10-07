@@ -1,0 +1,240 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "case": 11,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  48
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  48
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "white-harbor",
+          "moves": [
+            {
+              "destination_region_id": "winterfell",
+              "unit_ids": [
+                48
+              ]
+            }
+          ],
+          "leave_power_token": false,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 16352,
+        "outputTokens": 437,
+        "totalTokens": 16789
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 16352,
+          "input_tokens_details": {
+            "cached_tokens": 768
+          },
+          "output_tokens": 437,
+          "output_tokens_details": {
+            "reasoning_tokens": 385
+          },
+          "total_tokens": 16789,
+          "cost": 0.00605095,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00605095,
+            "upstream_inference_input_cost": 0.0057232,
+            "upstream_inference_output_cost": 0.00032775
+          },
+          "scope": "agent",
+          "response_id": "gen-1789376060-I8e0FpPecy6o8GobUo25",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "68ee9d198f34207bc64ede8aebfcec38b8c33439b83caef90c25fb6236835311"
+    },
+    {
+      "case": 12,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  27,
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  27,
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "select_units",
+        "arguments": {
+          "selections": [
+            {
+              "region_id": "starfall",
+              "unit_ids": [
+                27,
+                46
+              ]
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 12421,
+        "outputTokens": 152,
+        "totalTokens": 12573
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 12421,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 152,
+          "output_tokens_details": {
+            "reasoning_tokens": 114
+          },
+          "total_tokens": 12573,
+          "cost": 0.00446135,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00446135,
+            "upstream_inference_input_cost": 0.00434735,
+            "upstream_inference_output_cost": 0.000114
+          },
+          "scope": "agent",
+          "response_id": "gen-1789376063-2bQcZ5F5FVJhkgcklK5P",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398"
+    },
+    {
+      "case": 13,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 4,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "error",
+      "assertionFailure": null,
+      "error": "Error code: 503 - {'error': {'message': 'Provider returned error', 'code': 503, 'metadata': {'raw': '{ \"error\": {\"message\": \"Service unavailable\", \"type\": \"service_unavailable\"} }', 'provider_name': 'Together', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "princes-pass",
+          "moves": [],
+          "leave_power_token": false,
+          "omitted_supply_unsafe_move_groups": 0,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0
+      },
+      "rawUsage": [],
+      "historicalRequestHash": "757acd4133b61e2dfd852409f05447963f11e0a09447883c7521213a68e7bafa"
+    }
+  ]
+}

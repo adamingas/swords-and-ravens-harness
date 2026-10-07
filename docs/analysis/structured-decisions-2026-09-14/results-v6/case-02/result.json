@@ -1,0 +1,423 @@
+{
+  "case": 2,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 5,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 4052,
+    "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Max turns (6) exceeded",
+  "serverActionsExecuted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 6,
+  "explorationCalls": [
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "bay-of-ice"
+      }
+    },
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "castle-black"
+      }
+    }
+  ],
+  "usage": {
+    "requests": 6,
+    "inputTokens": 231741,
+    "outputTokens": 472,
+    "totalTokens": 232213
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37603,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 374,
+      "output_tokens_details": {
+        "reasoning_tokens": 369
+      },
+      "total_tokens": 37977,
+      "cost": 0.00197365,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00197365,
+        "upstream_inference_input_cost": 0.00188015,
+        "upstream_inference_output_cost": 9.35e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426616-AFGjNv4MmCnwjrXgXzY9",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38576,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 29,
+      "output_tokens_details": {
+        "reasoning_tokens": 15
+      },
+      "total_tokens": 38605,
+      "cost": 0.00193605,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00193605,
+        "upstream_inference_input_cost": 0.0019288,
+        "upstream_inference_output_cost": 7.25e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426634-6n4ILXbGpk8JpfiOuyud",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38594,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 20,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 38614,
+      "cost": 0.0019347,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0019347,
+        "upstream_inference_input_cost": 0.0019297,
+        "upstream_inference_output_cost": 5e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426635-99bEhbtTmbF04Gtijdkv",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38976,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 28,
+      "output_tokens_details": {
+        "reasoning_tokens": 11
+      },
+      "total_tokens": 39004,
+      "cost": 0.0019558,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0019558,
+        "upstream_inference_input_cost": 0.0019488,
+        "upstream_inference_output_cost": 7e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426636-yt9DDvhauipQa0qsCkt9",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38993,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 17,
+      "output_tokens_details": {
+        "reasoning_tokens": 5
+      },
+      "total_tokens": 39010,
+      "cost": 0.0019539,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0019539,
+        "upstream_inference_input_cost": 0.00194965,
+        "upstream_inference_output_cost": 4.25e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426638-XY1pmrJyVJU9NI5cMMJg",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38999,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 4,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 39003,
+      "cost": 0.00195095,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00195095,
+        "upstream_inference_input_cost": 0.00194995,
+        "upstream_inference_output_cost": 1e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426640-MCvfDSsHGENWKLCdIxCa",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426616-AFGjNv4MmCnwjrXgXzY9",
+      "output": [
+        {
+          "id": "rs_tmp_abjumxh6tlo",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to assign orders to the 5 occupied areas: bay-of-ice, castle-black, karhold, winterfell, the-narrow-sea.\n\nWe have restrictions: no raid orders (restricted). Max starred orders is 0 (from planningConstraints). So we cannot use any starred orders. We have to assign categories from allowed: march, defense, support, consolidate_power (raid not allowed). Also we must respect supply: Stark supply =1. Currently units: winterfell (1 footman), castle-black (2 knights), karhold (1 knight), bay-of-ice (1 ship), the-narrow-sea (1 ship). Supply icons controlled =1 (winterfell). Supply track 1 allows armies sizes: according to table supply 1 => permitted army sizes 3,2? Wait table: supply 1 => \"3,2\". Means can have two armies: one up to 3 units, another up to 2 units. Currently we have multiple armies: each land area with units counts as an army? Knights and footmen in land are armies; ships in sea are armies. Currently each area has a single unit, so each is a separate army of size 1 (single unit not considered an army, per definition: army is two or more units sharing same area. So each single unit is not an army, thus not counted against supply limits. However moving units could create armies. Must not exceed supply.\n\nGoal: expand towards castles: We have possible captures: Flint's Finger (land), Moat Cailin, White Harbor reachable via ships/land. Let's see adjacency.\n\nWe need to know neighbours of each area. Use check_neighbours for relevant areas.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"area\":\"bay-of-ice\"}",
+          "call_id": "chatcmpl-tool-84343ae12f2b9236",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_4dojby73fq8",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426634-6n4ILXbGpk8JpfiOuyud",
+      "output": [
+        {
+          "id": "rs_tmp_afl1ghcmnq",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Check neighbours for castle-black.{\"area\":\"castle-black\"}",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426635-99bEhbtTmbF04Gtijdkv",
+      "output": [
+        {
+          "arguments": "{\"area\":\"castle-black\"}",
+          "call_id": "chatcmpl-tool-9395ce2827287713",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_xqb7eia9a0e",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426636-yt9DDvhauipQa0qsCkt9",
+      "output": [
+        {
+          "id": "rs_tmp_no3o8kdr0nc",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Check karhold neighbours.{\"area\":\"karhold\"}",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426638-XY1pmrJyVJU9NI5cMMJg",
+      "output": [
+        {
+          "id": "rs_tmp_9on5z5ttjza",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "{\"area\":\"karhold\"}",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426640-MCvfDSsHGENWKLCdIxCa",
+      "output": []
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 31824,
+    "currentInputSha256": "11dc55d2b9fbcfde1c95158c202c95857f1688bda2c0b52795397987452ac8b4",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 35806,
+        "inputSha256": "277b8e71dd8717d57c285e399f5f569e5d27e354d4bfa04e0b4f4c9b9c4bb065",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "inputItemCount": 4,
+        "inputCharacters": 39511,
+        "inputSha256": "93406b7f8876ac0c7342b395f7a5b512cb53adbe1f9c1cb9e32f35db5665a342",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 3,
+        "inputItemCount": 5,
+        "inputCharacters": 39719,
+        "inputSha256": "793af63bc416746b4b35d22cbf90ca0085c1d8f6a126b89ac48e147d7be0d06f",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 4,
+        "inputItemCount": 7,
+        "inputCharacters": 41053,
+        "inputSha256": "54bf37aa20dd8dec4a709175961d80c718aefdc84304aa7cc41b442836e57ff6",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 5,
+        "inputItemCount": 8,
+        "inputCharacters": 41248,
+        "inputSha256": "eafaf361668b0d93912f92af30572fd521e389e81c2659c88830bd7d5b7e83b5",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 6,
+        "inputItemCount": 9,
+        "inputCharacters": 41418,
+        "inputSha256": "b25d13da712aeb5f37cfb451ce365dcad973e6a59e2f8c99197ee83de7532bf7",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "bay-of-ice",
+                  "castle-black",
+                  "karhold",
+                  "winterfell",
+                  "the-narrow-sea"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are raid.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "b285ed194f51f1a8ec11161e0c6e8c7819bccb1c5b294cc8fc065d23fa5ce59e"
+  }
+}

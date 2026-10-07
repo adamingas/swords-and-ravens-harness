@@ -1,0 +1,254 @@
+{
+  "case": 8,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 6,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 5162,
+    "sha256": "9b2b05b1d8e3992c36d813d29eee1dade1cc72717d2612d51a4c13ce3b37d245"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "moat-cailin",
+      "moves": [
+        [
+          "white-harbor",
+          [
+            6,
+            37
+          ]
+        ]
+      ],
+      "leavePowerToken": true
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"white-harbor\",\n      \"unit_ids\": [6, 37]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+    "{\"moves\":[{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 78664,
+    "outputTokens": 896,
+    "totalTokens": 79560
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39038,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 639,
+      "output_tokens_details": {
+        "reasoning_tokens": 585
+      },
+      "total_tokens": 39677,
+      "cost": 0.01414255,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01414255,
+        "upstream_inference_input_cost": 0.0136633,
+        "upstream_inference_output_cost": 0.00047925
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431365-UEZYJ9zf3pqoqGcu2j1l",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 39626,
+      "input_tokens_details": {
+        "cached_tokens": 36352
+      },
+      "output_tokens": 257,
+      "output_tokens_details": {
+        "reasoning_tokens": 220
+      },
+      "total_tokens": 39883,
+      "cost": 0.01406185,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01406185,
+        "upstream_inference_input_cost": 0.0138691,
+        "upstream_inference_output_cost": 0.00019275
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431367-Dzj9qFY9lY0W3OIeRJI4",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431365-UEZYJ9zf3pqoqGcu2j1l",
+      "output": [
+        {
+          "id": "rs_tmp_60r9009upds",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide where to move from Moat Cailin. Options: greywater-watch (already own, no castle), seagard (already owned), the-twins, white-harbor (castle), winterfell (castle). ActionGuidance reachable list includes those. We have knights ids 6 and 37. Supply=3 allows armies sizes: supply 3 permits 4 armies of sizes 3,2,2,2. Currently we have two knights at Moat Cailin (2 units) making an army size 2, okay. If we move both to white-harbor capture castle (gain 1 castle area). Need support check: white-harbor support? Adjacent areas: moat-cailin, port-of-white-harbor (sea), the-shivering-sea (sea), widows-watch (land), winterfell (land). Support orders present? At white-harbor no order. Adjacent land with support? moat-cailin has our March order, not support. winterfell has defense order. No support tokens adjacent. So combat: attacker has 2 knights (strength 2 each =4). Defense order gives +1 defender. Winterfell garrison 2. Units there: 1 footman (strength1). Defender total: footman1 + garrison2 + defense+1 =4. Tie broken by Fiefdoms track: Greyjoy position? fiefdoms track order: [\"lannister\",\"baratheon\",\"greyjoy\",\"martell\",\"stark\",\"tyrell\"]; Greyjoy is 3rd, so higher than Stark (5th). In combat tie, higher position wins, so Greyjoy wins. No support from others. So attack succeeds, we capture winterfell gaining castle (but also get control token? we must leave power token at Moat Cailin to keep castle there). We have 8 power tokens available, can spend one.\n\nAlternatively capture white-harbor similar but likely no defense there, so easier. White-harbor has castle and no units, just defense? No garrison? No garrison listed. So combat not needed, just moving into empty area captures without combat. So moving knights to white-harbor gives castle gain without combat, no casualties. Then we keep Moat Cailin? If we move both knights, Moat Cailin becomes empty and we can leave a power token to keep control (castle area). We have power token. So moves: both knights to white-harbor, leave_power_token true.\n\nCheck if any support needed? none.\n\nThus action: moves list with one move destination white-harbor unit_ids [6,37], leave_power_token true.\n\nWe must also consider possibility of splitting units, but no need.\n\nSo final answer: moves to white-harbor, leave token.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_0txlqruwzre",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"white-harbor\",\n      \"unit_ids\": [6, 37]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431367-Dzj9qFY9lY0W3OIeRJI4",
+      "output": [
+        {
+          "id": "rs_tmp_7ldbprz1vi3",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to ensure move is legal. From Moat Cailin, reachable destinations list includes white-harbor, winterfell, etc. Both knights (IDs 6,37) can move. Destination white-harbor has castle level 1, controller null, no enemy units, triggersCombat false. So moving both knights there will capture castle, no combat, need to leave power token? Source Moat Cailin will be empty; we want to keep control of Moat Cailin (castle area) by placing a power token. We have 8 power tokens, can spend one. leave_power_token true matches. Supply: currently supply 3 allows armies up to sizes: 3,2,2,2. Currently we have knights at Moat Cailin (2 units) forming an army size 2, okay. After moving both, Moat Cailin empty, we place power token, okay. Destination white-harbor will have 2 knights, forming army size 2, okay supply. No combat. So legal. Submit JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_ot3xknvg6q",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"moves\":[{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 36542,
+    "currentInputSha256": "5ceebb732a009e768b6725b531f64a3c5d1ed8ce581657ad507af4b7ab0144c5",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 41210,
+        "inputSha256": "50986b2c321da7a31636eae54b0a30b0f18af1e3f4c328f855f3bcf8dd9f73a6",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 46496,
+        "inputSha256": "68b5d17ec3118302dee0198f3598b6809bb1e682ba399fd198760b4489feb61b",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "greywater-watch",
+                  "seagard",
+                  "the-twins",
+                  "white-harbor",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    6,
+                    37
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "61db4a9b6d908aef9b931a84e7a72be8a90d72e2868bbc32f973fa0c0f229b74"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "case": 1,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "stark",
+  "round": 1,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Error code: 503 - {'error': {'message': 'Provider returned error', 'code': 503, 'metadata': {'raw': '{\\n  \"id\": \"p1JRzrk-6z2FuN-a3b2e91f3ca63921\",\\n  \"error\": {\\n    \"message\": \"Service unavailable\",\\n    \"type\": \"service_unavailable\",\\n    \"param\": null,\\n    \"code\": null\\n  }\\n}', 'provider_name': 'Together', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+  "serverActionsExecuted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 25114,
+    "currentInputSha256": "0b724a4bf5bb385f72675e54089a1f70ef203c8b12d8eabed04b5ce6a37e50aa",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 28341,
+        "inputSha256": "82d74cebd7f23911473eae6ffc6c84178d6965e56431ed4665c10be42cdf857e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "988172a7e1c1fb22f26f75929a0e07d3f4b6e5ec41c83109f723283e3a056b79"
+  }
+}

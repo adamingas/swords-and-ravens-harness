@@ -1,0 +1,148 @@
+{
+  "case": 10,
+  "model": "~deepseek/deepseek-v4-flash-latest",
+  "house": "martell",
+  "round": 3,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "princes-pass",
+      "moves": [
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{ \"moves\": [ { \"destination_region_id\": \"starfall\" } ] }"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38289,
+    "outputTokens": 21,
+    "totalTokens": 38310
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38289,
+      "input_tokens_details": {
+        "cached_tokens": 32384
+      },
+      "output_tokens": 21,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 38310,
+      "cost": 0.0018041,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0018041,
+        "upstream_inference_input_cost": 0.00179822,
+        "upstream_inference_output_cost": 5.88e-06
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425929-B7b1LghOuWeyHe7VOHDa",
+      "response_model": "deepseek/deepseek-v4-flash-0731",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425929-B7b1LghOuWeyHe7VOHDa",
+      "output": [
+        {
+          "id": "msg_tmp_imnnak3fek",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{ \"moves\": [ { \"destination_region_id\": \"starfall\" } ] }",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28392,
+    "currentInputSha256": "289aad45b1baf059d102d7734fb19976beea5a4ee9e94e54bafb2cbf0a3dd581",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 32045,
+        "inputSha256": "30c3b0921770db92d8863a4b85f9e62cdf6f3f4cc7b0dc509a2ac73bc452e4e0",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "349991b124ac7eb9b3110f99cf2c60d454e7454f402a8e795dfbadf3a5f3892c"
+  }
+}

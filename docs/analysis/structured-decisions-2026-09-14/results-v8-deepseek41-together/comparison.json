@@ -1,0 +1,284 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "together",
+  "harness": "production StrategicHarness.prepare_turn/run_turn, unchanged two-stage v8",
+  "validDecisions": 10,
+  "togetherFirstAttemptValid": 9,
+  "failedAttempts": {
+    "fireworksRateLimits": 10,
+    "deepinfraRateLimits": 1,
+    "togetherStreamErrors": 1
+  },
+  "retryContext": "Case 14 includes the preceding provider error through prepare_turn(previous_error). No accepted action was rerolled.",
+  "selectedAttemptUsage": {
+    "requests": 35,
+    "inputTokens": 1447915,
+    "outputTokens": 38118,
+    "totalTokens": 1486033
+  },
+  "selectedAttemptExplorationTools": {
+    "check_neighbours": 23,
+    "remember_strategy": 5
+  },
+  "cases": [
+    {
+      "case": 1,
+      "house": "stark",
+      "round": 1,
+      "result": "results-v8-deepseek41-together/case-01/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "white-harbor",
+          "moves": [
+            [
+              "moat-cailin",
+              [
+                3
+              ]
+            ]
+          ],
+          "leavePowerToken": true
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 2,
+      "house": "stark",
+      "round": 5,
+      "result": "results-v8-deepseek41-together/case-02/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "submit-orders",
+          "orders": [
+            {
+              "regionId": "bay-of-ice",
+              "orderId": 8
+            },
+            {
+              "regionId": "castle-black",
+              "orderId": 2
+            },
+            {
+              "regionId": "karhold",
+              "orderId": 10
+            },
+            {
+              "regionId": "winterfell",
+              "orderId": 1
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "orderId": 7
+            }
+          ]
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 3,
+      "house": "stark",
+      "round": 7,
+      "result": "results-v8-deepseek41-together/case-03/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "winterfell",
+          "moves": [
+            [
+              "white-harbor",
+              [
+                45
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 4,
+      "house": "stark",
+      "round": 10,
+      "result": "results-v8-deepseek41-together/case-04/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "moat-cailin",
+          "moves": [
+            [
+              "seagard",
+              [
+                48
+              ]
+            ],
+            [
+              "white-harbor",
+              [
+                55
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 6,
+      "house": "martell",
+      "round": 3,
+      "result": "results-v8-deepseek41-together/case-06/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "kingswood",
+          "moves": [
+            [
+              "the-reach",
+              [
+                26
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 8,
+      "house": "greyjoy",
+      "round": 6,
+      "result": "results-v8-deepseek41-together/case-08/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "moat-cailin",
+          "moves": [
+            [
+              "white-harbor",
+              [
+                6
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 10,
+      "house": "martell",
+      "round": 3,
+      "result": "results-v8-deepseek41-together/case-10/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "princes-pass",
+          "moves": [
+            [
+              "starfall",
+              [
+                27
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 12,
+      "house": "martell",
+      "round": 8,
+      "result": "results-v8-deepseek41-together/case-12/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "select-units",
+          "units": [
+            [
+              "east-summer-sea",
+              [
+                24
+              ]
+            ],
+            [
+              "starfall",
+              [
+                27
+              ]
+            ]
+          ]
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 14,
+      "house": "greyjoy",
+      "round": 2,
+      "result": "results-v8-deepseek41-together-retry/case-14/result.json",
+      "retriedOnTogether": true,
+      "commands": [
+        {
+          "type": "submit-orders",
+          "orders": [
+            {
+              "regionId": "pyke",
+              "orderId": 2
+            },
+            {
+              "regionId": "ironmans-bay",
+              "orderId": 7
+            },
+            {
+              "regionId": "port-of-pyke",
+              "orderId": 10
+            },
+            {
+              "regionId": "greywater-watch",
+              "orderId": 1
+            }
+          ]
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    },
+    {
+      "case": 17,
+      "house": "greyjoy",
+      "round": 8,
+      "result": "results-v8-deepseek41-together/case-17/result.json",
+      "retriedOnTogether": false,
+      "commands": [
+        {
+          "type": "select-units",
+          "units": [
+            [
+              "port-of-pyke",
+              [
+                7,
+                8
+              ]
+            ]
+          ]
+        }
+      ],
+      "initialPreparedContextMatchesOSSExceptHistoryTimestamps": true
+    }
+  ]
+}

@@ -1,0 +1,367 @@
+{
+  "promptVariant": "full-rules",
+  "instructionsSha256": "e462ffb8be93f1924838697d44200d1ac7d68f607a88774896700122fab14e77",
+  "instructionsCharacters": 121663,
+  "case": 4,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 10,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "same",
+  "assertionFailure": null,
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48,
+              55
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48,
+              55
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "moat-cailin",
+      "moves": [
+        {
+          "destination_region_id": "winterfell",
+          "unit_ids": [
+            48,
+            55
+          ]
+        }
+      ],
+      "leave_power_token": false,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 40345,
+    "outputTokens": 565,
+    "totalTokens": 40910
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 40345,
+      "input_tokens_details": {
+        "cached_tokens": 26240
+      },
+      "output_tokens": 565,
+      "output_tokens_details": {
+        "reasoning_tokens": 510
+      },
+      "total_tokens": 40910,
+      "cost": 0.0145445,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0145445,
+        "upstream_inference_input_cost": 0.01412075,
+        "upstream_inference_output_cost": 0.00042375
+      },
+      "scope": "agent",
+      "response_id": "gen-1789377398-yPwZ7m7d1NYmd9q0nw3f",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789377398-yPwZ7m7d1NYmd9q0nw3f",
+      "output": [
+        {
+          "id": "rs_tmp_2rgogjsfykf",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the March order for Stark. Current pendingDecision: resolve-single-march, houseId Stark, supportersAgainstNeutralForce null. We have two possible starting regions with March orders: bay-of-ice (orderId1 March -1) and moat-cailin (orderId2 March +0). We must choose one to resolve. Must move units possibly causing combat. Look at legal moves: actionGuidance lists reachable regions for each.\n\nbay-of-ice reachable: port-of-winterfell (no combat), sunset-sea (triggers combat). We have unit 40 (ship) in bay-of-ice. Moving to sunset-sea would trigger combat with Greyjoy ship present (id44). That would be combat. We could also move to port-of-winterfell (no combat) just moving ship into port (belongs to Stark). That is safe.\n\nmoat-cailin reachable: greywater-watch, seagard, the-twins, white-harbor, winterfell. Units 48,55 (knights). All are Stark knights. Moving into any of those would trigger combat if occupied by enemy units. Greywater-watch currently has no units (neutral?). Seagard has none. the-twins none. white-harbor none. winterfell is Stark home with garrison but empty units. No combat. So can move knights to any, but must consider supply: Stark supply is 1, currently have 1 army? We have knights in moat-cailin (2 units) as an army size 2. After moving both knights somewhere, they would form army maybe in winterfell (2 knights) causing army size 2 > supply? Supply 1 means permitted armies: sizes 3,2,2? Actually supply track 1 allows army sizes 3,2 (two armies). So max size per army is 3 for one army, 2 for second. Having 2 knights is fine. Could also split? Moves allow list of destination groups, each with unit ids. Could move both to same destination or split. Must ensure no combat unless desired. Likely best to move knights to winterfell to consolidate, no combat, and leave power token? cannot leave power token anyway (canLeavePowerToken false). So resolve by moving knights to winterfell.\n\nThus choose resolve_march starting_region_id \"moat-cailin\", moves: destination winterfell with unit_ids [48,55]. leave_power_token false.\n\nLet's do that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[48,55]}],\"leave_power_token\":false}",
+          "call_id": "3e805d96e",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_9lts8o25ktb",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "c6efe6f6c969d3b52fc135f0b786f9091cca3af0086a7b719f7a089b5c334f7c",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 317326,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_0caig4aqez6b",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the march order for winterfell. Options: move units to reachable regions. Units in winterfell: ids 47,48,1. Order is March -1 meaning can move up to 1 unit? Actually March -1 means move 1 unit (since -1). So we must move exactly one unit? Probably can move up to 1. Choose best destination. Want expand towards castle. Adjacent castles: Castle Black (land), Karhold, Moat Cailin, The Stony Shore, White Harbor, Widows Watch. No enemy there. Probably move a knight to Castle Black to reinforce. That also gives control token? No token requirement. So resolve_march with starting_region_id \"winterfell\", moves destination castle-black unit_ids [47] maybe. Choose unit 47 (knight). Leave_power_token false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[47]}],\"leave_power_token\":false}",
+        "call_id": "06c7712a2",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_culm2atego",
+        "status": "completed"
+      },
+      {
+        "call_id": "06c7712a2",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"078fe17b-3eab-4b43-b2fb-d9ab47c2151f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_sq2obnoujeh",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose an action for player-mustering. Must decide recruit. We have supply 1, currently armies: castle-black (3 units) uses 1 army slot size3, winterfell (2 units) size2 uses slot2 total armies 2 slots allowed sizes [3,2] okay. Mustering points 2 at winterfell. Options: recruit at winterfell footman, knight, siege-engine. Supply limit: only one army slot size3 and one size2 allowed. Adding unit may exceed army size? winterfell currently has 2 units, adding footman makes 3 units size3 would require a slot size3 but we already have size3 used at castle-black. Allowed army sizes are [3,2]; we have one size3 already, adding another size3 would need two size3 slots but only one allowed. So cannot increase winterfell to 3 units. Could add footman to make 3 units? That exceeds. Could add footman to winterfell and then maybe upgrade? Not allowed. Could recruit at winterfell footman but would exceed supply. So must recruit at winterfell maybe upgrade footman to knight? upgrade_from_footman true only for knight or siege-engine. We have footman at winterfell id1. Could upgrade that to knight costing 1 supply (footmanUpgrade cost). That would keep unit count same (2) so okay. So recruitments: upgrade footman to knight at winterfell. Also mustering region winterfell has 2 mustering points, can recruit up to 2 units? We can also recruit footman at winterfell? That would exceed. So only upgrade. Also can muster at bay-of-ice ship safe supply 1 new ship there. That's separate region not in mustering origins? Mustering origins list only winterfell. But mustering_type 0 maybe normal mustering from each region we control? Actually mustering origins only winterfell provided. So we only can recruit there. So we should upgrade footman to knight at winterfell. Use mustering command.\n\nWe need to call muster_units with that.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"winterfell\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"winterfell\",\"upgrade_from_footman\":true}]}]}",
+        "call_id": "1ca80629f",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_7z3yaidbo2",
+        "status": "completed"
+      },
+      {
+        "call_id": "1ca80629f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"16c7d5aa-994d-4c52-9661-98f8b742231f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_pr65qobw26n",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We have placed orders already this round. Need to submit orders now? Actually pendingDecision type place-orders and we have already submitted orders? The state shows we have submitted orders previously in round 8. Now round 9 place-orders pending, we need to submit orders for our regions. We must use submit_orders tool. Determine preferences: we have units in castle-black (knight, footman, knight), winterfell (knight, knight), port-of-winterfell (ship), the-shivering-sea (ship). No support allowed (restricted). We want to expand towards nearest castle: nearest other castle is perhaps White Harbor (but controlled by us? it's land with castleLevel0). Actually we have no other castle. Maybe aim for White Harbor? But it's land with no castle. Better to aim for the nearest castle stronghold? There is none. Could try to march to take Winterfell from castle-black? Already have units in both. Could march from castle-black to winterfell to consolidate? But both owned. Could march ship from port-of-winterfell to Bay of Ice? That's sea neighbor. Could march ship to Bay of Ice to gain sea control. But no orders for support. We have no starred orders limit 0. So all orders non-starred. Choose March for all movable units: castle-black can march to winterfell (adjacent) but both owned, maybe to move troops. Could also march from winterfell to castle-black to reposition. But need coherent plan: aim to take White Harbor? Can't from winterfell directly (needs land adjacency). Winterfell adjacent to white harbor via The Shivering Sea? Actually winterfell neighbours include white harbor? Yes winterfell neighbours white harbor via? list shows winterfell neighbours include white-harbor. Yes. So we could march from winterfell to white harbor (land) to capture? White harbor is land with castleLevel1 (stronghold). Currently unoccupied? No units there. So marching a knight into white harbor could capture stronghold. That would increase castles/strongholds. So assign March from winterfell to white-harbor with unit 48 or 55. Also march ship from port-of-winterfell to Bay of Ice (sea) to threaten Greyjoy. Also march ship from the-shivering-sea to ??? adjacent sea like Bay of Ice or The Narrow Sea? The Shivering Sea neighbours include Bay of Ice and The Narrow Sea etc. Could send ship to Bay of Ice as well but limited token? We have only one ship in each. We'll assign March from port-of-winterfell to Bay of Ice, and from the-shivering-sea to The Narrow Sea maybe. Also defend? Defense only protects own area; maybe assign defense to castle-black to hold. But support is restricted. So assignments: castle-black -> defense, winterfell -> march (to white harbor), port-of-winterfell -> march (to bay-of-ice), the-shivering-sea -> defense? Could also raid but no enemy adjacent support. Keep defense to protect. Use priorities high for march. Let's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"port-of-winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+        "call_id": "fae3f1aa2",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_g3fp7gz74ce",
+        "status": "completed"
+      },
+      {
+        "call_id": "fae3f1aa2",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"8ff48e4a-5591-467f-b186-11295c09b61f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_tpng243fotk",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the current march order. Options: from winterfell (unit ids 48,55) or port-of-winterfell (unit 40). Must pick one starting region. Likely want to move units to expand. Which target? winterfell reachable includes castle-black (enemy)? castle-black controlled by us. No combat. Moat Cailin has enemy (greyjoy) and combat triggers. Might attack there? We have supply 1, we have two knights in winterfell, can move one to moat cailin to attack greyjoy's footman (unit 9). That would give us control of Moat Cailin (castle level1). Good. Need to consider combat: we have 2 knights moving? We can move any subset of units. Moves list can include multiple destinations but only one combat allowed. We could move both knights to moat cailin to ensure victory. Greyjoy has 1 footman. Our knights count 2 vs 1, no support. No swords. Should win. Then we control Moat Cailin (supply icon none). Might be strategic. Also could move to karhold to expand territory without combat. But Moat Cailin gives a land area and potential supply later. Choose combat to gain land. So resolve march from winterfell moving unit 48 and 55 to moat-cailin. leave_power_token false (cannot). Use resolve_march tool.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[48,55]}],\"leave_power_token\":false}",
+        "call_id": "600576199",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_mhdozrlr3o",
+        "status": "completed"
+      },
+      {
+        "call_id": "600576199",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"ed0fc533-0009-4969-b40c-aa1f252960a0\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_7z5eni1574",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose a house card for combat. Currently phase choose-house-card after combat? There was an attack earlier: attack event from Stark to Greyjoy at Moat Cailin. Likely combat occurred and now need to choose house card. We must select a card id and force_valyrian_blade_decision false. Choose best card: we have many. Combat likely at Moat Cailin where our knights attacked Greyjoy footman. We have knights strong, enemy footman. We should play a high strength card to ensure win. Use Eddard Stark (strength 4, swords 2). Choose that. No Valyrian blade needed.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"house_card_id\":\"eddard-stark\",\"force_valyrian_blade_decision\":false}",
+        "call_id": "28ad27ce7",
+        "name": "choose_combat_house_card",
+        "type": "function_call",
+        "id": "fc_tmp_8aaq48drqus",
+        "status": "completed"
+      },
+      {
+        "call_id": "28ad27ce7",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"choose_combat_house_card\", \"stateId\": \"db78648f-c41d-4894-86b2-187e314151cc\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_dmliy62ilo",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the current march order. The legalOrderRegions show only port-of-winterfell with unit 40 can move to bay-of-ice. So we must call resolve_march with that move (or discard). Probably want to move ship to bay-of-ice to secure sea? But moving there gives no combat, just sea. Could also discard. Better to move ship to bay-of-ice to control sea adjacent to winterfell? Might help expansion. So resolve_march starting_region_id port-of-winterfell, move unit 40 to bay-of-ice, leave_power_token false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"port-of-winterfell\",\"moves\":[{\"destination_region_id\":\"bay-of-ice\",\"unit_ids\":[40]}],\"leave_power_token\":false}",
+        "call_id": "1f002bba4",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_cp39trox0s",
+        "status": "completed"
+      },
+      {
+        "call_id": "1f002bba4",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"c2cb6201-e202-4f3b-abf2-d60732ee0218\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_lc6htj7czz",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to decide: mustering now. Supply 1, have 2 knights already at winterfell? Actually knights at winterfell just added one knight (upgraded footman). Currently units in winterfell: none before, now we have one knight? Upgrade from footman uses existing footman but none present, but must be supply safe? Probably created knight using supply cost 2? Supply limit: supply=1 allows army size up to? supplySafeNewUnitsWhenChosenAlone 1 for winterfell. We have supply 1, current armies: moat-cailin 2 units, castle-black 3 units. Winterfell currently 0 units, can recruit up to supplySafeNewUnitsWhenChosenAlone =1 unit. Knight costs 2 supply? unitCosts knight=2, but supply cost for recruitment is 1? Actually unitCosts knight=2 supply tokens? supply is number of supply icons you control, not token cost. Must check: you have supply 1, you can have at most one army of size up to allowed? supply limit says allowedArmySizes [3,2]. Current armies: castle-black size3, moat-cailin size2. No capacity for another army. So mustering must be supply safe: can only add unit if it doesn't exceed supply. Likely cannot muster because supply already used by two armies. Mustering options: winterfell can recruit footman (cost 1) maybe allowed? supplySafeNewUnitsWhenChosenAlone =1 meaning can add 1 unit if alone. So we can muster a footman at winterfell. Also can muster ship at bay-of-ice and port-of-winterfell and the-shivering-sea. But supply is 1, single unit regions count as separate armies? Single unit regions are exempt from army slot? rule: Only regions with two or more units use an army slot. So can place a ship at bay-of-ice (single unit region) without using supply. So better to muster ship to increase mobility. Also can muster ship at port-of-winterfell (also single). The-shivering-sea already has ship, could add another? single region with one ship counts as single unit region, can add another ship? Might become two ships, then counts as army? Probably still sea region but ships count as units; if two ships, still probably counts as army? Not sure. Safer to muster a ship at bay-of-ice as it's sea region with one ship already, adding another makes two ships but still sea? Might still be okay. But we have supply 1, can add one new unit safe. Choose best: a ship to threaten opponent? Likely to expand north. I'd muster a ship at bay-of-ice.\n\nThus use muster_units with recruitment ship at bay-of-ice.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"winterfell\",\"recruitments\":[{\"unit_type\":\"ship\",\"region_id\":\"bay-of-ice\",\"upgrade_from_footman\":false}]}]}",
+        "call_id": "e8a0bcc50",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_daq0ol7khhn",
+        "status": "completed"
+      },
+      {
+        "call_id": "e8a0bcc50",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"6d0ac0dd-188f-49ce-b5f3-607f3d858b2e\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_yhqkwvtsyf7",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Need to place orders now. We have units in bay-of-ice (ship), castle-black (knight, footman, knight), winterfell (none), port-of-winterfell (none), the-shivering-sea (ship), moat-cailin (two knights). Eligible regions list matches. Need to assign orders for each region. Goal: expand towards nearest castle maybe Moat Cailin is a stronghold already? Actually Moat Cailin is stronghold level1. We have already stronghold. Need another castle: maybe aim for White Harbor? but far. Probably march from moat-cailin to white harbor? not adjacent (moat-cailin neighbors include white harbor). Yes can march there to take white harbor (land with supply icon 0). Might be good to get another castle? White Harbor has no castle level. Better target: maybe take winterfell castle (already have). Could aim for white harbor for supply? But supply already 1. Maybe aim for Port of Winterfell? Already have. Could try to attack neighboring baratheon at the narrow sea? Not adjacent. Better consolidate power? We have no power tokens. Maybe support attacks elsewhere. Likely we want to march from moat-cailin to white harbor to expand land. Also march from bay-of-ice to winterfell? Already there. We have ship at bay-of-ice could march to winterfell (adjacent) to reinforce. Castle-black could defend or support. The shivering sea ship could raid? Raid removes enemy support/raid adjacent. Adjacent to castle-black, karhold, the-narrow-sea, white harbor, widows watch, winterfell. Could raid at the narrow sea to disrupt baratheon ship there. That seems good. So assign: bay-of-ice -> march (to winterfell). castle-black -> defense (protect). the-shivering-sea -> raid (target the-narrow-sea). moat-cailin -> march (to white harbor). Need priorities. Use high priority for moat-cailin march. Provide assignments.\n\n",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"moat-cailin\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"raid\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+        "call_id": "4263d33e0",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_ag1y722n8te",
+        "status": "completed"
+      },
+      {
+        "call_id": "4263d33e0",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"b170eea3-f3f6-43fd-8fb5-88ec51032019\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 42100,
+    "currentInputSha256": "b6738b2f19cd15283b29d22ec8c7303c0e5ab65cdebfbcf19d5d74a86953eb44",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 65767,
+        "inputSha256": "c6efe6f6c969d3b52fc135f0b786f9091cca3af0086a7b719f7a089b5c334f7c",
+        "instructionsCharacters": 121663,
+        "instructionsSha256": "e462ffb8be93f1924838697d44200d1ac7d68f607a88774896700122fab14e77"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

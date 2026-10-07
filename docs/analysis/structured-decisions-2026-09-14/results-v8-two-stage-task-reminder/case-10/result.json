@@ -1,0 +1,233 @@
+{
+  "case": 10,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "princes-pass",
+      "moves": [
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "**Intended action**\n\nI will resolve my March order from **Prince’s Pass** by moving my sole Footman (unit ID 27) to **Starfall**.  \n- Destination: `starfall` (a castle area that is currently unoccupied).  \n- The move captures the castle, giving House Martell one additional castle‑area for Victory points.  \n- No combat is involved, and the move complies with my Supply limit (I will have no units remaining in Prince’s Pass, and I will not place a control token there).\n\n**Resulting move list**\n\n```json\n{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order I still have (the **‑1 March** on **The Boneway**) will be resolved in a later decision.  \n- All other orders (Support, Consolidate Power, etc.) have already been resolved for this round.",
+    "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 75378,
+    "outputTokens": 611,
+    "totalTokens": 75989
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37355,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 517,
+      "output_tokens_details": {
+        "reasoning_tokens": 302
+      },
+      "total_tokens": 37872,
+      "cost": 0.013462,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.013462,
+        "upstream_inference_input_cost": 0.01307425,
+        "upstream_inference_output_cost": 0.00038775
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431504-NPSDamOUDmBh6k9YTISh",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38023,
+      "input_tokens_details": {
+        "cached_tokens": 28160
+      },
+      "output_tokens": 94,
+      "output_tokens_details": {
+        "reasoning_tokens": 72
+      },
+      "total_tokens": 38117,
+      "cost": 0.01337855,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01337855,
+        "upstream_inference_input_cost": 0.01330805,
+        "upstream_inference_output_cost": 7.05e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431506-jELT61gX1NzTvt95l4m8",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431504-NPSDamOUDmBh6k9YTISh",
+      "output": [
+        {
+          "id": "rs_tmp_5kgvoj34w6p",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide move. From Princes Pass we have one footman unit id 27. Reachable destinations: dornish-marches (controller tyrell), starfall (castle level1, unoccupied), the-boneway (controller baratheon), three-towers (empty), yronwood (castle level1, unoccupied). Need to keep at least one unit to retain area? It says leaving no unit loses area but we cannot leave power token. Keeping at least one unit preserves it. So we could move the footman to capture a castle (starfall or yronwood) gaining castle area without combat. No combat there as they are empty. Should we move to starfall (castle) gaining one castle area. That's beneficial. Also could move to yronwood similarly. Need to consider support around battlefield if combat, but no combat. So choose moving footman to starfall. That leaves Princes Pass empty, but we cannot leave control token; area lost but that's okay? It says we cannot leave a control token, so we lose that area (no castle). No loss of castle area anyway. So we gain new castle.\n\nThus moves list: one move with destination_region_id \"starfall\". unit_ids [27].\n\nProvide remaining choices: we still have other March orders unresolved (the-boneway? Actually other March orders: we have March orders at the-boneway (order id1) and maybe others but not our concern.\n\nSo answer in prose.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_ljpl4qjlg89",
+          "content": [
+            {
+              "annotations": [],
+              "text": "**Intended action**\n\nI will resolve my March order from **Prince’s Pass** by moving my sole Footman (unit ID 27) to **Starfall**.  \n- Destination: `starfall` (a castle area that is currently unoccupied).  \n- The move captures the castle, giving House Martell one additional castle‑area for Victory points.  \n- No combat is involved, and the move complies with my Supply limit (I will have no units remaining in Prince’s Pass, and I will not place a control token there).\n\n**Resulting move list**\n\n```json\n{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order I still have (the **‑1 March** on **The Boneway**) will be resolved in a later decision.  \n- All other orders (Support, Consolidate Power, etc.) have already been resolved for this round.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431506-jELT61gX1NzTvt95l4m8",
+      "output": [
+        {
+          "id": "rs_tmp_em4eosnm4ij",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to submit move to starfall. Destination id must be \"starfall\". Moves array maxItems 1, each entry only destination_region_id, no unit_ids field? Schema only includes destination_region_id. So we just specify destination_region_id. No unit ids needed. So final JSON with moves array containing object with destination_region_id \"starfall\".",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_a3y2gydriyl",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 30707,
+    "currentInputSha256": "839b119f6941aeb661077b996c277d9a1ee354c2fcf6f5c9fb2fff841e6c65bb",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 34445,
+        "inputSha256": "e22960074ba4e81da1c73015dc86abca95145327c42f36867b0224eb0afe4af2",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 39743,
+        "inputSha256": "7c9354e8b363ecff189f4512034f96a96316d42369966af197dfca1c697554dc",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "5c8a2d4dce99e2aa4bcf16f859a80b06b8ed0625668e96ea5a9a649ae11dee00"
+  }
+}

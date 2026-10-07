@@ -1,0 +1,163 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "winterfell",
+      "moves": [
+        [
+          "moat-cailin",
+          [
+            45
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"moat-cailin\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 39493,
+    "outputTokens": 1636,
+    "totalTokens": 41129
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39493,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1636,
+      "output_tokens_details": {
+        "reasoning_tokens": 1777
+      },
+      "total_tokens": 41129,
+      "cost": 0.00238365,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00238365,
+        "upstream_inference_input_cost": 0.00197465,
+        "upstream_inference_output_cost": 0.000409
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426448-2gkpwbdbUW270epxFVpc",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426448-2gkpwbdbUW270epxFVpc",
+      "output": [
+        {
+          "id": "rs_tmp_768qstsidgs",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide moves for March order from Winterfell. ActionGuidance shows reachable regions with details: castle-black (land, no castleLevel 0, no combat), flints-finger (castleLevel 1)\nmoat-cailin (castleLevel 1)\nthe-stony-shore (castleLevel 0)\nwhite-harbor (castleLevel 1)\nAlso greywater-watch and karhold and castle-black are listed but reachable? Actually actionGuidance reachableRegions list includes those 7: castle-black, flints-finger, greywater-watch, karhold, moat-cailin, the-stony-shore, white-harbor.\n\nCheck each: castle-black no combat, owned by Stark currently (units present). flints-finger controlled by Greyjoy, has castle level 1 (castle). moats etc also controlled by Greyjoy. white-harbor uncontrolled. greywater-watch is a land area with no castle but Greyjoy units there.\n\nWe have only one unit in Winterfell: unit id 45, type knight. So we have a single unit army, can move alone.\n\nSupply: Stark supply is 1, currently have one army? Let's see Stark armies: Knight at Winterfell (size 1, not army). Also ship at Bay of Ice, ship at The Narrow Sea. Those are separate armies: ship in Bay of Ice (sea) and ship in Narrow Sea (sea). Supply of 1 allows up to two armies of sizes: per supply table, supply 1 permits armies sizes 3 and 2? Wait table: supply 0: 2,2. supply 1: 3,2. So with supply 1, you can have up to two armies: one up to 3 units, one up to 2 units. Currently Stark has three separate units each in separate areas (each size 1) not counting as armies. So moving the knight does not affect supply.\n\nGoal: capture castle areas to increase victory points. Currently Stark controls 1 castle (Winterfell) and also castle Black? Castle Black is a land area with no castle icon (castleLevel 0) but is a land area. Actually Castle Black area is not a castle, just a location. So only Winterfell castle.\n\nPotential captures:\n- Flints-finger has a castle (castleLevel 1). If we move knight there, we will initiate combat because Greyjoy units present? Greyjoy units: check flints-finger units list: currently no units listed. In board, flints-finger has no units. Greyjoy control token there (controlPowerToken:\"greyjoy\"). No units. Since no units, moving in will not trigger combat, just occupy area and capture? Control token indicates Greyjoy control via power token, no units. If we move into an area with only a power token, we do not combat, we just take control and the opponent's power token is discarded. So we could capture flints-finger, gaining 1 castle area. Also we would lose Winterfell if we vacate and not place a control token. But note: \"Winterfell currently contributes 1 castle area to your score. Your existing control token or home symbol keeps this area yours when you leave it empty; no new token is needed.\" Actually home symbol counts as control token equivalent; leaving empty without token still counts as controlled? Rule: Home area considered controlled automatically like a power token that cannot be removed. So we can vacate Winterfell without token and still control it (castle). So we would retain Winterfell castle plus gain Flints-finger castle, total 2 castles. Good.\n\nSimilarly Moat-cailin has castle (castleLevel 1) controlled by Greyjoy, no units. White-harbor similar. Which is best? Need consider support for potential combat if there were units. No units there. So simple captures.\n\nCheck supply safe groups: supplySafeUnitIdGroupsWhenChosenAlone: [[45]] meaning the knight alone is safe for supply.\n\nSo move can be to any of those destinations, but only one destination allowed to trigger combat; here none will.\n\nWe should consider future strategic: maybe we want to move to Cape to allow ship transport later. But moving knight to a land with castle gains victory and maybe later support.\n\nWhich target is best? Evaluate adjacency and support for future moves. Flints-finger is adjacent to Bay of Ice (sea) and Greywater-watch, Ironmans Bay, Sunset Sea. It also is near other Stark areas? Not directly.\n\nMoat-cailin adjacent to Greywater-watch, The Narrow Sea, The Twins, White Harbor, Winterfell. White Harbor adjacent to Moat Cailin, The Narrow Sea, The Shivering Sea, etc.\n\nCapturing Moat-cailin gives us a castle near Winterfell and also gives us control of a land area adjacent to The Narrow Sea with our ship. Could help ship transport.\n\nWhite Harbor also castle, near The Narrow Sea but also near The Shivering Sea.\n\nWhich gives better connectivity? Our ship at The Narrow Sea could potentially transport knight from Winterfell to The Narrow Sea? Actually ship transport requires two sea areas with ships. We have ship at The Narrow Sea, but to transport land units we need a bridge of ships: need consecutive sea areas each with at least one ship. From Winterfell to The Narrow Sea via The Narrow Sea? Winterfell adjacent to The Narrow Sea directly (winterfell has neighbor The Narrow Sea). But Winterfell is land; ability to move knights via ship transport requires a chain of sea areas each containing ships. Must have ships in sea area adjacent to Winterfell? The Narrow Sea is sea adjacent to Winterfell; it contains our ship (unit id 4). For ship transport, a land unit can move from Winterfell to another land area that is adjacent to a sea area that has a ship, and that sea area is adjacent to the destination land area. For example, to move to Moat Cailin, path: Winterfell (land) adjacent to The Narrow Sea (sea with ship). The Narrow Sea adjacent to Moat Cailin (land). So we could ship transport knight to Moat Cailin via The Narrow Sea without needing a March order? Actually March order moves units; ship transport is a rule that allows land units to move across seas using ships as transport, but still counts as a march (they move in the March order). So moving to Moat Cailin maybe could be done via ship transport even if we march to Moat Cailin (which is adjacent to Winterfell anyway). Both are adjacent directly, so normal march works.\n\nWhich is best to maximize castle count? Any capture yields +1 castle. Perhaps we want to capture Moat Cailin because it's closer to other Stark territories like The Narrow Sea and White Harbor, expanding frontier.\n\nConsider future support: To attack Greyjoy later etc, having more castles near their territories may be beneficial.\n\nAlso Flints-finger is near Greywater-watch which has Greyjoy units; maybe later conflict.\n\nI think capture Moat Cailin is solid.\n\nCheck if Moat Cailin currently has any units: board shows moat-cailin units [] (none). Good.\n\nThus moves: move unit 45 (knight) to moat-cailin.\n\nWe must format moves array with destination_region_id.\n\nMoves: [{\"destination_region_id\":\"moat-cailin\"}]\n\nWe don't need to specify unit IDs, just destination? Schema: each move object only has destination_region_id. It implies moving all units? Actually description: Destination groups and moving unit IDs. But schema only includes destination_region_id. The system likely assumes we move all eligible units (maybe the entire army from source). Since only one unit, okay.\n\nThus final answer JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_oy24rji9jyg",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"moat-cailin\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 38547,
+    "currentInputSha256": "c2bd95627b3a7563676da5934fd2c80802a84d7964f17d1d59042622963f8e41",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 43609,
+        "inputSha256": "e2e6839101b67406053e756a3971f8df08d88d037274fa86fa3143700c70957d",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "flints-finger",
+                  "greywater-watch",
+                  "karhold",
+                  "moat-cailin",
+                  "the-stony-shore",
+                  "white-harbor"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "d4f717f41f6a6ec47d5f2e42249c9ff479ab365f1e80c926b66ff52d7394f735"
+  }
+}

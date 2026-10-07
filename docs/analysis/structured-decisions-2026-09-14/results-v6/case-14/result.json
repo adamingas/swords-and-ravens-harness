@@ -1,0 +1,203 @@
+{
+  "case": 14,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 2,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 1209,
+    "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "pyke",
+          "orderId": 2
+        },
+        {
+          "regionId": "ironmans-bay",
+          "orderId": 10
+        },
+        {
+          "regionId": "port-of-pyke",
+          "orderId": 11
+        },
+        {
+          "regionId": "greywater-watch",
+          "orderId": 1
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 100,\n      \"region_id\": \"pyke\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"greywater-watch\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 70,\n      \"region_id\": \"ironmans-bay\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 60,\n      \"region_id\": \"port-of-pyke\",\n      \"starred_preference\": \"avoid\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35504,
+    "outputTokens": 2210,
+    "totalTokens": 37714
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35504,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 2210,
+      "output_tokens_details": {
+        "reasoning_tokens": 2044
+      },
+      "total_tokens": 37714,
+      "cost": 0.0023277,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0023277,
+        "upstream_inference_input_cost": 0.0017752,
+        "upstream_inference_output_cost": 0.0005525
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426691-1eEHmJAEXna1ShbQB4UY",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426691-1eEHmJAEXna1ShbQB4UY",
+      "output": [
+        {
+          "id": "rs_tmp_9ltybx6m7",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to assign orders to the four occupied areas: pyke, ironmans-bay, port-of-pyke, greywater-watch. Must respect restrictions: no starred orders allowed (maxStarredOrders=0). So starred_preference avoid; also cannot use starred tokens because limit 0. Need to choose order categories. We have limited order tokens: each house has 10 regular orders: 2 March -1, 2 March +0, 1 March +1 (special), 2 Defense +1, 2 Support, 2 Raid, 3 Consolidate Power? Actually 2 normal Consolidate and 1 special. But constraints: maxStarredOrders 0, so can't use special orders. So we have regular orders only. Must assign exactly one order per occupied area. So four orders.\n\nWe should think strategy: aim to capture nearby castles: Flint's Finger (castle), Moat Cailin (castle), Seagard (castle). Our units: pyke (footman, knight). ironmans-bay (ship). port-of-pyke (ship). greywater-watch (footman). Need to consider supply: supply track =2, we have supply icons 2 (pyke, ironmans-bay). Our supply limit allows armies sizes per supply 2: According to supply track 2 => permitted army sizes: 3,2,2 (three armies). Currently we have units: pyke: footman+knight (2 units) same area constitutes an army size 2 (counts as army). ironmans-bay: ship (1 unit) not an army (single unit). port-of-pyke: ship (1 unit) not an army. greywater-watch: footman (1 unit) not an army. So we have one army of size 2, okay.\n\nIf we move units out of pyke using March order, we must ensure we do not exceed supply: moving footman or knight elsewhere may create new army sizes etc. The target castles: Flint's Finger is land neighbor of ironmans-bay? Let's check map: flints-finger connected to ironmans-bay? According to map definition: flints-finger [land; castle=1]: neighbors bay-of-ice, greywater-watch, ironmans-bay, sunset-sea. So flints-finger adjacent to ironmans-bay (land). So we could march from ironmans-bay (ship) to flints-finger? Ship cannot march onto land (footmen/knight/siege). But we could use ship transport: Ironmans-bay has a ship, could transport footman/knight from pyke? Need ship transport chain: Ship in ironmans-bay adjacent to pyke? Check adjacency: ironmans-bay neighbors: flints-finger, greywater-watch, port-of-pyke, pyke, riverrun, seagard, sunset-sea, the-golden-sound. So ship in ironmans-bay adjacent to pyke (land) => ship transport allows footman/knight to move from pyke to any area adjacent to ironmans-bay (including flints-finger) using same March order from pyke? Actually you assign March order to pyke area that contains units; you can move some units via ship transport using ships in adjacent sea areas. Since pyke is adjacent to ironmans-bay, which has a ship, you could move footman or knight from pyke to flints-finger (adjacent to ironmans-bay) using ship transport in same March order. That's legal.\n\nAlso seagard is adjacent to ironmans-bay (also sea neighbor). So from pyke via ship transport you could march into seagard. Moat Cailin is adjacent to greywater-watch (land). So you could march footman from greywater-watch to moat-cailin.\n\nGoal: capture a castle this round via March into empty castle area (assuming unoccupied). Are those castles currently unoccupied? Let's check board list: flints-finger not listed, so no units there. greywater-watch has footman but not castle. moat-cailin not listed, no units. seagard not listed (but seagard is a castle stronghold? It has castle=2 (stronghold). No units. So all empty.\n\nWe need consider supply: moving footman and/or knight from pyke to flints-finger would vacate pyke partially. If we move both units out, pyke becomes empty, we would lose control of castle unless we place a Power token when vacating. But we have no power tokens left? Greyjoy has 6 power tokens total, currently none placed (controlPowerToken none). If we vacate pyke entirely, we could place a power token there (needs available power). We have 6 available power tokens; we could place one to keep castle. That counts as using a power token, okay.\n\nBut we have only one March order for pyke. March order could have -1, 0, or +1 modifier? Regular March orders: there are two: one -1, one 0. The harness will allocate order token based on priority. We may want March +0 or -1? Higher combat strength is better if attacking; but we aren't attacking yet, we just moving into empty castle, no combat. So March type doesn't matter for movement. Priority handling: higher priority assignments may get +1 March if available. Since we have only -1 and 0, the higher priority region may get -1? Actually allocation likely picks the best order token (e.g., March +1 if available) for highest priority. But we have no +1 March token (special). So we have -1 and 0. The harness may give -1 to higher priority and 0 to lower. Which matters? -1 gives combat penalty if combat; irrelevant. So we can assign March to pyke and maybe to greywater-watch.\n\nFor ironmans-bay we have a ship; what order? Could do Consolidate Power to earn power? Consolidate Power in sea area yields no power. However ironmans-bay is land area (has ship). Consolidate Power in land area gives power tokens for supply icons? Ironmans-bay has no supply icon. So Consolidate Power would give 1 power token (base) + supply icons (0) = 1. But the description says Consolidate Power on sea areas yields no power. Our ironmans-bay is land, get 1 power token. That could be good: add to our power tokens. However we already have many power tokens, but still okay.\n\nPort-of-pyke: It's a port, it's sea? Port token. No units there except ship. Consolidate Power on port yields no effect if enemy ships present? There are no enemy ships in port-of-pyke (port adjacent to pyke and ironmans-bay). Our own ship is there. Rule: Consolidate Power on a port: if enemy ships in connected sea area, order removed without effect. No enemy ships, but still Consolidate Power in a port is a normal order (needs to be placed). It yields power token as per land? Actually ports are not land, but they are separate type. The rule says: Consolidate Power order on a sea area (port?) gets no power, but a port is considered a sea area? It says \"Consolidate Power Orders placed on a sea area have no effect\". Port is not sea area; but later says \"If there are enemy ships in the sea area connected to a Port, any Consolidate Power Order assigned to the Port is removed without effect.\" So if no enemy ships, consolidating at port works like normal? But does it grant power tokens? It should follow normal land rule: gives 1 + power icons (none). So 1 token.\n\nBut we have limited Consolidate Power tokens: 2 normal. We have four regions needing orders, we could assign Consolidate to ironmans-bay and port-of-pyke, and use Defense for greywater-watch and March for pyke. However we must ensure we don't exceed supply after moves.\n\nIf we march from pyke to flints-finger, we will leave pyke empty and need Power token to keep it. That's fine.\n\nIf we march from greywater-watch to moat-cailin, that will vacate greywater-watch (no castle there) so no need to place power token. That move will result in an army at moat-cailin (size 1 footman). That's okay.\n\nBut we need a March order at greywater-watch. Okay.\n\nSo assignments:\n\n- pyke: preferred_order \"march\" (priority high, say 100). Starred preference avoid.\n- greywater-watch: preferred_order \"march\" (priority 90).\n- ironmans-bay: preferred_order \"consolidate_power\" (priority 60).\n- port-of-pyke: preferred_order \"consolidate_power\" (priority 50).\n\nBut we have only 2 Consolidate Power tokens total. So okay.\n\nCheck that we have no restriction on order categories. Good.\n\nNow we must consider supply after moving footman+knight from pyke to flints-finger leaving pyke empty and power token placed; we will have units at flints-finger (2 units) forming an army size 2, okay. This does not affect supply.\n\nGreywater-watch footman moving to moat-cailin creates army of size 1 (not an army). That's fine.\n\nThus orders are acceptable.\n\nNow produce JSON assignments as array order maybe any order.\n\nLet's set priorities: pyke 100, greywater-watch 90, ironmans-bay 70, port-of-pyke 60.\n\nReturn JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_n4ykmqbu3y",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 100,\n      \"region_id\": \"pyke\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"greywater-watch\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 70,\n      \"region_id\": \"ironmans-bay\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 60,\n      \"region_id\": \"port-of-pyke\",\n      \"starred_preference\": \"avoid\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24680,
+    "currentInputSha256": "489346dd6a8cbe5698f8c7b2832073e1244ba9d8ab64d34cc899e688fd17a8b6",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 27552,
+        "inputSha256": "a0d8586f32bfed4695924973cf1835d104fef06d02d47231b92e6c5353867b58",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "pyke",
+                  "ironmans-bay",
+                  "port-of-pyke",
+                  "greywater-watch"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "90e0da3fa4d2ef2e8235eae4198588f3e790c5a25a88c841d3fb73f3743c8471"
+  }
+}

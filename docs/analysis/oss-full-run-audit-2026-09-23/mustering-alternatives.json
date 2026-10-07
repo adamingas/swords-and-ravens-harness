@@ -1,0 +1,1754 @@
+[
+  {
+    "key": "D048",
+    "runId": "1eca60b3-eaf8-4d69-9865-f3ae524179a4",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 4,
+      "origins": [
+        {
+          "regionId": "lannisport",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "lannisport",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-lannisport",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "moat-cailin",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "moat-cailin",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "riverrun",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "riverrun",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "seagard",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "seagard",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 8,
+        "knight": 4,
+        "ship": 5,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 3,
+        "allowedArmySizes": [
+          3,
+          2,
+          2,
+          2
+        ],
+        "currentArmies": [],
+        "singleUnitRegions": [
+          "lannisport",
+          "moat-cailin",
+          "riverrun",
+          "the-golden-sound"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "lannisport",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "lannisport",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "riverrun",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "riverrun",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "riverrun",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "riverrun",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "seagard",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "seagard",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D049",
+    "runId": "846ad081-686f-4720-993a-d5cc15260d66",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 2,
+      "origins": [
+        {
+          "regionId": "white-harbor",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "white-harbor",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 2,
+              "supplySafeNewUnitsWhenChosenAlone": 1,
+              "upgradeableFootmen": 2
+            },
+            {
+              "regionId": "port-of-white-harbor",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "winterfell",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "winterfell",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "bay-of-ice",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-winterfell",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 8,
+        "knight": 4,
+        "ship": 5,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 1,
+        "allowedArmySizes": [
+          3,
+          2
+        ],
+        "currentArmies": [
+          {
+            "regionId": "white-harbor",
+            "unitCount": 2
+          }
+        ],
+        "singleUnitRegions": [
+          "the-shivering-sea",
+          "the-stony-shore"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "white-harbor",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "white-harbor",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "white-harbor",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "white-harbor",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "winterfell",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "winterfell",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D090",
+    "runId": "3a334f9e-1f3a-4dbf-b490-f44a0b4d9b6c",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 5,
+      "origins": [
+        {
+          "regionId": "crackclaw-point",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "crackclaw-point",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 2,
+              "supplySafeNewUnitsWhenChosenAlone": 1,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "blackwater-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "shipbreaker-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 3,
+              "supplySafeNewUnitsWhenChosenAlone": 0,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "dragonstone",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "dragonstone",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "port-of-dragonstone",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "shipbreaker-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 3,
+              "supplySafeNewUnitsWhenChosenAlone": 0,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "harrenhal",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "harrenhal",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "kings-landing",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "kings-landing",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "blackwater-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "the-reach",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "the-reach",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 8,
+        "knight": 2,
+        "ship": 3,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 4,
+        "allowedArmySizes": [
+          3,
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [
+          {
+            "regionId": "shipbreaker-bay",
+            "unitCount": 3
+          },
+          {
+            "regionId": "crackclaw-point",
+            "unitCount": 2
+          }
+        ],
+        "singleUnitRegions": [
+          "dragonstone",
+          "harrenhal",
+          "the-reach"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "crackclaw-point",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "crackclaw-point",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "dragonstone",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "dragonstone",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "dragonstone",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "dragonstone",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "harrenhal",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "harrenhal",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "kings-landing",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "kings-landing",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "the-reach",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "the-reach",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "the-reach",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "the-reach",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D091",
+    "runId": "f935f771-2f85-45cf-b6fa-b88ea4c0e5d7",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 4,
+      "origins": [
+        {
+          "regionId": "lannisport",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "lannisport",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-lannisport",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "moat-cailin",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "moat-cailin",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "riverrun",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "riverrun",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "seagard",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "seagard",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 8,
+        "knight": 4,
+        "ship": 5,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 4,
+        "allowedArmySizes": [
+          3,
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [],
+        "singleUnitRegions": [
+          "lannisport",
+          "moat-cailin",
+          "riverrun",
+          "the-golden-sound"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "lannisport",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "lannisport",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "riverrun",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "riverrun",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "riverrun",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "riverrun",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "seagard",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "seagard",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D092",
+    "runId": "5d922f37-2e19-4a2f-8a1c-54666f6810f5",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 2,
+      "origins": [
+        {
+          "regionId": "white-harbor",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "white-harbor",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-white-harbor",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "winterfell",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "winterfell",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "bay-of-ice",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-winterfell",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 10,
+        "knight": 4,
+        "ship": 5,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 2,
+        "allowedArmySizes": [
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [],
+        "singleUnitRegions": [
+          "the-shivering-sea",
+          "the-stony-shore"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "white-harbor",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "white-harbor",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "winterfell",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "winterfell",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D157",
+    "runId": "bd9004f8-a31e-4f51-a53d-e8af4b9c3a99",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 4,
+      "origins": [
+        {
+          "regionId": "crackclaw-point",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "crackclaw-point",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "blackwater-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "shipbreaker-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 3,
+              "supplySafeNewUnitsWhenChosenAlone": 0,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "dragonstone",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "dragonstone",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 2,
+              "supplySafeNewUnitsWhenChosenAlone": 1,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "port-of-dragonstone",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "shipbreaker-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 3,
+              "supplySafeNewUnitsWhenChosenAlone": 0,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "kings-landing",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "kings-landing",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            },
+            {
+              "regionId": "blackwater-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "the-reach",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "the-reach",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 6,
+        "knight": 4,
+        "ship": 3,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 4,
+        "allowedArmySizes": [
+          3,
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [
+          {
+            "regionId": "shipbreaker-bay",
+            "unitCount": 3
+          },
+          {
+            "regionId": "dragonstone",
+            "unitCount": 2
+          }
+        ],
+        "singleUnitRegions": [
+          "crackclaw-point",
+          "kings-landing",
+          "searoad-marches"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "crackclaw-point",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "crackclaw-point",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "crackclaw-point",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "crackclaw-point",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "dragonstone",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "dragonstone",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "dragonstone",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "dragonstone",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "kings-landing",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "kings-landing",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "kings-landing",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "kings-landing",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "the-reach",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "the-reach",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D158",
+    "runId": "56ae9286-fcc1-4ec9-bbec-a7335ccde399",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 3,
+      "origins": [
+        {
+          "regionId": "moat-cailin",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "moat-cailin",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 2,
+              "supplySafeNewUnitsWhenChosenAlone": 1,
+              "upgradeableFootmen": 2
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "white-harbor",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "white-harbor",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-white-harbor",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "winterfell",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "winterfell",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "bay-of-ice",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-winterfell",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-shivering-sea",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 8,
+        "knight": 5,
+        "ship": 5,
+        "siege-engine": 2
+      },
+      "supplyLimit": {
+        "level": 2,
+        "allowedArmySizes": [
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [
+          {
+            "regionId": "moat-cailin",
+            "unitCount": 2
+          }
+        ],
+        "singleUnitRegions": [
+          "the-narrow-sea"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "moat-cailin",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "moat-cailin",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "white-harbor",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "white-harbor",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "winterfell",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "winterfell",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "key": "D159",
+    "runId": "c1e55389-b94b-4bc0-8d2c-a1c6747b7453",
+    "options": {
+      "musteringType": 0,
+      "maxOriginGroups": 4,
+      "origins": [
+        {
+          "regionId": "harrenhal",
+          "musteringPoints": 1,
+          "destinations": [
+            {
+              "regionId": "harrenhal",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 1
+            }
+          ]
+        },
+        {
+          "regionId": "lannisport",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "lannisport",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 1,
+              "supplySafeNewUnitsWhenChosenAlone": 2,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "port-of-lannisport",
+              "type": "port",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "riverrun",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "riverrun",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "the-golden-sound",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        },
+        {
+          "regionId": "seagard",
+          "musteringPoints": 2,
+          "destinations": [
+            {
+              "regionId": "seagard",
+              "type": "land",
+              "newUnitTypes": [
+                "footman",
+                "knight",
+                "siege-engine"
+              ],
+              "currentUnitCount": 2,
+              "supplySafeNewUnitsWhenChosenAlone": 1,
+              "upgradeableFootmen": 0
+            },
+            {
+              "regionId": "ironmans-bay",
+              "type": "sea",
+              "newUnitTypes": [
+                "ship"
+              ],
+              "currentUnitCount": 0,
+              "supplySafeNewUnitsWhenChosenAlone": 3,
+              "upgradeableFootmen": 0
+            }
+          ]
+        }
+      ],
+      "availablePieces": {
+        "footman": 9,
+        "knight": 3,
+        "ship": 6,
+        "siege-engine": 1
+      },
+      "supplyLimit": {
+        "level": 4,
+        "allowedArmySizes": [
+          3,
+          3,
+          2,
+          2
+        ],
+        "currentArmies": [
+          {
+            "regionId": "seagard",
+            "unitCount": 2
+          }
+        ],
+        "singleUnitRegions": [
+          "harrenhal",
+          "lannisport"
+        ],
+        "rule": "Only regions with two or more units use an army slot. Sort army sizes largest first and compare them with allowedArmySizes."
+      }
+    },
+    "individuallyValidAlternativePlans": [
+      [
+        {
+          "mustering_region_id": "harrenhal",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "harrenhal",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "harrenhal",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "harrenhal",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "lannisport",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "lannisport",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "riverrun",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "riverrun",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "mustering_region_id": "seagard",
+          "recruitments": [
+            {
+              "unit_type": "footman",
+              "region_id": "seagard",
+              "upgrade_from_footman": false
+            }
+          ]
+        }
+      ]
+    ]
+  }
+]

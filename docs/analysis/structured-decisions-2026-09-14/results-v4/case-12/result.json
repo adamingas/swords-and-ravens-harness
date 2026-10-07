@@ -1,0 +1,153 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [24, 27]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35690,
+    "outputTokens": 502,
+    "totalTokens": 36192
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35690,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 502,
+      "output_tokens_details": {
+        "reasoning_tokens": 506
+      },
+      "total_tokens": 36192,
+      "cost": 0.00191,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00191,
+        "upstream_inference_input_cost": 0.0017845,
+        "upstream_inference_output_cost": 0.0001255
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426387-c7uKiCNFZYfVOtxC7xIM",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426387-c7uKiCNFZYfVOtxC7xIM",
+      "output": [
+        {
+          "id": "rs_tmp_yjphjm254la",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select 2 distinct unit IDs from [24,27,46] to destroy. Let's see what those units are: 24 is ship in East Summer Sea (Martell). 27 is footman in Starfall (Martell). 46 is knight in Starfall (Martell). We have to choose which to lose. Strategic considerations: keep important units. Martell currently has a ship in East Summer Sea, footman and knight in Starfall (both land). Also we have a ship in East Summer Sea which may be useful for naval mobility and supporting. Footman less valuable than knight. So likely we want to keep the knight (stronger) and perhaps ship? But losing a ship reduces naval presence, but we still have control of East Summer Sea and other seas? Let's check board: East Summer Sea has ship 24 (Martell). Also we have ship units elsewhere? No Martell ships elsewhere currently. So losing ship reduces ability to transport later. Knight is stronger unit for combat and can upgrade. Might be better to keep the knight, lose the footman (27) and maybe the ship (24) or keep the ship? Which is more important? The knight can defend Starfall maybe, but ship can be used for transport to other coasts (e.g., transport from East Summer Sea to other coastal areas). Martell's region list includes east-summer-sea, starfall, salt-shore, storms-end, the-boneway, yronwood, kingswood, port-of-sunspear, sunspear, port-of-storms-end. Having ship in east-summer-sea can transport units from starfall to other seas? Starfall is land adjacent to east-summer-sea, also adjacent to salt-shore, west-summer-sea, yronwood, princes-pass. So ship could allow moving across sea network perhaps to other coasts. Removing it may limit movement but still have land routes. Knight is valuable for combat and defense. Footman is weakest. So likely lose footman (27) and ship (24) maybe? But maybe keep ship for future naval moves. Could also sacrifice ship and footman, keeping knight. That seems plausible.\n\nThus choose unit_ids_to_destroy: [24,27].\n\nLet's ensure distinct and exactly two.\n\nReturn JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_unmptjfmppj",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 23827,
+    "currentInputSha256": "0da6c7597dd34a408fa3a883f10a5616456e9572f8409cf99b7c0bc439ebd2c6",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 26910,
+        "inputSha256": "a17a0b02f0d234d0b27c259f5ac46412d456026615e01a6a5af94fc9e48866ef",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

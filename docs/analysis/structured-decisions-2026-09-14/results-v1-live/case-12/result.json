@@ -1,0 +1,153 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [24, 27]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35369,
+    "outputTokens": 599,
+    "totalTokens": 35968
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35369,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 599,
+      "output_tokens_details": {
+        "reasoning_tokens": 587
+      },
+      "total_tokens": 35968,
+      "cost": 0.0019182,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0019182,
+        "upstream_inference_input_cost": 0.00176845,
+        "upstream_inference_output_cost": 0.00014975
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425699-AATR4PwIVDyrsMLw0j0G",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425699-AATR4PwIVDyrsMLw0j0G",
+      "output": [
+        {
+          "id": "rs_tmp_97659af968w",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select exactly 2 distinct units among possibleUnits list [24,27,46]. Those are unit IDs. Need to choose which units to remove (wildlings victory, Mammoth Riders imposes unit losses). We can inspect units: from board data, id 24 is a ship in east-summer-sea (martell). id 27 is footman in starfall (martell). id 46 is knight in starfall (martell). All belong to Martell.\n\nWe must choose exactly 2 distinct units to be removed. Likely we want to minimize loss of important units. Choose the ship (id24) maybe? Ship is less critical, but also need supply compatibility? Our supply is 3, currently we have: Let's count our armies. Units: ship at east-summer-sea (sea area), footman at starfall, knight at starfall. Also any other units? Those are all Martell units. So we have ship in sea area (counts as army of size 1); footman+knight in starfall (land area) together form army of size 2. Supply track 3 permits armies sizes: 3,2,2,2 (from supply table). Currently we have 2 armies (size1 and size2). Removing one unit may affect armies count but not exceed supply.\n\nWe should remove the ship (id24) because it's less valuable (ship cannot attack land directly without transport, but can provide transport). However footman and knight could be more valuable. But note we also have starfall which is a castle (Martell home). Losing a knight reduces combat strength. Perhaps removing ship is best.\n\nWe need to select 2 distinct units. So maybe ship (24) and footman (27) or ship and knight (46). Which is worse? Knight stronger than footman. Probably remove ship and footman (leaving knight in starfall). That keeps at least one unit defending castle.\n\nThus choose unit IDs 24 and 27.\n\nReturn JSON with selected_units list? Need to match response schema. The pending decision type \"select-units\". Likely expects {\"selectedUnitIds\": [...]}? We need to infer schema from similar actions. Not given. Look at prior decisions: none. But typical actions: For select-units, likely field is \"unitIds\": list.\n\nCheck earlier history: No examples. Let's guess: {\"unitIds\":[24,27]}. Or maybe {\"selectedUnits\":[24,27]}. The description: pendingDecision {\"type\":\"select-units\",\"possibleUnits\":[24,27,46],\"count\":2}. So we need to submit \"selectedUnits\": [24,27] maybe.\n\nWe need to output final JSON. I'll use {\"selectedUnits\":[24,27]}.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_0ky65181iiuj",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 22838,
+    "currentInputSha256": "242417a03c31e1e6469e43508a93b478050a9d853ab7eb59830ef64f23c47c94",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 25869,
+        "inputSha256": "38ab4d7ca719d083fc1d5cabd14e263f0feab2b66bcd11ebfc11a977ac77118b",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

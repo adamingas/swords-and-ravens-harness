@@ -1,0 +1,288 @@
+[
+  {
+    "firstObservedAt": "D034",
+    "round": 3,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "baratheon",
+        "stats": [
+          {
+            "house": "baratheon",
+            "region": "blackwater",
+            "army": 1,
+            "armyUnits": [
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 1,
+            "support": 1,
+            "garrison": 0,
+            "houseCard": "stannis-baratheon",
+            "houseCardStrength": 4,
+            "valyrianSteelBlade": 0,
+            "total": 7,
+            "isWinner": true
+          },
+          {
+            "house": "lannister",
+            "region": "harrenhal",
+            "army": 1,
+            "armyUnits": [
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 2,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "tywin-lannister",
+            "houseCardStrength": 4,
+            "valyrianSteelBlade": 0,
+            "total": 7,
+            "isWinner": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "firstObservedAt": "D089",
+    "round": 6,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "lannister",
+        "stats": [
+          {
+            "house": "stark",
+            "region": "white-harbor",
+            "army": 2,
+            "armyUnits": [
+              "footman",
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "catelyn-stark",
+            "houseCardStrength": 0,
+            "valyrianSteelBlade": 0,
+            "total": 2,
+            "isWinner": false
+          },
+          {
+            "house": "lannister",
+            "region": "moat-cailin",
+            "army": 1,
+            "armyUnits": [
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "ser-gregor-clegane",
+            "houseCardStrength": 3,
+            "valyrianSteelBlade": 0,
+            "total": 4,
+            "isWinner": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "firstObservedAt": "D118",
+    "round": 8,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "lannister",
+        "stats": [
+          {
+            "house": "baratheon",
+            "region": "harrenhal",
+            "army": 3,
+            "armyUnits": [
+              "knight",
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 1,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "melisandre",
+            "houseCardStrength": 1,
+            "valyrianSteelBlade": 0,
+            "total": 5,
+            "isWinner": false
+          },
+          {
+            "house": "lannister",
+            "region": "riverrun",
+            "army": 1,
+            "armyUnits": [
+              "footman",
+              "siege-engine"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 4,
+            "garrison": 0,
+            "houseCard": "ser-jaime-lannister",
+            "houseCardStrength": 2,
+            "valyrianSteelBlade": 0,
+            "total": 7,
+            "isWinner": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "firstObservedAt": "D122",
+    "round": 8,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "lannister",
+        "stats": [
+          {
+            "house": "lannister",
+            "region": "riverrun",
+            "army": 4,
+            "armyUnits": [
+              "siege-engine"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 1,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "the-hound",
+            "houseCardStrength": 2,
+            "valyrianSteelBlade": 0,
+            "total": 7,
+            "isWinner": true
+          },
+          {
+            "house": "baratheon",
+            "region": "harrenhal",
+            "army": 0,
+            "armyUnits": [],
+            "woundedUnits": [
+              "knight"
+            ],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "renly-baratheon",
+            "houseCardStrength": 3,
+            "valyrianSteelBlade": 0,
+            "total": 3,
+            "isWinner": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "firstObservedAt": "D151",
+    "round": 9,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "stark",
+        "stats": [
+          {
+            "house": "stark",
+            "region": "winterfell",
+            "army": 2,
+            "armyUnits": [
+              "footman",
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "ser-rodrick-cassel",
+            "houseCardStrength": 1,
+            "valyrianSteelBlade": 0,
+            "total": 3,
+            "isWinner": true
+          },
+          {
+            "house": "lannister",
+            "region": "moat-cailin",
+            "army": 2,
+            "armyUnits": [
+              "knight"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "tyrion-lannister",
+            "houseCardStrength": 1,
+            "valyrianSteelBlade": 0,
+            "total": 3,
+            "isWinner": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "firstObservedAt": "D155",
+    "round": 9,
+    "event": {
+      "type": "game-log",
+      "event": "combat-result",
+      "details": {
+        "winner": "lannister",
+        "stats": [
+          {
+            "house": "lannister",
+            "region": "riverrun",
+            "army": 2,
+            "armyUnits": [
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 1,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "ser-kevan-lannister",
+            "houseCardStrength": 1,
+            "valyrianSteelBlade": 0,
+            "total": 4,
+            "isWinner": true
+          },
+          {
+            "house": "baratheon",
+            "region": "harrenhal",
+            "army": 1,
+            "armyUnits": [
+              "footman"
+            ],
+            "woundedUnits": [],
+            "orderBonus": 0,
+            "support": 0,
+            "garrison": 0,
+            "houseCard": "brienne-of-tarth",
+            "houseCardStrength": 2,
+            "valyrianSteelBlade": 0,
+            "total": 3,
+            "isWinner": false
+          }
+        ]
+      }
+    }
+  }
+]

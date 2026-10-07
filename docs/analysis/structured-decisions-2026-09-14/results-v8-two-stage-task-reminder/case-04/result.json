@@ -1,0 +1,260 @@
+{
+  "case": 4,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 10,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 10975,
+    "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "moat-cailin",
+      "moves": [
+        [
+          "seagard",
+          [
+            48
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "I will resolve the March order in **Moat Cailin**.\n\n- **Move** the knight with unit ID 48 from Moat Cailin to **Seagard** (a stronghold).  \n- **Leave** the other knight (unit 55) in Moat Cailin so the area remains under my control and continues to count as a castle area.\n\n**Resulting moves**\n\n```json\n{\n  \"starting_region_id\": \"moat-cailin\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48]\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order (from **Bay of Ice**) is still unresolved. It can either:\n  1. Move the ship (unit 40) to **Sunset Sea** (which would trigger combat), or  \n  2. Move the ship to **Port of Winterfell** (no combat).  \n\nThese are the only remaining options for the next decision.",
+    "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]}]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 78313,
+    "outputTokens": 881,
+    "totalTokens": 79194
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38705,
+      "input_tokens_details": {
+        "cached_tokens": 35840
+      },
+      "output_tokens": 718,
+      "output_tokens_details": {
+        "reasoning_tokens": 483
+      },
+      "total_tokens": 39423,
+      "cost": 0.01408525,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01408525,
+        "upstream_inference_input_cost": 0.01354675,
+        "upstream_inference_output_cost": 0.0005385
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431501-ICVHpBswt66uplyfvggt",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 39608,
+      "input_tokens_details": {
+        "cached_tokens": 28544
+      },
+      "output_tokens": 163,
+      "output_tokens_details": {
+        "reasoning_tokens": 125
+      },
+      "total_tokens": 39771,
+      "cost": 0.01398505,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01398505,
+        "upstream_inference_input_cost": 0.0138628,
+        "upstream_inference_output_cost": 0.00012225
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431503-ZsfHmFWObhCKqYSbTkYz",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431501-ICVHpBswt66uplyfvggt",
+      "output": [
+        {
+          "id": "rs_tmp_8a601y9bcjb",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need decide best move. From Moat Cailin we have knights 48,55. Reachable: greywater-watch (land no castle), seagard (castle level2 stronghold), the-twins (land), white-harbor (castle level1), winterfell (own). No combat triggers indicated all false. So can move to seagard gaining castle without combat. Also can move to white-harbor gaining castle. Need preserve at least one unit to keep Moat Cailin castle area. It currently contributes 1 castle area (castle? moat-cailin is castle=1). If we move both units, lose it. Must leave at least one. So move one unit to either seagard or white-harbor. Which gives better? Both give castle area. Choose maybe seagard as it has stronghold gives stronghold? Seagard castle=2 stronghold, gives stronghold area (counts as castle area). White-harbor castle=1 only castle. Stronghold is more valuable? Both count as one victory point. But securing stronghold may be stronger position. Also consider supply: moving one knight leaves one knight in Moat Cailin, still army size is 1 (single unit not army). Supply limit fine. No combat. So choose move knight 48 to seagard maybe. Also could split both to two destinations but would leave none, not allowed. So move one unit. Choose unit 48 (knight) to seagard. Keep unit 55 in Moat Cailin. So moves list one entry.\n\nNow also have Bay of Ice March order resolved? Already resolved earlier? In this decision we have remaining March orders: we have two March orders: bay-of-ice and moat-cailin. The actionGuidance shows both. We are resolving one now. Could choose either. Need decide which to resolve now. Probably choose Moat Cailin to preserve castle and gain new. So final answer: starting_region_id \"moat-cailin\", moves [{destination_region_id:\"seagard\", unit_ids:[48]}].\n\nRemaining choices: the other March order at bay-of-ice still pending, could later move ship 40 to sunset-sea (combat) or to port-of-winterfell (no combat). But we just state remaining choices in prose.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_yykjxq6gri",
+          "content": [
+            {
+              "annotations": [],
+              "text": "I will resolve the March order in **Moat Cailin**.\n\n- **Move** the knight with unit ID 48 from Moat Cailin to **Seagard** (a stronghold).  \n- **Leave** the other knight (unit 55) in Moat Cailin so the area remains under my control and continues to count as a castle area.\n\n**Resulting moves**\n\n```json\n{\n  \"starting_region_id\": \"moat-cailin\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48]\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order (from **Bay of Ice**) is still unresolved. It can either:\n  1. Move the ship (unit 40) to **Sunset Sea** (which would trigger combat), or  \n  2. Move the ship to **Port of Winterfell** (no combat).  \n\nThese are the only remaining options for the next decision.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431503-ZsfHmFWObhCKqYSbTkYz",
+      "output": [
+        {
+          "id": "rs_tmp_psm6tko211h",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to output JSON with starting_region_id either bay-of-ice or moat-cailin. We decided earlier to move from moat-cailin unit 48 to seagard, leaving unit 55 behind. That's legal: reachable_regions includes seagard, castleLevel 2, castleAreaGain 1, no combat. supply safe groups: moving one knight alone is fine supply? supply is 1, you have 2 knights total, moving one leaves one in moat-cailin, still an army? Single unit is not an army so fine. So moves list with one entry. Provide JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_9n19kdhptj7",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 35513,
+    "currentInputSha256": "34a29b7d9ea0bbf649c5b945432f4a55d6a42da1967f08ef832b9da3092ccfc1",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 39957,
+        "inputSha256": "cd5c03c0b82ccb8f2cf2110d457ee7bf83c346a6d73e7f27369c662773a43995",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 46246,
+        "inputSha256": "84e1e0f80a47d25399a01f93aa73aff419e53dad86292aa900f4b0250579480f",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "bay-of-ice",
+            "moat-cailin"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "greywater-watch",
+                  "port-of-winterfell",
+                  "seagard",
+                  "sunset-sea",
+                  "the-twins",
+                  "white-harbor",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    40,
+                    48,
+                    55
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "73aea7f50eee4b2dae83d6b523780f9d3dda98cadc9a216dcb4ce39e4c28bbca"
+  }
+}

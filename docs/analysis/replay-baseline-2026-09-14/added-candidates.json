@@ -1,0 +1,243 @@
+{
+  "purpose": "Additional candidates screened once each with unchanged historical input. All attempts retained, whether or not they qualify.",
+  "cases": [
+    {
+      "case": 11,
+      "database": "data/evaluations/gpt-oss-120b-house-test-4747688/game-01/attempt-01/harness.db",
+      "run_id": "3402fab3-9c38-415e-8d02-50676f83e53f",
+      "prior_report_ref": "B21",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "a2d563778f9df9813b9193f43aa8fc03e996ef6610ae4507e14872a2f01c5dd7",
+      "sdk_message_id": 652,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Vacates White Harbor without a permitted control token to reinforce Winterfell, surrendering a castle."
+    },
+    {
+      "case": 12,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "518d3106-b81a-4986-8af4-f8bd299af1ef",
+      "prior_report_ref": "D30",
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "phase": "select-units",
+      "original_input_sha256": "67fed0f043baa553ff968a2490e256c917c6cf55cb67866aff44cc850300f61f",
+      "sdk_message_id": 710,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "select_units",
+      "accepted_arguments": {
+        "selections": [
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              27,
+              46
+            ]
+          }
+        ]
+      },
+      "failure_to_recheck": "Destroys its last two land units during a Wildling attack, retaining only a ship; confuses removal with retreat."
+    },
+    {
+      "case": 13,
+      "database": "data/evaluations/model-tournament-ebae98a/game-02/attempt-01/harness.db",
+      "run_id": "cc5a910e-6409-4b6a-9f1a-620e323b09ac",
+      "prior_report_ref": null,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 4,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "b237084f20c4c5cae4473674fded8e3cc8960b413b64ce51465e9dcfdafbd2e1",
+      "sdk_message_id": 1367,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [],
+        "leave_power_token": false,
+        "omitted_supply_unsafe_move_groups": 0,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Discards another march from Princes Pass despite reachable empty Starfall."
+    },
+    {
+      "case": 14,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "ed77f82f-b3d6-427c-8a7a-d76a3d480dda",
+      "prior_report_ref": "E03",
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "phase": "place-orders",
+      "original_input_sha256": "a4e72c8b09f9254ad606e3881f260c063d68eaadf7cc5ff1adf98925c1f04d15",
+      "sdk_message_id": 105,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "submit_orders",
+      "accepted_arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 50
+          }
+        ],
+        "applied_orders": [
+          {
+            "region_id": "pyke",
+            "order_id": 4,
+            "order": "defense"
+          },
+          {
+            "region_id": "greywater-watch",
+            "order_id": 5,
+            "order": "defense"
+          },
+          {
+            "region_id": "port-of-pyke",
+            "order_id": 10,
+            "order": "consolidate_power"
+          },
+          {
+            "region_id": "ironmans-bay",
+            "order_id": 11,
+            "order": "consolidate_power"
+          }
+        ]
+      },
+      "failure_to_recheck": "Places no marches for a second round despite available ship transport and nearby empty castles; uses a zero-income consolidation order in Ironmans Bay."
+    },
+    {
+      "case": 15,
+      "database": "data/evaluations/gpt-oss-120b-house-test-4747688/game-01/attempt-01/harness.db",
+      "run_id": "53026149-7d95-4062-8725-ae832f01dac0",
+      "prior_report_ref": "B28",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 8,
+      "phase": "resolve-single-march",
+      "original_input_sha256": "c62c6a31f30a38e1f28db2a8fef03586ca1ee954f77b796b9c66a466dbdc08ca",
+      "sdk_message_id": 881,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "resolve_march",
+      "accepted_arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              47
+            ]
+          }
+        ],
+        "leave_power_token": false,
+        "omitted_illegal_power_token": false
+      },
+      "failure_to_recheck": "Reinforces owned Castle Black instead of capturing empty White Harbor or Moat Cailin; thinks March -1 limits movement to one unit."
+    },
+    {
+      "case": 16,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "c6d50a6b-8fa6-4a13-b657-c8d005ac174a",
+      "prior_report_ref": "A22",
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 8,
+      "phase": "place-orders",
+      "original_input_sha256": "7d672028342cb9d5e20198e402cd29e7dbc55170d9183f96a0da12a94c313d17",
+      "sdk_message_id": 768,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "submit_orders",
+      "accepted_arguments": {
+        "assignments": [
+          {
+            "region_id": "castle-black",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "karhold",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 90
+          }
+        ],
+        "applied_orders": [
+          {
+            "region_id": "castle-black",
+            "order_id": 7,
+            "order": "support"
+          },
+          {
+            "region_id": "karhold",
+            "order_id": 8,
+            "order": "support"
+          }
+        ]
+      },
+      "failure_to_recheck": "At one castle in round 8, puts support on both remaining armies instead of beginning the move through Winterfell toward empty White Harbor; no adjacent battle to support."
+    },
+    {
+      "case": 17,
+      "database": "data/evaluations/gpt-oss-120b-house-test-b4279fb/game-01/attempt-01/harness.db",
+      "run_id": "98c55649-281e-4dbc-a43d-c6ae319cad10",
+      "prior_report_ref": "E26",
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "phase": "select-units",
+      "original_input_sha256": "d37fa08dac06650b6eb5a5109da5c167f114e2b0cf71660971e57addd58079aa",
+      "sdk_message_id": 694,
+      "original_instructions_sha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a",
+      "accepted_action": "select_units",
+      "accepted_arguments": {
+        "selections": [
+          {
+            "region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ]
+      },
+      "failure_to_recheck": "Selects its two knights for destruction during a Wildling attack while reasoning that it should keep knights for defense; could instead sacrifice two ships in port."
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "case": 10,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "martell",
+  "round": 3,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Model API timed out after 120 seconds",
+  "serverActionsExecuted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28111,
+    "currentInputSha256": "cfa10d8b3487444572fb17c6c3b941827de35da930e09b8146b695c07e51561a",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 31742,
+        "inputSha256": "2cabb80540f697637a42b5a96c4cbee01aafbaf66b7abc5eabaaf7debee86486",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "349991b124ac7eb9b3110f99cf2c60d454e7454f402a8e795dfbadf3a5f3892c"
+  }
+}

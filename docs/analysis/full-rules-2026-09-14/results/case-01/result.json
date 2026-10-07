@@ -1,0 +1,208 @@
+{
+  "promptVariant": "full-rules",
+  "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+  "instructionsCharacters": 122479,
+  "case": 1,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 1,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "karhold",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "white-harbor",
+      "moves": [
+        {
+          "destination_region_id": "karhold",
+          "unit_ids": [
+            3
+          ]
+        }
+      ],
+      "leave_power_token": false,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37588,
+    "outputTokens": 455,
+    "totalTokens": 38043
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37588,
+      "input_tokens_details": {
+        "cached_tokens": 640
+      },
+      "output_tokens": 455,
+      "output_tokens_details": {
+        "reasoning_tokens": 403
+      },
+      "total_tokens": 38043,
+      "cost": 0.01349705,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01349705,
+        "upstream_inference_input_cost": 0.0131558,
+        "upstream_inference_output_cost": 0.00034125
+      },
+      "scope": "agent",
+      "response_id": "gen-1789377222-zlAlbrBIwttd90SlL67O",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789377222-zlAlbrBIwttd90SlL67O",
+      "output": [
+        {
+          "id": "rs_tmp_e7eiatwhgv",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the remaining march orders. The pendingDecision is resolve-single-march for Stark. Already resolved winterfell march. Remaining orders: white-harbor (March +0) and the-shivering-sea (March -1). We must choose one action now. Likely resolve white-harbor move. Options: can move footman (id3) to any reachable region list: castle-black, karhold, moat-cailin, widows-watch, winterfell. Must consider supply (supply 1). Currently Stark has supply 1, units: after moving footman and knight from winterfell to castle-black, left units: none at winterfell? Actually both moved, leaving winterfell empty, but we didn't leave power token. So Stark now has no units at winterfell. At white-harbor we have footman id3. Also ship at shivering sea id4 could be used later maybe for transport. Supply 1 allows armies: supply level 1 permits armies sizes: 3,2 (from table). Currently we have one army of 2 units moved to castle-black (footman+knight) counts as army size 2. That's allowed (max 3). We also have footman at white-harbor (single unit not army). So supply ok. Move footman maybe to winterfell (castle) to defend? Could also move to moat-cailin to position near Greyjoy. Probably want to expand toward castle-black already taken, maybe move footman to winterfell to secure home? Winterfell currently empty no units; moving footman there would re-establish presence. That seems safe. So resolve march: move unit 3 to winterfell. No power token needed. leave_power_token false (starting region white-harbor will be empty; can leave token but we have no power tokens to spare? We have 5 power tokens, could leave but not needed. Choose false). Use resolve_march tool.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[3]}],\"leave_power_token\":false}",
+          "call_id": "5742df63c",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_vg1wqgsr499",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "028e38049c31f92b168941b2874a56e43a2ce46304612e18e4f8c5c97e159ef9",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 8,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 2,
+    "removedObservationCharacters": 63747,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_a8wl3dhpvl",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit orders for our three regions. Likely want march to expand. Targets? Adjacent regions: winterfell neighbors include white-harbor already, bay-of-ice, castle-black, karhold, moat-cailin, port-of-winterfell, the-shivering-sea, the-stony-shore. Only our units there. We may want to march to capture bay-of-ice (sea) not allowed, need land. Could march to castle-black (land) but no units there. Maybe support to defend. Probably want march outward towards moat-cailin to secure supply? Moat Cailin has supply 0. Better to take castle-black? Not supply. Maybe take white-harbor already ours. Could march from winterfell to the-stony-shore (land with supply1) to increase supply. Also from white-harbor to widows watch (supply1) or to moat-cailin. From shivering sea we have ship; could march (ship) to adjacent sea? March moves armies only land? Ships can't march. Might raid? Probably want raid from white-harbor to remove support? No enemy support nearby. Simpler: assign march to winterfell (priority high), march to white-harbor (maybe support), march to shivering sea? Might use raid there. We'll just assign march all three, starred preference avoid. Priorities: winterfell highest, white-harbor second, shivering sea third.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"white-harbor\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "1f7568a5c",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_v4cs0irvb49",
+        "status": "completed"
+      },
+      {
+        "call_id": "1f7568a5c",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"049c6696-d506-4fb3-860a-63de026f150c\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_rjm3snhatcb",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve a march. Choose a starting region. Options: winterfell, white-harbor, the-shivering-sea. Likely want to move units to strengthen positions. Winterfell has 2 units footman+knight, can move to adjacent sea? but reachable includes land and white harbor which is own. No combat. Could move to white harbor to reinforce? White harbor has footman only. Might want to move footman from white harbor to winterfell? But order is from white harbor region. It has one footman unit id 3. Reachable includes winterfell (controlled). Could move that footman to winterfell to boost defense? No combat needed. Might want to move to castle-black etc for expansion. Better to expand northwards? Probably want to secure castle black? It's neutral with garrison 0. Could move from winterfell units to castle black. That gives presence near north. Use winterfell march +1 moving both units to castle black. That's allowed. No combat. leave_power_token false (cannot). So resolve_march with starting_region_id winterfell, moves: destination castle-black unit_ids [1,2]. leave_power_token false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[1,2]}],\"leave_power_token\":false}",
+        "call_id": "ad1c01ccd",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_r4c7lulntw",
+        "status": "completed"
+      },
+      {
+        "call_id": "ad1c01ccd",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"b8784c73-4dba-41c6-bfee-c7aeb86e8b7f\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 34956,
+    "currentInputSha256": "66af03cad223f9c8b60f896611d13b2e93b22d69e1d2e860322ffbd170ea675a",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 7,
+        "inputCharacters": 43842,
+        "inputSha256": "028e38049c31f92b168941b2874a56e43a2ce46304612e18e4f8c5c97e159ef9",
+        "instructionsCharacters": 122479,
+        "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "source": "https://huggingface.co/openai/gpt-oss-120b/raw/main/chat_template.jinja",
+  "templateSha256": "a4c9919cbbd4acdd51ccffe22da049264b1b73e59055fa58811a99efbd7c8146",
+  "sourceRun": "673bf8bb-c19c-4e44-998c-03127917072b",
+  "finding": "Published template renders decision anyOf as decision: any and omits both action branches",
+  "scope": "Offline reproduction with published template; provider internal template is not observable"
+}

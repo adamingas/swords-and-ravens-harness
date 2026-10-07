@@ -1,0 +1,74 @@
+{
+  "case": 12,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Error code: 503 - {'error': {'message': 'Provider returned error', 'code': 503, 'metadata': {'raw': '{\\n  \"id\": \"p1JScbW-6z2FuN-a3b2ec0e7c2b0b40\",\\n  \"error\": {\\n    \"message\": \"Service unavailable\",\\n    \"type\": \"service_unavailable\",\\n    \"param\": null,\\n    \"code\": null\\n  }\\n}', 'provider_name': 'Together', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+  "serverActionsExecuted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 22941,
+    "currentInputSha256": "880a212b38c2f71f6e4353a6b856640393128ba8fb1e3756b6b94b457aa54d6e",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 25974,
+        "inputSha256": "c2c19831669a63ef9c36d8d0c06f6f6ecb853e60d24f69a534913981944f15b5",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

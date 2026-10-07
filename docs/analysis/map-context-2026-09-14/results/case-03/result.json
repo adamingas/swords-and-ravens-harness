@@ -1,0 +1,154 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              45
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              45
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              45
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 39862,
+    "outputTokens": 272,
+    "totalTokens": 40134
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39862,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 272,
+      "output_tokens_details": {
+        "reasoning_tokens": 222
+      },
+      "total_tokens": 40134,
+      "cost": 0.0141557,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0141557,
+        "upstream_inference_input_cost": 0.0139517,
+        "upstream_inference_output_cost": 0.000204
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391270-QRj905VUQtkSBJ4soH2Q",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391270-QRj905VUQtkSBJ4soH2Q",
+      "output": [
+        {
+          "id": "rs_tmp_6vifvhfcxcj",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve march. Must choose moves. From actionGuidance reachableRegions list. We have unit id 45 (knight) at winterfell. Options include many. Need to consider strategy. Stark low supply, only one army allowed size? supply=1 means can have up to two armies of size 2 each? Actually supply 1 permits 2,2. Currently have one knight at winterfell alone (army size 1 not counted). If we move into enemy area triggers combat. Likely attack Greywater Watch (controlled by Greyjoy) to try capture? But combat may be tough. Could move to castle-black (own) no combat, just move. Might want to expand towards castle-black to consolidate? But we have support orders at castle-black and karhold already placed. March order must move units; could move knight to castle-black (friendly) no combat, then later maybe support? Probably safe pass? But must resolve march. Could move knight to castle-black (friendly) no combat, leave power token? leave_power_token false. That's legal. Let's do that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[45]}],\"leave_power_token\":false}",
+          "call_id": "dd937729e",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_2ojpme35isu",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 33210,
+    "currentInputSha256": "31cbbb2b9a045c04631940838d5f3ee2bfd552cef97d59370f2ecc5aa88d1db6",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 52774,
+        "inputSha256": "38e464f5a50ed274fa9b60649869fb7f898ef8d0b47ce54bf06a2759202e170b",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "56e2cda05f77423337d5b6e3e2a827d1d8176de58711421308740124b8a9a30c"
+  }
+}

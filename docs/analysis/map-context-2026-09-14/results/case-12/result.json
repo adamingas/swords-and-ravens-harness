@@ -1,0 +1,175 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              27,
+              46
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "east-summer-sea",
+            "unit_ids": [
+              24
+            ]
+          },
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              46
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "east-summer-sea",
+            "unit_ids": [
+              24
+            ]
+          },
+          {
+            "region_id": "starfall",
+            "unit_ids": [
+              46
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36341,
+    "outputTokens": 185,
+    "totalTokens": 36526
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36341,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 185,
+      "output_tokens_details": {
+        "reasoning_tokens": 91
+      },
+      "total_tokens": 36526,
+      "cost": 0.0128581,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0128581,
+        "upstream_inference_input_cost": 0.01271935,
+        "upstream_inference_output_cost": 0.00013875
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391300-vtPSE8y5F82G1W3UzjYK",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391300-vtPSE8y5F82G1W3UzjYK",
+      "output": [
+        {
+          "id": "rs_tmp_hemy9o3whvv",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Need to select units: need to pick 2 units from possibleUnits [24,27,46]. Must select 2 same region? selectedUnitsMustBeOfSameRegion false, can pick any. Probably pick strongest units to keep for combat later. Units: 24 is ship at east-summer-sea. 27 footman at starfall. 46 knight at starfall. Choose ship and knight? pick 24 and 46.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_8wp9khvsabj",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"select_units\":{\"selections\":[{\"region_id\":\"east-summer-sea\",\"unit_ids\":[24]},{\"region_id\":\"starfall\",\"unit_ids\":[46]}]}}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        },
+        {
+          "arguments": "{\"selections\":[{\"region_id\":\"east-summer-sea\",\"unit_ids\":[24]},{\"region_id\":\"starfall\",\"unit_ids\":[46]}]}",
+          "call_id": "5b1344911",
+          "name": "select_units",
+          "type": "function_call",
+          "id": "fc_tmp_sggsknlayme",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 21731,
+    "currentInputSha256": "72112f353a4a77788422a4746afb84ee859a43809eda051179ed2d49f796cf98",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 37045,
+        "inputSha256": "e7df9b15303833d27f9139631e6662e08e42dcb748b7f1c8a3af5db22858d4b3",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398"
+  }
+}

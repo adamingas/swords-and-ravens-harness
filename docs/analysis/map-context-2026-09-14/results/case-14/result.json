@@ -1,0 +1,202 @@
+{
+  "case": 14,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 2,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 1209,
+    "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 50
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "march",
+            "starred_preference": "avoid",
+            "priority": 80
+          }
+        ]
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "march",
+            "starred_preference": "avoid",
+            "priority": 80
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 34955,
+    "outputTokens": 547,
+    "totalTokens": 35502
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 34955,
+      "input_tokens_details": {
+        "cached_tokens": 28416
+      },
+      "output_tokens": 547,
+      "output_tokens_details": {
+        "reasoning_tokens": 421
+      },
+      "total_tokens": 35502,
+      "cost": 0.0126445,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0126445,
+        "upstream_inference_input_cost": 0.01223425,
+        "upstream_inference_output_cost": 0.00041025
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391302-jNO4icxad2fWkW3kxeco",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391302-jNO4icxad2fWkW3kxeco",
+      "output": [
+        {
+          "id": "rs_tmp_xpahlzx0bbf",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need next action: still in place-orders? pendingDecision type place-orders, we have assigned orders already last round? But now round2 place-orders still need assignments. We have 4 regions, maxStarredOrders 0 (king's court position likely low). Need to place orders for each region. Should pick best orders: we have footman+knight in pyke, footman in greywater-watch, ship in ironmans-bay, ship in port-of-pyke. Likely want march to expand. Choose March +0 for pyke to move? But we have no starred orders, so must use regular. Preference: maybe march from pyke, march from ironmans-bay (ship cannot march land), but can march ship? March orders on sea move ships. Could march from ironmans-bay to adjacent sea areas. Adjacent sea: shipbreaker-bay, blackwater-bay, etc. Might want to attack? Probably want to consolidate power in port-of-pyke and greywater-watch. Let's assign: pypyke defense? Might want defense to protect home. But home is pyke? Home is pyke for Greyjoy. Actually home is pyke. Should defend. So defense order for pyke. Greywater-watch: maybe march to attack? Greywater-watch has footman, adjacent sea? It is land, can march footman/knight to adjacent land like bay-of-ice? That leads to winterfell area. Probably not. Could consolidate power to get power tokens. So choose consolidate power for both greywater-watch and port-of-pyke? Port-of-pyke is a port with ship, can consolidate power to get power. Ironmans-bay: ship, could march to shipbreaker-bay or blackwater-bay. Might want raid? No enemies nearby. Consolidate power there also gives power. So assign: pyke defense, greywater-watch consolidate power, port-of-pyke consolidate power, ironmans-bay march. Need orders list. Use preferred order accordingly. Let's submit.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":80}]}",
+          "call_id": "eb53775d7",
+          "name": "submit_orders",
+          "type": "function_call",
+          "id": "fc_tmp_0w8yspx50yr",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 18494,
+    "currentInputSha256": "706a7ec16388847070ef688a214d77702177945d0b0d99f574b9896680ab855b",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 7,
+        "inputCharacters": 25024,
+        "inputSha256": "22649a18f198abfe51d897f33093e2d443472e74fcbda1b418da5afec9ff86e5",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d"
+  }
+}

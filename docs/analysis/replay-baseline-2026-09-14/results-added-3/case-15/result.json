@@ -1,0 +1,363 @@
+{
+  "case": 15,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 8,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              47
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "winterfell",
+        "moves": [
+          {
+            "destination_region_id": "white-harbor",
+            "unit_ids": [
+              47,
+              48,
+              1
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "winterfell",
+      "moves": [
+        {
+          "destination_region_id": "castle-black",
+          "unit_ids": [
+            47
+          ]
+        }
+      ],
+      "leave_power_token": false,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 14722,
+    "outputTokens": 316,
+    "totalTokens": 15038
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 14722,
+      "input_tokens_details": {
+        "cached_tokens": 768
+      },
+      "output_tokens": 316,
+      "output_tokens_details": {
+        "reasoning_tokens": 260
+      },
+      "total_tokens": 15038,
+      "cost": 0.0053897,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0053897,
+        "upstream_inference_input_cost": 0.0051527,
+        "upstream_inference_output_cost": 0.000237
+      },
+      "scope": "agent",
+      "response_id": "gen-1789376172-r25H8eUVeislilpvXXfQ",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789376172-r25H8eUVeislilpvXXfQ",
+      "output": [
+        {
+          "id": "rs_tmp_d35bv8g7npa",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the march order for Stark. The pendingDecision is resolve-single-march, houseId Stark. The actionGuidance shows legalOrderRegions with starting region winterfell, order March -1, unitIds [47,48,1]. reachableRegions listed: castle-black, karhold, moat-cailin, the-stony-shore, white-harbor, widows-watch. We can move some units to one destination (at most one destination may trigger combat). No combat here (all empty). Need to choose moves. Goal: expand towards another castle. Nearest castle? We have only our castle at Winterfell (castle level2). Next castle is White Harbor (castle level1) reachable. Also maybe Karhold (no castle). Could aim to capture White Harbor to get second castle. Move units there. Currently units at winterfell: knights 47,48 and footman 1. White Harbor is empty (no units). So we can move all three units to White Harbor. Must leave power token? cannot (canLeavePowerToken false). That's fine. So resolve_march with starting_region_id:\"winterfell\", moves:[{destination_region_id:\"white-harbor\", unit_ids:[47,48,1]}], leave_power_token:false.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[47,48,1]}],\"leave_power_token\":false}",
+          "call_id": "37dde4318",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_r2v00abq82",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "52b259da7d20b15dd567141d8d96796d864a2bc7f13642fd324cdf1f0a4c7717",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 334119,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_9y2ezle9uf6",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for now. We have 5 eligible regions, need assign orders. We have 0 starred allowed and defense is restricted, so cannot assign defense. Must assign orders among march, support, consolidate_power, raid. Currently we have units: bay-of-ice has a ship, castle-black has footman, knight, footman, winterfell has a knight, white-harbor has knight, the-shivering-sea has ship. Supply is 1, need ensure armies supply-compatible. Our army sizes: at winterfell we have 1 knight (supply 1). At white-harbor we have knight (1). At castle-black we have 3 units (footman, knight, footmen) = 3 supply? footman=1, knight=2? Actually knight counts as 2 supply? In game knights count as 2? I think knight counts as 2 supply. So castle-black has 1 knight (2) + 2 footmen (2) =4 supply, exceeds supply 1 -> illegal? But maybe they are not a single army? They are separate? They occupy same region, form one army. This seems over-supply; maybe we need to split via march? Could move some units. We have a ship at bay-of-ice can support? Ships don't count for supply? They allow movement over sea.\n\nGoal: expand toward nearest unattained castle: next castle maybe at Winterfell already castle, next at... We have only 2 castles currently (Winterfell and maybe? Actually we control Winterfell (castle) and White Harbor (castle level 1). Need 7 castles. We should aim to capture nearby castle like Karhold? It's land with castleLevel0. Maybe target the nearest castle: maybe at the Shivering Sea is sea. Could march from White Harbor to Winterfell? Already adjacent. Perhaps march knight from White Harbor to Winterfell to reinforce.\n\nWe need orders: cannot use defense. So assign March to a region with units to move. We have 5 regions, need assign orders to all? RequiredAssignmentCount 5, so must assign each. Choose priorities. Likely: March from White Harbor (priority high) to Winterfell to add defender. March from Castle Black maybe to Winterfell? But can't exceed supply. Might want to march some units out to reduce supply. Could raid? No enemy adjacent? Adjacent enemies? None. Support maybe for future battles; but no immediate battles.\n\nThus assign:\n- white-harbor: march (move knight to winterfell)\n- castle-black: march (move footman? maybe move footman to winterfell)\n- bay-of-ice: consolidate_power (to gain power)\n- the-shivering-sea: consolidate_power\n- winterfell: consolidate_power? we have already order maybe? But we need assign something; could support (to aid potential battle). Use support.\n\nStarredPreference avoid.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"white-harbor\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"winterfell\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "cf2821d92",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_vvuthb0shn",
+        "status": "completed"
+      },
+      {
+        "call_id": "cf2821d92",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"f21a06d3-288b-4606-b6ab-da4efabaee8b\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_hz6b5hxcure",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Now need to resolve current march: starting region likely white-harbor? Actually pendingDecision is resolve-single-march for Stark. The order is March +0 at white-harbor with unit 48 (knight). We must choose a destination. Options: castle-black, karhold, moat-cailin, widows-watch, winterfell. Cannot trigger combat (none have garrison except winterfell has 2 garrison but it's Stark controlled, combat allowed? It would be friendly, no combat). We can also leave power token. Probably want to move knight to winterfell to reinforce castle (but winterfell already has knight). Might want to move to moat-cailin to expand towards North. Better to move to winterfell to strengthen control and possibly later attack? However no combat now. Maybe move to moat-cailin to control more land and have supply? Moat Cailin is land with no supply. Better to move to winterfell to increase forces for future attack on the North. I'll move unit 48 to winterfell, leave power token? White harbor has no power token currently; leaving not needed. leave_power_token false.\n\n",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[48]}],\"leave_power_token\":false}",
+        "call_id": "6e0bb7599",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_zo9lz5c7hdg",
+        "status": "completed"
+      },
+      {
+        "call_id": "6e0bb7599",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"fefa1898-f658-48bd-9771-1662a3a2a3c9\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_nq1d1qm8px",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve march for castle-black. Options: reachable regions list includes winterfell etc. We already moved unit 48 from white harbor to winterfell. Now castle-black order is march -1, must move at least one unit? Could choose to pass safePass. Probably best to move units to winterfell to reinforce? But winterfell already has 2 knights. Moving footman could help. Units in castle-black: ids 1 footman,2 knight,3 footman. Can move any. Destination winterfell has garrison 2, our control. No combat. Could also move to white harbor maybe? But white harbor empty now after move? It has no units now. Could move to white harbor to reposition ships later. Probably reinforce winterfell. Use unit 1 footman. Leave power token? can leave because canLeavePowerToken true. Might want to leave token in castle-black to keep control of region after vacating? But we will still have units there maybe. If we move all units, we could leave token but then no units? Might be okay but lose land control. Better keep at least one unit. So move one footman to winterfell, leave_power_token false. Let's do that.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"castle-black\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[1]}],\"leave_power_token\":false}",
+        "call_id": "93c8acdff",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_zcbyvqidk0k",
+        "status": "completed"
+      },
+      {
+        "call_id": "93c8acdff",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"3fddbdf3-5e0f-4c76-9074-66e4d59c2215\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_kcupt4at43",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in bidding phase round 8. Must submit a bid. Choose amount. Stark has 6 power tokens. Need to consider winning points: currently 1 VP, need 7. Likely need to win bids to get influence. Choose moderate bid. Maybe bid 2 to conserve tokens.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "2d9fe0af2",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_661z0hzy3e2",
+        "status": "completed"
+      },
+      {
+        "call_id": "2d9fe0af2",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"7a462e66-2d05-43e0-8fcd-dfa970a60c4a\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_fju80ii2mg",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit a bid this round. We have 4 power tokens, already bid 2. Need choose amount. Likely optimal is 2 more? Evaluate tracks: iron throne order currently: lannister, stark, martell, tyrell, greyjoy, baratheon. Stark is 2nd, good. To keep position maybe bid 2 to stay. Opponents may bid higher. We have 4 tokens, can bid up to 4. Probably bid 3 to stay competitive. I'll bid 3.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":3}",
+        "call_id": "bdcd5a9bc",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_8nnruu0txc8",
+        "status": "completed"
+      },
+      {
+        "call_id": "bdcd5a9bc",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"a135808a-9ad0-4eb6-a389-1bf77ab01638\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_c5dcmautizi",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit a bid this bidding phase. We have 1 power token left. Must bid amount <= tokens. So can bid 1 or 0. Likely we should bid 1 to try improve order. Use submit_bid.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":1}",
+        "call_id": "4257a2102",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_d03xe4p1ph5",
+        "status": "completed"
+      },
+      {
+        "call_id": "4257a2102",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"7198738c-d04c-4290-98ec-8354d287d3d3\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_z9kq2wedcxh",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders now. We have 4 eligible regions: bay-of-ice, castle-black, winterfell, the-shivering-sea. Consolidate_power is restricted, so cannot assign. Must assign orders among march, defense, support, raid. We have units: bay-of-ice has a ship (Stark). castle-black has knight+footman. winterfell has knights and footman. the-shivering-sea has a ship.\n\nWe want to expand toward next castle. Nearest unattained castle? Stark currently controls winterfell only. Next castle could be White Harbor (castle level 1) adjacent to winterfell and bay-of-ice. Also Karhold (castle level 0) not castle. Aim to take White Harbor next round. Need to move into White Harbor via winterfell (adjacent) with march. So assign march from winterfell to white-harbor. Also perhaps support from castle-black to winterfell to boost. And maybe march from bay-of-ice to winterfell to reinforce. And maybe support from the-shivering-sea? But we have limited orders: 4 orders, one per region. Use march where needed. We can have march from bay-of-ice (ship) to winterfell to bring ship support for later sea moves. Also march from the-shivering-sea (ship) to winterfell? But only one unit can move per region. We have only one ship at bay-of-ice and one at the-shivering-sea. Could move both into winterfell? Probably only one order per region, but each region can move its unit. So we could set march for bay-of-ice and the-shivering-sea both to winterfell, but then winterfell would have two incoming moves, conflict? Probably not allowed multiple moves into same region. Safer: march from bay-of-ice to winterfell, support from castle-black to winterfell, march from winterfell to white-harbor, and defend the-shivering-sea. So assignments:\n\nbay-of-ice: march (priority high)\ncastle-black: support\nwinterfell: march\nthe-shivering-sea: defense\n\nStarred not allowed (maxStarred 0). Provide priorities.\n\nLet's submit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-shivering-sea\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+        "call_id": "c24a4933f",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_p0a51ui1vr",
+        "status": "completed"
+      },
+      {
+        "call_id": "c24a4933f",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"64b8fb48-e7d1-4e2e-9b27-133de84e5aa9\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_wdxoqwghec",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the march. Starting region options: bay-of-ice has unit 40 (ship) can move to port-of-winterfell or sunset-sea. Winterfell has units 47,48,1 can move to many; but we already placed march on winterfell, so this is the region to resolve. The pendingDecision is resolve-single-march for house Stark. We must choose a legal move. Likely want to attack? No adjacent enemy? Castle Black is own, others neutral. Could move to Greywater Watch (enemy) triggering combat but we have only one unit? We have three units, can move any subset. Best to move a knight to Greywater Watch to attack Greyjoy? Might be risky. Perhaps prefer safe pass? But need to act. Might move ship from bay-of-ice to port-of-winterfell (own) no combat, just reposition. That strengthens supply? Port of winterfell is sea port, moving ship there gives ship in port could later support. So resolve march: starting_region_id \"bay-of-ice\", moves: destination \"port-of-winterfell\", unit_ids [40]. leave_power_token false.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"bay-of-ice\",\"moves\":[{\"destination_region_id\":\"port-of-winterfell\",\"unit_ids\":[40]}],\"leave_power_token\":false}",
+        "call_id": "82e49e4c0",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_cxjsjf4v2r",
+        "status": "completed"
+      },
+      {
+        "call_id": "82e49e4c0",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"0560629a-6799-4a89-a64a-e869095c78cd\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 41992,
+    "currentInputSha256": "c62c6a31f30a38e1f28db2a8fef03586ca1ee954f77b796b9c66a466dbdc08ca",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 61889,
+        "inputSha256": "52b259da7d20b15dd567141d8d96796d864a2bc7f13642fd324cdf1f0a4c7717",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

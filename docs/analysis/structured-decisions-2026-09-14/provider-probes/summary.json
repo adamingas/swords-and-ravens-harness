@@ -1,0 +1,325 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "decision": "exact saved Round 2 Clash of Kings bid",
+  "blockedProviders": [
+    "together",
+    "gmicloud",
+    "alibaba",
+    "novita",
+    "makora",
+    "siliconflow"
+  ],
+  "togetherControl": {
+    "outcome": "fail",
+    "malformedFinalSubmissions": 5,
+    "attempts": 5,
+    "confirmedProvider": "Together"
+  },
+  "providers": [
+    {
+      "requestedProvider": "deepinfra",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "DeepInfra"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\":2}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 2
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789638817-kJSSAfUuAn0fPSrERco7"
+      ]
+    },
+    {
+      "requestedProvider": "fireworks",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Fireworks"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\": 2}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 2
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789638865-9o68Rm0dGtmJvxn3D8eN"
+      ]
+    },
+    {
+      "requestedProvider": "makora",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 520 - {'error': {'message': 'Provider returned error', 'code': 520, 'metadata': {'raw': 'error code: 520\\n', 'provider_name': 'Makora', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "morph",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Morph"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\":0}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 0
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639315-Paop7oqpYqbqMTVlqv87"
+      ]
+    },
+    {
+      "requestedProvider": "gmicloud",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"error\":{\"type\":\"unsupported_operation\",\"message\":\"Backend request failed with status 400\",\"backend_status\":400,\"details\":\"invalid_request_error: This model does not support the requested response_format or output format. Please check the supported parameter range in the console or product documentation.\"}}', 'provider_name': 'GMICloud', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "reka",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Reka"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\":0}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 0
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639378-OWd9Vtx926NzugUiRMvv"
+      ]
+    },
+    {
+      "requestedProvider": "digitalocean",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "DigitalOcean"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{ \"amount\": 0 }"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 0
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639388-vZABp2GQTw17xT9kEf5R"
+      ]
+    },
+    {
+      "requestedProvider": "alibaba",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': 'data: {\"error\":{\"code\":\"invalid_parameter_error\",\"param\":null,\"message\":\"This response_format type is unavailable now\",\"type\":\"invalid_request_error\"},\"id\":\"chatcmpl-46f312b3-8d59-9cf5-8c7c-b944e4a755e5\"}\\n\\n', 'provider_name': 'Alibaba', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "modal",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Modal"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\n\n  \"amount\": 2\n\n}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 2
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639807-geZKvLM1nbOzu6FhXTbI"
+      ]
+    },
+    {
+      "requestedProvider": "wafer",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Wafer"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{ \"amount\": 1 }"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 1
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639821-FMJpqx76QNCRoeI6CktZ"
+      ]
+    },
+    {
+      "requestedProvider": "parasail",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Parasail"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\":1}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 1
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639838-1NF2L1zBT6zXpQbSzvV3"
+      ]
+    },
+    {
+      "requestedProvider": "novita",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":400,\"reason\":\"INVALID_REQUEST_BODY\",\"message\":\"Model \\'deepseek/deepseek-v4.1-flash\\' does not support \\'json_schema\\' response format. Supported formats: json_object.\",\"metadata\":{}}', 'provider_name': 'Novita', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "deepseek",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nPaid model training violation (account settings): 1 endpoint excluded; configurable at https://openrouter.ai/settings/privacy', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'paid-model-training-violation-by-account', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/settings/privacy'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 20}, {'step': 'Filter by Allowed Providers', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "phala",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Phala"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\": 0}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 0
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639867-0FIyh3T1oOWD0id7Jebu"
+      ]
+    },
+    {
+      "requestedProvider": "venice",
+      "outcome": "pass",
+      "exactJson": true,
+      "confirmedProviders": [
+        "Venice"
+      ],
+      "requestCount": 1,
+      "finalAnswers": [
+        "{\"amount\":2}"
+      ],
+      "command": {
+        "type": "bid",
+        "powerTokens": 2
+      },
+      "error": null,
+      "responseIds": [
+        "gen-1789639909-5NyS1Vgwk093o2I0AeT5"
+      ]
+    },
+    {
+      "requestedProvider": "relace",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Relace', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "baseten",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'BaseTen', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    },
+    {
+      "requestedProvider": "siliconflow",
+      "outcome": "fail",
+      "exactJson": false,
+      "confirmedProviders": [],
+      "requestCount": 1,
+      "finalAnswers": [],
+      "command": null,
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":20015,\"message\":\"This response_format type is unavailable now\",\"data\":null}', 'provider_name': 'SiliconFlow', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responseIds": []
+    }
+  ],
+  "automaticRoutingWithBlocklist": {
+    "outcome": "pass",
+    "confirmedProviders": [
+      "Venice"
+    ],
+    "finalAnswers": [
+      "{\"amount\": 1}"
+    ],
+    "command": {
+      "type": "bid",
+      "powerTokens": 1
+    },
+    "responseIds": [
+      "gen-1789640326-sqMmVsexkWQt4Odpfk0Y"
+    ],
+    "error": null
+  }
+}

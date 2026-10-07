@@ -1,0 +1,189 @@
+{
+  "case": 1,
+  "model": "openai/gpt-5.6-sol",
+  "house": "stark",
+  "round": 1,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "white-harbor",
+      "moves": [
+        [
+          "moat-cailin",
+          [
+            3
+          ]
+        ]
+      ],
+      "leavePowerToken": true
+    }
+  ],
+  "finalAnswers": [
+    "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36341,
+    "outputTokens": 94,
+    "totalTokens": 36435
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36341,
+      "input_tokens_details": {
+        "cache_write_tokens": 36338,
+        "cached_tokens": 0
+      },
+      "output_tokens": 94,
+      "output_tokens_details": {
+        "reasoning_tokens": 49
+      },
+      "total_tokens": 36435,
+      "cost": 0.091791,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.091791,
+        "upstream_inference_input_cost": 0.090851,
+        "upstream_inference_output_cost": 0.00094
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425796-RfZ2NaUkhg8XaYGWJuuk",
+      "response_model": "openai/gpt-5.6-sol",
+      "response_provider": "openai",
+      "service_tier": "default"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425796-RfZ2NaUkhg8XaYGWJuuk",
+      "output": [
+        {
+          "id": "rs_03550ba407b9d59a016aa878858e7087d1a2cd3acab03bd269",
+          "summary": [],
+          "type": "reasoning",
+          "encrypted_content": "gAAAAABqqHiGUWdouT5-Vbx35N2t0BJPUHyvfKS4Kc4JuQdYuELWINCvHISowPP6Jqlu8PU_PtKz6YF8xYldz8K3-otVFOCJyjvJvVK9vTjCzX2Q7LMoyw0kurCXHejlYUSX2uLDNPlva9R7zDKhoTk_4mHQOZr7wJI-YOJrzxEHKSXOqOnz2SxiWsxVB0Za50oKiK5sU7jVBSIX60IvgGkZM8LnWV1Dv0RpUTuwsDUcriNhK51XI8AuOJZFhtQqv4Km5dQf3ALir5l9EUZeZT5ZL1-zXVy-a2g-xVhNPRDTn-GE8jIOSKjAQtuVUa3oyJUla4xMsojle4NW1epuabzJP5SKIJSzylcOToXvDNLXI4Gk-LuAiPoTKewjSbXqKF3k6rRxAuN4zh88Xn7Etr8yiR2dl0xTwvJXs_E2MVL1UO5Z5mFQXI6FtAOJaCag25MIekObJ-6ly_zjn8F0tRAfOiZVHKA4g7ssYj1FZHphgaHSKNycfNz2AXV7pKSs8Z3sYyJY1GECIMWkPon_RhzMYr_ZAGtLpj3Ho_jAyJNuo4Ty-IiqLHpZieHjmN7zyQ9oYUmY5_PUUdGKqMs5vEUy0G2FntV29sAhRoepWcGNoWDUwA6i_DM1HErklKpAs4YTgeCREs6IAPNQJNKvU0ZjLE_Vc5Vzk-OywyHwMQVIMI7rfWKLI5Cz1sHiT59PJATEVad_wooOwvjT53VR0w_kqlQtG20TsTJ8Byc2t3ruCV6988OxhQleKrjF4MnOxuujWL9cjJa0s4HtdVw5_1n7UmoaKD7GXEeNNnTMXyJMvNi7iuSHZZceQF9xCf8G-Ufal6HZ4ycetg3CRPXnKvd-Vcx0RvLgPGWRurZA-aSlxbX-e8nmPakwo7_2HTaQOoHrSgXjDdT0fsKG1CAcH3-QePFbJNEfLuDlXA-JuZZc4tg-NF_21GFPpvfuT2DDOuwI7d1_8RyRNqvKyzxJHdG6nuLDEmC_tsRcm1GZ72bacIj1KqBsMkBRUciqagqn7LIz_hr-9QwdrnJPrCumH9_9Q58ok8YPDpS4-HKWcfGPKI9f8FJ4n4KBq56UXx4zIhhneNUvIhsB5VM7UVmNWKyL2Vg2ndBOb-nLyaIBm9pYHp4_DBcqKr2zFFg0cCZxzQ7RqaRnWqpoCsuCb9s3HZAzMXn7S0DLA0Yo57o1qJG6aiuXlspv5OHaJLoxFHmqrqg5qSHeVY8xPfVs6X-bSl3nU9JFNJLbKoj2vK63xhR-kZQvNcjheLhiW947jnWqQTiV32PBMmzYAQadfSxKy-lDfGuVOlpr7g_JxKkHjPJyeeCiZT78UmqbNv0t1LoP6S0HA1GNo_KdfaODAkeGhWyBBanZnYeJ1CjsJX1eAqOlc80TfF-Ixh5PIVMZvUSk4Gay7xAi23HueWOxHRpXhAXfayeqps3Y15lcsu08bQszdYzT7WBo24AAJbWDCtMrB2d24fHA0YU9e9rRDcyFOnECjDNueLUNd5PJR94LH9HMqXaxGZRBAmkile_ELZSrKkRszSXrI7wNrrGgZfQZZhixmAnmcsh0rssLZ5LPQjaFsAEQLkxVbWoqFe1TA-2a6TdiSxZ1tPfiR8IwXWohonb3IQ06M73n6A==.eyJlbmRwb2ludF9zbHVnIjoib3BlbmFpL2dwdC01LjYtc29sLTIwMjYwNzA5fG9wZW5haSJ9",
+          "status": "completed",
+          "format": "openai-responses-v1"
+        },
+        {
+          "id": "msg_tmp_2l7ol3seivg",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+          "phase": "final_answer"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 25114,
+    "currentInputSha256": "9af5d1ac82da2b0df2339783e8b096af9feb53107c6dcc14095d4bbedf71625b",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 28341,
+        "inputSha256": "6edf94598a0f333433522f00d297e225871bb183696e4fb706c471516cd216df",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "988172a7e1c1fb22f26f75929a0e07d3f4b6e5ec41c83109f723283e3a056b79"
+  }
+}

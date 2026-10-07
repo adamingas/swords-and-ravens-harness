@@ -1,0 +1,12 @@
+## functions
+
+namespace functions {
+
+// Submit your final gameplay action for the current decision. You MUST call this tool after you have explored and chosen an action. This is the only tool that can finish the decision. Its fields describe the action currently required by the game and change between decisions. If the tool rejects the arguments, inspect the error, correct them, and call submit_action again.
+type submit_action = (_: {
+decision: any,
+// Concise private handoff to your future decisions. Record the current goal, ordered dependencies, immediate threats, reserved resources, assumptions that need checking, and why this action advances the plan. Summarize conclusions; omit exploratory second-guessing and facts already obvious from the board.
+strategic_handoff: string,
+}) => any;
+
+} // namespace functions

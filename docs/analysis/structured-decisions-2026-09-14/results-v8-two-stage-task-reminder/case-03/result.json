@@ -1,0 +1,235 @@
+{
+  "case": 3,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 7,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 6214,
+    "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "winterfell",
+      "moves": [
+        [
+          "flints-finger",
+          [
+            45
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}",
+    "{\"moves\":[{\"destination_region_id\":\"flints-finger\"}]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 79616,
+    "outputTokens": 672,
+    "totalTokens": 80288
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39553,
+      "input_tokens_details": {
+        "cached_tokens": 36352
+      },
+      "output_tokens": 510,
+      "output_tokens_details": {
+        "reasoning_tokens": 475
+      },
+      "total_tokens": 40063,
+      "cost": 0.01422605,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01422605,
+        "upstream_inference_input_cost": 0.01384355,
+        "upstream_inference_output_cost": 0.0003825
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431497-hCs7xw2fbfUW6AlB9Doe",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 40063,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 162,
+      "output_tokens_details": {
+        "reasoning_tokens": 138
+      },
+      "total_tokens": 40225,
+      "cost": 0.01414355,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01414355,
+        "upstream_inference_input_cost": 0.01402205,
+        "upstream_inference_output_cost": 0.0001215
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431498-LhsVVXRkKlXUpdcqiRm4",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431497-hCs7xw2fbfUW6AlB9Doe",
+      "output": [
+        {
+          "id": "rs_tmp_e7vwcd20t3r",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need decide move. From Winterfell we have unit id 45 knight. Reachable destinations listed earlier: castle-black, flints-finger, greywater-watch, karhold, moat-cailin, the-stony-shore, white-harbor. Need check support around each combat if choose to attack (only greywater-watch triggers combat). Others no combat. We likely want to capture a castle without combat, good. Choose one castle maybe flints-finger (castle). Check if moving knight there leaves Winterfell empty but we have no control token needed. Supply: we have supply 1, currently one unit (knight) counts as army of size1? Army requires 2+ units, so this unit is not an army, supply safe. Moving it doesn't affect supply. So we can move to any. Need consider future. Capturing a castle gives +1 victory point area. Currently Stark has 1 castle (Winterfell). Capturing another gives 2. Good. Choose flints-finger which is owned by Greyjoy (controlPowerToken greyjoy). No combat, just move into empty? Actually flints-finger has no units currently, but control token indicates Greyjoy control. If we move there, we vacate Winterfell empty, but we keep control via home. No token needed. We move knight into flints-finger, we now control that area? We would need to establish control by placing a power token when vacating? The rule: when vacating a land area with all units, you may elect to establish control by placing a Power token. If you don't, control reverts to original (or remains? For home area, home shield counts as control). For other areas, you need token. Here we are moving from Winterfell (home) so no need. For flints-finger, we will occupy it with a unit, thus we control it by presence of unit, no token needed. So we gain castle area. Good.\n\nCheck support: not combat, no need. So move knight id45 to flints-finger.\n\nThus moves list with one destination: flints-finger. No need to specify unit IDs? Schema only has destination_region_id, not unit IDs. So we just provide moves array with one object destination_region_id \"flints-finger\". That's it.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_w4545kfh6d",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431498-LhsVVXRkKlXUpdcqiRm4",
+      "output": [
+        {
+          "id": "rs_tmp_qyns7nq4sb",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to ensure move is legal: from Winterfell, reachable regions include flints-finger, which is a land area with castle=1 controlled by Greyjoy. It triggers combat? actionGuidance says triggersCombat:false for flints-finger. So moving there captures castle without combat (since no enemy units). We have one unit id 45 (knight) at Winterfell. Supply is 1, we have only one unit, so moving it is fine. No need token. So moves list with destination flints-finger, no unit IDs needed. This matches earlier answer. Ensure correct enum: flints-finger is allowed. Return moves array with that object.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_wcjjbdoho5h",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"moves\":[{\"destination_region_id\":\"flints-finger\"}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 38902,
+    "currentInputSha256": "60e40b83e53d962af7f92411fa56b15a4e896ee03f9c2915e5ecaeec3d12c70e",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 43966,
+        "inputSha256": "baddbf45037c72a4b9df3b7c37185cf603cc836549d95307209c9237ef8be23f",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 49245,
+        "inputSha256": "faecd83c6526fc7be33114b53b5f53662bfc36199a9c6fb158fa047dfc826276",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "flints-finger",
+                  "greywater-watch",
+                  "karhold",
+                  "moat-cailin",
+                  "the-stony-shore",
+                  "white-harbor"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "82c0db77268e1437a2efc943eaafdc7fb8994b64a3410fffb39685b2b688586f"
+  }
+}

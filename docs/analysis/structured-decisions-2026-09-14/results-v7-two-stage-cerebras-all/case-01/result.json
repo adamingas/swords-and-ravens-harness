@@ -1,0 +1,264 @@
+{
+  "case": 1,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 1,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "the-shivering-sea",
+      "moves": [
+        [
+          "the-narrow-sea",
+          [
+            4
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "I will resolve the March order on **The Shivering Sea**.\n\n- **Starting region**: the‑shivering‑sea (contains my ship unit #4).\n- **Move**: send unit #4 to the adjacent sea area **the‑narrow‑sea**. This is the only legal reachable destination and does not trigger combat.\n- **Leave power token**: false (no castle to preserve in The Shivering Sea).\n\nThus the march will move my ship into The Narrow Sea and discard the March order. The remaining March order on White Harbor will be handled in the next decision.",
+    "{\"starting_region_id\":\"the-shivering-sea\",\"moves\":[{\"destination_region_id\":\"the-narrow-sea\",\"unit_ids\":[4]}],\"leave_power_token\":false}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 73951,
+    "outputTokens": 707,
+    "totalTokens": 74658
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36588,
+      "input_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "output_tokens": 617,
+      "output_tokens_details": {
+        "reasoning_tokens": 484
+      },
+      "total_tokens": 37205,
+      "cost": 0.01326855,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01326855,
+        "upstream_inference_input_cost": 0.0128058,
+        "upstream_inference_output_cost": 0.00046275
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431358-hjXn7q4QABueAwQVbb4h",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 37363,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 90,
+      "output_tokens_details": {
+        "reasoning_tokens": 44
+      },
+      "total_tokens": 37453,
+      "cost": 0.01314455,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01314455,
+        "upstream_inference_input_cost": 0.01307705,
+        "upstream_inference_output_cost": 6.75e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431361-9WTIed8dVWZow07nceYh",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431358-hjXn7q4QABueAwQVbb4h",
+      "output": [
+        {
+          "id": "rs_tmp_00nlf37deb6dk",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need decide move from white-harbor or the-shivering-sea. Already resolved winterfell march earlier. Now remaining March orders: white-harbor (March +0) with unit id 3 footman. Also the-shivering-sea (March -1) with unit id 4 ship. ActionGuidance shows reachable for white-harbor includes castle-black, karhold, moat-cailin, widows-watch, winterfell. For the-shivering-sea reachable only the-narrow-sea (sea). No combat likely. Need consider supply: supply=1, currently have units: after moving footman and knight from winterfell to castle-black, those two are now in castle-black (land). That's an army of 2 units, counts as army size 2. Supply limit 1 allows armies sizes: per supply table, supply 1 permits armies sizes 3,2. So one army of size 2 is okay. The ship at the-shivering-sea is alone (single unit) not an army. If we move ship to the-narrow-sea, that is sea area, no combat. No supply issue. No need to leave power token as source areas: white-harbor currently has castle (castle area). If we move footman out, white-harbor would be empty, losing that castle area unless we leave power token. We have 5 power tokens available. We could leave token to preserve control. Better to keep castle. So leave_power_token true for white-harbor. For the-shivering-sea, moving ship leaves sea area with no castle, no need token. So leave_power_token false.\n\nWe must choose one order now. Which to resolve first? Probably resolve the-shivering-sea now, moving ship to the-narrow-sea. No combat, preserve token? No token needed. Then later resolve white-harbor with token. But current decision: we must pick one. Choose to resolve the-shivering-sea. Moves: destination the-narrow-sea, unit_ids [4]. leave_power_token false.\n\nCheck reachable list for the-shivering-sea only the-narrow-sea. Good.\n\nThus action: starting_region_id \"the-shivering-sea\", moves [{destination_region_id:\"the-narrow-sea\", unit_ids:[4]}], leave_power_token:false.\n\nProvide explanation.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_qyqd8xv0xa8",
+          "content": [
+            {
+              "annotations": [],
+              "text": "I will resolve the March order on **The Shivering Sea**.\n\n- **Starting region**: the‑shivering‑sea (contains my ship unit #4).\n- **Move**: send unit #4 to the adjacent sea area **the‑narrow‑sea**. This is the only legal reachable destination and does not trigger combat.\n- **Leave power token**: false (no castle to preserve in The Shivering Sea).\n\nThus the march will move my ship into The Narrow Sea and discard the March order. The remaining March order on White Harbor will be handled in the next decision.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431361-9WTIed8dVWZow07nceYh",
+      "output": [
+        {
+          "id": "rs_tmp_oy2f5vwg2u",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to output JSON with fields. Starting_region_id \"the-shivering-sea\". moves array with one object: destination_region_id \"the-narrow-sea\", unit_ids [4]. leave_power_token false.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_nte7txulfl",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"the-shivering-sea\",\"moves\":[{\"destination_region_id\":\"the-narrow-sea\",\"unit_ids\":[4]}],\"leave_power_token\":false}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28486,
+    "currentInputSha256": "dddc979715b0e3299387d40ddcecdd4e39a486fa2c593df24b06dc4adb60002b",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 31888,
+        "inputSha256": "60af59ab6f467ea68ebfc5610041b30b210d25e9b0902a5c9bda86641bce7b33",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 37433,
+        "inputSha256": "19d74c0be778c1fa26efcfcff15c6de042fbddc23b16cf8cb5c3606b6e26cdfd",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "49af69ea2f9f83b85a61c845e0e50e9b1742ddcfafe990ca30702c0682c7cf2a"
+  }
+}

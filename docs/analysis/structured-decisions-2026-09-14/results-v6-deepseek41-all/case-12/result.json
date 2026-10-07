@@ -1,0 +1,154 @@
+{
+  "case": 12,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "previousAttemptError": null,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\"unit_ids_to_destroy\":[24,27]}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37160,
+    "outputTokens": 403,
+    "totalTokens": 37563
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37160,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 403,
+      "output_tokens_details": {
+        "reasoning_tokens": 390
+      },
+      "total_tokens": 37563,
+      "cost": 0.00844118,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00844118,
+        "upstream_inference_input_cost": 0.0081752,
+        "upstream_inference_output_cost": 0.00026598
+      },
+      "scope": "agent",
+      "response_id": "gen-1789427235-E7ePAyDO8GTdjAJkPdgS",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "fireworks",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789427235-E7ePAyDO8GTdjAJkPdgS",
+      "output": [
+        {
+          "id": "rs_tmp_mmd2ce0yvq",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We must choose 2 of {24 ship in East Summer Sea, 27 footman Starfall, 46 knight Starfall}.\n\nWe want to preserve ability to hold/capture castles. Starfall contains castle. Losing both land units at Starfall means losing Starfall? Starfall has controlPowerToken null — actually Martell controls starfall only via units (no power token). If both land units die, Starfall becomes uncontrolled (no power token, not home area). That loses a castle region.\n\nBetter to preserve at least one land unit at Starfall. Which to keep? Knight (46) strength 2, footman (27) strength 1. But we must remove 2 units total. Options:\n- Remove 24 and 27: keep knight at Starfall. Starfall held (one knight). Lose ship in East Summer Sea.\n- Remove 24 and 46: keep footman. Weaker.\n- Remove 27 and 46: lose both land units at Starfall, keeping only ship. Bad — lose castle.\n\nSo remove 24 (ship) and 27 (footman), keep knight 46. That keeps Starfall with a knight (strength 2) and we still have other ships? East Summer Sea ship was the only ship there. Losing it reduces transport but keeps land presence. Actually check: Martell regions include east-summer-sea with ship 24, port-of-sunspear (ship? listed region port-of-sunspear controlled but no units shown in board—it's controlled via... port-of-sunspear has no units listed). So losing ship 24 leaves us no ships at all? port-of-sunspear control without units? Ports controlled via connected land area ownership. Fine.\n\nKeeping the knight is better for holding Starfall (stronger). So destroy 24 and 27.\n\nThat's the answer.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_9hkzemckup",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"unit_ids_to_destroy\":[24,27]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24206,
+    "currentInputSha256": "e0f629b80f1111c8a546e7cc8dbdff8dcb243d1ed617c03c405cfb6ffaaebc6f",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 27296,
+        "inputSha256": "b79e4d392cced52dc255ca2f74c8b932c59f95c90a38ee273f00e3c36c1cd141",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

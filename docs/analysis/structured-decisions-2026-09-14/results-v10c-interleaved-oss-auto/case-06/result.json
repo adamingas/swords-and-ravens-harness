@@ -1,0 +1,182 @@
+{
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "interleaved-tools-and-structured-output",
+  "snapshot": {
+    "id": 2344,
+    "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "kingswood",
+      "moves": [
+        [
+          "the-reach",
+          [
+            25,
+            26
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38574,
+    "outputTokens": 5364,
+    "totalTokens": 43938
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38574,
+      "input_tokens_details": {
+        "cached_tokens": 48
+      },
+      "output_tokens": 5364,
+      "output_tokens_details": {
+        "reasoning_tokens": 5612
+      },
+      "total_tokens": 43938,
+      "cost": 0.0020691,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0020691,
+        "upstream_inference_input_cost": 0.00115722,
+        "upstream_inference_output_cost": 0.00091188
+      },
+      "scope": "agent",
+      "response_id": "gen-1789478767-Rjz5E5KWoe60WA328e07",
+      "response_model": "openai/gpt-oss-120b",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789478767-Rjz5E5KWoe60WA328e07",
+      "output": [
+        {
+          "id": "rs_tmp_hxggu7fap4",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve a March order for House Martell, from Kingswood. The current board state shows we have a March order placed on Kingswood region (orderId 3, March +1) with units: Footman (id 25) and Knight (id 26). Both are Martell units, presumably. The actionGuidance says reachableRegions: Storm's End (land, castleLevel=1, triggersCombat:false), The Boneway (land, castleLevel=0, triggersCombat:false), The Reach (land, castleLevel=1, castleAreasGainedIfCaptured=1, triggersCombat:false). Actually note that Storms End is currently controlled by Martell (controlPowerToken on storms-end is \"martell\"). So it's already owned. The Reach is uncontrolled (currently controlPowerToken null). It's a land area with castleLevel 1 (castle), so capturing it gives a castle area. It currently has no units. However, is there any enemy unit there? According to the board: The Reach region does not appear in board list, but there was a mention earlier: \"the-reach, type: land, ... controller null\". So it's empty.\n\nThus marching from Kingswood to The Reach would be moving units into an empty area with a castle, but not contested. It says triggersCombat:false (no enemy units). So it's not a combat, just moving units to control it. If we vacate Kingswood entirely, we need to decide about leaving a power token: \"Leaving power token\" can be true (spending 1 Power token) to preserve control of Kingswood. If we vacate without power token, we lose the area and castle area (Kingswood has a castle? Let's check initial map: kingswood [land; supply=1; crown=1] (no castle). So Kingswood does not have a castle. So vacating Kingswood does not affect castle count. However, we may have a castle? Actually in the map definition: \"kingswood [land; supply=1; crown=1]\" no castle or stronghold attribute. So Kingswood is just a land area with a crown icon, but no castle. For victory count we only count castes and strongholds, not crown icons. So losing Kingswood has no effect on victory points. But it might affect our supply (crown icons count for supply? Actually supply icons only from specific areas like supply icons. The map indicates supply=1 there, already accounted.\n\nMartell currently has supply track 2, controlling 3 castles (sunsspear (stronghold? castled? in map s some area: sunspear has castle=2 -> stronghold, also high garden? No, high garden belongs to Tyrell. Actually Martell controls: kingswood (uncontrolled? but they control it; it's part of their controlled regions list), port-of-sunspear, sunspear (stronghold), sea-of-dorne, salt-shore (but salt-shore has controlPowerToken 'martell'), storms-end (controlled by token), port-of-storms-end, yronwood. So they have 8 controlled regions (including these). For castle areas: sunspear (stronghold) counts as one; do they have any other castle? Kingswood has none. Port areas don't have castle. So they have 1 stronghold maybe also a castle somewhere? Some others: maybe the 'kingswood' also has a castle? Actually no. The \"crown\" perhaps not. The earlier strategic memory says \"martell controls 3 castle regions and 5 land areas\". That seems contradictory. Let's examine: In controlled regions list at start: [\"kingswood\",\"port-of-sunspear\",\"sunspear\",\"sea-of-dorne\",\"salt-shore\",\"storms-end\",\"port-of-storms-end\",\"yronwood\"] . That's 8? Actually there are: Kingswood (land, no castle), port-of-sunspear (port), sunspear (stronghold), sea-of-dorne (sea area, no castle), salt-shore (land, no castle?), storms-end (land with castle=1), port-of-storms-end (port), yronwood (land with castle=1?). Let's check map definitions: \"storms-end [land; castle=1]\" - yes, castle. \"yronwood [land; castle=1]\" - yes star. So they have two castles: storms-end and yronwood, plus a stronghold at sunspear. That is 3 castle/stronghold areas. So earlier memory correct.\n\nKingswood is not a castle, but they currently have supply of 2? Actually they have supply track 2; they have supply icons: from controlled areas: kingswood (supply=1), storms-end (no supply? map says supply maybe 0; but storms-end not declared supply, but actually it has a castle of level1 and no supply note; there is no supply on storms-end; but maybe the castle provides supply? No, supply icons are separate. So supply icons controlled: kingswood (1), yronwood (0? map says no supply icon for yronwood), plus maybe other? Actually map: \"yronwood [land; castle=1]\" no supply. So perhaps they control only 1 supply icon from kingswood, but they have supply=2 from their own supply track (some extra from \"crown\"? Actually crown icons also provide supply? No, Crown = recorded but not supply. In the board, they have a supply track of 2, meaning they can field certain armies. They currently have 2 armies? They have at least two: one at Kingswood (2 units -> an army), one at storms-end (1 footman?), one at yronwood (1 footman). Also some ships at sea-of-dorne, etc.\n\nNow we need to decide how to move the units from Kingswood.\n\nActionGuidance says unit IDs & reachableRegions. They also list canLeavePowerToken:true.\n\nWe have to consider supply constraints after the move. The description says \"Each group must fit Supply after the earlier groups.\"\n\nWe have supply=2, currently controlling supply icons: maybe just kingswood (1), however they might also have a supply icon on something else? \"port-of-sunspear\" no; \"sea-of-dorne\" is sea; \"salt-shore\" is land supply=1? Wait map: salt-shore [land; supply=1] - yes. So they control salt-shore: controlPowerToken \"martell\". Actually board shows at salt-shore controlPowerToken \"martell\". So they have a supply icon there. Also do they have supply icon at storms-end? The map says storms-end [land; castle=1] but not supply. So they have supply icons: kingswood (1), salt-shower (1). So total supply icons =2. That matches their supply track 2. So they can have armies as per supply table: supply=2 -> permitted army sizes: 3,2,2. So they can have three armies: one up to 3 units, two up to 2 each.\n\nCurrent armies: Let's enumerate:\n\nKingswood: footman+knight (2 units) -> army size 2.\n\nStorms End: footman (id 35) (1 unit) -> not an army (army needs 2+ units). So it doesn't count for supply? Actually a single unit does not count as an army (still can exist but not counted). So we have only one army (Kingswood). Also yronwood: footman id 27 (1 unit). Not army. Sea of Dorne: ship id 24 (1 ship) doesn't count as army (single unit). Therefore currently they have only one army. Within supply limits of >2 armies permitted, no issue.\n\nNow moving units from Kingswood to somewhere else may split the army: we can move one or both.\n\nPotential destinations:\n\n- Storms End (owned, castle, no combat). Move units there: they would join the footman there, making an army (maybe now 3 units: footman + footman+knight?) Wait footman at storms-end is already there (unit 35). So moving the two units (footman, knight) there would result in three units (footman, footman, knight) = 3 units (size 3). That's allowed; permitted army size up to 3. That's okay.\n\n- The Boneway (no enemy, no castle). Move units there: would be an army there (2 units) but no castle gain. Could also move one unit there.\n\n- The Reach (unoccupied castle). Move units there: would capture a castle (gain a victory point area). But we need to consider support. Since no enemy units, no combat; simply move there and gain control of The Reach (castle). Since there is currently no control token; we would place a control token on The Reach as part of our march. However to leave Kingswood it might be vacated; we may want to leave a power token to keep control? But Kingswood only has no castle; we might not care about losing it perhaps. But leaving it empty may still be profitable to have an extra castle. However we might want to keep Kingswood for supply (but it's a supply icon). However we can also leave a control token there to keep supply icon? The rule says if you vacate a land area (all units leave) you may place a power token to preserve control. If you don't, you lose control of that area. So vacating Kingswood would lose that supply icon, reducing supply back to 1. But we also would gain a castle area (The Reach). However losing supply icon may reduce army size limits; but we may be able to manage supply (we currently have 2 supply icons; with only 1 army of two units, maybe we could handle any consequences). However we must ensure we stay within supply after vacating: We would now control salt-shore (1 supply), and maybe something else (if we place power token on Kingswood we keep its supply, but if we don't, we lose that supply). But we also might later gain supply by other means.\n\nGiven we have a March order with +1 (provides +1 combat strength if combat, but no combat). So moving to The Reach yields no combat; no need for +1.\n\nNow we need to decide about support and how many units to move. We may also consider moving only footman or only knight. Possibly moving only the knight may leave footman in Kingswood; but footman alone is not an army (size 1) - fine.\n\nIf we leave footman at Kingswood, we need to consider whether we can keep the area controlled? We would need to maintain at least one unit to occupy the area (units count as control), but still area is controlled by us (since a unit is present). If we vacate completely we could place a power token if we have one (we have 3 power tokens available, but we need to preserve something else?). We currently have control tokens on storms-end and yronwood, and also on salt-shore via power token (the board shows controlPowerToken:\"martell\"). So we have at least 3 control tokens used: storms-end, salt-shore, yronwood. We have 3 power tokens available. Actually the house's power tokens count is 3 currently in hand, but we used them for control tokens? The \"powerTokens\" field likely indicates tokens in hand/available. The board shows controlPowerToken \"martell\" on salt-shore, and also on storms-end and yronwood. However these are tokens placed on board. The house still has 3 power tokens available in hand (they must have enough to place new ones). The board does not show a token on Kingswood. So we haven't placed a token there now.\n\nIf we move all units out of Kingswood and want to keep control, we could spend a power token (available: 3). That would reduce our hand tokens to 2 after this action.\n\nAlternatively, we could move both units out and not place a token; we lose Kingswood (and its supply icon) thereby supply becomes 1. That would affect our ability to hold army sizes. We would have only salt-shore as supply icon (+1). That would set supply track =1. Permitted army sizes: 2,2. Our army at Storms End would be potentially 3 units (if we moved both). That would be over the limit (max 2). So moving both units to Storms End while losing Kingswood supply icon would cause an army size of 3 > 2. That is illegal: supply restrictions cannot be exceeded. So we can't vacate Kingswood unless we either keep the supply token (by leaving power token) or split units such that no army exceeds size limit.\n\nIf we move both units to Storms End (now 3 units), we would need supply=2 to allow a 3 size army (since supply 2 allows 3,2,2). So we would need to keep Kingswood's supply icon. That means we must leave a power token on Kingswood.\n\nIf we move both units to The Reach (castle) and vacate Kingswood, we would lose the supply icon on Kingswood; we would have only salt-shore supply =1. The army at The Reach would be size 2 (both units). That is allowed with supply=1? Supply=1 permits army sizes 2,2 (i.e., two armies each of max size 2). That yields max army size 2, we have a 2-unit army, okay. So we could move both units to The Reach, vacate Kingswood, lose supply, but still have an army of size 2, and we also gain a castle. That seems like a good move: gain a castle and perhaps increase victory points (castle area). But we must check the rule: moving into a castle area that is not contested simply captures it, but we need to ensure that we have enough supply icons for a new army? Already ok. The process: moving units into The Reach (empty) will automatically give us control and we place our control token there? The default when moving into an empty unoccupied area with no control token - you move in and take control. There is no need for a power token; your units occupy it, control is yours. So we would gain a castle. So we would end round with castle count = 4 (assuming we have 3 castles currently? Actually we have 3 currently: sunspear (stronghold), storms-end (castle), yronwood (castle). The Reach would be added, making 4. But we lose Kingswood (no castle). So net gain of castle area +1. This increases victory point track? Actually the Victory track counts number of castles/strongholds controlled; they will have 4 now.\n\nGiven the goal to reach 7 and then immediate win, we should prioritize gaining castles. So moving both units to The Reach seems best.\n\nWe also need to consider support around The Reach: Could there be enemy support that could help them defend if we attack? No combat as it's empty.\n\nBut, need to check that moving both units to The Reach might reduce our capacity to hold the other areas or produce other issues: After this move, we have armies: The Reach with footman+knight (size 2). Storms End with footman (size 1). Yronwood footman (size1). Salt-shore control token but no unit there. That yields only one army (size2). That's okay with supply1.\n\nFrom a strategic perspective, we also might want to keep the unit at Storms End for future moves. Having 2 units at The Reach gives a castle robust position; footman can defend; knight can also later attack downwards? Good.\n\nNow, can we optionally also move some units to Storms End while leaving one at Kingswood? There's alternative. But the move to The Reach yields immediate castle gain without combat; also we lose a supply icon but keep within supply. That seems best combination.\n\nThe question: Are there any constraints about splitting the army across destinations? Moves array can contain up to 2 groups. Could we move one to The Reach and one to Storms End? That would be two destinations, which is allowed (up to 2 groups). However \"Only one destination may start combat.\" Both are not combat, so okay. But we might exceed the unit ID group constraints? In actionGuidance, \"supplySafeUnitIdGroupsWhenChosenAlone\": [[25],[26],[25,26]]. This likely shows groups safe if chosen alone? Actually it says supplySafeUnitIdGroupsWhenChosenAlone; I think it indicates which sets of unit IDs can be moved in an order if they are the only ones moving? This is ambiguous.\n\nBut moving both units together to The Reach is a safe group; all are in same move group. That would likely be okay.\n\nNow need to consider whether leaving a power token is required: Since we vacate Kingswood, and we have no units left there after moving both to The Reach, we can optionally leave power token. If we don't, we lose control of Kingswood. That is okay because we don't care about supply icon but we still lose supply. That would be okay. However we might also want to maintain supply for later moves: we need supply icons to muster reinforcements. We have only two supply icons total; losing one reduces ability to muster later (if we want to muster more units). However we could potentially recoup supply later by taking a supply icon somewhere else (e.g., The Reach has no supply). So we may be better off preserving supply icon at Kingswood by leaving a power token, but then we would not get a castle gain because we keep the supply icon but we may still move into The Reach; supply stays at 2 (since we left token). However we still have the same cast be (for Supply icon count). Losing supply icon reduces our ability to muster, but maybe we can later get supply elsewhere: We already have salt-shore supply; a third supply could be captured maybe later.\n\nWe need to consider if we want to secure additional supply for future mustering. Presently we have 3 unspent power tokens and supply icons 2. If we lose one, supply reduces to 1. That would limit us to two armies of size 2. Our armies currently: The Reach (2 units) and maybe others. That's okay. But we might want to maintain supply sufficient to have maybe a third army in future to hold more territories. However we have perspectives where we may muster new units in Sunspear and maybe elsewhere. If we lose supply, we can't muster beyond limited capacities. Let's see: With supply=1, we permit two armies of max 2 units each (so max 4 units). We already have 2 units at The Reach (size2), 1 footman at Storms End, 1 footman at Yronwood, 1 ship at Sea of Dorne. So that's four units total (footmen+knight+footman+footman+ship). However footmen/unpaired units are not armies. Army count: The Reach army size2 (army1). The other footmen not part of armies. So okay.\n\nBut note: Supply icons penalty: total number of supply icons they control determines supply track based on the Supply Westeros card; but their supply track is currently at 2. This is the supply track track position (not supply icons?). Wait in Board game, supply track is not about supply icons we control; it's determined by the number of supply icons we control. However the \"Supply\" track is a track with numeric positions (0-6). Their \"supply\": 2 indicates they have a supply track token on 2 (the supply level). The \"controlledSupplyIcons\": 3 indicates they control 3 supply icons in board (Kingswood, salt-shore, maybe something else). But currently they have supply track=2, but they control 3 supply icons? Actually they currently control supply icons: Kingswood (1), Salt-shore (1), plus maybe another? In controlledSupplyIcons we see 3. Indeed, at initial state they had 3 supply icons; that may be a mismatch. Let's check: In strategic overview: Martell: castles 3, strongholds 1, landAreas 5, supplyIconsControlled 3, crownIconsControlled 2. According to list of controlled regions: kingswood (supply=1), salt-shore (supply=1), storms-end (0?), yronwood (0?), port-of-sunspear (0). That's only 2 supply icons. But also maybe they control the \"port-of-storms-end\"? Ports don't have supply. Perhaps there is a supply on \"yronwood\"? No. Could be \"random supply for kingswood\"? Already counted. So perhaps I have missed a supply icon: The \"the-reach\"? Not controlled; \"beyond\"? Actually they have \"port-of-storms-end\". No.\n\nThus \"controlledSupplyIcons 3\" may be inaccurate. However the truth the board states they have a control token on salt-shore, and we presumably have units in storms-end and yronwood. Maybe units count as supply? No. So maybe there is also a supply icon on \"storm's end\"? Wait map shows storms-end has castle=1, not supply. No.\n\nThus maybe the board also includes the \"supply icon\" from the area \"kingswood\". That's 2. Where is third? Possibly from \"sunspear\"? Sunspear has supply=1. But does Martell have a supply token there? It's a stronghold (castle=2) and supply=1 in map: \"sunspear [land; castle=2; supply=1; crown=1; home=martell]\" Yes, Sunspear is a stronghold with supply=1. However we have not placed a control token there? But we have the stronghold and units; but controlling a region with a castle gives control maybe even without power token; the unit occupying the area counts as control. So they control Sunspear (they have footman there). So they do control the supply icon on Sunspear. Thus 3 supply icons: Kingswood, Salt-shore, Sunspear. Indeed Sunspear has supply=1. So they have supply icons 3. Good. So controlling Sunspear's supply icon is counted even though there's a unit. So the \"controlledSupplyIcons\" includes Sunspear.\n\nTherefore, vacating Kingswood would reduce supply icons to 2 (Sunspear, Salt-shore). Their supply track is 2 (maybe based on previous supply card?). Actually they currently have supply track=2, but they control 3 supply icons. That implies they have supply track 2 (maybe they haven't accurately updated?). In Westeros card \"Supply\" resolves, you count supply icons and adjust the supply track accordingly. At round 3, they may have not had the supply card yet? However they already have supply 2 not 3. Maybe they have not yet applied the \"Supply\" card. Anyway, the supply track will not change immediately during March; but supply limitation is based on supply track value, not supply icons. So they have supply=2; they can support army sizes consistent with supply 2 (3,2,2). If they lose Kingswood supply, supply icons drop to 2, but supply track remains 2. That may be ok; supply track changes only when a \"Supply\" Westeros card is drawn. So we can keep supply 2 regardless of supply icons.\n\nThus we can vacate Kingswood and not replace a power token. We would lose control of Kingswood, losing a supply icon. That does not affect supply track now, but might later get downgraded when Supply card drawn - could reduce supply to 1, which would make our army of size 2 safe but right now okay. The risk is that later we may get supply down to 1, which restricts army size to 2; we currently have army size 2 anyway. So okay.\n\nThus moving both units to The Reach is permissible. However we must check whether moving both units to The Reach vacates Kingswood (no units there), so we cannot leave a token because we didn't spend; leave_power_token false. Since we have no units there, control token remains for case if we placed a power token; but we choose not to. So leave_power_token = false.\n\nTarget destination: \"the-reach\" is listed among reachableRegions and castleLevel=1 (castle). Yes.\n\nNow confirm that we don't need to consider support for combat: none.\n\nThus final answer: moves array with one move: destination_region_id = \"the-reach\", unit_ids = [25,26].\n\nleave_power_token = false.\n\nAlso we need to think if any rule about moving into area with castle (capture) automatically triggers combat? There are no enemy units. So done.\n\nCheck constraints: supplySafeUnitIdGroupsWhenChosenAlone includes [25,26], meaning moving both is safe for supply. That matches.\n\nThus final.\n\nHowever confirm no other reachable region appears: Storm's End reachable. We could also try moving both to Storms End to strengthen armies but no new castle. But The Reach seems more profitable.\n\nThus proceed.\n\nMake sure JSON matches schema: fields moves (array) and leave_power_token boolean.\n\nTherefore final.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_yp1f1byzux",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 35289,
+    "currentInputSha256": "153ba899ba39df8c4cd46efff27cd8c1f46d460a373ecf65159d81dbe680c2db",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 39725,
+        "inputSha256": "bc9f3a98c20517ca19dbe561831bbef56889c2a281ca2c2e5b67b4caa7da54be",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "storms-end",
+                  "the-boneway",
+                  "the-reach"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    25,
+                    26
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "492b30e74813fde68ff78611e98f87b9476e7dc9ba7b9b38deefaffd1e77387e"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "case": 5,
+      "model": "z-ai/glm-5.3-flash",
+      "house": "stark",
+      "round": 9,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "error",
+      "assertionFailure": null,
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Novita', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "leave_power_token": false,
+            "moves": [
+              {
+                "destination_region_id": "moat-cailin",
+                "unit_ids": [
+                  47
+                ]
+              }
+            ],
+            "starting_region_id": "widows-watch"
+          }
+        }
+      ],
+      "replayOperations": [],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "widows-watch",
+          "moves": [],
+          "leave_power_token": false,
+          "omitted_supply_unsafe_move_groups": 1,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0
+      },
+      "rawUsage": [],
+      "historicalRequestHash": "56684a8273b241de0042fa5ee67dcf9f95918ef3fb650e74a78f52f61131f6b9"
+    }
+  ]
+}

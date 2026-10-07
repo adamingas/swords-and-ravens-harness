@@ -1,0 +1,225 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+    "{\"unit_ids_to_destroy\":[24,27]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 71628,
+    "outputTokens": 358,
+    "totalTokens": 71986
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35826,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 308,
+      "output_tokens_details": {
+        "reasoning_tokens": 283
+      },
+      "total_tokens": 36134,
+      "cost": 0.0127701,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0127701,
+        "upstream_inference_input_cost": 0.0125391,
+        "upstream_inference_output_cost": 0.000231
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431367-p1umYf79iDydPF8xLvcg",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 35802,
+      "input_tokens_details": {
+        "cached_tokens": 28160
+      },
+      "output_tokens": 50,
+      "output_tokens_details": {
+        "reasoning_tokens": 30
+      },
+      "total_tokens": 35852,
+      "cost": 0.0125682,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0125682,
+        "upstream_inference_input_cost": 0.0125307,
+        "upstream_inference_output_cost": 3.75e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431369-tYOFbrrsEeZgTFbXflpA",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431367-p1umYf79iDydPF8xLvcg",
+      "output": [
+        {
+          "id": "rs_tmp_x6s1xw80ihq",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to choose which two units to lose. Want to keep land unit for castle defense. Starfall has castle; we have footman and knight there. Ship is in east-summer-sea, needed for transport. Better keep knight (stronger) and ship maybe? But ship is useful for transport; however we have only one ship. Losing footman might be okay. Keep knight in Starfall to hold castle. Keep ship for transport. So lose unit 27 (footman) and maybe 24 ship? But losing ship reduces transport ability. Could keep ship and lose knight? Knight is more combat strength. Probably keep knight, lose footman and ship? Yet ship maybe needed to move units later. But we have only one ship; losing it reduces ability to move footmen via ship. However we could still move via land? Starfall is adjacent to east-summer-sea? Starfall neighbors: east-summer-sea, princes-pass, salt-shore, west-summer-sea, yronwood. Ship in east-summer-sea could transport units from starfall via ship? Actually ship transport requires ships in sea areas connecting lands. If we lose ship, we lose transport between starfall and east-summer-sea. Might be okay.\n\nGoal: preserve ability to hold castle. Keep knight. Lose footman and ship. So units 27 and 24.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_3q0jn6akh0v",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431369-tYOFbrrsEeZgTFbXflpA",
+      "output": [
+        {
+          "id": "rs_tmp_cyg4kw6gk26",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to submit final JSON. The chosen units? In previous answer we selected 24 and 27. That seems fine. Return that JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_0ebo2ymgorl",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"unit_ids_to_destroy\":[24,27]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24583,
+    "currentInputSha256": "c75923fdd9d5bd1ef4af4617835874c560c0a65e3369d7adbce489974cc85c42",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 27673,
+        "inputSha256": "f9adeedffdd9645ea3c256c40725301de50b607f4906ea9af377ca664a7d7b6e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 30247,
+        "inputSha256": "d2fd78d5082d092fdcfe74768b3d500015ea37a01106544ca12b12238aa570f5",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

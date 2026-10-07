@@ -1,0 +1,105 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "case": 17,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "select_units",
+        "arguments": {
+          "selections": [
+            {
+              "region_id": "greywater-watch",
+              "unit_ids": [
+                6,
+                37
+              ]
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 13271,
+        "outputTokens": 141,
+        "totalTokens": 13412
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 13271,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 141,
+          "output_tokens_details": {
+            "reasoning_tokens": 102
+          },
+          "total_tokens": 13412,
+          "cost": 0.0047506,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0047506,
+            "upstream_inference_input_cost": 0.00464485,
+            "upstream_inference_output_cost": 0.00010575
+          },
+          "scope": "agent",
+          "response_id": "gen-1789376250-pCj0o9CLG9eHilcHmGMm",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "e3f491d10d355cb413809bf1e80193182c0b351c6c1be35f33a9054bd8a39ff5"
+    }
+  ]
+}

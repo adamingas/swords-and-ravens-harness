@@ -1,0 +1,150 @@
+{
+  "case": 17,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7104,
+    "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "greywater-watch",
+          [
+            9,
+            6
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [9, 6]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36651,
+    "outputTokens": 1047,
+    "totalTokens": 37698
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36651,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1047,
+      "output_tokens_details": {
+        "reasoning_tokens": 1047
+      },
+      "total_tokens": 37698,
+      "cost": 0.0020943,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0020943,
+        "upstream_inference_input_cost": 0.00183255,
+        "upstream_inference_output_cost": 0.00026175
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426539-hmczZsIm8wIQlGBxolNz",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426539-hmczZsIm8wIQlGBxolNz",
+      "output": [
+        {
+          "id": "rs_tmp_1m4o8xqtvwq",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to choose which 2 units to lose from Greyjoy's units: list includes ship in Port of Pyke (IDs 7 and 8), footman (9) and knights (6,37) in Greywater Watch.\n\nWe have to consider strategic situation. Greyjoy currently controls 4 castles (pyke, seagard, flints-finger, greywater-watch) and 2 strongholds? Let's see: strongholds: moats? The map: moats? Actually Greyjoy has strongholds: moat-cailin is a castle? Wait moat-cailin is a castle=1 (from map). So Greyjoy controls moat-cailin (castle) yes counted. So strongholds maybe none? The stronghold count: area with castle=2 are strongholds. Greyjoy has none with castle=2, only pyke (castle=2 actually pyke is a castle=2 stronghold). Wait pyke has castle=2 (stronghold). So stronghold count 1. And flints-finger castle=1, greywater-watch castle=1, seagard castle=2? seagard has castle=2 (stronghold). So Greyjoy has 2 strongholds (pyke, seagard) and 2 castles (flints-finger, greywater-watch). plus moat-cailin castle=1. That's 5 castle/stronghold areas? Also maybe other? Only those listed. So 4 castle areas? The strategic overview says Greyjoy controlled 4 castles, 2 strongholds. So ok.\n\nNow losing units: we should keep supply-compatible armies. Supply is 3, and Greyjoy currently has 2 ships in Port of Pyke (forming an army of 2 ships? Ships count as army size; supply limit of 3 allows armies sizes: from supply track 3 gives permitted sizes 3,2,2,2. Currently we have an army of 2 ships in Port of Pyke (size 2). Also we have footman + 2 knights in Greywater Watch (3 units) -> army size 3 (since same area). That uses the max size 3 army. Supply okay. If we lose units, we need to ensure not exceeding supply after removal (removing reduces size, fine). We want to minimize impact on control and future operations.\n\nConsider ships: they allow ship transport for future moves; also provide naval presence for later expansion to east seas etc. Losing both ships would severely limit naval mobility. Perhaps keep at least one ship.\n\nConsider ground units: knights are stronger for combat and support. Footman could be sacrificed. Also knights can be upgraded later. So perhaps lose footman (ID 9) and one ship (ID 7) or ship ID 8? But losing a ship reduces army size maybe still have one ship left enough for transport. Could we also consider that we have two ships; losing one still leaves one ship, still can transport but need adjacency chain. Could be okay.\n\nAlternatively, lose a knight and the footman? That would keep both ships for naval. But knights are valuable. Losing a knight reduces combat strength but maybe okay.\n\nWe also consider that Greyjoy's upcoming plans might involve moving knights via ship transport to expand east or north. Having knights at Greywater Watch and ships in Port of Pyke are not adjacent; but via sea routes? Greywater Watch is inland adjacent to ironmans-bay and seagard and moat-cailin. The ships are at Port of Pyke (connected to Pyke). To transport, need chain of sea areas with ships. Currently Greyjoy has only ships at Port of Pyke, not elsewhere. No ship at Ironmans Bay etc. So ship transport currently not possible beyond that region. Maybe plan to move ships later. So losing one ship reduces ability to later create fleet.\n\nThus maybe best to sacrifice footman and a knight? That keeps both ships.\n\nBut knights are valuable; footman is less. However losing both knights would reduce ability to fight. Let's consider future: Greyjoy likely wants to expand via sea: maybe attack Iron Islands, or target Highgarden? Not sure. But retaining both ships more valuable.\n\nTherefore choose unit IDs: footfoot (9) and one knight (6). Keep other knight (37) and both ships (7,8). However losing a knight reduces army size from 3 to 2 (now footman removed). Still okay.\n\nBut does losing footman from Greywater Watch reduce the army size to 2 knights (size 2) leaving a 2-size army, still supply OK. Keeping both ships (2) as an army of size 2 also supply OK.\n\nThus final selection: [9,6] (footman ID 9, knight ID 6). Ensure distinct.\n\nLet's double-check IDs: 6 is knight in Greywater Watch (first knight). 9 footman also Greywater Watch. Good.\n\nReturn JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_zgcxox620za",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [9, 6]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 27254,
+    "currentInputSha256": "bcdcf0d635b82249446e3c60efc6becce7b9f9965201b9406827a0e959f92c06",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 30870,
+        "inputSha256": "5d3d66917df8be85709e2a5872162e90f386003544418ed571980bd3dc8e3750",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              7,
+              8,
+              9,
+              6,
+              37
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "a2c9ee0ae7aebd38febee4c189174dd6deeb1c5d3b992a02a20d474f90ef3579"
+  }
+}

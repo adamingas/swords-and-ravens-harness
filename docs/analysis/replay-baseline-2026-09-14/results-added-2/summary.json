@@ -1,0 +1,219 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "case": 13,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 4,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "error",
+      "assertionFailure": null,
+      "error": "Error code: 503 - {'error': {'message': 'Provider returned error', 'code': 503, 'metadata': {'raw': '{ \"error\": {\"message\": \"Service unavailable\", \"type\": \"service_unavailable\"} }', 'provider_name': 'Together', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "princes-pass",
+          "moves": [],
+          "leave_power_token": false,
+          "omitted_supply_unsafe_move_groups": 0,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0
+      },
+      "rawUsage": [],
+      "historicalRequestHash": "757acd4133b61e2dfd852409f05447963f11e0a09447883c7521213a68e7bafa"
+    },
+    {
+      "case": 14,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 50
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 50
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "submit_orders",
+        "arguments": {
+          "assignments": [
+            {
+              "region_id": "pyke",
+              "preferred_order": "defense",
+              "starred_preference": "avoid",
+              "priority": 80
+            },
+            {
+              "region_id": "greywater-watch",
+              "preferred_order": "defense",
+              "starred_preference": "avoid",
+              "priority": 70
+            },
+            {
+              "region_id": "port-of-pyke",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 60
+            },
+            {
+              "region_id": "ironmans-bay",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 50
+            }
+          ],
+          "applied_orders": [
+            {
+              "region_id": "pyke",
+              "order_id": 4,
+              "order": "defense"
+            },
+            {
+              "region_id": "greywater-watch",
+              "order_id": 5,
+              "order": "defense"
+            },
+            {
+              "region_id": "port-of-pyke",
+              "order_id": 10,
+              "order": "consolidate_power"
+            },
+            {
+              "region_id": "ironmans-bay",
+              "order_id": 11,
+              "order": "consolidate_power"
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 11035,
+        "outputTokens": 385,
+        "totalTokens": 11420
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 11035,
+          "input_tokens_details": {
+            "cached_tokens": 768
+          },
+          "output_tokens": 385,
+          "output_tokens_details": {
+            "reasoning_tokens": 258
+          },
+          "total_tokens": 11420,
+          "cost": 0.004151,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.004151,
+            "upstream_inference_input_cost": 0.00386225,
+            "upstream_inference_output_cost": 0.00028875
+          },
+          "scope": "agent",
+          "response_id": "gen-1789376118-xTCaf10jE2oL4B2MtO7X",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d"
+    }
+  ]
+}

@@ -1,0 +1,413 @@
+{
+  "case": 1,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "stark",
+  "round": 1,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "white-harbor",
+      "moves": [
+        [
+          "moat-cailin",
+          [
+            3
+          ]
+        ]
+      ],
+      "leavePowerToken": true
+    }
+  ],
+  "finalAnswers": [
+    "Moat Cailin is confirmed empty (castle=1, no garrison, no neutral force) — capturing it is free and gains a castle area. White Harbor is my only other castle area at risk, so I'll preserve it with a power token.\n\n**Intended action:** Resolve the **White Harbor** March +0 order:\n- Move footman id 3 → **Moat Cailin** (capture the undefended castle, net +1 castle area)\n- `leave_power_token: true` to keep White Harbor (spend 1 power; still leaves 4 for Clash bidding)\n\nRationale: Without the token, vacating White Harbor loses its castle, canceling the gain — so the token is essential for a net +1. Moat Cailin is also the northern chokepoint and a stepping stone toward Seagard (an empty stronghold). Single unit = no supply issue.\n\n**Remaining choices:** The Shivering Sea March −1 (ship id 4) is deferred to the next decision; likely move it toward the Narrow Sea for naval flexibility, or hold it. I'll leave it for now.\n\n",
+    "**Intended action (final):** Resolve the White Harbor March order.\n\n```json\n{\n  \"starting_region_id\": \"white-harbor\",\n  \"moves\": [\n    { \"destination_region_id\": \"moat-cailin\", \"unit_ids\": [3] }\n  ],\n  \"leave_power_token\": true\n}\n```\n\nThis captures the undefended Moat Cailin castle (net +1 castle area) while spending one power token to retain control of White Harbor. The Shivering Sea March (ship id 4) remains for a later decision.",
+    "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}"
+  ],
+  "requestCount": 4,
+  "explorationCalls": [
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "moat-cailin"
+      }
+    },
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "white-harbor"
+      }
+    },
+    {
+      "name": "remember_strategy",
+      "arguments": {
+        "note": "Stark, Round 1. Plan: expand aggressively in the North while protecting castle areas. Just captured Moat Cailin (castle) via White Harbor footman, keeping White Harbor with a power token -> 3 castle areas/3 VP. Both Winterfell units were moved to Castle Black (note: Castle Black is NOT a castle area here; my castles are Winterfell + White Harbor). Next: resolve The Shivering Sea March -1 (ship id4) - consider moving to The Narrow Sea for naval reach/support. Following rounds: contest empty Seagard stronghold (adjacent to Moat Cailin) and push south to secure more castles; watch Greyjoy at Greywater Watch (adjacent to Moat Cailin). Preserve Eddard (4/2 swords) and Robb Stark for decisive battles; use cheap cards otherwise. Bid modestly on Clash of Kings - Iron Throne usefulness vs power cost; I'm 3rd on Throne, 4th Fiefdoms, 2nd King's Court (good special orders)."
+      }
+    }
+  ],
+  "usage": {
+    "requests": 4,
+    "inputTokens": 160830,
+    "outputTokens": 3505,
+    "totalTokens": 164335
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37806,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 2264,
+      "output_tokens_details": {
+        "reasoning_tokens": 2187
+      },
+      "total_tokens": 40070,
+      "cost": 0.00984102,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00984102,
+        "upstream_inference_input_cost": 0.00793926,
+        "upstream_inference_output_cost": 0.00190176
+      },
+      "scope": "agent",
+      "response_id": "gen-1789458300-HfSPDuzMIRiGbxq0bDfV",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "morph",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 41063,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1020,
+      "output_tokens_details": {
+        "reasoning_tokens": 523
+      },
+      "total_tokens": 42083,
+      "cost": 0.00948003,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00948003,
+        "upstream_inference_input_cost": 0.00862323,
+        "upstream_inference_output_cost": 0.0008568
+      },
+      "scope": "agent",
+      "response_id": "gen-1789458394-3oBcD24Erxq37lKkqvN3",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "morph",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 42119,
+      "input_tokens_details": {
+        "cached_tokens": 40960
+      },
+      "output_tokens": 181,
+      "output_tokens_details": {
+        "reasoning_tokens": 57
+      },
+      "total_tokens": 42300,
+      "cost": 0.00125559,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00125559,
+        "upstream_inference_input_cost": 0.00110355,
+        "upstream_inference_output_cost": 0.00015204
+      },
+      "scope": "agent",
+      "response_id": "gen-1789458418-uiuudjJJBRgbqEfp3MxL",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "morph",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 39842,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 40,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 39882,
+      "cost": 0.00840042,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00840042,
+        "upstream_inference_input_cost": 0.00836682,
+        "upstream_inference_output_cost": 3.36e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789458426-SLf63DDqKEJ0kq0e04yx",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "morph",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789458300-HfSPDuzMIRiGbxq0bDfV",
+      "output": [
+        {
+          "id": "rs_tmp_876w4lad6mn",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze the situation. I'm Stark, round 1, resolving a March order. I've already resolved Winterfell's march (moved footman+knight to castle-black). Wait, actually the history says I moved units from winterfell to castle-black — but current board shows castle-black has stark footman id1 and knight id2, and winterfell has no units. Hmm, the observation shows castle-black has units 1,2. Actually wait, the initial setup had winterfell with footman and knight? Let me re-read.\n\nCurrent board: castle-black has stark footman id1, knight id2. winterfell has garrison 2, no units. white-harbor has footman id3. the-shivering-sea has ship id4.\n\nSo the previous march moved units from winterfell to castle-black. Now remaining March orders: the-shivering-sea (March -1, ship id4) and white-harbor (March +0, footman id3).\n\nWait, actionGuidance shows legalOrderRegions: the-shivering-sea and white-harbor. So winterfell's march already resolved (it was order id 3, the +1). Good.\n\nNow I need to choose which march to resolve now. Options:\n1. the-shivering-sea: ship id4 reachable the-narrow-sea (sea). Moving ship there. Supply-safe alone: [[4]].\n2. white-harbor: footman id3 reachable castle-black (friendly), karhold (land, empty), moat-cailin (castle=1! empty, neutral?), widows-watch (empty), winterfell (friendly, garrison 2).\n\nMoat Cailin is a castle (castle=1). Capturing it gains one castle area without combat (no units there, no neutral force shown). But wait, does moat-cailin have a neutral force? The actionGuidance says neutralForce: null, garrison 0, controller null, castleLevel 1. So moving footman there captures the castle. That would give me +1 castle area → 3 castle areas, victory points 3.\n\nBut white-harbor currently contributes 1 castle area (it's a castle=1). If I move the footman out without leaving a power token, I lose white-harbor. Net: gain moat-cailin, lose white-harbor = net zero. Unless I leave a power token (costs 1 power, I have 5). Then gain moat-cailin + keep white-harbor = net +1.\n\nWait, but does winterfell have units? No. So white-harbor is my southern... actually it's the only unit near moat-cailin.\n\nHmm, but actually let me reconsider. Let me think about the overall strategy.\n\nActually, let's think: white-harbor footman moving to moat-cailin. Moat Cailin is a key chokepoint castle between north and south. Capturing it gives +1 castle area. Leaving a power token in white-harbor preserves it. Cost: 1 power token.\n\nAlternatively move footman to winterfell (reinforce) — no gain. Or to karhold — no castle.\n\nActually, better: the-shivering-sea ship. I could move it to the-narrow-sea to project power. But that doesn't gain anything immediately. Or keep it to support.\n\nLet me think what's optimal. The decision prompt emphasizes: \"White Harbor currently contributes 1 castle area to your score. Moving every unit out without leaving a power token loses this area. You can spend one power token to keep it. Castle destinations reachable from White Harbor: Moat Cailin (capture gains one castle area without combat).\"\n\nSo clearly the intended good move: resolve white-harbor march, move footman id3 to moat-cailin, leave power token in white-harbor. Net +1 castle area.\n\nBut wait — is Moat Cailin really empty? Let me check with check_neighbours. The actionGuidance says controller null, no units, no neutral force. Let me verify.\n\nActually, does the footman marching to moat-cailin leave white-harbor valid to place a power token? White harbor is a land area I control (I have a unit there). Leave_power_token true legal. Yes.\n\nAlso supply: single unit moving alone, fine. White harbor after moving out has 0 units; power token preserves. Supply safe.\n\nLet me also consider: after moving to moat-cailin, that single footman is not an army. Fine.\n\nLet me verify Moat Cailin neighbours for defense, and check whether any enemy could attack. Also check whether the footman could instead go elsewhere.\n\nActually let me think bigger picture. Round 1, I'm Stark with 2 castle areas (castle-black, winterfell, white-harbor = wait that's 3 land areas with castles: castle-black, winterfell, white-harbor). controlledCastleAreas=2? Let me re-read: \"currentVictoryPoints\":2, \"controlledCastleAreas\":2, \"controlledLandAreas\":3, controlledRegions includes castle-black (castle=1... actually map says castle-black castle? Map: castle-black [land; crown=1] no castle attribute! Wait.\n\nMap: castle-black [land; crown=1] — no castle=! Hmm but name is \"castle-black\". The map line: \"castle-black [land; crown=1]: bay-of-ice, karhold, the-shivering-sea, winterfell\". No castle attribute, so castleLevel 0. Interesting — despite the name, Castle Black is not a castle area? Actually in the game Castle Black is a castle. But map says crown=1 only. Hmm. Yet actionGuidance for white-harbor reachable castle-black: \"castleLevel\":0. OK so castle-black is not a castle area. Odd but follow data.\n\nwinterfell: castle=2 (stronghold). white-harbor: castle=1. So My castle areas: winterfell, white-harbor = 2. controlledCastleAreas=2. Yes! Matches.\n\nSo actually my two castle areas are winterfell and white-harbor. castle-black is NOT a castle.\n\nSo the prior move of winterfell units to castle-black... fine, but winterfell now empty (garrison 2 protects it). Good.\n\nNow, white-harbor footman → moat-cailin gives me a third castle area (moat-cailin castle=1), while leaving a power token keeps white-harbor. Net +1 → victory points 3.\n\nAlternatively, move to karhold (crown=1, no castle) — no.\n\nSo the strong move: white-harbor march, move id3 to moat-cailin, leave_power_token true.\n\nBut hold on — should I keep the footman in white-harbor for defense and instead do something else? Moat Cailin is valuable (it's a chokepoint). Capturing early is good. And it's free (no combat). Yes.\n\nBut leaving a power token costs 1 of 5 power. In round 1, power matters for Clash of Kings bidding. Hmm. Alternatively, don't leave a token: lose white-harbor (castle=1) but gain moat-cailin (castle=1) → net neutral but lose supply icon? White harbor has no supply. Actually map: white-harbor [land; castle=1] no supply. So no supply loss. Net castle neutral. Not great.\n\nBetter: leave the token. Net +1 castle. Worth 1 power? Yes, a castle area is worth much more.\n\nAlternatively, could I move the footman to moat-cailin AND leave a power token — but wait, is leaving the token actually beneficial vs. just keeping footman? If footman stays in white harbor, I keep white-harbor but don't gain moat-cailin. So to get both I must move and leave token. Net +1 castle for 1 power. Good.\n\nActually, wait: there might be a consideration of resolving the shivering-sea march first vs white-harbor. Since it's \"you choose which remaining March area to resolve now,\" and another is a later decision. I should resolve white-harbor now (the gain), and shivering-sea later. But does order matter? If I resolve white-harbor now, later I resolve shivering-sea with ship. Fine.\n\nActually, could there be a benefit to moving the ship to the-narrow-sea to support/defend? The narrow sea is between moat-cailin, white-harbor, etc. Moving ship to narrow sea gives me naval presence. But it exposes... Actually moving ship to the narrow sea: the narrow sea is adjacent to moat-cailin, white-harbor, the-fingers, mountains-of-the-moon, the-eyrie, shipbreaker-bay, etc. It could threaten. But round 1 no enemies adjacent. Keep it flexible.\n\nHmm, actually there may be a subtlety: if I move the ship to the narrow sea, it could later transport my footman from moat-cailin southward. But for now, let me just decide the white-harbor march.\n\nLet me verify with check_neighbours on moat-cailin and white-harbor to confirm no neutral force/enemy.\n\nLet me call check_neighbours for moat-cailin.\n\nAlso check castle-black to confirm it's not a castle (already have data).\n\nLet me do the exploration.\n\nLet me also reconsider: the footman moving alone to moat-cailin — after that, is there any risk of losing it to a counterattack? Greyjoy is at greywater-watch and pyke. Greyjoy could march to... greywater-watch adjacent to moat-cailin! Actually greywater-watch neighbours: bay-of-ice, flints-finger, ironmans-bay, moat-cailin, seagard. Greyjoy footman at greywater-watch could attack moat-cailin. But greyjoy has Defense +1 order there, so not marching this round. Fine.\n\nLet me just verify and proceed.\n\nLet me call check_neighbours on moat-cailin.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"area\":\"moat-cailin\"}",
+          "call_id": "call-8cc34ce7-9186-4a7c-9bac-b4999d83fc5f",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_tfwvk1phq3",
+          "status": "completed"
+        },
+        {
+          "arguments": "{\"area\":\"white-harbor\"}",
+          "call_id": "call-75c8dc55-cd70-41b0-a2aa-7456ae8f8dac",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_x8nkkbyqoqn",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789458394-3oBcD24Erxq37lKkqvN3",
+      "output": [
+        {
+          "id": "rs_tmp_vbwgtuy50h",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Moat Cailin is empty, castle=1, no garrison, no neutral force. Capturing is free.\n\nAlso interesting: Seagard is a castle=2 (stronghold), empty, unowned! Seagard is adjacent to moat-cailin. Hmm, but I can only move one destination and no chain this turn. Actually could I reach seagard? From white-harbor, no. From moat-cailin you go to seagard, but that's a second march.\n\nSo best: move footman to moat-cailin, leave power token at white-harbor.\n\nActually wait — could I also consider moving to seagard later? Not this decision.\n\nLet me finalize.\n\nThe move: starting_region_id \"white-harbor\", moves [{destination \"moat-cailin\", unit_ids [3]}], leave_power_token true.\n\nThis gains moat-cailin castle, keeps white-harbor. Net +1 castle area → 3 VP.\n\nLet me also think whether leaving the power token is worth it vs keeping the footman home. Yes: net +1 castle area for 1 power.\n\nNow, remaining choices: the-shivering-sea march (ship id4) to the-narrow-sea. Later decision. I'll leave it.\n\nActually, should I consider resolving shivering-sea FIRST so that the ship is in the narrow sea to support the moat-cailin footman? Support doesn't help against empty area. No combat. So order doesn't matter. Resolve white-harbor now.\n\nOne more thought: Could moving the footman to moat-cailin and NOT leaving a token be better to save power for Clash of Kings? Net castle neutral (lose white harbor, gain moat cailin). But there may be a later round where I can retake white harbor easily. Still, +1 castle for 1 power is clearly worth it; winning is about castles. Keep the token.\n\nLet me write the answer. Also consider saving strategy note. The plan: expand to moat-cailin, then consider seagard. Let me record a brief strategy update after action accepted — but remember_strategy only saves after final action. I could call it now but it queues. I'll include it.\n\nActually the instruction: remember_strategy records a proposed update saved only after final action accepted. I can call it during exploration. Let me do it to maintain the plan.\n\nLet me call remember_strategy with updated plan.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_hx2hzomuays",
+          "content": [
+            {
+              "annotations": [],
+              "text": "Moat Cailin is confirmed empty (castle=1, no garrison, no neutral force) — capturing it is free and gains a castle area. White Harbor is my only other castle area at risk, so I'll preserve it with a power token.\n\n**Intended action:** Resolve the **White Harbor** March +0 order:\n- Move footman id 3 → **Moat Cailin** (capture the undefended castle, net +1 castle area)\n- `leave_power_token: true` to keep White Harbor (spend 1 power; still leaves 4 for Clash bidding)\n\nRationale: Without the token, vacating White Harbor loses its castle, canceling the gain — so the token is essential for a net +1. Moat Cailin is also the northern chokepoint and a stepping stone toward Seagard (an empty stronghold). Single unit = no supply issue.\n\n**Remaining choices:** The Shivering Sea March −1 (ship id 4) is deferred to the next decision; likely move it toward the Narrow Sea for naval flexibility, or hold it. I'll leave it for now.\n\n",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        },
+        {
+          "arguments": "{\"note\":\"Stark, Round 1. Plan: expand aggressively in the North while protecting castle areas. Just captured Moat Cailin (castle) via White Harbor footman, keeping White Harbor with a power token -> 3 castle areas/3 VP. Both Winterfell units were moved to Castle Black (note: Castle Black is NOT a castle area here; my castles are Winterfell + White Harbor). Next: resolve The Shivering Sea March -1 (ship id4) - consider moving to The Narrow Sea for naval reach/support. Following rounds: contest empty Seagard stronghold (adjacent to Moat Cailin) and push south to secure more castles; watch Greyjoy at Greywater Watch (adjacent to Moat Cailin). Preserve Eddard (4/2 swords) and Robb Stark for decisive battles; use cheap cards otherwise. Bid modestly on Clash of Kings - Iron Throne usefulness vs power cost; I'm 3rd on Throne, 4th Fiefdoms, 2nd King's Court (good special orders).\"}",
+          "call_id": "call-a2b79302-37c8-4935-854a-ec9db8c39e8c",
+          "name": "remember_strategy",
+          "type": "function_call",
+          "id": "fc_tmp_pjxi5iql4er",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789458418-uiuudjJJBRgbqEfp3MxL",
+      "output": [
+        {
+          "id": "rs_tmp_bpvip8uaqns",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Now present final answer. But the format asks for exploration statement, then the harness asks for final JSON. I've stated intended action. I should just end with the plan. Let me provide the final intended action clearly.\n\nActually I already did. I'll give final concise statement.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_t6ex7dxl8v",
+          "content": [
+            {
+              "annotations": [],
+              "text": "**Intended action (final):** Resolve the White Harbor March order.\n\n```json\n{\n  \"starting_region_id\": \"white-harbor\",\n  \"moves\": [\n    { \"destination_region_id\": \"moat-cailin\", \"unit_ids\": [3] }\n  ],\n  \"leave_power_token\": true\n}\n```\n\nThis captures the undefended Moat Cailin castle (net +1 castle area) while spending one power token to retain control of White Harbor. The Shivering Sea March (ship id 4) remains for a later decision.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789458426-SLf63DDqKEJ0kq0e04yx",
+      "output": [
+        {
+          "id": "msg_tmp_vma3s8sv73f",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28402,
+    "currentInputSha256": "5c616a35fd73d828b58ee90003909c789a3ec07ce850111f99221f9686b17f07",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 31806,
+        "inputSha256": "8a80bb9c11bd8657e8c593d38169caddc3dd497296fa30616f80e4dcb478504a",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "exploration",
+        "inputItemCount": 6,
+        "inputCharacters": 43930,
+        "inputSha256": "42d87dde08532e750f76060c7459a94074d2bc6f3844d5d1070ebea05893039b",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 3,
+        "stage": "exploration",
+        "inputItemCount": 10,
+        "inputCharacters": 48560,
+        "inputSha256": "eab6cab5aefa7d4cbcbe413c44ba0525d674fcb1237c720dcefb23b6fcb99209",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 4,
+        "stage": "submission",
+        "inputItemCount": 13,
+        "inputCharacters": 53077,
+        "inputSha256": "252947590af1f83c499c68375cc4d341634789d3c8173f7a9bdac2cc24439967",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "4d304145f377cad7c32796fe2df653dcc93a05caccc6f75f7cb24fe67835e4e2"
+  }
+}

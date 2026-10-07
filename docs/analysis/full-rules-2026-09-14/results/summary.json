@@ -1,0 +1,1134 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "promptVariant": "full-rules",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 1,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 1,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "karhold",
+                "unit_ids": [
+                  3
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  3
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "white-harbor",
+          "moves": [
+            {
+              "destination_region_id": "karhold",
+              "unit_ids": [
+                3
+              ]
+            }
+          ],
+          "leave_power_token": false,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 37588,
+        "outputTokens": 455,
+        "totalTokens": 38043
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 37588,
+          "input_tokens_details": {
+            "cached_tokens": 640
+          },
+          "output_tokens": 455,
+          "output_tokens_details": {
+            "reasoning_tokens": 403
+          },
+          "total_tokens": 38043,
+          "cost": 0.01349705,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01349705,
+            "upstream_inference_input_cost": 0.0131558,
+            "upstream_inference_output_cost": 0.00034125
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377222-zlAlbrBIwttd90SlL67O",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "028e38049c31f92b168941b2874a56e43a2ce46304612e18e4f8c5c97e159ef9"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 2,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 5,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "winterfell",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 100
+              },
+              {
+                "region_id": "bay-of-ice",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "castle-black",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "karhold",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "the-narrow-sea",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "winterfell",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 100
+              },
+              {
+                "region_id": "bay-of-ice",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "castle-black",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "karhold",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "the-narrow-sea",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "submit_orders",
+        "arguments": {
+          "assignments": [
+            {
+              "region_id": "winterfell",
+              "preferred_order": "defense",
+              "starred_preference": "avoid",
+              "priority": 100
+            },
+            {
+              "region_id": "bay-of-ice",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 90
+            },
+            {
+              "region_id": "castle-black",
+              "preferred_order": "support",
+              "starred_preference": "avoid",
+              "priority": 80
+            },
+            {
+              "region_id": "karhold",
+              "preferred_order": "support",
+              "starred_preference": "avoid",
+              "priority": 70
+            },
+            {
+              "region_id": "the-narrow-sea",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 60
+            }
+          ],
+          "applied_orders": [
+            {
+              "region_id": "winterfell",
+              "order_id": 4,
+              "order": "defense"
+            },
+            {
+              "region_id": "bay-of-ice",
+              "order_id": 10,
+              "order": "consolidate_power"
+            },
+            {
+              "region_id": "castle-black",
+              "order_id": 7,
+              "order": "support"
+            },
+            {
+              "region_id": "karhold",
+              "order_id": 8,
+              "order": "support"
+            },
+            {
+              "region_id": "the-narrow-sea",
+              "order_id": 11,
+              "order": "consolidate_power"
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 39556,
+        "outputTokens": 614,
+        "totalTokens": 40170
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 39556,
+          "input_tokens_details": {
+            "cached_tokens": 640
+          },
+          "output_tokens": 614,
+          "output_tokens_details": {
+            "reasoning_tokens": 467
+          },
+          "total_tokens": 40170,
+          "cost": 0.0143051,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0143051,
+            "upstream_inference_input_cost": 0.0138446,
+            "upstream_inference_output_cost": 0.0004605
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377224-z9WBKjxH5NP8lJfoXShA",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "74ef42803f0e016712bc9c71a0338c0f4f18c5d1c64a89f8c63cce1e5ad55313"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 3,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  45
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  45
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "winterfell",
+          "moves": [
+            {
+              "destination_region_id": "castle-black",
+              "unit_ids": [
+                45
+              ]
+            }
+          ],
+          "leave_power_token": false,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 41604,
+        "outputTokens": 609,
+        "totalTokens": 42213
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 41604,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 609,
+          "output_tokens_details": {
+            "reasoning_tokens": 559
+          },
+          "total_tokens": 42213,
+          "cost": 0.01501815,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01501815,
+            "upstream_inference_input_cost": 0.0145614,
+            "upstream_inference_output_cost": 0.00045675
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377227-fG2FqxYARiXWc2XQ2122",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "56e2cda05f77423337d5b6e3e2a827d1d8176de58711421308740124b8a9a30c"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 4,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 10,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  48,
+                  55
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "bay-of-ice",
+            "moves": [
+              {
+                "destination_region_id": "port-of-winterfell",
+                "unit_ids": [
+                  40
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "moat-cailin",
+          "moves": [
+            {
+              "destination_region_id": "winterfell",
+              "unit_ids": [
+                48,
+                55
+              ]
+            }
+          ],
+          "leave_power_token": false,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 40493,
+        "outputTokens": 426,
+        "totalTokens": 40919
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 40493,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 426,
+          "output_tokens_details": {
+            "reasoning_tokens": 371
+          },
+          "total_tokens": 40919,
+          "cost": 0.01449205,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01449205,
+            "upstream_inference_input_cost": 0.01417255,
+            "upstream_inference_output_cost": 0.0003195
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377229-7XywIUTjlTFiaDuJPSah",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "c6efe6f6c969d3b52fc135f0b786f9091cca3af0086a7b719f7a089b5c334f7c"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 6,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 3,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "kingswood",
+            "moves": [
+              {
+                "destination_region_id": "storms-end",
+                "unit_ids": [
+                  25,
+                  26
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "kingswood",
+            "moves": [
+              {
+                "destination_region_id": "storms-end",
+                "unit_ids": [
+                  25,
+                  26
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "kingswood",
+          "moves": [
+            {
+              "destination_region_id": "storms-end",
+              "unit_ids": [
+                25,
+                26
+              ]
+            }
+          ],
+          "leave_power_token": true,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 40409,
+        "outputTokens": 552,
+        "totalTokens": 40961
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 40409,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 552,
+          "output_tokens_details": {
+            "reasoning_tokens": 499
+          },
+          "total_tokens": 40961,
+          "cost": 0.01455715,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01455715,
+            "upstream_inference_input_cost": 0.01414315,
+            "upstream_inference_output_cost": 0.000414
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377231-riFMhGUqVoPQTNdfrVsP",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "17c2937f93ff38f61fa498798d090cd3cdb37a2587b9863a8de6da3576de3e05"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 8,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 6,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "moat-cailin",
+          "moves": [
+            {
+              "destination_region_id": "greywater-watch",
+              "unit_ids": [
+                6,
+                37
+              ]
+            }
+          ],
+          "leave_power_token": true,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 40838,
+        "outputTokens": 501,
+        "totalTokens": 41339
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 40838,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 501,
+          "output_tokens_details": {
+            "reasoning_tokens": 446
+          },
+          "total_tokens": 41339,
+          "cost": 0.01466905,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01466905,
+            "upstream_inference_input_cost": 0.0142933,
+            "upstream_inference_output_cost": 0.00037575
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377233-8W0MaU3lDToT7QAtylqt",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "968daa339ba04d867a9afa90fb77635c71f9b17ee5fb2ddf2286860330bd082d"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 10,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 3,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [
+              {
+                "destination_region_id": "starfall",
+                "unit_ids": [
+                  27
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "princes-pass",
+          "moves": [],
+          "leave_power_token": false,
+          "omitted_supply_unsafe_move_groups": 0,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 42531,
+        "outputTokens": 46,
+        "totalTokens": 42577
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 42531,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 46,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 42577,
+          "cost": 0.00596722,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00596722,
+            "upstream_inference_input_cost": 0.00595434,
+            "upstream_inference_output_cost": 1.288e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377236-84zM3ncqzQoEKxMowqDt",
+          "response_model": "deepseek/deepseek-v4-flash-0731",
+          "response_provider": "together",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "31727af38ae2ac21d2f8e37ff405ee6ec9a6fb9f690ac9c133b70512c0a3ce50"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 12,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  27,
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  46,
+                  27
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "select_units",
+        "arguments": {
+          "selections": [
+            {
+              "region_id": "starfall",
+              "unit_ids": [
+                27,
+                46
+              ]
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 38083,
+        "outputTokens": 117,
+        "totalTokens": 38200
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38083,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 117,
+          "output_tokens_details": {
+            "reasoning_tokens": 79
+          },
+          "total_tokens": 38200,
+          "cost": 0.0134168,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0134168,
+            "upstream_inference_input_cost": 0.01332905,
+            "upstream_inference_output_cost": 8.775e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377245-Dq2l6UgSOXtBQ3Xsr6cQ",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 14,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 50
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "march",
+                "starred_preference": "avoid",
+                "priority": 50
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "submit_orders",
+        "arguments": {
+          "assignments": [
+            {
+              "region_id": "pyke",
+              "preferred_order": "defense",
+              "starred_preference": "avoid",
+              "priority": 80
+            },
+            {
+              "region_id": "greywater-watch",
+              "preferred_order": "defense",
+              "starred_preference": "avoid",
+              "priority": 70
+            },
+            {
+              "region_id": "port-of-pyke",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 60
+            },
+            {
+              "region_id": "ironmans-bay",
+              "preferred_order": "consolidate_power",
+              "starred_preference": "avoid",
+              "priority": 50
+            }
+          ],
+          "applied_orders": [
+            {
+              "region_id": "pyke",
+              "order_id": 4,
+              "order": "defense"
+            },
+            {
+              "region_id": "greywater-watch",
+              "order_id": 5,
+              "order": "defense"
+            },
+            {
+              "region_id": "port-of-pyke",
+              "order_id": 10,
+              "order": "consolidate_power"
+            },
+            {
+              "region_id": "ironmans-bay",
+              "order_id": 11,
+              "order": "consolidate_power"
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 36697,
+        "outputTokens": 595,
+        "totalTokens": 37292
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 36697,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 595,
+          "output_tokens_details": {
+            "reasoning_tokens": 469
+          },
+          "total_tokens": 37292,
+          "cost": 0.0132902,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0132902,
+            "upstream_inference_input_cost": 0.01284395,
+            "upstream_inference_output_cost": 0.00044625
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377246-aGdfssWRLGgpS8M80s5K",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d"
+    },
+    {
+      "promptVariant": "full-rules",
+      "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+      "instructionsCharacters": 122479,
+      "case": 17,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "same",
+      "assertionFailure": null,
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "select_units",
+        "arguments": {
+          "selections": [
+            {
+              "region_id": "greywater-watch",
+              "unit_ids": [
+                6,
+                37
+              ]
+            }
+          ]
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 38933,
+        "outputTokens": 166,
+        "totalTokens": 39099
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38933,
+          "input_tokens_details": {
+            "cached_tokens": 26368
+          },
+          "output_tokens": 166,
+          "output_tokens_details": {
+            "reasoning_tokens": 127
+          },
+          "total_tokens": 39099,
+          "cost": 0.01375105,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01375105,
+            "upstream_inference_input_cost": 0.01362655,
+            "upstream_inference_output_cost": 0.0001245
+          },
+          "scope": "agent",
+          "response_id": "gen-1789377248-iD0r2S3xP1bvyKSSeX8M",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "e3f491d10d355cb413809bf1e80193182c0b351c6c1be35f33a9054bd8a39ff5"
+    }
+  ]
+}

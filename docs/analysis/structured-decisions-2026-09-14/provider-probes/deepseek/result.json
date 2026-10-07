@@ -1,0 +1,82 @@
+{
+  "case": 100,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "baratheon",
+  "round": 2,
+  "variant": "interleaved-tools-and-structured-output",
+  "snapshot": {
+    "id": 405,
+    "sha256": "574d38ceca28c89fd18d37fc628b84af3e88d87f42ee90558cfbba64f6e6bf82"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nPaid model training violation (account settings): 1 endpoint excluded; configurable at https://openrouter.ai/settings/privacy', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'paid-model-training-violation-by-account', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/settings/privacy'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 20}, {'step': 'Filter by Allowed Providers', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+  "serverActionsExecuted": false,
+  "errorChain": [
+    {
+      "type": "ModelRunError",
+      "message": "Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nPaid model training violation (account settings): 1 endpoint excluded; configurable at https://openrouter.ai/settings/privacy', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'paid-model-training-violation-by-account', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/settings/privacy'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 20}, {'step': 'Filter by Allowed Providers', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}"
+    },
+    {
+      "type": "NotFoundError",
+      "message": "Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nPaid model training violation (account settings): 1 endpoint excluded; configurable at https://openrouter.ai/settings/privacy', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'paid-model-training-violation-by-account', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/settings/privacy'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 20}, {'step': 'Filter by Allowed Providers', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}"
+    },
+    {
+      "type": "HTTPStatusError",
+      "message": "Client error '404 Not Found' for url 'https://openrouter.ai/api/v1/responses'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+    }
+  ],
+  "previousAttemptError": null,
+  "nativeResponseFormatOmitted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 18705,
+    "currentInputSha256": "9f2f62005dc37e8ce2e528559ffd131ebd57dd39f977ca729ac9ae3085d83925",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 20871,
+        "inputSha256": "f4b5f8fdd65a80f25a1e24296fcd746efc9373443b8146433564d4cb7c573f4e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "amount": {
+          "description": "Number of power tokens to bid.",
+          "minimum": 0,
+          "title": "Amount",
+          "type": "integer",
+          "maximum": 2
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "submit_bid_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are submitting a power-token bid for the current event. The tokens bid are spent under that event's rules. Read the event and your available power before choosing the amount. The current statePath and pendingDecision identify the track or event being bid on."
+    },
+    "actionOutputSchemaSha256": "af7cb317d24c13e8b0a3e75b1114043b8ce54cce46089c1e9003f6bdcb32c7e4"
+  }
+}

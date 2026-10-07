@@ -1,0 +1,2637 @@
+{
+  "cases": [
+    {
+      "case": 1,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 1,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 644,
+        "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "white-harbor",
+          "moves": [
+            [
+              "moat-cailin",
+              [
+                3
+              ]
+            ]
+          ],
+          "leavePowerToken": true
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"starting_region_id\": \"white-harbor\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"moat-cailin\",\n      \"unit_ids\": [3]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+        "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 73965,
+        "outputTokens": 723,
+        "totalTokens": 74688
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 36572,
+          "input_tokens_details": {
+            "cached_tokens": 35072
+          },
+          "output_tokens": 489,
+          "output_tokens_details": {
+            "reasoning_tokens": 425
+          },
+          "total_tokens": 37061,
+          "cost": 0.01316695,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01316695,
+            "upstream_inference_input_cost": 0.0128002,
+            "upstream_inference_output_cost": 0.00036675
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431497-K0CSrWoKNABoeD7za8c3",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 37393,
+          "input_tokens_details": {
+            "cached_tokens": 28544
+          },
+          "output_tokens": 234,
+          "output_tokens_details": {
+            "reasoning_tokens": 189
+          },
+          "total_tokens": 37627,
+          "cost": 0.01326305,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01326305,
+            "upstream_inference_input_cost": 0.01308755,
+            "upstream_inference_output_cost": 0.0001755
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431498-S5ERCQj98oAYVyHvA4NV",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431497-K0CSrWoKNABoeD7za8c3",
+          "output": [
+            {
+              "id": "rs_tmp_wedoh5knwi9",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need decide move. White Harbor has unit 3 footman. Reachable: castle-black, karhold, moat-cailin, widows-watch, winterfell. Need keep castle area from white harbor unless leave token. Could leave power token (we have 5). White harbor is castle area (castle). If we move footman out, lose castle area unless token left. Better leave token to keep castle count. Also need supply: supply=1, we have one army currently? Units: footman at white harbor alone = single unit not army, supply safe. Leaving token okay.\n\nThus choose to leave power token true, no movement? Could also move footman to moat-cailin capturing castle (adds castle area). But moving out loses white harbor castle unless token left; moving to moat-cailin captures new castle, net same count maybe plus? Currently we have 2 castles: castle-black and winterfell. White harbor is castle, moving footman would vacate white harbor losing that castle unless token left. If we also capture moat-cailin (castle), we would still have 2 castles (castle-black, winterfell, moat-cailin) actually 3? Wait we already have castle-black and winterfell =2. Adding moat-cailin gives third, but lose white harbor gives still 2? Actually lose white harbor reduces to 2, then gain moat-cailin brings to 3. So net gain +1 castle area. Good. Need to ensure supply: moving footman alone forms no army, fine. Need to check if moat-cailin is defended? It's castle area, no units, no garrison (0). No enemy units, so no combat. No need power token as we are moving into empty area (no combat). Vacating white harbor means we need to leave power token to keep control, else we lose that area (no control token). We have token. So moves: move unit 3 to moat-cailin, leave_power_token true.\n\nCheck reachable list includes moat-cailin. Yes.\n\nThus action.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_5gkdctneitu",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"starting_region_id\": \"white-harbor\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"moat-cailin\",\n      \"unit_ids\": [3]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431498-S5ERCQj98oAYVyHvA4NV",
+          "output": [
+            {
+              "id": "rs_tmp_rbzgk331sro",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to ensure action is legal. Starting region white-harbor with unit 3 footman. Reachable destinations list includes moat-cailin (castleLevel 1, gives castle area). canLeavePowerToken is true, so we can leave a power token to keep control of white harbor (which has castle). If we move the footman out, we must place a power token else lose castle area. We have 5 power tokens available, so leave_power_token true.\n\nDestination moat-cailin is land, no enemy units, no combat. Supply: we have supply 1, moving unit alone forms no army (single unit). After moving, white harbor will be empty but we leave power token, okay. Moat-cailin will have one footman (army size 1 not counting as army). Supply safe group for unit 3 alone is fine. So action is valid.\n\nThus final JSON as proposed.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_k6pyelu9kh",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 28402,
+        "currentInputSha256": "e4a0a0bb45c5ac589abc9a3426e0ddebd6aca2a7e6343c9111f9f9d73c2ebb70",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 31806,
+            "inputSha256": "58d5fdc7bcba9bb1a0726e122be63333cf85253cbc7d709adaf5569377a7c735",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 37569,
+            "inputSha256": "339cea9cc295c6d9c27827efc95d0f2a5edf7e29dae6ec67aaec5bac2803608c",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "starting_region_id": {
+              "description": "Region containing the march order and moving units.",
+              "title": "Starting Region Id",
+              "type": "string",
+              "enum": [
+                "the-shivering-sea",
+                "white-harbor"
+              ]
+            },
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "castle-black",
+                      "karhold",
+                      "moat-cailin",
+                      "the-narrow-sea",
+                      "widows-watch",
+                      "winterfell"
+                    ]
+                  },
+                  "unit_ids": {
+                    "items": {
+                      "type": "integer",
+                      "enum": [
+                        3,
+                        4
+                      ]
+                    },
+                    "minItems": 1,
+                    "title": "Unit Ids",
+                    "type": "array",
+                    "maxItems": 2
+                  }
+                },
+                "required": [
+                  "destination_region_id",
+                  "unit_ids"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 1
+            },
+            "leave_power_token": {
+              "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+              "title": "Leave Power Token",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "starting_region_id",
+            "moves",
+            "leave_power_token"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "4d304145f377cad7c32796fe2df653dcc93a05caccc6f75f7cb24fe67835e4e2"
+      }
+    },
+    {
+      "case": 2,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 5,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 4052,
+        "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "submit-orders",
+          "orders": [
+            {
+              "regionId": "bay-of-ice",
+              "orderId": 10
+            },
+            {
+              "regionId": "castle-black",
+              "orderId": 4
+            },
+            {
+              "regionId": "karhold",
+              "orderId": 5
+            },
+            {
+              "regionId": "winterfell",
+              "orderId": 2
+            },
+            {
+              "regionId": "the-narrow-sea",
+              "orderId": 11
+            }
+          ]
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"assignments\": [\n    {\n      \"region_id\": \"winterfell\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"bay-of-ice\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"castle-black\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"karhold\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"the-narrow-sea\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    }\n  ]\n}",
+        "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 76507,
+        "outputTokens": 1278,
+        "totalTokens": 77785
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 37659,
+          "input_tokens_details": {
+            "cached_tokens": 34688
+          },
+          "output_tokens": 1079,
+          "output_tokens_details": {
+            "reasoning_tokens": 856
+          },
+          "total_tokens": 38738,
+          "cost": 0.0139899,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0139899,
+            "upstream_inference_input_cost": 0.01318065,
+            "upstream_inference_output_cost": 0.00080925
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431497-da0NGXAAGfDYDd1fDegX",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 38848,
+          "input_tokens_details": {
+            "cached_tokens": 34816
+          },
+          "output_tokens": 199,
+          "output_tokens_details": {
+            "reasoning_tokens": 60
+          },
+          "total_tokens": 39047,
+          "cost": 0.01374605,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01374605,
+            "upstream_inference_input_cost": 0.0135968,
+            "upstream_inference_output_cost": 0.00014925
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431498-7ZpirhB88Rc7JFBlE9Zp",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431497-da0NGXAAGfDYDd1fDegX",
+          "output": [
+            {
+              "id": "rs_tmp_xldp121xpc",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to decide orders. Stark has 5 occupied areas: bay-of-ice (ship), castle-black (2 knights), karhold (knight), winterfell (footman), the-narrow-sea (ship). Need assign order each. Restrictions: maxStarredOrders 0 (no special orders). Restricted categories: raid (cannot assign raid). So only march, defense, support, consolidate_power.\n\nWe have to consider supply: supply=1, so allowed armies: from supply table 1 -> permitted army sizes 2,2. So can have up to 2 armies each max size 2. Currently units: bay-of-ice ship, the-narrow-sea ship (these are separate armies each size1). castle-black two knights (army size2). karhold knight (size1). winterfell footman (size1). Total armies: ship+ship separate armies, knights combined? They are in different areas, not same. So each area counts as separate army if >=2 units? Actually army defined as two or more units in same area. So only castle-black (2 knights) is an army size2. Others are single units not armies. Supply limit: can have up to two armies of size2? Actually supply 1 allows two armies size2 each, but total units? No limit on number of single units. So fine.\n\nWe want to expand to capture a castle. Potential targets: Flint's Finger (castle), Moat Cailin (castle), White Harbor (castle). Need to march from adjacent area with unit(s). From winterfell we have footman can march to adjacent? Adjacent list: winterfell neighbours: bay-of-ice (sea), castle-black (land), karhold (land), moat-cailin (land), port-of-winterfell (port), the-shivering-sea (sea), the-stony-shore (land), white-harbor (land). So footman could march to moat-cailin (castle) or white-harbor (castle) directly (both land). Also ship at bay-of-ice could ship transport? But need ship adjacency: ship at bay-of-ice is in sea adjacent to winterfell (land) via port? Actually bay-of-ice is sea area adjacent to winterfell. Ship can march via ship transport? Ship cannot move into land, but can transport knights/footmen if there is a chain of ships. There is only one ship at bay-of-ice, no connecting ships to other sea areas. So cannot transport.\n\nThus we could assign a March order to winterfell to move footman to one of those castles. Meanwhile we need to defend our holdings maybe. Castle-black currently has knights, could assign Defense to protect if attacked. Karhold also maybe defend. Bay-of-ice and the-narrow-sea have ships, could assign March? Ships cannot march (they move only via March orders but they just move themselves, cannot attack land). You can assign March order to a sea area to move ships to adjacent sea area or into port. Could be used to move ship to another sea, maybe to attack? Could also assign Consolidate Power there though no power icons there, yields 1 power. Actually Consolidate Power yields one power token plus icons on area. No icons there, so just 1 power. Might be beneficial. But we have only 3 power tokens currently, but can gain more.\n\nPriority wise: highest priority 100 for winterfell (march). Next 90 for bay-of-ice? It had consolidation previously. We can keep Consolidate Power there to get power. The-narrow-sea also previously Consolidate Power. Probably keep same.\n\nCastle-black and karhold need defense to protect knights.\n\nThus assignments:\n\n- winterfell: preferred_order march (to capture castle). priority 100.\n\n- bay-of-ice: preferred_order consolidate_power (to gain power). priority 90.\n\n- castle-black: defense. priority 80.\n\n- karhold: defense. priority 70.\n\n- the-narrow-sea: consolidate_power. priority 60.\n\nAll without starred preference (avoid). No raid allowed.\n\nNow we need to output JSON with assignments.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_my2zvgnl2fq",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"assignments\": [\n    {\n      \"region_id\": \"winterfell\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"bay-of-ice\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"castle-black\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"karhold\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"the-narrow-sea\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    }\n  ]\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431498-7ZpirhB88Rc7JFBlE9Zp",
+          "output": [
+            {
+              "id": "rs_tmp_t0cd3tkpzk",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to ensure orders respect restrictions: maxStarredOrders =0, restrictedOrderCategories includes \"raid\". So cannot assign raid. Our assignments use march, defense, consolidate_power – all allowed. Starred_preference avoid is fine. Need 5 assignments matching regions. Provide JSON as given.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_wewl8maykl",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 32155,
+        "currentInputSha256": "54951c63e02d8426d9db73e1e137fb82c3a89400ec6025d0670a88bd62989841",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 36137,
+            "inputSha256": "418a9ccc21c102cc85e559a92425590df27ce74a28f56c22336ba1239202ec47",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 45093,
+            "inputSha256": "3cc71d889ecc35b87db73570ab26c1e0fc702bbd6129cfa380eb34d8a6cdd93c",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "assignments": {
+              "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+              "items": {
+                "additionalProperties": false,
+                "description": "One semantic order choice assigned to one board region.",
+                "properties": {
+                  "region_id": {
+                    "description": "ID of a region containing your units.",
+                    "minLength": 1,
+                    "title": "Region Id",
+                    "type": "string",
+                    "enum": [
+                      "bay-of-ice",
+                      "castle-black",
+                      "karhold",
+                      "winterfell",
+                      "the-narrow-sea"
+                    ]
+                  },
+                  "preferred_order": {
+                    "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are raid.",
+                    "enum": [
+                      "march",
+                      "defense",
+                      "support",
+                      "consolidate_power",
+                      "raid"
+                    ],
+                    "title": "OrderCategory",
+                    "type": "string"
+                  },
+                  "starred_preference": {
+                    "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                    "enum": [
+                      "prefer",
+                      "avoid"
+                    ],
+                    "title": "StarredPreference",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                    "maximum": 100,
+                    "minimum": 0,
+                    "title": "Priority",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "region_id",
+                  "preferred_order",
+                  "starred_preference",
+                  "priority"
+                ],
+                "title": "OrderAssignment",
+                "type": "object"
+              },
+              "title": "Assignments",
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5
+            }
+          },
+          "required": [
+            "assignments"
+          ],
+          "title": "submit_orders_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+        },
+        "actionOutputSchemaSha256": "b285ed194f51f1a8ec11161e0c6e8c7819bccb1c5b294cc8fc065d23fa5ce59e"
+      }
+    },
+    {
+      "case": 3,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 6214,
+        "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "winterfell",
+          "moves": [
+            [
+              "flints-finger",
+              [
+                45
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}",
+        "{\"moves\":[{\"destination_region_id\":\"flints-finger\"}]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 79616,
+        "outputTokens": 672,
+        "totalTokens": 80288
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 39553,
+          "input_tokens_details": {
+            "cached_tokens": 36352
+          },
+          "output_tokens": 510,
+          "output_tokens_details": {
+            "reasoning_tokens": 475
+          },
+          "total_tokens": 40063,
+          "cost": 0.01422605,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01422605,
+            "upstream_inference_input_cost": 0.01384355,
+            "upstream_inference_output_cost": 0.0003825
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431497-hCs7xw2fbfUW6AlB9Doe",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 40063,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 162,
+          "output_tokens_details": {
+            "reasoning_tokens": 138
+          },
+          "total_tokens": 40225,
+          "cost": 0.01414355,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01414355,
+            "upstream_inference_input_cost": 0.01402205,
+            "upstream_inference_output_cost": 0.0001215
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431498-LhsVVXRkKlXUpdcqiRm4",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431497-hCs7xw2fbfUW6AlB9Doe",
+          "output": [
+            {
+              "id": "rs_tmp_e7vwcd20t3r",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need decide move. From Winterfell we have unit id 45 knight. Reachable destinations listed earlier: castle-black, flints-finger, greywater-watch, karhold, moat-cailin, the-stony-shore, white-harbor. Need check support around each combat if choose to attack (only greywater-watch triggers combat). Others no combat. We likely want to capture a castle without combat, good. Choose one castle maybe flints-finger (castle). Check if moving knight there leaves Winterfell empty but we have no control token needed. Supply: we have supply 1, currently one unit (knight) counts as army of size1? Army requires 2+ units, so this unit is not an army, supply safe. Moving it doesn't affect supply. So we can move to any. Need consider future. Capturing a castle gives +1 victory point area. Currently Stark has 1 castle (Winterfell). Capturing another gives 2. Good. Choose flints-finger which is owned by Greyjoy (controlPowerToken greyjoy). No combat, just move into empty? Actually flints-finger has no units currently, but control token indicates Greyjoy control. If we move there, we vacate Winterfell empty, but we keep control via home. No token needed. We move knight into flints-finger, we now control that area? We would need to establish control by placing a power token when vacating? The rule: when vacating a land area with all units, you may elect to establish control by placing a Power token. If you don't, control reverts to original (or remains? For home area, home shield counts as control). For other areas, you need token. Here we are moving from Winterfell (home) so no need. For flints-finger, we will occupy it with a unit, thus we control it by presence of unit, no token needed. So we gain castle area. Good.\n\nCheck support: not combat, no need. So move knight id45 to flints-finger.\n\nThus moves list with one destination: flints-finger. No need to specify unit IDs? Schema only has destination_region_id, not unit IDs. So we just provide moves array with one object destination_region_id \"flints-finger\". That's it.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_w4545kfh6d",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"flints-finger\"\n    }\n  ]\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431498-LhsVVXRkKlXUpdcqiRm4",
+          "output": [
+            {
+              "id": "rs_tmp_qyns7nq4sb",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to ensure move is legal: from Winterfell, reachable regions include flints-finger, which is a land area with castle=1 controlled by Greyjoy. It triggers combat? actionGuidance says triggersCombat:false for flints-finger. So moving there captures castle without combat (since no enemy units). We have one unit id 45 (knight) at Winterfell. Supply is 1, we have only one unit, so moving it is fine. No need token. So moves list with destination flints-finger, no unit IDs needed. This matches earlier answer. Ensure correct enum: flints-finger is allowed. Return moves array with that object.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_wcjjbdoho5h",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"moves\":[{\"destination_region_id\":\"flints-finger\"}]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 38902,
+        "currentInputSha256": "60e40b83e53d962af7f92411fa56b15a4e896ee03f9c2915e5ecaeec3d12c70e",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 43966,
+            "inputSha256": "baddbf45037c72a4b9df3b7c37185cf603cc836549d95307209c9237ef8be23f",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 49245,
+            "inputSha256": "faecd83c6526fc7be33114b53b5f53662bfc36199a9c6fb158fa047dfc826276",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "castle-black",
+                      "flints-finger",
+                      "greywater-watch",
+                      "karhold",
+                      "moat-cailin",
+                      "the-stony-shore",
+                      "white-harbor"
+                    ]
+                  }
+                },
+                "required": [
+                  "destination_region_id"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 1
+            }
+          },
+          "required": [
+            "moves"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "82c0db77268e1437a2efc943eaafdc7fb8994b64a3410fffb39685b2b688586f"
+      }
+    },
+    {
+      "case": 4,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 10,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 10975,
+        "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "moat-cailin",
+          "moves": [
+            [
+              "seagard",
+              [
+                48
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "finalAnswers": [
+        "I will resolve the March order in **Moat Cailin**.\n\n- **Move** the knight with unit ID 48 from Moat Cailin to **Seagard** (a stronghold).  \n- **Leave** the other knight (unit 55) in Moat Cailin so the area remains under my control and continues to count as a castle area.\n\n**Resulting moves**\n\n```json\n{\n  \"starting_region_id\": \"moat-cailin\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48]\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order (from **Bay of Ice**) is still unresolved. It can either:\n  1. Move the ship (unit 40) to **Sunset Sea** (which would trigger combat), or  \n  2. Move the ship to **Port of Winterfell** (no combat).  \n\nThese are the only remaining options for the next decision.",
+        "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]}]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 78313,
+        "outputTokens": 881,
+        "totalTokens": 79194
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38705,
+          "input_tokens_details": {
+            "cached_tokens": 35840
+          },
+          "output_tokens": 718,
+          "output_tokens_details": {
+            "reasoning_tokens": 483
+          },
+          "total_tokens": 39423,
+          "cost": 0.01408525,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01408525,
+            "upstream_inference_input_cost": 0.01354675,
+            "upstream_inference_output_cost": 0.0005385
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431501-ICVHpBswt66uplyfvggt",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 39608,
+          "input_tokens_details": {
+            "cached_tokens": 28544
+          },
+          "output_tokens": 163,
+          "output_tokens_details": {
+            "reasoning_tokens": 125
+          },
+          "total_tokens": 39771,
+          "cost": 0.01398505,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01398505,
+            "upstream_inference_input_cost": 0.0138628,
+            "upstream_inference_output_cost": 0.00012225
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431503-ZsfHmFWObhCKqYSbTkYz",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431501-ICVHpBswt66uplyfvggt",
+          "output": [
+            {
+              "id": "rs_tmp_8a601y9bcjb",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need decide best move. From Moat Cailin we have knights 48,55. Reachable: greywater-watch (land no castle), seagard (castle level2 stronghold), the-twins (land), white-harbor (castle level1), winterfell (own). No combat triggers indicated all false. So can move to seagard gaining castle without combat. Also can move to white-harbor gaining castle. Need preserve at least one unit to keep Moat Cailin castle area. It currently contributes 1 castle area (castle? moat-cailin is castle=1). If we move both units, lose it. Must leave at least one. So move one unit to either seagard or white-harbor. Which gives better? Both give castle area. Choose maybe seagard as it has stronghold gives stronghold? Seagard castle=2 stronghold, gives stronghold area (counts as castle area). White-harbor castle=1 only castle. Stronghold is more valuable? Both count as one victory point. But securing stronghold may be stronger position. Also consider supply: moving one knight leaves one knight in Moat Cailin, still army size is 1 (single unit not army). Supply limit fine. No combat. So choose move knight 48 to seagard maybe. Also could split both to two destinations but would leave none, not allowed. So move one unit. Choose unit 48 (knight) to seagard. Keep unit 55 in Moat Cailin. So moves list one entry.\n\nNow also have Bay of Ice March order resolved? Already resolved earlier? In this decision we have remaining March orders: we have two March orders: bay-of-ice and moat-cailin. The actionGuidance shows both. We are resolving one now. Could choose either. Need decide which to resolve now. Probably choose Moat Cailin to preserve castle and gain new. So final answer: starting_region_id \"moat-cailin\", moves [{destination_region_id:\"seagard\", unit_ids:[48]}].\n\nRemaining choices: the other March order at bay-of-ice still pending, could later move ship 40 to sunset-sea (combat) or to port-of-winterfell (no combat). But we just state remaining choices in prose.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_yykjxq6gri",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "I will resolve the March order in **Moat Cailin**.\n\n- **Move** the knight with unit ID 48 from Moat Cailin to **Seagard** (a stronghold).  \n- **Leave** the other knight (unit 55) in Moat Cailin so the area remains under my control and continues to count as a castle area.\n\n**Resulting moves**\n\n```json\n{\n  \"starting_region_id\": \"moat-cailin\",\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48]\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order (from **Bay of Ice**) is still unresolved. It can either:\n  1. Move the ship (unit 40) to **Sunset Sea** (which would trigger combat), or  \n  2. Move the ship to **Port of Winterfell** (no combat).  \n\nThese are the only remaining options for the next decision.",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431503-ZsfHmFWObhCKqYSbTkYz",
+          "output": [
+            {
+              "id": "rs_tmp_psm6tko211h",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to output JSON with starting_region_id either bay-of-ice or moat-cailin. We decided earlier to move from moat-cailin unit 48 to seagard, leaving unit 55 behind. That's legal: reachable_regions includes seagard, castleLevel 2, castleAreaGain 1, no combat. supply safe groups: moving one knight alone is fine supply? supply is 1, you have 2 knights total, moving one leaves one in moat-cailin, still an army? Single unit is not an army so fine. So moves list with one entry. Provide JSON.\n\n",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_9n19kdhptj7",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]}]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 35513,
+        "currentInputSha256": "34a29b7d9ea0bbf649c5b945432f4a55d6a42da1967f08ef832b9da3092ccfc1",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 39957,
+            "inputSha256": "cd5c03c0b82ccb8f2cf2110d457ee7bf83c346a6d73e7f27369c662773a43995",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 46246,
+            "inputSha256": "84e1e0f80a47d25399a01f93aa73aff419e53dad86292aa900f4b0250579480f",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "starting_region_id": {
+              "description": "Region containing the march order and moving units.",
+              "title": "Starting Region Id",
+              "type": "string",
+              "enum": [
+                "bay-of-ice",
+                "moat-cailin"
+              ]
+            },
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "greywater-watch",
+                      "port-of-winterfell",
+                      "seagard",
+                      "sunset-sea",
+                      "the-twins",
+                      "white-harbor",
+                      "winterfell"
+                    ]
+                  },
+                  "unit_ids": {
+                    "items": {
+                      "type": "integer",
+                      "enum": [
+                        40,
+                        48,
+                        55
+                      ]
+                    },
+                    "minItems": 1,
+                    "title": "Unit Ids",
+                    "type": "array",
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "destination_region_id",
+                  "unit_ids"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "starting_region_id",
+            "moves"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "73aea7f50eee4b2dae83d6b523780f9d3dda98cadc9a216dcb4ce39e4c28bbca"
+      }
+    },
+    {
+      "case": 6,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 3,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 2344,
+        "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "kingswood",
+          "moves": [
+            [
+              "the-reach",
+              [
+                25,
+                26
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}",
+        "{\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":false}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 77658,
+        "outputTokens": 372,
+        "totalTokens": 78030
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38487,
+          "input_tokens_details": {
+            "cached_tokens": 35968
+          },
+          "output_tokens": 315,
+          "output_tokens_details": {
+            "reasoning_tokens": 262
+          },
+          "total_tokens": 38802,
+          "cost": 0.0137067,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0137067,
+            "upstream_inference_input_cost": 0.01347045,
+            "upstream_inference_output_cost": 0.00023625
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431501-E7XBW41LssDRnJkTMiSS",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 39171,
+          "input_tokens_details": {
+            "cached_tokens": 28544
+          },
+          "output_tokens": 57,
+          "output_tokens_details": {
+            "reasoning_tokens": 21
+          },
+          "total_tokens": 39228,
+          "cost": 0.0137526,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0137526,
+            "upstream_inference_input_cost": 0.01370985,
+            "upstream_inference_output_cost": 4.275e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431502-QTiRa2N0M5SAcubgnZid",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431501-E7XBW41LssDRnJkTMiSS",
+          "output": [
+            {
+              "id": "rs_tmp_fyn4lqpuae7",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to decide move. From actionGuidance reachable regions: storms-end (land, castleLevel 1 owned, no combat), the-boneway (land, no castle), the-reach (land, castleLevel1, triggers combat? castleAreasGainedIfCaptured 1, controller null, triggersCombat false). No combat likely. We have units 25 footman and 26 knight in Kingswood. Supply track is 2, allowed armies: supply 2 -> permitted sizes 3,2,2. Currently we have one army of 2 units. Moving both to same dest okay. We could move both to the-reach to capture a castle (reach has castle). That would give us castle area. No combat (no enemy units). So we would vacate Kingswood losing its castle (none). Actually Kingswood has no castle. So no loss. Could also move both to storms-end but no gain. The-boneway no castle. So best is move both to the-reach to capture castle. Need to leave power token? Vacating Kingswood (no units) no control token needed because no castle/stronghold? No need to preserve. So leave_power_token false. Moves: destination the-reach, unit_ids [25,26]. Done.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_gnsv3csklqd",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ],\n  \"leave_power_token\": false\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431502-QTiRa2N0M5SAcubgnZid",
+          "output": [
+            {
+              "id": "rs_tmp_9yugq5m38mf",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We decided to move both units to The Reach, no power token. That matches earlier. Return JSON.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_3vfacmwo6g5",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":false}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 34853,
+        "currentInputSha256": "1a734e56a859ad7c44618c57e7fc1661366a829a0adb427b31a04135137234ad",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 39289,
+            "inputSha256": "d93ede8b4c37bdf48ca50796deba18ba0857a8f20aa8dc8ed2cd4921c56c208c",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 43986,
+            "inputSha256": "69cc315487b7a90ef58eba9a183a686f94da16c67f1f692e48a7639eac8e985b",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "storms-end",
+                      "the-boneway",
+                      "the-reach"
+                    ]
+                  },
+                  "unit_ids": {
+                    "items": {
+                      "type": "integer",
+                      "enum": [
+                        25,
+                        26
+                      ]
+                    },
+                    "minItems": 1,
+                    "title": "Unit Ids",
+                    "type": "array",
+                    "maxItems": 2
+                  }
+                },
+                "required": [
+                  "destination_region_id",
+                  "unit_ids"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 2
+            },
+            "leave_power_token": {
+              "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+              "title": "Leave Power Token",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "moves",
+            "leave_power_token"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "492b30e74813fde68ff78611e98f87b9476e7dc9ba7b9b38deefaffd1e77387e"
+      }
+    },
+    {
+      "case": 8,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 6,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 5162,
+        "sha256": "9b2b05b1d8e3992c36d813d29eee1dade1cc72717d2612d51a4c13ce3b37d245"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "moat-cailin",
+          "moves": [
+            [
+              "white-harbor",
+              [
+                6,
+                37
+              ]
+            ]
+          ],
+          "leavePowerToken": true
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"white-harbor\",\n      \"unit_ids\": [6, 37]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+        "{\"moves\":[{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 78747,
+        "outputTokens": 706,
+        "totalTokens": 79453
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 39022,
+          "input_tokens_details": {
+            "cached_tokens": 28672
+          },
+          "output_tokens": 610,
+          "output_tokens_details": {
+            "reasoning_tokens": 556
+          },
+          "total_tokens": 39632,
+          "cost": 0.0141152,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0141152,
+            "upstream_inference_input_cost": 0.0136577,
+            "upstream_inference_output_cost": 0.0004575
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431501-EnyUzyX0oen08cimPAKI",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 39725,
+          "input_tokens_details": {
+            "cached_tokens": 28544
+          },
+          "output_tokens": 96,
+          "output_tokens_details": {
+            "reasoning_tokens": 59
+          },
+          "total_tokens": 39821,
+          "cost": 0.01397575,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01397575,
+            "upstream_inference_input_cost": 0.01390375,
+            "upstream_inference_output_cost": 7.2e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431502-i1GmJ0uq3wZ25upK9DO5",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431501-EnyUzyX0oen08cimPAKI",
+          "output": [
+            {
+              "id": "rs_tmp_2xc7iappf1a",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to decide move. From Moat Cailin reachable: greywater-watch, seagard, the-twins, white-harbor, winterfell. Must consider supply: we have supply 3, currently armies? Units at Moat Cailin: two knights (ids 6,37). Also elsewhere we have units elsewhere forming armies. Need ensure after move armies within supply limits. Currently supply 3 allows armies sizes 3,2,2,2. Our armies: we have one army at Moat Cailin (2 knights) counts as size2. At seagard we have none now (after moving previous). At greywater-watch we have footman (id9) = 1 unit alone not army. At ironmans-bay ship alone not army. At port-of-pyke ship alone. At flints-finger none. At other areas etc. So moving knights maybe create new army elsewhere. Options:\n\n- Move both knights to white harbor (castle) capturing it (castle area). No combat? White harbor currently has no units, controlPowerToken null. It is a castle (castle=1). Capture yields castle area. No combat. Need leave power token to keep Moat Cailin castle? Moat Cailin is a castle (castle=1). It currently controlled by us via units; if we move both knights out, we could leave a power token to keep control. We have 8 power tokens available, can spend one. That seems good: we keep Moat Cailin castle and gain White Harbor castle, net +2 castle areas. No combat. Supply: after moving both knights, they form an army of size2 at White Harbor (land). That's an army size2, okay. Moat Cailin would have no units, but we leave token, so no army there. That's fine.\n\n- Move to Winterfell: enemy has defender (garrison 2, footman). Combat would be tough. Probably not.\n\n- Move to seagard (already ours, no castle gain). Could split knights? Could move both to seagard, no castle gain.\n\n- Move to greywater-watch (enemy has footman). Combat perhaps.\n\n- Move to the-twins (no units, no castle). No gain.\n\nThus best is move both knights to white harbor, leave power token. Ensure supply: we will have one army size2 at White Harbor, okay. No other armies exceed supply. So action: moves [{destination_region_id:\"white-harbor\", unit_ids:[6,37]}], leave_power_token:true.\n\nRemaining choices: other March orders (maybe from other region) will be later.\n\nNow produce final answer later.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_mcume31hhi",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"white-harbor\",\n      \"unit_ids\": [6, 37]\n    }\n  ],\n  \"leave_power_token\": true\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431502-i1GmJ0uq3wZ25upK9DO5",
+          "output": [
+            {
+              "id": "rs_tmp_0qj1v7uasxtd",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to submit final action. Based on prior exploration we chose moving both knights to white-harbor and leave power token true. That's legal: white-harbor has castle 1, currently uncontrolled, no units there. No combat because no enemy units. So ok. Return JSON.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_slqrxko7zif",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"moves\":[{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 36458,
+        "currentInputSha256": "2b778bc690bdba371a73d62699d49043dabc26933f47530379b253e154ac97a8",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 41128,
+            "inputSha256": "9ea9be09356ad895d242bbf246bf7e39d1405a841ed667173c7fc983d794f781",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 47044,
+            "inputSha256": "cd9de2144c45715142c0f746bf1ace46719154431b2a44bfb3990baca0f05bdf",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "greywater-watch",
+                      "seagard",
+                      "the-twins",
+                      "white-harbor",
+                      "winterfell"
+                    ]
+                  },
+                  "unit_ids": {
+                    "items": {
+                      "type": "integer",
+                      "enum": [
+                        6,
+                        37
+                      ]
+                    },
+                    "minItems": 1,
+                    "title": "Unit Ids",
+                    "type": "array",
+                    "maxItems": 2
+                  }
+                },
+                "required": [
+                  "destination_region_id",
+                  "unit_ids"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 2
+            },
+            "leave_power_token": {
+              "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+              "title": "Leave Power Token",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "moves",
+            "leave_power_token"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "f75f9e474145156e32938e962b6bbf4a72de1946f39ecc1bc27f8b43f8203fa2"
+      }
+    },
+    {
+      "case": 10,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 3,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 3054,
+        "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "resolve-march-order",
+          "startingRegionId": "princes-pass",
+          "moves": [
+            [
+              "starfall",
+              [
+                27
+              ]
+            ]
+          ],
+          "leavePowerToken": false
+        }
+      ],
+      "finalAnswers": [
+        "**Intended action**\n\nI will resolve my March order from **Prince’s Pass** by moving my sole Footman (unit ID 27) to **Starfall**.  \n- Destination: `starfall` (a castle area that is currently unoccupied).  \n- The move captures the castle, giving House Martell one additional castle‑area for Victory points.  \n- No combat is involved, and the move complies with my Supply limit (I will have no units remaining in Prince’s Pass, and I will not place a control token there).\n\n**Resulting move list**\n\n```json\n{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order I still have (the **‑1 March** on **The Boneway**) will be resolved in a later decision.  \n- All other orders (Support, Consolidate Power, etc.) have already been resolved for this round.",
+        "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 75378,
+        "outputTokens": 611,
+        "totalTokens": 75989
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 37355,
+          "input_tokens_details": {
+            "cached_tokens": 28672
+          },
+          "output_tokens": 517,
+          "output_tokens_details": {
+            "reasoning_tokens": 302
+          },
+          "total_tokens": 37872,
+          "cost": 0.013462,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.013462,
+            "upstream_inference_input_cost": 0.01307425,
+            "upstream_inference_output_cost": 0.00038775
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431504-NPSDamOUDmBh6k9YTISh",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 38023,
+          "input_tokens_details": {
+            "cached_tokens": 28160
+          },
+          "output_tokens": 94,
+          "output_tokens_details": {
+            "reasoning_tokens": 72
+          },
+          "total_tokens": 38117,
+          "cost": 0.01337855,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01337855,
+            "upstream_inference_input_cost": 0.01330805,
+            "upstream_inference_output_cost": 7.05e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431506-jELT61gX1NzTvt95l4m8",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431504-NPSDamOUDmBh6k9YTISh",
+          "output": [
+            {
+              "id": "rs_tmp_5kgvoj34w6p",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to decide move. From Princes Pass we have one footman unit id 27. Reachable destinations: dornish-marches (controller tyrell), starfall (castle level1, unoccupied), the-boneway (controller baratheon), three-towers (empty), yronwood (castle level1, unoccupied). Need to keep at least one unit to retain area? It says leaving no unit loses area but we cannot leave power token. Keeping at least one unit preserves it. So we could move the footman to capture a castle (starfall or yronwood) gaining castle area without combat. No combat there as they are empty. Should we move to starfall (castle) gaining one castle area. That's beneficial. Also could move to yronwood similarly. Need to consider support around battlefield if combat, but no combat. So choose moving footman to starfall. That leaves Princes Pass empty, but we cannot leave control token; area lost but that's okay? It says we cannot leave a control token, so we lose that area (no castle). No loss of castle area anyway. So we gain new castle.\n\nThus moves list: one move with destination_region_id \"starfall\". unit_ids [27].\n\nProvide remaining choices: we still have other March orders unresolved (the-boneway? Actually other March orders: we have March orders at the-boneway (order id1) and maybe others but not our concern.\n\nSo answer in prose.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_ljpl4qjlg89",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "**Intended action**\n\nI will resolve my March order from **Prince’s Pass** by moving my sole Footman (unit ID 27) to **Starfall**.  \n- Destination: `starfall` (a castle area that is currently unoccupied).  \n- The move captures the castle, giving House Martell one additional castle‑area for Victory points.  \n- No combat is involved, and the move complies with my Supply limit (I will have no units remaining in Prince’s Pass, and I will not place a control token there).\n\n**Resulting move list**\n\n```json\n{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}\n```\n\n**Remaining choices after this action**\n\n- The other March order I still have (the **‑1 March** on **The Boneway**) will be resolved in a later decision.  \n- All other orders (Support, Consolidate Power, etc.) have already been resolved for this round.",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431506-jELT61gX1NzTvt95l4m8",
+          "output": [
+            {
+              "id": "rs_tmp_em4eosnm4ij",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to submit move to starfall. Destination id must be \"starfall\". Moves array maxItems 1, each entry only destination_region_id, no unit_ids field? Schema only includes destination_region_id. So we just specify destination_region_id. No unit ids needed. So final JSON with moves array containing object with destination_region_id \"starfall\".",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_a3y2gydriyl",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 30707,
+        "currentInputSha256": "839b119f6941aeb661077b996c277d9a1ee354c2fcf6f5c9fb2fff841e6c65bb",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 34445,
+            "inputSha256": "e22960074ba4e81da1c73015dc86abca95145327c42f36867b0224eb0afe4af2",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 39743,
+            "inputSha256": "7c9354e8b363ecff189f4512034f96a96316d42369966af197dfca1c697554dc",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "dornish-marches",
+                      "starfall",
+                      "the-boneway",
+                      "three-towers",
+                      "yronwood"
+                    ]
+                  }
+                },
+                "required": [
+                  "destination_region_id"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 1
+            }
+          },
+          "required": [
+            "moves"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "5c8a2d4dce99e2aa4bcf16f859a80b06b8ed0625668e96ea5a9a649ae11dee00"
+      }
+    },
+    {
+      "case": 12,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 7190,
+        "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "select-units",
+          "units": [
+            [
+              "east-summer-sea",
+              [
+                24
+              ]
+            ],
+            [
+              "starfall",
+              [
+                27
+              ]
+            ]
+          ]
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+        "{\"unit_ids_to_destroy\":[24,27]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 71679,
+        "outputTokens": 238,
+        "totalTokens": 71917
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 35826,
+          "input_tokens_details": {
+            "cached_tokens": 33792
+          },
+          "output_tokens": 188,
+          "output_tokens_details": {
+            "reasoning_tokens": 163
+          },
+          "total_tokens": 36014,
+          "cost": 0.0126801,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0126801,
+            "upstream_inference_input_cost": 0.0125391,
+            "upstream_inference_output_cost": 0.000141
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431504-1rez3scNiUYbp9ZEWvRh",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 35853,
+          "input_tokens_details": {
+            "cached_tokens": 33536
+          },
+          "output_tokens": 50,
+          "output_tokens_details": {
+            "reasoning_tokens": 30
+          },
+          "total_tokens": 35903,
+          "cost": 0.01258605,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01258605,
+            "upstream_inference_input_cost": 0.01254855,
+            "upstream_inference_output_cost": 3.75e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431505-nMGjnErZlFYm1jQV1Emi",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431504-1rez3scNiUYbp9ZEWvRh",
+          "output": [
+            {
+              "id": "rs_tmp_vx15mvtzm4",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need pick two units to destroy. We have ship 24 (sea), footman 27 (starfall), knight 46 (starfall). To preserve ability to hold castle areas: starfall has a castle (castle=1). Need at least one land unit there to hold. We have footman and knight. Better keep knight (stronger) and maybe destroy footman? Also ship is less critical for holding castle but useful for transport. However we have other ships elsewhere? Only ship 24 in east summer sea. Might need ship for transport to maintain connections. But losing ship may reduce ability to move. Still preserve land defense: keep knight. So destroy ship 24 and footman 27, keep knight. That seems good.\n\nThus unit_ids_to_destroy: [24,27].",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_29370h9u6aj",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431505-nMGjnErZlFYm1jQV1Emi",
+          "output": [
+            {
+              "id": "rs_tmp_0vhrb1otmnkg",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need choose 2 distinct from 24,27,46. Prior answer chose 24 and 27. That seems fine. Return JSON.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_bmy5jo7blbj",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"unit_ids_to_destroy\":[24,27]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 24583,
+        "currentInputSha256": "5abe3559b6d60a4838b100ec46d38bad4188bcec6c5888abe0a5ff925ecb4f0c",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 27673,
+            "inputSha256": "7eaebc9ee4dc0be04a18cb3edca868ebe12287fe9b42874bf5dc2d932ee06372",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 29979,
+            "inputSha256": "7b5cb2fa127ad8a5cd29aa4f7903b10c3437e53baa8748233c0dcb53010a0278",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "unit_ids_to_destroy": {
+              "description": "Select exactly 2 distinct unit IDs from this list.",
+              "items": {
+                "type": "integer",
+                "enum": [
+                  24,
+                  27,
+                  46
+                ]
+              },
+              "title": "Unit Ids",
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "unit_ids_to_destroy"
+          ],
+          "title": "select_units_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+        },
+        "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+      }
+    },
+    {
+      "case": 14,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 1209,
+        "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "submit-orders",
+          "orders": [
+            {
+              "regionId": "pyke",
+              "orderId": 2
+            },
+            {
+              "regionId": "ironmans-bay",
+              "orderId": 4
+            },
+            {
+              "regionId": "port-of-pyke",
+              "orderId": 10
+            },
+            {
+              "regionId": "greywater-watch",
+              "orderId": 7
+            }
+          ]
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"assignments\": [\n    {\n      \"region_id\": \"pyke\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"greywater-watch\",\n      \"preferred_order\": \"support\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"port-of-pyke\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"ironmans-bay\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    }\n  ]\n}",
+        "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70}]}"
+      ],
+      "requestCount": 4,
+      "explorationCalls": [
+        {
+          "name": "check_neighbours",
+          "arguments": {
+            "area": "pyke"
+          }
+        },
+        {
+          "name": "check_neighbours",
+          "arguments": {
+            "area": "greywater-watch"
+          }
+        }
+      ],
+      "usage": {
+        "requests": 4,
+        "inputTokens": 144891,
+        "outputTokens": 1586,
+        "totalTokens": 146477
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 35560,
+          "input_tokens_details": {
+            "cached_tokens": 33792
+          },
+          "output_tokens": 67,
+          "output_tokens_details": {
+            "reasoning_tokens": 41
+          },
+          "total_tokens": 35627,
+          "cost": 0.01249625,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01249625,
+            "upstream_inference_input_cost": 0.012446,
+            "upstream_inference_output_cost": 5.025e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431505-HLgAaNXKQRTc3IZzMrwV",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 35792,
+          "input_tokens_details": {
+            "cached_tokens": 35456
+          },
+          "output_tokens": 40,
+          "output_tokens_details": {
+            "reasoning_tokens": 7
+          },
+          "total_tokens": 35832,
+          "cost": 0.0125572,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0125572,
+            "upstream_inference_input_cost": 0.0125272,
+            "upstream_inference_output_cost": 3e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431506-8AKn2BIml4CPnq0JIcT6",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 36204,
+          "input_tokens_details": {
+            "cached_tokens": 28672
+          },
+          "output_tokens": 1308,
+          "output_tokens_details": {
+            "reasoning_tokens": 1126
+          },
+          "total_tokens": 37512,
+          "cost": 0.0136524,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0136524,
+            "upstream_inference_input_cost": 0.0126714,
+            "upstream_inference_output_cost": 0.000981
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431506-y3ZwjOTqYfId5tlFBBBf",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 37335,
+          "input_tokens_details": {
+            "cached_tokens": 33920
+          },
+          "output_tokens": 171,
+          "output_tokens_details": {
+            "reasoning_tokens": 57
+          },
+          "total_tokens": 37506,
+          "cost": 0.0131955,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0131955,
+            "upstream_inference_input_cost": 0.01306725,
+            "upstream_inference_output_cost": 0.00012825
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431508-ExlIZ2yP9j3GrxLhDa9u",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431505-HLgAaNXKQRTc3IZzMrwV",
+          "output": [
+            {
+              "id": "rs_tmp_j5fu5szpvwd",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to decide orders. Likely want March from Pypy? Units: pyke has footman and knight. Could march to Flint's Finger (land) via? Adjacent? Check neighbours.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"area\":\"pyke\"}",
+              "call_id": "439571646",
+              "name": "check_neighbours",
+              "type": "function_call",
+              "id": "fc_tmp_z5uuuu9u89i",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431506-8AKn2BIml4CPnq0JIcT6",
+          "output": [
+            {
+              "id": "rs_tmp_byfzsncce8p",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "Check neighbours for greywater-watch.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"area\":\"greywater-watch\"}",
+              "call_id": "6c6f0c2ab",
+              "name": "check_neighbours",
+              "type": "function_call",
+              "id": "fc_tmp_xqjvv3kvabo",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431506-y3ZwjOTqYfId5tlFBBBf",
+          "output": [
+            {
+              "id": "rs_tmp_kpud0sjilv",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need assign orders for 4 regions: pyke, ironmans-bay, port-of-pyke, greywater-watch. We have no starred orders (maxStarred 0). So all must be regular orders. We have 2 March orders (-1 and +0), 2 Defense (+1) regular, 2 Support, 2 Consolidate, 1 Raid? Actually orderLegend shows counts but we have limited tokens: total 10 regular orders, and special orders limited by King’s Court position. Our King’s Court track: from strategicOverview tracks, Greyjoy is at position 6 (last) on KingsCourt, so stars=0. So no special orders.\n\nPriorities: we want to expand to capture Flint's Finger (castle) from either pyke or greywater-watch using March. Also possibly Seagard (stronghold) accessible from both? Greywater-watch adjacent to Seagard; pyke adjacent to none? Check pyke neighbors: only ironmans-bay and port-of-pyke. Ironmans-bay is sea, can ship transport to Flint's Finger? Need ship transport: ironmans-bay has ship, connects to bay-of-ice? Actually ironmans-bay adjacent to flints-finger? From map: ironmans-bay neighbours: flints-finger, greywater-watch, port-of-pyke, pyke, riverrun, seagard, sunset-sea, the-golden-sound. So from pyke you can move ship to ironmans-bay then via ship transport to flints-finger (land) or seagard. March order can be assigned to pyke (land unit) but March moves units, can use ships for transport. We have footman and knight at pyke. Could march them via ship? Need ship transport: ships in ironmans-bay can transport footmen/knight from pyke to adjacent land area reachable via ships. That counts as moving in one March order. So assign March to pyke (priority high) to attempt capture Flint's Finger or Seagard. Which target? Both are castles/strongholds. Choose highest priority target maybe Seagard (stronghold) gives stronghold count; but both count same. Might aim for Flint's Finger as accessible also from greywater-watch. We have limited supply=2, we have 2 units at pyke (footman, knight) forming army size 2, okay. We also have unit at greywater-watch (footman). That's separate army size 1 (doesn't count as army). Supply limit 2 allows army size max 3? Actually supply 2 permits armies sizes: 3,2,2. Our armies: pyke army size 2, greywater-watch army size 1 (single unit no army). So okay.\n\nWe need orders for ironmans-bay (sea) and port-of-pyke (port). Both have ships. What to do? Could use Consolidate Power to gain power tokens (but sea yields none). So better to use Defense to protect ships? But ships cannot be attacked directly unless enemy ships present. Perhaps assign March to ironmans-bay to move ship elsewhere? But March order moves units from that area; we have ship there, could march ship to adjacent sea (e.g., flints-finger sea? Actually flints-finger is land). Ship can only move to adjacent sea areas; ironmans-bay adjacent sea areas: flints-finger? No, flints-finger is land. Adjacent sea: bay-of-ice, sunset-sea, the-golden-sound, etc. Could move ship towards strategic areas? Might be less important. Could assign Support to provide support for attacks from pyke? But support only from adjacent area with Support order; greywater-watch is adjacent to flints-finger and seagard and moat-cailin. If we assign Support at greywater-watch, could support our attack from pyke? Not adjacent (pyke not adjacent to greywater-watch). Support must be in area adjacent to embattled area, not to origin. Our attack will be into flints-finger or seagard. If we attack flints-finger from pyke via ship transport, the embattled area would be flints-finger. Adjacent support areas: greywater-watch (adjacent) and maybe others. So assigning Support at greywater-watch would allow us to get support when attacking flints-finger. Good.\n\nThus assign Support order to greywater-watch (priority high). Ironmans-bay could be Defense to protect ship, or Consolidate Power (ineffective). Maybe assign Defense to ironmans-bay to protect ship if enemy attacks there (unlikely). Port-of-pyke could be Consolidate Power for power token (but port has ship? Actually port-of-pyke contains ship unit). Consolidate Power in port yields power if there is a power icon? No, ports have no power icon. So gives only 1 token (the order itself) - still yields power token. Yes Consolidate Power gives 1 token plus icons. So assign Consolidate Power to port-of-pyke to get 1 token.\n\nThus assignments:\n\npyke: March (priority 100)\ngreywater-watch: Support (priority 90)\nport-of-pyke: Consolidate Power (priority 80)\nironmans-bay: Defense (priority 70)\n\nAll starred_preference avoid.\n\nLet's propose that.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_9jiz19rk7n5",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"assignments\": [\n    {\n      \"region_id\": \"pyke\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"greywater-watch\",\n      \"preferred_order\": \"support\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"port-of-pyke\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"ironmans-bay\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    }\n  ]\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431508-ExlIZ2yP9j3GrxLhDa9u",
+          "output": [
+            {
+              "id": "rs_tmp_fjobu86uiv5",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need final assignments. Must respect maxStarredOrders =0 per planningConstraints. So no starred orders. Our previous draft had preferences meeting that. Need exactly 4 assignments. Provide orders maybe march, support, consolidate_power, defense. Ensure no starred. Good. Return JSON.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_nzgq6mg975",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70}]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 25011,
+        "currentInputSha256": "da8c1c0ff11e04724562c7c8ead50058b6092b3f46a7cdc05c7cf0d7818cd290",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 27883,
+            "inputSha256": "c8684a3f43c7c8dab86201c5a95e97aa3b2d8f7fdb18debf98f2d40efff44c9b",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "exploration",
+            "inputItemCount": 4,
+            "inputCharacters": 28991,
+            "inputSha256": "f7cce1eec948a4347b072dbd25978fbbf14f21fbb1ffdc238dedad4f72107ae5",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 3,
+            "stage": "exploration",
+            "inputItemCount": 7,
+            "inputCharacters": 30515,
+            "inputSha256": "75e03abff459491d76bc85ff1804d7d08d7ae1a4849e9b4ff127fdeafb65d5d8",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 4,
+            "stage": "submission",
+            "inputItemCount": 10,
+            "inputCharacters": 40198,
+            "inputSha256": "5e1a26487f894b41ade2e005687d5126806042b7fc67c2e599b95ced553dea79",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "assignments": {
+              "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+              "items": {
+                "additionalProperties": false,
+                "description": "One semantic order choice assigned to one board region.",
+                "properties": {
+                  "region_id": {
+                    "description": "ID of a region containing your units.",
+                    "minLength": 1,
+                    "title": "Region Id",
+                    "type": "string",
+                    "enum": [
+                      "pyke",
+                      "ironmans-bay",
+                      "port-of-pyke",
+                      "greywater-watch"
+                    ]
+                  },
+                  "preferred_order": {
+                    "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                    "enum": [
+                      "march",
+                      "defense",
+                      "support",
+                      "consolidate_power",
+                      "raid"
+                    ],
+                    "title": "OrderCategory",
+                    "type": "string"
+                  },
+                  "starred_preference": {
+                    "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                    "enum": [
+                      "prefer",
+                      "avoid"
+                    ],
+                    "title": "StarredPreference",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                    "maximum": 100,
+                    "minimum": 0,
+                    "title": "Priority",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "region_id",
+                  "preferred_order",
+                  "starred_preference",
+                  "priority"
+                ],
+                "title": "OrderAssignment",
+                "type": "object"
+              },
+              "title": "Assignments",
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "assignments"
+          ],
+          "title": "submit_orders_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+        },
+        "actionOutputSchemaSha256": "90e0da3fa4d2ef2e8235eae4198588f3e790c5a25a88c841d3fb73f3743c8471"
+      }
+    },
+    {
+      "case": 17,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 7104,
+        "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+      },
+      "snapshotBoardVerified": true,
+      "error": null,
+      "serverActionsExecuted": false,
+      "errorChain": [],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [
+        {
+          "type": "select-units",
+          "units": [
+            [
+              "port-of-pyke",
+              [
+                7,
+                8
+              ]
+            ]
+          ]
+        }
+      ],
+      "finalAnswers": [
+        "{\n  \"unit_ids_to_destroy\": [7, 8]\n}",
+        "{\"unit_ids_to_destroy\":[7,8]}"
+      ],
+      "requestCount": 2,
+      "explorationCalls": [],
+      "usage": {
+        "requests": 2,
+        "inputTokens": 73623,
+        "outputTokens": 214,
+        "totalTokens": 73837
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 36793,
+          "input_tokens_details": {
+            "cached_tokens": 34304
+          },
+          "output_tokens": 160,
+          "output_tokens_details": {
+            "reasoning_tokens": 135
+          },
+          "total_tokens": 36953,
+          "cost": 0.01299755,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01299755,
+            "upstream_inference_input_cost": 0.01287755,
+            "upstream_inference_output_cost": 0.00012
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431506-sDLA4U2bRizRsKRKCxnC",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        },
+        {
+          "input_tokens": 36830,
+          "input_tokens_details": {
+            "cached_tokens": 34048
+          },
+          "output_tokens": 54,
+          "output_tokens_details": {
+            "reasoning_tokens": 34
+          },
+          "total_tokens": 36884,
+          "cost": 0.012931,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.012931,
+            "upstream_inference_input_cost": 0.0128905,
+            "upstream_inference_output_cost": 4.05e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789431507-jtpCdUCDUOws28Ybueui",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431506-sDLA4U2bRizRsKRKCxnC",
+          "output": [
+            {
+              "id": "rs_tmp_ojfokop3tab",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to choose losses. Which units to sacrifice? Prefer keep land units for castles. Greyjoy has castles at Pyke (stronghold) and maybe others? Controlled castles: pyke (stronghold), seagard (none), flints-finger (none), greywater-watch (none), moat-cailin (none). To hold Pyke, need ship in port? Ship in port not needed for holding castle; castle is land. The ship is in port of pyke, which is adjacent to pyke land. Losing ships reduces transport ability. Keep knights for future invasions. Probably sacrifice ships. Choose both ship IDs 7 and 8.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_7c7kwla61bq",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\n  \"unit_ids_to_destroy\": [7, 8]\n}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        },
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789431507-jtpCdUCDUOws28Ybueui",
+          "output": [
+            {
+              "id": "rs_tmp_5nfzhsm2wbt",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need choose 2 units to destroy. Must consider preserving castles. Ships less useful? Probably destroy ships 7 and 8. That's two distinct. Return JSON.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_ahobgyto1em",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"unit_ids_to_destroy\":[7,8]}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 28018,
+        "currentInputSha256": "34074dab238ee4a4ac7f5d0eccc01e7b279253eff687bc895a6d50e4202498ae",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 31640,
+            "inputSha256": "52fac0bb9f2286b5a71171fc50e4239ca3497de250efa9701a2d940df7f9b361",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "submission",
+            "inputItemCount": 4,
+            "inputCharacters": 33805,
+            "inputSha256": "320aa92b38431e1f546a1c4cd1eb87840618f22efd0a9674d4fe8ed9864f4feb",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "unit_ids_to_destroy": {
+              "description": "Select exactly 2 distinct unit IDs from this list.",
+              "items": {
+                "type": "integer",
+                "enum": [
+                  7,
+                  8,
+                  9,
+                  6,
+                  37
+                ]
+              },
+              "title": "Unit Ids",
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "unit_ids_to_destroy"
+          ],
+          "title": "select_units_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+        },
+        "actionOutputSchemaSha256": "a2c9ee0ae7aebd38febee4c189174dd6deeb1c5d3b992a02a20d474f90ef3579"
+      }
+    }
+  ]
+}

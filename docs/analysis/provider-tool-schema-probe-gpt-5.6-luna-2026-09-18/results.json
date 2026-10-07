@@ -1,0 +1,199 @@
+{
+  "model": "openai/gpt-5.6-luna",
+  "concurrency": 3,
+  "providerCount": 3,
+  "results": [
+    {
+      "name": "Amazon Bedrock",
+      "slug": "amazon-bedrock",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "tool_choice",
+        "tools"
+      ],
+      "endpointCount": 1,
+      "model": "openai/gpt-5.6-luna",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "NotFoundError",
+      "error": "Error code: 404 - {'error': {'message': \"No allowed providers are available for the selected model. Providers serving openai/gpt-5.6-luna-20260709: azure, openai, but your request's provider.only preference permits only: amazon-bedrock.\", 'code': 404, 'metadata': {'available_providers': ['azure', 'openai'], 'requested_providers': ['amazon-bedrock'], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 7}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 4}, {'step': 'Filter by Tier Endpoint Rows', 'endpoint_count': 2}], 'failed_routing_step': 'Filter by Allowed Providers'}}}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.344
+    },
+    {
+      "name": "Azure",
+      "slug": "azure",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "endpointCount": 3,
+      "model": "openai/gpt-5.6-luna",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "RuntimeError",
+      "error": "Responses API returned terminal status failed; error={\"code\":\"rate_limit_exceeded\",\"message\":\"openai/gpt-5.6-luna is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations\"}",
+      "retryAfter": null,
+      "responses": [
+        {
+          "responseId": "gen-1789756960-zToKURENfNc7WV5YfzEz",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756962-rODfQFvGJTrElJSUCYUA",
+          "status": "failed",
+          "outputTypes": [],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.521
+    },
+    {
+      "name": "OpenAI",
+      "slug": "openai",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "endpointCount": 3,
+      "model": "openai/gpt-5.6-luna",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756939-OJm3GA2QmAV1DrCjoYow",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756940-SzXXE0qiFpnepjh6GJgi",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.926
+    }
+  ]
+}

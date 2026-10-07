@@ -1,0 +1,84 @@
+{
+  "include": [],
+  "input": [
+    {
+      "content": "Player question:\nIf a March order vacates only one of two units from a castle area, leaving one unit behind, does the player keep control of that castle area without placing a power token?\n\nRule section catalog:\n[{\"id\":\"overview-setup-terms\",\"title\":\"Overview, setup, and important terms\",\"summary\":\"Objective, components, setup, turn order, units, areas, armies, and basic terms.\",\"source\":\"rules\",\"pages\":[2,3,4,5,6]},{\"id\":\"round-and-westeros\",\"title\":\"Game round and Westeros phase\",\"summary\":\"Round sequence, Westeros cards, wildling icons, and round progression.\",\"source\":\"rules\",\"pages\":[7]},{\"id\":\"supply-and-mustering\",\"title\":\"Supply and mustering\",\"summary\":\"Army-size limits, supply adjustment, muster points, recruitment, and upgrades.\",\"source\":\"rules\",\"pages\":[8,9]},{\"id\":\"influence-and-bidding\",\"title\":\"Influence tracks, bidding, and dominance tokens\",\"summary\":\"Clash of Kings bids, tie decisions, turn order, special orders, and token powers.\",\"source\":\"rules\",\"pages\":[10,11]},{\"id\":\"planning-and-orders\",\"title\":\"Planning and order tokens\",\"summary\":\"Order placement, order-token inventory, special-order limits, and order effects.\",\"source\":\"rules\",\"pages\":[12,13,22]},{\"id\":\"action-orders-and-victory\",\"title\":\"Action phase, raid, march, consolidate power, and victory\",\"summary\":\"Action order, raid and march resolution, control tokens, power collection, and victory.\",\"source\":\"rules\",\"pages\":[14,15,16]},{\"id\":\"combat-and-support\",\"title\":\"Combat and support\",\"summary\":\"Support, strength, house cards, the blade, casualties, retreats, and routed units.\",\"source\":\"rules\",\"pages\":[17,18,19,20,21]},{\"id\":\"wildlings\",\"title\":\"Wildling attacks\",\"summary\":\"Wildling bids, victory and defeat, card effects, and threat-track adjustment.\",\"source\":\"rules\",\"pages\":[22,23]},{\"id\":\"ship-transport-control-power\",\"title\":\"Ship transport, area control, and power tokens\",\"summary\":\"Coastal movement, transport chains, control tokens, and available power.\",\"source\":\"rules\",\"pages\":[23,24]},{\"id\":\"ports-garrisons-board\",\"title\":\"Ports, garrisons, neutral forces, alliances, and board features\",\"summary\":\"Port rules, garrisons, neutral forces, rivers, islands, and hidden information.\",\"source\":\"rules\",\"pages\":[25,26,27]},{\"id\":\"player-counts-and-tides\",\"title\":\"Fewer than six players and Tides of Battle\",\"summary\":\"Three- to five-player changes and the optional Tides of Battle module.\",\"source\":\"rules\",\"pages\":[28,29]},{\"id\":\"faq-corrections-and-cards\",\"title\":\"FAQ corrections and house cards\",\"summary\":\"Official rules corrections, current end-game ties, combat timing, and card rulings.\",\"source\":\"faq\",\"pages\":[1,2,3]},{\"id\":\"faq-movement-supply-ports\",\"title\":\"FAQ movement, supply, control, and ports\",\"summary\":\"Detailed answers for movement, supply, control, retreats, mustering, and ports.\",\"source\":\"faq\",\"pages\":[4,5]},{\"id\":\"faq-expansions\",\"title\":\"FAQ expansion rules\",\"summary\":\"Clarifications for Feast for Crows and Mother of Dragons mechanics.\",\"source\":\"faq\",\"pages\":[6,7]}]",
+      "role": "user"
+    }
+  ],
+  "instructions": "Answer only the player's rules question. First call read_rulebook_sections with the smallest useful set of sections. Use the official FAQ when it changes the base rulebook. Distinguish a printed rule from a server-specific behavior. If the supplied sections do not answer the question, say that you do not know. Do not assume that facts in the player's question are true, and do not claim to know the current board state. Before answering yes to a legality question, check the supplied text for prohibitions and exceptions. For a specific move, separate the general rule from the board-state facts that the rule requires. Give a concise answer and cite section titles and page numbers. Do not recommend a strategy or choose the player's game action.",
+  "max_output_tokens": 900,
+  "metadata": {
+    "agent_id": "3c0e2730-6ad1-4e73-9c90-db99016b0355",
+    "game_id": "1",
+    "run_id": "eb12ba74-4853-482b-b41c-f77d153076b4"
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "parallel_tool_calls": false,
+  "prompt_cache_key": "raven-rules-deepseek/deepseek-v4.1-flash-24c854096e7415f5706deb56",
+  "reasoning": {
+    "effort": "low"
+  },
+  "store": false,
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "name": "read_rulebook_sections",
+      "parameters": {
+        "$defs": {
+          "RuleSectionId": {
+            "enum": [
+              "overview-setup-terms",
+              "round-and-westeros",
+              "supply-and-mustering",
+              "influence-and-bidding",
+              "planning-and-orders",
+              "action-orders-and-victory",
+              "combat-and-support",
+              "wildlings",
+              "ship-transport-control-power",
+              "ports-garrisons-board",
+              "player-counts-and-tides",
+              "faq-corrections-and-cards",
+              "faq-movement-supply-ports",
+              "faq-expansions"
+            ],
+            "title": "RuleSectionId",
+            "type": "string"
+          }
+        },
+        "properties": {
+          "section_ids": {
+            "description": "One or two section IDs from the supplied catalog.",
+            "items": {
+              "$ref": "#/$defs/RuleSectionId"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Section Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "section_ids"
+        ],
+        "title": "read_rulebook_sections_args",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "strict": true,
+      "type": "function",
+      "description": "Read exact text from one or two official rulebook sections."
+    }
+  ],
+  "provider": {
+    "allow_fallbacks": false,
+    "require_parameters": false,
+    "order": [
+      "fireworks"
+    ],
+    "only": [
+      "fireworks"
+    ]
+  }
+}

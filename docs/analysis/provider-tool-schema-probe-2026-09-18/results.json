@@ -1,0 +1,1309 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "concurrency": 3,
+  "providerCount": 20,
+  "results": [
+    {
+      "name": "Alibaba",
+      "slug": "alibaba",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': 'data: {\"error\":{\"code\":\"invalid_parameter_error\",\"param\":null,\"message\":\"This response_format type is unavailable now\",\"type\":\"invalid_request_error\"},\"id\":\"chatcmpl-508f57f3-908a-98a1-a10f-d25fefb3c273\"}\\n\\n', 'provider_name': 'Alibaba', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 0.668
+    },
+    {
+      "name": "AtlasCloud",
+      "slug": "atlas-cloud",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":400,\"msg\":\"bad request\",\"request_id\":\"e8966eed-6caa-4a52-84bc-7d44d2c850a6\"}', 'provider_name': 'AtlasCloud', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 0.767
+    },
+    {
+      "name": "BaseTen",
+      "slug": "baseten",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 2,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'BaseTen', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 0.221
+    },
+    {
+      "name": "DeepInfra",
+      "slug": "deepinfra",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756497-lO8yt65PKy2wJuIVB8f4",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 1.821
+    },
+    {
+      "name": "DeepSeek",
+      "slug": "deepseek",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "NotFoundError",
+      "error": "Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nPaid model training violation (account settings): 1 endpoint excluded; configurable at https://openrouter.ai/settings/privacy', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'paid-model-training-violation-by-account', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/settings/privacy'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 21}, {'step': 'Filter by Allowed Providers', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+      "responses": [],
+      "elapsedSeconds": 1.921
+    },
+    {
+      "name": "DigitalOcean",
+      "slug": "digitalocean",
+      "advertisedParameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756502-jPxXulfePqY7pKrabtYL",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756503-AzraVobJuc9OYUeUMEEr",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 9.75
+    },
+    {
+      "name": "Fireworks",
+      "slug": "fireworks",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756500-QvwJoxeRls9rCW9hMrU9",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 3.824
+    },
+    {
+      "name": "GMICloud",
+      "slug": "gmicloud",
+      "advertisedParameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"error\":{\"type\":\"unsupported_operation\",\"message\":\"Backend request failed with status 400\",\"backend_status\":400,\"details\":\"invalid_request_error: This model does not support the requested response_format or output format. Please check the supported parameter range in the console or product documentation.\"}}', 'provider_name': 'GMICloud', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 5.157
+    },
+    {
+      "name": "Makora",
+      "slug": "makora",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756501-43S0lTIJtL0DfCPIYokg",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756502-LahHOJZBdibRVt2sa8nX",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 5.449
+    },
+    {
+      "name": "Modal",
+      "slug": "modal",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756504-oTEaoDtxDguFjxkgkUjL",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 8.906
+    },
+    {
+      "name": "Morph",
+      "slug": "morph",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756498-1dXKsx7Trkv0FvHdTKpS",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 3.588
+    },
+    {
+      "name": "Novita",
+      "slug": "novita",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":400, \"reason\":\"INVALID_REQUEST_BODY\", \"message\":\"Model \\'deepseek/deepseek-v4.1-flash\\' does not support \\'json_schema\\' response format. Supported formats: json_object.\", \"metadata\":{}}', 'provider_name': 'Novita', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 4.112
+    },
+    {
+      "name": "Parasail",
+      "slug": "parasail",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756504-s3oAL6YOhc2YYN8TXgSM",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 7.898
+    },
+    {
+      "name": "Phala",
+      "slug": "phala",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756505-0s7D8Y9IjZI6Ue5PPFcH",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 12.473
+    },
+    {
+      "name": "Relace",
+      "slug": "relace",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756497-Bt5tfrlbdl91BdG2kPsx",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756499-zJbenXBHV8qcWWweGak4",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.585
+    },
+    {
+      "name": "SiliconFlow",
+      "slug": "siliconflow",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":20015,\"message\":\"This response_format type is unavailable now\",\"data\":null}', 'provider_name': 'SiliconFlow', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 7.033
+    },
+    {
+      "name": "StreamLake",
+      "slug": "streamlake",
+      "advertisedParameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"error\":{\"code\":\"invalid_parameter_value\",\"message\":\"field \\'response_format.type\\' must be one of [text, json_object], got: json_schema\",\"param\":\"response_format.type\",\"type\":\"BadRequest\"},\"request_id\":\"req-ouk7u2-1789756501130473570\"}', 'provider_name': 'StreamLake', 'is_byok': False, 'provider_error_code': 'invalid_parameter_value'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 3.819
+    },
+    {
+      "name": "Together",
+      "slug": "together",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756502-6FnWJZjufed1TZdBW9Cu",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756503-VYDY0YanfpA29vGUtubQ",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 6.36
+    },
+    {
+      "name": "Venice",
+      "slug": "venice",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756506-WThxTT7g8eHkefsZIvdt",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 9.868
+    },
+    {
+      "name": "Wafer",
+      "slug": "wafer",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756499-9C2LVUecvOVeLenEP151",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 3.282
+    }
+  ]
+}

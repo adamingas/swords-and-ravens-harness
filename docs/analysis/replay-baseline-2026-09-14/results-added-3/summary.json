@@ -1,0 +1,111 @@
+{
+  "sdkVersions": {
+    "openai": "3.8.0",
+    "openai-agents": "0.22.0"
+  },
+  "method": "Historical SDK input and tool definitions; current harness/SDK; stop before tool execution",
+  "limitations": [
+    "Original HTTP bodies were not stored; request settings restored from attempt provenance.",
+    "Historical runs did not pin seed or temperature; provider/model defaults can change.",
+    "Different model choices do not establish a storage/harness defect.",
+    "Game server acceptance and tool normalization are not exercised."
+  ],
+  "cases": [
+    {
+      "case": 15,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 8,
+      "inputHashVerified": true,
+      "wireToolsVerified": true,
+      "status": "different",
+      "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+      "error": null,
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  47
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "white-harbor",
+                "unit_ids": [
+                  47,
+                  48,
+                  1
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "historicalAcceptedAction": {
+        "name": "resolve_march",
+        "arguments": {
+          "starting_region_id": "winterfell",
+          "moves": [
+            {
+              "destination_region_id": "castle-black",
+              "unit_ids": [
+                47
+              ]
+            }
+          ],
+          "leave_power_token": false,
+          "omitted_illegal_power_token": false
+        }
+      },
+      "gameToolsExecuted": false,
+      "usage": {
+        "requests": 1,
+        "inputTokens": 14722,
+        "outputTokens": 316,
+        "totalTokens": 15038
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 14722,
+          "input_tokens_details": {
+            "cached_tokens": 768
+          },
+          "output_tokens": 316,
+          "output_tokens_details": {
+            "reasoning_tokens": 260
+          },
+          "total_tokens": 15038,
+          "cost": 0.0053897,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0053897,
+            "upstream_inference_input_cost": 0.0051527,
+            "upstream_inference_output_cost": 0.000237
+          },
+          "scope": "agent",
+          "response_id": "gen-1789376172-r25H8eUVeislilpvXXfQ",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "historicalRequestHash": "52b259da7d20b15dd567141d8d96796d864a2bc7f13642fd324cdf1f0a4c7717"
+    }
+  ]
+}

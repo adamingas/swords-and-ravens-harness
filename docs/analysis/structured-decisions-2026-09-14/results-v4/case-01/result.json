@@ -1,0 +1,185 @@
+{
+  "case": 1,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 1,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "white-harbor",
+      "moves": [],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"leave_power_token\": false,\n  \"moves\": [],\n  \"starting_region_id\": \"white-harbor\"\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36496,
+    "outputTokens": 1722,
+    "totalTokens": 38218
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36496,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1722,
+      "output_tokens_details": {
+        "reasoning_tokens": 1804
+      },
+      "total_tokens": 38218,
+      "cost": 0.0022553,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0022553,
+        "upstream_inference_input_cost": 0.0018248,
+        "upstream_inference_output_cost": 0.0004305
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426304-7DotJCUv0rCWzBcBp9wb",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426304-7DotJCUv0rCWzBcBp9wb",
+      "output": [
+        {
+          "id": "rs_tmp_2pwusjgtbao",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide which march order to resolve. According to pendingDecision: type resolve-single-march, and actionGuidance lists two legalOrderRegions: the-shivering-sea (orderId 1 March -1) with unitIds [4] (our ship) and white-harbor (orderId 2 March +0) with unitIds [3] (our footman). So we need to choose one starting region? Actually pendingDecision likely refers to the currently being resolved march order; which one is being resolved now? The actionGuidance shows legalOrderRegions both, but pendingDecision may indicate which order is being resolved (maybe the first in some order). However schema's starting_region_id enum includes both \"the-shivering-sea\" and \"white-harbor\". So we can pick either.\n\nWe must decide best move.\n\nConsider supply: Stark supply =1, meaning allowed armies sizes: per table: supply 1 permits armies sizes 3,2 (two armies)?? Actually table: 1: 3,2? Wait supply track: at 1, permitted army sizes: 3,2 (so one army up to 3, one up to 2). Each army is 2+ units. Stark currently has units: at castle-black: footman (id1) and knight (id2) form an army of 2 units (size 2). At white-harbor: footman id3 alone (size 1, not an army). At the-shivering-sea: ship id4 alone (size 1, not an army). Total armies = 1 (castle-black). That's within supply.\n\nIf we move the ship from the-shivering-sea to somewhere. Reachable destinations for ship from the-shivering-sea: only listed reachableRegions for that order: the-narrow-sea (type sea, castleLevel 0). No combat there (no enemy). Ship can move there, creating a fleet (size 1) still not an army. Supply fine.\n\nIf we move footman from white-harbor. Reachable: castle-black (land, no castle). karhold (land). moat-cailin (land with castleLevel 1 stronghold). widows-watch (land). winterfell (your own castle). Also maybe other but listed. Only moat-cailin has castleLevel 1, which would capture a stronghold gaining a castle area (counts as a castle area for victory). White harbor currently provides 1 castle area (its own castle). If we vacate white harbor without leaving power token, we lose that castle area. So we can either keep it (no move) or move footman to moat-cailin capturing a stronghold and gaining castle area (net gain perhaps 0 because lose white harbor but gain moat-cailin). White harbor has a castle (castle=2 stronghold) counted as a castle area. Moat-cailin is a stronghold (castleLevel 1) also counts as one area. So net same count. But also we could keep white harbor and maybe later move something else. Leaving power token costs 1 power token. Stark has 5 power tokens, could spend.\n\nIf we move footman to moat-cailin, need to consider support for potential combat? There is no enemy there currently (controller null). So no combat; we capture it, adding castle area. But we also lose white harbor's castle area. Net zero. However we also lose the garrison? White harbor had no garrison; just had our footman. Also we preserve supply fine.\n\nIf we move footman to castle-black, we would join our existing army (2 units) making 3 units (footman + footman + knight). That's still a single army of 3 units, allowed (max 3). No castle gained (castle-black has no castle). No castle lost if we leave power token? If we vacate white harbor, we lose that castle area unless we leave power token. We could leave power token (cost 1). Then we keep castle area while moving footman away, leaving white harbor empty but controlled via power token. That maintains castle count. That's likely best to keep the castle while moving footman to join forces.\n\nWe have to consider that we might want to attack something. Destinations: moat-cailin is adjacent to white harbor, but includes a castleLevel 1 (stronghold). Could attack if there were enemy but none. Also could be used for future attacks.\n\nThe ship move to the-narrow-sea is a sea area; no immediate benefit.\n\nGiven we have a March -1 order at the-shivering-sea, which gives -1 combat strength if combat triggered. But we probably not attack there.\n\nWhich March order to resolve? The pendingDecision may be processing each order sequentially; maybe we already resolved winterfell earlier? In history, previous action resolved winterfell moving units 1,2 to castle-black. That was earlier (action id 10). Now we have two remaining March orders: white-harbor (+0) and the-shivering-sea (-1). Now we need to resolve one of them. The schema allows choosing either.\n\nWe should pick the white-harbor +0 order to move footman to moat-cailin (capture stronghold) while leaving power token to keep white harbor. This would net +0 castle count but strengthen position and maybe future movement. Also we could consider moving to winterfell (our own) to consolidate, but need to keep control token for white harbor.\n\nOption: leave_power_token = true, move unit 3 to winterfell (our own), keep castle area. That results in footman at winterfell (now 2 units there with footman & ship? Actually winterfell currently has no units, just castle and garrison. Moving footman there forms an army of 1 unit (size1), not an army, still ok. No combat. Keeping power token keeps white harbor castle. Net same castle count.\n\nWhich is better? Might want to concentrate forces at winterfell (home) for defense. Also white harbor is a coastal area near sea where we have ship in shivering sea; maybe keep presence there for naval control. If we move footman away, white harbor still empty but controlled by token; we still have ship later could move there. Retaining ship presence? Ship remains in the-shivering-sea if we don't move it. Could later move ship to white harbor via port? Actually white harbor is land, not a port. So ship cannot go there.\n\nProbably best to keep footman at white harbor for defense (since ship in adjacent sea). So maybe we should not move footman now, but we must resolve the order; we could discard it (empty moves list) to remove the order; but then we lose ability to move later? Not needed. If we discard, we lose the ability to move that footman this turn, but we lose nothing else. Could also keep footman and leave power token false? That would vacate white harbor lose castle area. Not good.\n\nThus decision: resolve white-harbor order, leave unit there (i.e., empty moves list) to keep castle? But the order would be discarded and footman stays. That seems best: do not move footman, keep castle area. However note that leaving power token is false (cannot because unit remains). Moves empty -> order removed, no token needed. That's allowed. Then footman stays, castle area retained.\n\nBut there is also the other order (the-shivering-sea) still pending later. We'll need to resolve later. So choose starting_region_id \"white-harbor\", moves [], leave_power_token false.\n\nHowever schema requires moves array, could be empty list. Yes allowed. Must meet constraints: each unit ID at most once; empty moves discards order. That's okay.\n\nThus final answer:\n\n{\n \"starting_region_id\":\"white-harbor\",\n \"moves\":[],\n \"leave_power_token\":false\n}\n\nCheck: enum for starting_region_id includes both. Moves array empty allowed? Schema says moves maxItems 1 but not minItems. So empty array acceptable. Provide.\n\nReturn JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_e4n43z2qpp9",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"leave_power_token\": false,\n  \"moves\": [],\n  \"starting_region_id\": \"white-harbor\"\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 27953,
+    "currentInputSha256": "26dfa45cc642d0b98a7a6329f9529c7a3d5ae518e27c729da9808dbee9335612",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 31352,
+        "inputSha256": "51f7df7f73e00522e6e196947fba6003bfe538e826db6cfd3be47155dc313601",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "988172a7e1c1fb22f26f75929a0e07d3f4b6e5ec41c83109f723283e3a056b79"
+  }
+}

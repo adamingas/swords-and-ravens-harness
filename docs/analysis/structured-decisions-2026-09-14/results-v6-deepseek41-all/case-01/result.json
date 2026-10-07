@@ -1,0 +1,193 @@
+{
+  "case": 1,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "stark",
+  "round": 1,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "previousAttemptError": null,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "white-harbor",
+      "moves": [
+        [
+          "moat-cailin",
+          [
+            3
+          ]
+        ]
+      ],
+      "leavePowerToken": true
+    }
+  ],
+  "finalAnswers": [
+    "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38295,
+    "outputTokens": 904,
+    "totalTokens": 39199
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38295,
+      "input_tokens_details": {
+        "cached_tokens": 36684
+      },
+      "output_tokens": 904,
+      "output_tokens_details": {
+        "reasoning_tokens": 863
+      },
+      "total_tokens": 39199,
+      "cost": 0.001207848,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.001207848,
+        "upstream_inference_input_cost": 0.000611208,
+        "upstream_inference_output_cost": 0.00059664
+      },
+      "scope": "agent",
+      "response_id": "gen-1789427162-U8CNpJkovIRSjYKySluy",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "fireworks",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789427162-U8CNpJkovIRSjYKySluy",
+      "output": [
+        {
+          "id": "rs_tmp_bdkg5zo6uks",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze. I have two march options: the-shivering-sea (ship id 4) and white-harbor (footman id 3).\n\nWhite Harbar has footman 3 with March +0. Reachable: castle-black (mine), karhold, moat-cailin (castle=1, gain 1), widows-watch, winterfell (mine).\n\nMoat Cailin is a castle, empty, no combat, capture gains 1 castle area. That's attractive. But moving the footman out of White Harbor loses White Harbor (1 castle area) unless I leave a power token (costs 1 power token).\n\nWait, White Harbor is a castle (castle=1). Currently it contributes 1 castle area. If I move the footman out without leaving token, I lose it. Net change: -1 (white harbor) +1 (moat cailin) = 0. If I leave a power token: -1 power token, keep White Harbor, +1 moat cailin = net +1 castle area.\n\nActually wait, is it worth it? Moat Cailin castle=1. Leaving power token costs 1 power token but I keep White Harbor. So net +1 castle area (from 2 to 3). That seems good.\n\nBut wait, can I afford? Net gain of a castle area is good. Let me think about the power token.\n\nActually also consider the-shivering-sea ship moving to the-narrow-sea. That gains sea control, not castle. Could be useful for support later, but we're resolving marches one at a time.\n\nPriority: resolve white-harbor march to take Moat Cailin, leave power token. That gives +1 castle area and keeps white harbor.\n\nWait but moving the footman to moat-cailin: moat-cailin is a castle. Capturing gains 1. White harbor currently has a footman. If I move it out and leave a power token, white harbor stays controlled (power token), and moat cailin gets a footman (controlled by unit). So +1 castle area net (3 total).\n\nSupply check: supply 1 allows army sizes 3,2. Single units are fine. Footman alone in moat-cailin is a single unit - no army. White harbor empty except power token. Fine.\n\nActually wait — does leaving a power token \"preserve control when legally vacating\"? White harbor is a castle area. Yes.\n\nAlternatively, move footman to castle-black to reinforce (castle-black has footman 1 + knight 2, forming army of 3, supply 1 allows size 3). But that doesn't gain castle.\n\nMoat Cailin is clearly best. Let me verify moat-cailin neighbours to be safe about neutral forces / combat.\n\nActually actionGuidance says triggersCombat:false for moat-cailin. And neutralForce:null. So no combat. Good.\n\nShould I leave power token? Cost 1 power. Keep White Harbor castle. Yes, worth it — a castle area is worth more than a power token.\n\nHmm, but is there a downside? Losing a power token reduces bidding power. But gaining and holding a 3rd castle area is significant. I think leave token.\n\nActually, let me reconsider. White Harbor currently controlled. Moat Cailin is empty and uncontrolled. If I move the footman there, I gain moat cailin but vacate white harbor. If I don't leave token, I lose white harbor. Net zero castles. So leaving token is the way to net +1.\n\nAlternatively, keep footman in white harbor and don't move—no gain. So move + leave token is best.\n\nLet me double check canLeavePowerToken:true for white-harbor. Yes.\n\nLet me check the unit id: white harbor footman id 3. Good.\n\nFinal: starting_region_id white-harbor, moves [{moat-cailin, [3]}], leave_power_token true.\n\nLet me quickly check neighbours of moat-cailin just for awareness, though not strictly needed.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_ievuwfsser",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"moat-cailin\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28047,
+    "currentInputSha256": "b02263ebb52c492d4d7ba7483039865064081c268862f910048f329589a8e0b7",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 31449,
+        "inputSha256": "3afe5da1bffbc0b7015e9be58487ba9c5093e7867d85af56b8a6fe77dde8442e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "the-shivering-sea",
+            "white-harbor"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "castle-black",
+                  "karhold",
+                  "moat-cailin",
+                  "the-narrow-sea",
+                  "widows-watch",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    3,
+                    4
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "988172a7e1c1fb22f26f75929a0e07d3f4b6e5ec41c83109f723283e3a056b79"
+  }
+}

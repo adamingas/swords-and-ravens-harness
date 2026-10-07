@@ -1,0 +1,77 @@
+{
+  "case": 5,
+  "model": "z-ai/glm-5.3-flash",
+  "house": "stark",
+  "round": 9,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "error",
+  "assertionFailure": null,
+  "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Novita', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "leave_power_token": false,
+        "moves": [
+          {
+            "destination_region_id": "moat-cailin",
+            "unit_ids": [
+              47
+            ]
+          }
+        ],
+        "starting_region_id": "widows-watch"
+      }
+    }
+  ],
+  "replayOperations": [],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "widows-watch",
+      "moves": [],
+      "leave_power_token": false,
+      "omitted_supply_unsafe_move_groups": 1,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "historicalRequestHash": "56684a8273b241de0042fa5ee67dcf9f95918ef3fb650e74a78f52f61131f6b9",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "current-observation-only-retry",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 0,
+    "removedObservationCharacters": 0,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 32,
+    "removedRetryHistoryCharacters": 340540,
+    "selectedHistoryItems": [],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 47121,
+    "currentInputSha256": "8e24c039e6b7f352f25f34cdf0034816007aa1382aab4cd0c348cfa7a78b15cf",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 53869,
+        "inputSha256": "56684a8273b241de0042fa5ee67dcf9f95918ef3fb650e74a78f52f61131f6b9",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

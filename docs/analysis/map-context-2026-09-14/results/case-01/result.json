@@ -1,0 +1,154 @@
+{
+  "case": 1,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 1,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 644,
+    "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "karhold",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "white-harbor",
+        "moves": [
+          {
+            "destination_region_id": "castle-black",
+            "unit_ids": [
+              3
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35846,
+    "outputTokens": 389,
+    "totalTokens": 36235
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35846,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 389,
+      "output_tokens_details": {
+        "reasoning_tokens": 337
+      },
+      "total_tokens": 36235,
+      "cost": 0.01283785,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01283785,
+        "upstream_inference_input_cost": 0.0125461,
+        "upstream_inference_output_cost": 0.00029175
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391266-4ydLPQv4gEBnY2rYhBSx",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391266-4ydLPQv4gEBnY2rYhBSx",
+      "output": [
+        {
+          "id": "rs_tmp_bhe101cbz6d",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the march for white-harbor (order March +0). Choose destination. Options: castle-black, karhold, moat-cailin, widows-watch, winterfell. We have supply 1, we currently have one unit footman at white-harbor. If we move it to another area, we will vacate white-harbor; can leave power token (canLeavePowerToken true). Need to consider expansion: we have castle-black already controlled, winterfell controlled, we have a ship at shivering sea. Moving footman to winterfell would stack with existing units? winterfell currently has no units (but garrison). Actually winterfell has no units now. Moving footman there would give us a unit at winterfell (already have castle). That gives us army size 1 (single unit) not counted as army. No supply issue. Could also move to castle-black to reinforce there (already have footman+knight). That would make two units there; army size 2 okay supply 1 allows army max size? supply 1 permits armies up to size? Supply track 1 allows army sizes 3,2? Actually supply 1 permits armies sizes 3,2 (from table). So having 2 in castle-black fine. Might help control more adjacent. Probably want to move footman to castle-black to strengthen. No combat. Leave power token at white-harbor (optional). Might be good to leave power token to preserve area for future. Yes canLeavePowerToken true. So we will move unit 3 to castle-black, leave power token true. Use resolve_march tool.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+          "call_id": "75c805d39",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_6yq4sfzy9sx",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 22288,
+    "currentInputSha256": "82c966eb0492cad059eb37402d7a2eced8a98b0047f42cc1bc586e148342cd9f",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 7,
+        "inputCharacters": 29310,
+        "inputSha256": "f216cdb69b62567ac49789a31d5100011a3fe58e4ec6a52b9e91008e691be0b5",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "028e38049c31f92b168941b2874a56e43a2ce46304612e18e4f8c5c97e159ef9"
+  }
+}

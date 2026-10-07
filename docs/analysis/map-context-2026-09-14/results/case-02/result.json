@@ -1,0 +1,220 @@
+{
+  "case": 2,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 5,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 4052,
+    "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "winterfell",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "bay-of-ice",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "castle-black",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "karhold",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "the-narrow-sea",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "winterfell",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "bay-of-ice",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "castle-black",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "karhold",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "the-narrow-sea",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 60
+          }
+        ]
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "winterfell",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 100
+          },
+          {
+            "region_id": "bay-of-ice",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 90
+          },
+          {
+            "region_id": "castle-black",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "karhold",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "the-narrow-sea",
+            "preferred_order": "support",
+            "starred_preference": "avoid",
+            "priority": 60
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37814,
+    "outputTokens": 416,
+    "totalTokens": 38230
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37814,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 416,
+      "output_tokens_details": {
+        "reasoning_tokens": 272
+      },
+      "total_tokens": 38230,
+      "cost": 0.0135469,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0135469,
+        "upstream_inference_input_cost": 0.0132349,
+        "upstream_inference_output_cost": 0.000312
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391268-ldOuToQze8SSlRx75QWw",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391268-ldOuToQze8SSlRx75QWw",
+      "output": [
+        {
+          "id": "rs_tmp_4fgyy780wtp",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to place orders now. Already placed last round. Need new orders for this round. We have 5 regions, no raid allowed, maxStarredOrders 0 (no stars). Must assign one order each. Choose best: likely defense at winterfell? we have only one footman there, could defend. Need to protect castle. Also need consolidate power at bay-of-ice to get power tokens (we have 3 already, max 5?). Could also March? but we have supply 1, cannot move army (need 2 units). We have only one footman at winterfell and one ship at bay-of-ice. No army, cannot march. So likely assign defense at winterfell, consolidate at bay-of-ice, support at castle-black and karhold to help future attacks, maybe support at the-narrow-sea for ship transport? But support doesn't help ships transport? Support orders can support combat, not movement. March not possible. Could assign support to castle-black and karhold to aid future. The narrow sea could be support or consolidate; we already have consolidate at bay-of-ice, maybe support at narrow sea for future combat. No stars. So orders: winterfell defense, bay-of-ice consolidate, castle-black support, karhold support, the-narrow-sea support.\n\nSubmit_orders.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+          "call_id": "6ada9764a",
+          "name": "submit_orders",
+          "type": "function_call",
+          "id": "fc_tmp_tmx73qe6dwa",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 25627,
+    "currentInputSha256": "987d49cc4e5d33bbc3c8d6b5a35f84f2ed49c874832c08bdd537f335dd17b066",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 40943,
+        "inputSha256": "0b92942d1c754472776d974cbb674c8d91b14e9b46a451ecb554fa4c95560e4f",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "74ef42803f0e016712bc9c71a0338c0f4f18c5d1c64a89f8c63cce1e5ad55313"
+  }
+}

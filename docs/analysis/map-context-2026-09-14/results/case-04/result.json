@@ -1,0 +1,155 @@
+{
+  "case": 4,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 10,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 10975,
+    "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              48,
+              55
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "bay-of-ice",
+        "moves": [
+          {
+            "destination_region_id": "port-of-winterfell",
+            "unit_ids": [
+              40
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "bay-of-ice",
+        "moves": [
+          {
+            "destination_region_id": "port-of-winterfell",
+            "unit_ids": [
+              40
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38751,
+    "outputTokens": 800,
+    "totalTokens": 39551
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38751,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 800,
+      "output_tokens_details": {
+        "reasoning_tokens": 745
+      },
+      "total_tokens": 39551,
+      "cost": 0.01416285,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01416285,
+        "upstream_inference_input_cost": 0.01356285,
+        "upstream_inference_output_cost": 0.0006
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391272-EzvrEm1fEJuXUsWbUXNu",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391272-EzvrEm1fEJuXUsWbUXNu",
+      "output": [
+        {
+          "id": "rs_tmp_qcmowk33opb",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the current march order. The pendingDecision is resolve-single-march for Stark. Action guidance shows legal destinations for each starting region. We have two march orders: at moat-cailin and bay-of-ice (both assigned). Need to resolve one order now. Choose moves. Must be legal according to actionGuidance. Also can choose to pass (safePass). But we likely want to advance. Evaluate: At moat-cailin we have knights (48,55). Destinations include greywater-watch, seagard, the-twins, white-harbor, winterfell. All are land. Our supply is 1, we already have two armies? Currently Stark units: at moat-cailin (2 knights), at bay-of-ice (ship), at castle-black (knight, footman, knight), at the-shivering-sea (ship). Also at winterfell no units. Supply 1 means allowed armies: per supply table 1 => permitted army sizes 3,2. Currently armies: castle-black area has 3 units (knight, footman, knight) = army size 3. bay-of-ice ship is single unit, not army. the-shivering-sea ship also single. moat-cailin has 2 knights = army size 2. So we have two armies: sizes 3 and 2, within supply (max one 3 and one 2). If we move knights out of moat-cailin, that area would be empty; we could leave power token? canLeavePowerToken false per guidance. Leaving would vacate area, we cannot leave token. So knights must move somewhere; after moving, they may form new army. Need to ensure supply not exceeded. If we move both knights to same destination, that's army size 2 still okay. If split to two destinations, each would be single unit not army. That's fine. Choose a destination maybe to attack? Any of those have enemy units? greywater-watch has no units? Actually greywater-watch currently no units (none listed). seagard has no units? It has no units listed? Actually seagard is owned by Lannister? control token none. No units. the-twins no units. white-harbor no units. winterfell is our home area, currently no units but garrison present. Moving into winterfell would be moving into our own home area (occupied by garrison) but no enemy units; that's allowed and no combat. Could also consider moving into winterfell to consolidate control? Might be good to protect winterfell. However we already control winterfell (home). No need. Maybe moving to greywater-watch to expand influence. No enemy units there, but also no castles. Not urgent.\n\nBay-of-ice has ship unit id 40. Destinations are port-of-winterfell (port) and sunset-sea (sea with enemy ship). Port-of-winterfell is our port, moving into port does not trigger combat. Sunset-sea has enemy ship (greyjoy). That would trigger combat (ship vs ship). Could be risky. Better to move into port-of-winterfell to bring ship closer to winterfell perhaps for future transport. That's allowed. Let's move ship to port-of-winterfell.\n\nThus we need to call resolve_march for starting_region_id \"bay-of-ice\" with move ship id 40 to destination \"port-of-winterfell\". leave_power_token false.\n\nWe also still have moat-cailin pending? After this action, the system will likely again ask to resolve next march order. So we do one order now.\n\nProceed.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"bay-of-ice\",\"moves\":[{\"destination_region_id\":\"port-of-winterfell\",\"unit_ids\":[40]}],\"leave_power_token\":false}",
+          "call_id": "be1b0de55",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_jua1x59bkhi",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 29432,
+    "currentInputSha256": "133e7eefe9c23fdba0f46502f18c90e45ffdd6ccf4d8809a1fa1afa36bcedd65",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 51235,
+        "inputSha256": "9524ac16848fd93320ac2a53bd505b5bfe73a516889d31620b473ff97c391517",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "c6efe6f6c969d3b52fc135f0b786f9091cca3af0086a7b719f7a089b5c334f7c"
+  }
+}

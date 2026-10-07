@@ -1,0 +1,191 @@
+{
+  "cases": [
+    {
+      "case": 10,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "house": "martell",
+      "round": 3,
+      "variant": "two-stage-structured-decision",
+      "snapshot": {
+        "id": 3054,
+        "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+      },
+      "snapshotBoardVerified": true,
+      "error": "Connection error.",
+      "serverActionsExecuted": false,
+      "errorChain": [
+        {
+          "type": "ModelRunError",
+          "message": "Connection error."
+        },
+        {
+          "type": "APIConnectionError",
+          "message": "Connection error."
+        },
+        {
+          "type": "KeyError",
+          "message": "'tool_choice'"
+        }
+      ],
+      "previousAttemptError": null,
+      "requestTimeoutSeconds": 300.0,
+      "nativeResponseFormatOmitted": false,
+      "commands": [],
+      "finalAnswers": [],
+      "requestCount": 1,
+      "explorationCalls": [
+        {
+          "name": "check_neighbours",
+          "arguments": {
+            "area": "starfall"
+          }
+        },
+        {
+          "name": "check_neighbours",
+          "arguments": {
+            "area": "yronwood"
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 38903,
+        "outputTokens": 523,
+        "totalTokens": 39426
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38903,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 523,
+          "output_tokens_details": {
+            "reasoning_tokens": 450
+          },
+          "total_tokens": 39426,
+          "cost": 0.00860895,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00860895,
+            "upstream_inference_input_cost": 0.00816963,
+            "upstream_inference_output_cost": 0.00043932
+          },
+          "scope": "agent",
+          "response_id": "gen-1789461489-tuWEZrbgjsM6VCo11wjB",
+          "response_model": "deepseek/deepseek-v4.1-flash",
+          "response_provider": "morph",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789461489-tuWEZrbgjsM6VCo11wjB",
+          "output": [
+            {
+              "id": "rs_tmp_wu57aaw9q5g",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "Let me analyze. I'm Martell, resolving March from Princes Pass with a single footman (id 27). Reachable: dornish-marches (tyrell footman, combat), starfall (castle, empty, no combat), the-boneway (baratheon footman, combat), three-towers (empty), yronwood (castle, empty).\n\nI have only one unit (footman 27) in Princes Pass. Moving it out loses Princes Pass (no power token possible, 0 power). Keeping it preserves.\n\nBest: move to Starfall or Yronwood to gain a castle area without combat. But moving the only unit out loses Princes Pass (0 castle area anyway, it's a supply/crown area). Princes Pass contributes 0 castle area. So losing it costs nothing in castle terms but loses a land area and supply icon.\n\nStarfall: castle=1, supply=1. Yronwood: castle=1. Both gain 1 castle area. Starfall also has supply icon.\n\nBut wait — moving the single footman to Starfall: Starfall is adjacent to Princes Pass. Yes. Gaining a castle area = +1 VP (from 1 to 2).\n\nHowever, is there a threat? Let me check neighbours of Starfall and Yronwood to see if enemies could take it. Also check whether moving leaves Princes Pass vulnerable.\n\nActually the key decision: which destination. Starfall has supply=1 and castle=1. Yronwood has castle=1 only. Starfall is better (supply icon). But Starfall is adjacent to east-summer-sea, west-summer-sea, salt-shore, yronwood, princes-pass. Yronwood adjacent to princes-pass, salt-shore, sea-of-dorne, starfall, sunspear, the-boneway.\n\nLet me check neighbours to verify support and threats. Let me call check_neighbours on starfall and yronwood.\n\nActually, since I only have one unit and no combat needed, the main question is which castle to take. Let me verify with tools.\n\nLet me check starfall and yronwood neighbours.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"area\":\"starfall\"}",
+              "call_id": "call-12b742ce-e3db-4c2e-8605-3409a063dc98",
+              "name": "check_neighbours",
+              "type": "function_call",
+              "id": "fc_tmp_36m248cj4nh",
+              "status": "completed"
+            },
+            {
+              "arguments": "{\"area\":\"yronwood\"}",
+              "call_id": "call-e4268ab3-20d9-4023-8d59-bc5ab71378db",
+              "name": "check_neighbours",
+              "type": "function_call",
+              "id": "fc_tmp_c0sab6jx2l",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "contextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 31199,
+        "currentInputSha256": "e84eed1aa3d570ac23f647bbfa7c79f891cef1ae677dfde3d88de730e17f78cc",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "stage": "exploration",
+            "inputItemCount": 1,
+            "inputCharacters": 34937,
+            "inputSha256": "a6d65a8ba49d504e148dfebaf57e4120e5a4da08a39d0d0f099951723cdeae0c",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          },
+          {
+            "requestIndex": 2,
+            "stage": "exploration",
+            "inputItemCount": 6,
+            "inputCharacters": 40303,
+            "inputSha256": "d56bee711fca7a4e50c2f13750c0c3658c79761cad7bf7cf16ed54ec9f02c45f",
+            "instructionsCharacters": 127256,
+            "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+          }
+        ],
+        "actionOutputSchema": {
+          "properties": {
+            "moves": {
+              "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "destination_region_id": {
+                    "title": "Destination Region Id",
+                    "type": "string",
+                    "enum": [
+                      "dornish-marches",
+                      "starfall",
+                      "the-boneway",
+                      "three-towers",
+                      "yronwood"
+                    ]
+                  }
+                },
+                "required": [
+                  "destination_region_id"
+                ],
+                "title": "UnitMove",
+                "type": "object"
+              },
+              "title": "Moves",
+              "type": "array",
+              "maxItems": 1
+            }
+          },
+          "required": [
+            "moves"
+          ],
+          "title": "resolve_march_args",
+          "type": "object",
+          "additionalProperties": false,
+          "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+        },
+        "actionOutputSchemaSha256": "5c8a2d4dce99e2aa4bcf16f859a80b06b8ed0625668e96ea5a9a649ae11dee00"
+      }
+    }
+  ]
+}

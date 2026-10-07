@@ -1,0 +1,82 @@
+[
+  {
+    "key": "D010",
+    "ordinal": 1,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "What is the wildling strength for the current Wildlings Attack card drawn in round 2 of this game?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D010",
+    "ordinal": 4,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "Given the current round's Westeros cards: a Supply card, a Game of Thrones card, and a Wildlings Attack card, what is the total number of wildling icons that have been revealed and thus the Wildling Threat token's position (wildling strength) for this wildlings attack?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D012",
+    "ordinal": 1,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "What are the exact effects (reward for highest bidder and penalties for lowest and others) of the \"Wildlings Attack\" Westeros card in A Game of Thrones: The Board Game (Second Edition)?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D012",
+    "ordinal": 2,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "Explain the \"Wildlings Attack\" Westeros card: what reward does the highest bidder get, and what penalties do the lowest and other bidders receive?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D023",
+    "ordinal": 1,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "What is the effect of the Westeros card \"Put to the Sword\" in Game of Thrones: The Board Game (Second Edition)?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D120",
+    "ordinal": 4,
+    "name": "inspect_house_card",
+    "arguments": {
+      "card_id": "renny-baratheon"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Unknown or ambiguous House card 'renny-baratheon'. Use an exact card ID or name from availableHouseCards or houseCardStatus.",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D150",
+    "ordinal": 1,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "What is the effect of the Tyrion Lannister house card in A Game of Thrones: The Board Game, specifically regarding replacing opponent house cards after combat?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Responses API returned terminal status incomplete; incomplete_details=IncompleteDetails(reason='max_output_tokens')",
+    "schemaErrorsReconstructed": []
+  },
+  {
+    "key": "D150",
+    "ordinal": 2,
+    "name": "ask_rules_oracle",
+    "arguments": {
+      "question": "What does Tyrion Lannister house card ability do?"
+    },
+    "output": "An error occurred while running the tool. Please try again. Error: Max turns (3) exceeded",
+    "schemaErrorsReconstructed": []
+  }
+]

@@ -1,0 +1,233 @@
+{
+  "case": 10,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "princes-pass",
+      "moves": [
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}",
+    "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 75113,
+    "outputTokens": 658,
+    "totalTokens": 75771
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37371,
+      "input_tokens_details": {
+        "cached_tokens": 28672
+      },
+      "output_tokens": 416,
+      "output_tokens_details": {
+        "reasoning_tokens": 383
+      },
+      "total_tokens": 37787,
+      "cost": 0.01339185,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01339185,
+        "upstream_inference_input_cost": 0.01307985,
+        "upstream_inference_output_cost": 0.000312
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431367-DCrVlpcMXHwaFPNJKgk4",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 37742,
+      "input_tokens_details": {
+        "cached_tokens": 28160
+      },
+      "output_tokens": 242,
+      "output_tokens_details": {
+        "reasoning_tokens": 220
+      },
+      "total_tokens": 37984,
+      "cost": 0.0133912,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0133912,
+        "upstream_inference_input_cost": 0.0132097,
+        "upstream_inference_output_cost": 0.0001815
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431368-pJdzg0MkkN6hTCxo02HH",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431367-DCrVlpcMXHwaFPNJKgk4",
+      "output": [
+        {
+          "id": "rs_tmp_rdm56xj03bj",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need decide move. From Princes Pass we have one footman unit id 27. Options: move to dornish-marches (enemy footman), starfall (enemy none, castle), the-boneway (Baratheon footman), three-towers (empty), yronwood (empty castle). Need ensure supply: Martell supply=2, currently have units: footman at Princes Pass, knight at Sunspear, ship at Sea of Dorne. That's 3 units, two armies? footman alone not army, knight+ship separate armies each size1 (not army). Supply 2 allows armies: sizes 3,2,2? Actually supply 2 permits armies sizes 3,2,2. Currently no army >1, okay. If move footman to starfall or yronwood, will be alone unit not army. No combat. Capture castle gives +1 castle area. Keep footman at source? If we move footman, Princes Pass will be empty lose 0 castle (none). No need token. Better capture a castle. Choose starfall or yronwood. Need consider support: if combat none. Both are unoccupied, no combat. No support needed. Which is better? Both give castle. Might consider future expansion; starfall adjacent to Princes Pass and also adjacent to other? Starfall neighbors: east-summer-sea, princes-pass, the-boneway, west-summer-sea, yronwood. Capturing starfall gives access to sea etc. Yronwood also neighbors. Could choose starfall for more connectivity. I'd move footman to starfall. Moves list one move.\n\nThus final action: moves [{destination_region_id:\"starfall\"}] (no unit ids needed? schema only destination_region_id. But need unit IDs? schema only destination_region_id. So just that.\n\nReturn JSON.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_2446isnqbgr",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"starfall\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431368-pJdzg0MkkN6hTCxo02HH",
+      "output": [
+        {
+          "id": "rs_tmp_evekttanc09",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to output moves choosing destination. We must consider moving units from Princes Pass. Units there: unit id 27 footman. No power token can be left, so must keep at least one unit to retain area? Actually description: \"Prince's Pass currently contributes 0 castle area to your score. Moving every unit out loses this area; you cannot leave a power token here. Keeping at least one unit preserves it.\" So we can move the footman out? If we move it, then area empty, lose no castle area (was 0). So fine. Destination starfall is castle, no combat. So we move footman to starfall, capturing castle, gaining castle area. Must check supply: moving footman alone is army size 1 (single unit not an army) so supply unaffected. No need power token. So moves list with destination starfall, no unit_ids needed because move all? The schema allows optional unit_ids? It only requires destination_region_id. So we can just specify destination starfall. That's what earlier answer did. So final JSON same.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_f13kuxhnzf5",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"moves\":[{\"destination_region_id\":\"starfall\"}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 30791,
+    "currentInputSha256": "94181b123faa9172e754b6a687e0b58b1ff30d0f1b3dd13add9c6b20ea1566be",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 34527,
+        "inputSha256": "a1256238fd5f008d0ad38c7da430c8299b8416e393f97a0e0018f655a1bc55a7",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 38534,
+        "inputSha256": "a06978bf6bfa198fadb78b125840ece623b33b594e9478b5490ff2e833933e69",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "b8a63f1b0c27a0990dc57c00248df53fa731b4a87f4f181d5279a47d64b4f6bf"
+  }
+}

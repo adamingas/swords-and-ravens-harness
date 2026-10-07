@@ -1,0 +1,273 @@
+{
+  "promptVariant": "full-rules",
+  "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357",
+  "instructionsCharacters": 122479,
+  "case": 10,
+  "model": "~deepseek/deepseek-v4-flash-latest",
+  "house": "martell",
+  "round": 3,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [
+          {
+            "destination_region_id": "starfall",
+            "unit_ids": [
+              27
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "resolve_march",
+    "arguments": {
+      "starting_region_id": "princes-pass",
+      "moves": [],
+      "leave_power_token": false,
+      "omitted_supply_unsafe_move_groups": 0,
+      "omitted_illegal_power_token": false
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 42531,
+    "outputTokens": 46,
+    "totalTokens": 42577
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 42531,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 46,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 42577,
+      "cost": 0.00596722,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00596722,
+        "upstream_inference_input_cost": 0.00595434,
+        "upstream_inference_output_cost": 1.288e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789377236-84zM3ncqzQoEKxMowqDt",
+      "response_model": "deepseek/deepseek-v4-flash-0731",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789377236-84zM3ncqzQoEKxMowqDt",
+      "output": [
+        {
+          "arguments": "{\"starting_region_id\":\"princes-pass\",\"moves\":[{\"destination_region_id\":\"starfall\",\"unit_ids\":[27]}],\"leave_power_token\":false}",
+          "call_id": "call_01a09f31ebb370e09f93293f",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_x95765458ng",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "31727af38ae2ac21d2f8e37ff405ee6ec9a6fb9f690ac9c133b70512c0a3ce50",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 1,
+    "removedObservationItemCount": 10,
+    "removedObservationCharacters": 346889,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "arguments": "{\"starting_region_id\":\"salt-shore\",\"moves\":[{\"destination_region_id\":\"yronwood\",\"unit_ids\":[27]}],\"leave_power_token\":true}",
+        "call_id": "call_01a07a1bf4477d738799cc61",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_3bt4h775ae5",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1bf4477d738799cc61",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"41a37731-5bc2-4b85-8ebc-54011067ac8d\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"region_id\":\"sunspear\",\"choice\":\"muster_units\"}",
+        "call_id": "call_01a07a1c18787d11bcd1e0f6",
+        "name": "resolve_consolidate_power",
+        "type": "function_call",
+        "id": "fc_tmp_1d35fg9oycu",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1c18787d11bcd1e0f6",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_consolidate_power\", \"stateId\": \"ff3bb56f-4cc4-4dd2-a721-8740a2741fc2\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"musters\":[{\"mustering_region_id\":\"sunspear\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"sunspear\",\"upgrade_from_footman\":false}]}]}",
+        "call_id": "call_01a07a1c24ec70f1a7996a2c",
+        "name": "muster_units",
+        "type": "function_call",
+        "id": "fc_tmp_61ke8j1iu0i",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1c24ec70f1a7996a2c",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"muster_units\", \"stateId\": \"4209a0fd-79e9-4457-b0a2-e73fbfdfd30f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "call_01a07a1c34107ba2b252b1d8",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_0cdo7k4fosgs",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1c34107ba2b252b1d8",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"8285cf44-bdc9-41f7-b89f-bfff8731a913\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "call_01a07a1c49a87a90b1c5e0c5",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_flr14pi74kq",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1c49a87a90b1c5e0c5",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"97fd7d8e-eedd-4370-9b8a-fed890acb987\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"sunspear\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"yronwood\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "call_01a07a1c76177021809e9937",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_nf0er59qh1j",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1c76177021809e9937",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"4342ee9c-d63a-4aa6-b2e9-25978c4122b6\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"yronwood\",\"moves\":[{\"destination_region_id\":\"princes-pass\",\"unit_ids\":[27]}],\"leave_power_token\":false}",
+        "call_id": "call_01a07a1cce467513b34c9975",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_tcfhn5fwbu",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1cce467513b34c9975",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"ba0d866e-8e53-4c37-8f79-9b3676ba5eed\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "call_01a07a1d11177f728f175719",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_ec5i1jebxk6",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1d11177f728f175719",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"f6bc289f-dcd7-4353-9fb6-0c95d63c2733\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_mje8a359dbi",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "The pending decision is to select units for removal due to wildling attack \"Mammoth Riders\" victory. I need to select exactly 2 units to remove. The possible units are [25, 26, 28, 24, 27]. These are my Martell units:\n- 25: footman in sunspear\n- 26: knight in sunspear\n- 28: footman in sunspear\n- 24: ship in sea-of-dorne\n- 27: footman in princes-pass\n\nThe wildling attack \"Mammoth Riders\" destroys units. The wildling card 7 (Mammoth Riders) - each player must destroy 2 of their own units (their choice) when they lose.\n\nWait, actually the recent events show Stark and Greyjoy already lost units. Now it's Martell's turn to select 2 units to destroy.\n\nI need to pick 2 units to remove. I should minimize the loss. Let me think about what units I can afford to lose.\n\nMy units:\n- sunspear: footman (25), knight (26), footman (28)\n- sea-of-dorne: ship (24)\n- princes-pass: footman (27)\n\nSunspear is my castle (stronghold). I need to protect it. Princes-pass is valuable (supply icon + crown) and adjacent to many.\n\nI have 5 units, supply 2. Wait supply 2 means I can field 2 units per... no, supply allows a certain number of units. Actually supply 2 allows controlling armies up to supply capacity. Let me think: supply determines how many units you can keep without penalty. Supply 2 means I can have armies... actually each supply point allows certain number of units. With supply 2, I can have... let me recall. In GoT, supply limits total army sizes but the rule is you can have at most supply value in each \"supply zone\". Actually supply is tracked by land areas. Hmm.\n\nActually supply in GoT determines how many units you can field total (roughly, it's about army sizes grouped by supply areas). A house can field units up to its supply in each of its supply areas. Supply 2 means armies of size up to 2. \n\nGiven supply 2, and I have 3 units in sunspear (sunspear is a supply area with its own region). Having 3 units in one area while supply 2 means I'm over-supplied, which penalizes at some point.\n\nRegardless, I must remove 2 units. Let me choose to remove the units that are least important. \n\nI want to preserve:\n- The knight (26) - strongest combat unit\n- The ship (24) in sea-of-dorne - mobility/support, key for projecting power into the sea (east summer sea, sea of dorne) \n- Princes-pass footman (27) - holds princes-pass which has supply+crown\n\nUnits most expendable: the footmen in sunspear (25 and 28).\n\nSunspear has garrison 2 anyway (defense), so losing footmen there is less impactful. Removing 25 and 28 keeps knight 26 in sunspear, ship 24, and footman 27 in princes-pass.\n\nSo I select units 25 and 28 from sunspear.\n\nWait, the possible units list all Martell units. I need to select exactly 2. Let me select footman 25 and footman 28 in sunspear.\n\nLet me select units.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"selections\": [{\"region_id\": \"sunspear\", \"unit_ids\": [25, 28]}]}",
+        "call_id": "call_a5b665ruz8jbwq3nuvjxztro",
+        "name": "select_units",
+        "type": "function_call",
+        "id": "fc_tmp_o5lu0581f5f",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_a5b665ruz8jbwq3nuvjxztro",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"select_units\", \"stateId\": \"e6661c1c-5ca1-4a1e-a6dc-1ab578c34f9f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"sunspear\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"princes-pass\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+        "call_id": "call_01a07a1f627675a39312cc0b",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_6amm9h3kuva",
+        "status": "completed"
+      },
+      {
+        "call_id": "call_01a07a1f627675a39312cc0b",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"bb52896a-ac39-4656-9430-da4ec3e2f684\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 38945,
+    "currentInputSha256": "cd8e241db93dd0a97d58177992846c373e6c8eb9ba360dfe48325855efbe9838",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 22,
+        "inputCharacters": 52496,
+        "inputSha256": "31727af38ae2ac21d2f8e37ff405ee6ec9a6fb9f690ac9c133b70512c0a3ce50",
+        "instructionsCharacters": 122479,
+        "instructionsSha256": "b93af1de7761947f4e9ed971dbe6d4f552d12e31ea062dc064e252d5147f4357"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

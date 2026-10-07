@@ -1,0 +1,198 @@
+{
+  "case": 100,
+  "model": "openai/gpt-oss-120b",
+  "house": "baratheon",
+  "round": 1,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 196,
+    "sha256": "05477629c649178f2746320e2918baf14541fead5ae261ad586330c7fda7df00"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "kingswood",
+          "orderId": 2
+        },
+        {
+          "regionId": "shipbreaker-bay",
+          "orderId": 7
+        },
+        {
+          "regionId": "dragonstone",
+          "orderId": 3
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 80,\n      \"region_id\": \"kingswood\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"support\",\n      \"priority\": 60,\n      \"region_id\": \"shipbreaker-bay\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"dragonstone\",\n      \"starred_preference\": \"prefer\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 34537,
+    "outputTokens": 1132,
+    "totalTokens": 35669
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 34537,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1132,
+      "output_tokens_details": {
+        "reasoning_tokens": 1085
+      },
+      "total_tokens": 35669,
+      "cost": 0.00200985,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00200985,
+        "upstream_inference_input_cost": 0.00172685,
+        "upstream_inference_output_cost": 0.000283
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426361-9EyMyRy9RiAmcyfCoBSJ",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426361-9EyMyRy9RiAmcyfCoBSJ",
+      "output": [
+        {
+          "id": "rs_tmp_y6fhxguzjc9",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to assign orders to three occupied areas: kingswood, shipbreaker-bay, dragonstone. Must respect maxStarredOrders=1. So we can at most have one starred token. Also must assign exactly one order per region. Need to choose preferred order category and starred preference.\n\nWe should consider strategy: Baratheon wants to expand perhaps towards Crackclaw Point and Storm's End from Kingswood and Dragonstone. Also maybe secure shipbreaker-bay for moving ships.\n\nCurrent units: kingswood has a footman. shipbreaker-bay has two ships. dragonstone has footman and knight.\n\nWe have limited supply: supply=2, currently controlling 2 supply icons (one at dragonstone (supply=1) and maybe at shipbreaker-bay? shipbreaker-bay is sea no supply. kingswood has supply=1 (crown? supply 1). So total supply icons controlled=2 which matches supply track. Must not exceed.\n\nIf we march footman from kingswood into adjacent enemy castle? Kingswood neighbors: blackwater-bay (sea), kings-landing (castle 2, owned by Lannister), shipbreaker-bay (sea), storms-end, the-boneway, the-reach. The map shows kingswood adjacent to shipbreaker-bay (sea) where we have ships, can transport footman to other coastal via ship transport maybe to reach Crackclaw Point? Let's check adjacency: shipbreaker-bay is sea adjacent to crackclaw-point and blackwater-bay etc. Kingswood can transport via ship of Baratheon in shipbreaker-bay to reach crackclaw-point via ship transport (since ship units present). So a March from kingswood could move footman via ship transport to crackclaw-point (a castle) if there is a path: footman from kingswood -> shipbreaker-bay (needs ship transport, footman can move across sea using ship). The shipbreaker-bay has two Baratheon ships, they form a fleet. So yes can move footman into crackclaw-point (land) in one March order (using transport). That would attempt capture crackclaw-point (castle). Good.\n\nAlternatively, could march from dragonstone to crackclaw-point? Dragonstone adjacent via shipbreaker-bay (sea) and blackwater-bay? Actually dragonstone connects to port-of-dragonstone and shipbreaker-bay (sea). So can ship transport from dragonstone (land) via its own ship? Wait dragonstone has no ships currently, only footman+knight. But shipbreaker-bay has Baratheon ships, which could transport units from dragonstone if dragonstone is adjacent to shipbreaker-bay (yes) and ships are present. So dragonstone could also march to crackclaw-point using ship transport.\n\nAlso from shipbreaker-bay we could march ships to storm's end (land) maybe via transport? Ship can move to adjacent sea area, but to capture storm's end (land castle) need ship transport with land units; but could also move ship into storm's end? No, ships cannot occupy land. So need transport with land unit.\n\nMaybe we want to march the knight from dragonstone into storm's end via shipbreaker-bay (sea) then ship transport to storms-end (land). Storm's End is a castle (stronghold? actually castle=1). It's currently undefended (no units). That would capture.\n\nThus likely we want March orders on kingswood and dragonstone with +1 or -1 modifiers? We have two regular March orders: -1 and +0, plus one special March +1 (starred). Since max starred orders =1, we could assign the special +1 to the most important march (probably dragonstone to storm's end). Or assign to kingswood for crackclaw.\n\nPriority can reflect that.\n\nShipbreaker-bay: maybe assign a Support order to support the March from kingswood or dragonstone, giving extra strength. There is also Defense/Consolidate/Raid. We might want Support to boost attack on either target. Since we have only one starred, could put that on March +1, others regular.\n\nThus assignments:\n\n- region kingswood: preferred order \"march\" (regular). starred_preference \"avoid\" (since we want starred on dragonstone). priority maybe 80.\n\n- region shipbreaker-bay: preferred order \"support\" (to assist). starred_preference \"avoid\". priority maybe 60.\n\n- region dragonstone: preferred order \"march\" (to attack storm's end). starred_preference \"prefer\". priority 90.\n\nCheck constraints: maxStarredOrders=1, we prefer starred on dragonstone. The harness will allocate a starred March (+1) if available else regular.\n\nWe need ensure no other restrictions; none.\n\nThus final JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_k64872e4al",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 80,\n      \"region_id\": \"kingswood\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"support\",\n      \"priority\": 60,\n      \"region_id\": \"shipbreaker-bay\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"dragonstone\",\n      \"starred_preference\": \"prefer\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 21094,
+    "currentInputSha256": "1d4580316fab5b61babf3062b28686f951324442f171054ea9182bc441d37530",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 23555,
+        "inputSha256": "bbb4e261437df8299bfa6010ad96baf7c8aa42b21b1436faf6d878b78821eae9",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "kingswood",
+                  "shipbreaker-bay",
+                  "dragonstone"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens."
+    },
+    "actionOutputSchemaSha256": "dc846b35b2245567f9286e88896949ee6b4bc5d930c6a6d058fc4f55bb8bb1f9"
+  }
+}

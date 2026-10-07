@@ -1,0 +1,179 @@
+{
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 2344,
+    "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "kingswood",
+      "moves": [
+        [
+          "the-reach",
+          [
+            25
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"leave_power_token\": false,\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25]\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38411,
+    "outputTokens": 1364,
+    "totalTokens": 39775
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38411,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1364,
+      "output_tokens_details": {
+        "reasoning_tokens": 1376
+      },
+      "total_tokens": 39775,
+      "cost": 0.00226155,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00226155,
+        "upstream_inference_input_cost": 0.00192055,
+        "upstream_inference_output_cost": 0.000341
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426339-yX0BKkEzMmZ8e1BHZ37r",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426339-yX0BKkEzMmZ8e1BHZ37r",
+      "output": [
+        {
+          "id": "rs_tmp_9o6bc7uauzd",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide how to resolve the March order from Kingswood. From actionGuidance: reachable regions: storms-end (land, castleLevel=1, castleAreasGainedIfCaptured=0, triggersCombat false), the-boneway (land, no castle, triggersCombat false), the-reach (land, castleLevel=1, castleAreasGainedIfCaptured=1, triggersCombat false). All have no combat currently (no enemy units). So moving into the-reach will capture a castle area without combat, giving us a castle area. We also could move into storms-end (we already control it) just to vacate kingswood maybe. We also can leave a power token to keep control of kingswood if we vacate all units; we have 3 power tokens available. If we move both units out and leave token, we preserve the control (kingwood has no castle but still a land area; losing it might reduce land area count which matters for tie-breaker after round 10 (but not immediate). However castle count? Kingswood has no castle, so not losing castle areas. However we might want to keep control for future connectivity.\n\nSupply: our supply track is 2, which permits armies of sizes per table: supply 2 permits armies sizes 3,2,2 (army slots). Currently we have two units in Kingswood (footman and knight) = an army of size 2 (counts as an army). Also we have other armies elsewhere; we need to ensure after moving we do not exceed supply limits. Let's list our current armies before move.\n\nMartell units: from board:\n- Kingswood: footman (id 25) and knight (26) => army size 2.\n- Sunspear: footman id36 (single unit) = not an army.\n- Sea of Dorne: ship id24 (single ship) = not army.\n- Storms-End: footman id35 (single) => not army.\n- Yronwood: footman id27 (single).\n- Plus any other units? Those are all Martell units listed. Also we have a power token at Salt Shore (control token). That's not a unit.\n\nSupply 2 allows up to 3 armies with sizes 3,2,2. Currently we have 1 army (size 2). After moving, if we split across destinations, we might create additional armies. Let's see possible moves.\n\nOption 1: Move both units to The Reach (capture castle). That would leave Kingswood empty; we can place a power token (cost 1) to keep control. Then we would have an army at The Reach: footman+knight together => size2 army (in a castle area). That's still one army. No other armies created. Supply fine.\n\nOption 2: Move both units to Storms-End (already ours). That would leave Kingswood empty, could leave token. Then we would have footman+knight in Storms-End, together with existing footman id35? Actually Storms-End currently has footman id35 (martell). So moving both would create three units there: could be considered an army of size 3 (since 3 units). That's okay (size 3 <= allowed). Still one army.\n\nOption 3: Move one unit to Storms-End, other to The Reach. That would create army at Storms-End (maybe 2 units: footman id35 + one moved unit) size2 army, plus army at The Reach size1 (since only one unit). That would be two armies size2 and size1; still okay. But we might lose claim on The Reach castle? The Reach is a castle (level1). If we move just one unit there, we capture it (since no enemy). We would control a new castle area gaining a castle victory point (castle area). However we must leave a power token in Kingswood if we vacate both units? If we leave one unit in Kingswood (move only one), then we keep Kingswood controlled automatically (no token needed) and still have that castle? Can't have both units? Let's evaluate.\n\nIf we move only the footman to The Reach and leave the knight in Kingswood, then Kingswood still has unit, remains under our control, no token needed. The footman alone in The Reach (without castle? The Reach has a castle, capture with at least one unit gives us control and counts as castle area. So we gain a castle area without losing any. That's attractive.\n\nBut we need to consider supply: leaving knight in Kingswood (army size 1 not an army). The footman at The Reach alone is not an army; still okay. Might be best.\n\nCheck support around The Reach: if we capture without combat, no support needed. It says triggersCombat false, because no enemy units there. So no combat.\n\nThus best move: Move unit id25 (footman) to The Reach, leave knight id26 in Kingswood. No need to leave power token because we still have units. So leave_power_token false.\n\nAlternatively could move both to The Reach but then need token. That would cost a power token (we have 3). But moving both gives us 2 units in castle; still only one army, and we still have Kingswood empty but token preserve land area but not needed for castle count. Might be okay but losing land area might affect tie-breaker later; better to keep both land areas.\n\nThus choose moves list with one move: destination_region_id \"the-reach\", unit_ids [25] (footman). Optionally could also move the other unit elsewhere, but we will keep it, so only one move.\n\nCheck if moving footman alone to The Reach is legal per supply safe unit groups: supplySafeUnitIdGroupsWhenChosenAlone: [[25],[26],[25,26]] So footman alone is okay.\n\nNow ensure we are not violating rule about moving into a region with enemy units (none). Good.\n\nThus final JSON:\n\n{\n \"moves\": [\n   {\"destination_region_id\":\"the-reach\",\"unit_ids\":[25]}\n ],\n \"leave_power_token\": false\n}\n\nMake sure enum for destination_region_id includes the-reach (lowercase with hyphens). In schema enum list: \"storms-end\",\"the-boneway\",\"the-reach\". Use \"the-reach\". Good.\n\nReturn that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_bbq1ez8zhx",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"leave_power_token\": false,\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25]\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 34404,
+    "currentInputSha256": "50aae6d88924bfdb10f6ebcfb983773b32eddfa8e0d111eceb4ef81b9415de51",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 38835,
+        "inputSha256": "36f45683e65f2a7f963d3cbda37ce4c6ea9fdd8f4e41e94a189075f2d398e2c0",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "storms-end",
+                  "the-boneway",
+                  "the-reach"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    25,
+                    26
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "f084621cf57658fcc009e41b4afd00873abad9a93821cb95bcb3ac890bf907ff"
+  }
+}

@@ -1,0 +1,1843 @@
+{
+  "model": "z-ai/glm-5.3-flash",
+  "concurrency": 3,
+  "providerCount": 27,
+  "results": [
+    {
+      "name": "AtlasCloud",
+      "slug": "atlas-cloud",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":400,\"msg\":\"invalid request params\"}', 'provider_name': 'AtlasCloud', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 8.722
+    },
+    {
+      "name": "BaseTen",
+      "slug": "baseten",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 2,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'BaseTen', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.388
+    },
+    {
+      "name": "Cloudflare",
+      "slug": "cloudflare",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756749-OljymrtKRRallIQdVAgn",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 26.639
+    },
+    {
+      "name": "CoreWeave",
+      "slug": "coreweave",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'CoreWeave', 'is_byok': False, 'provider_error_code': 'rate_limit_exceeded', 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.417
+    },
+    {
+      "name": "Crusoe",
+      "slug": "crusoe",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Crusoe', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.169
+    },
+    {
+      "name": "DeepInfra",
+      "slug": "deepinfra",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756832-s4tqoad32vQV1y1FMVcd",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 4.325
+    },
+    {
+      "name": "DigitalOcean",
+      "slug": "digitalocean",
+      "advertisedParameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756738-jfy04wDtHHUR5gtoDQaR",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756740-bBV9zVt0g4tkxfhiS1O8",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 16.633
+    },
+    {
+      "name": "Fireworks",
+      "slug": "fireworks",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Fireworks', 'is_byok': False, 'provider_error_code': 'invalid_request_error', 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.516
+    },
+    {
+      "name": "Friendli",
+      "slug": "friendli",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756737-lKCYthSXTNMqF3egK8Bw",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 12.844
+    },
+    {
+      "name": "GMICloud",
+      "slug": "gmicloud",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756726-crG9Pj3FSZ75M4hvuBUl",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756731-R92cod2SYmG8F66fJZhG",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 11.891
+    },
+    {
+      "name": "InferenceNet",
+      "slug": "inference-net",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756837-RU5E6pB1Aa27FRwmAaeN",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.12
+    },
+    {
+      "name": "Io Net",
+      "slug": "io-net",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756787-ZjksgcfrVTxZNS6uXhv6",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756787-2FhlI3sePQYsbV3r6VIt",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.7
+    },
+    {
+      "name": "Modal",
+      "slug": "modal",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756752-GlLOGsK8HqxbIcHwciW4",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 27.775
+    },
+    {
+      "name": "Near AI",
+      "slug": "near-ai",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Near AI', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing', 'retry_after_seconds': 2, 'retry_after_seconds_raw': 2, 'headers': {'Retry-After': '2'}}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": "2",
+      "responses": [],
+      "elapsedSeconds": 0.477
+    },
+    {
+      "name": "NextBit",
+      "slug": "nextbit",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756750-ZlC9ylOrT4RkimAL5xTu",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756755-JX3Ar4bfKzT8EgNEMngU",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 35.329
+    },
+    {
+      "name": "Novita",
+      "slug": "novita",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "BadRequestError",
+      "error": "Error code: 400 - {'error': {'message': 'Provider returned error', 'code': 400, 'metadata': {'raw': '{\"code\":400, \"reason\":\"INVALID_REQUEST_BODY\", \"message\":\"Model \\'zai-org/glm-5.3-flash\\' does not support \\'json_schema\\' response format. Supported formats: json_object.\", \"metadata\":{}}', 'provider_name': 'Novita', 'is_byok': False}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "responses": [],
+      "elapsedSeconds": 3.264
+    },
+    {
+      "name": "Parasail",
+      "slug": "parasail",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756744-QkrhJJN5bavXIHbMP4wi",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 20.828
+    },
+    {
+      "name": "Phala",
+      "slug": "phala",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756734-Mu8j4aMRTaPuoyFFrNw3",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756741-ZBowb9gd9APPkY5TuljT",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 24.675
+    },
+    {
+      "name": "Reka",
+      "slug": "reka",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756742-DLCoLaGX7PWdVLSBnIMr",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756744-ZuNxgKbxN1xINvHg6DPs",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 19.401
+    },
+    {
+      "name": "Relace",
+      "slug": "relace",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756725-6nNDMA18JkvfnUU4T8vU",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756727-LOHEvoCZjRXsVCnKySoP",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 2.957
+    },
+    {
+      "name": "Sail Research",
+      "slug": "sail-research",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 2,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "errorType": "RateLimitError",
+      "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'z-ai/glm-5.3-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Sail Research', 'is_byok': False, 'provider_error_code': 'no_asap_capacity', 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+      "retryAfter": null,
+      "responses": [],
+      "elapsedSeconds": 0.596
+    },
+    {
+      "name": "SiliconFlow",
+      "slug": "siliconflow",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756738-GT723NFQALQoDsS86Fxk",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756743-kPkZAoZpM255J21ghvLp",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 23.753
+    },
+    {
+      "name": "StreamLake",
+      "slug": "streamlake",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756728-RjVdWfgDOGDRJ8XR5WYY",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756733-KStpOKvNDn33Or8WTTAc",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 12.847
+    },
+    {
+      "name": "Together",
+      "slug": "together",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756742-Hq0mzbDX9pkAdPNtFVol",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 17.295
+    },
+    {
+      "name": "Venice",
+      "slug": "venice",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756746-W8YD4L7qSBuKBkmpGdHv",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 27.325
+    },
+    {
+      "name": "Wafer",
+      "slug": "wafer",
+      "advertisedParameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "completed",
+      "toolCallArguments": [],
+      "toolWasCalled": false,
+      "finalOutput": {
+        "input_value": 21,
+        "doubled_value": 42,
+        "tool_was_used": true
+      },
+      "responses": [
+        {
+          "responseId": "gen-1789756725-ntu1GlYAGUosbcFEvukb",
+          "status": "completed",
+          "outputTypes": [
+            "reasoning",
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 7.415
+    },
+    {
+      "name": "Z.AI",
+      "slug": "z-ai",
+      "advertisedParameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "endpointCount": 1,
+      "model": "z-ai/glm-5.3-flash",
+      "toolChoice": "auto",
+      "outputSchema": {
+        "properties": {
+          "input_value": {
+            "title": "Input Value",
+            "type": "integer"
+          },
+          "doubled_value": {
+            "title": "Doubled Value",
+            "type": "integer"
+          },
+          "tool_was_used": {
+            "const": true,
+            "title": "Tool Was Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_value",
+          "doubled_value",
+          "tool_was_used"
+        ],
+        "title": "DummyResult",
+        "type": "object"
+      },
+      "status": "error",
+      "toolCallArguments": [
+        21
+      ],
+      "toolWasCalled": true,
+      "errorType": "ModelBehaviorError",
+      "error": "Invalid JSON when parsing model output",
+      "responses": [
+        {
+          "responseId": "gen-1789756787-35VavlbPWn28EhCZO10n",
+          "status": "completed",
+          "outputTypes": [
+            "function_call"
+          ],
+          "toolNames": [
+            "double_number"
+          ]
+        },
+        {
+          "responseId": "gen-1789756792-o9IigU76wPvqNRrkerG6",
+          "status": "completed",
+          "outputTypes": [
+            "message"
+          ],
+          "toolNames": []
+        }
+      ],
+      "elapsedSeconds": 10.229
+    }
+  ]
+}

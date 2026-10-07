@@ -1,0 +1,549 @@
+[
+  {
+    "runId": "7117fe67-a05f-41d4-bab5-453f5c8c1193",
+    "durationMs": 60195,
+    "observationActionGuidance": {
+      "decision": "raven-order-replacement",
+      "legalReplacements": [
+        {
+          "regionId": "lannisport",
+          "originalOrderId": 1,
+          "availableOrderIds": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "regionId": "stoney-sept",
+          "originalOrderId": 2,
+          "availableOrderIds": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "regionId": "the-golden-sound",
+          "originalOrderId": 7,
+          "availableOrderIds": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        }
+      ],
+      "safeChoices": [
+        "Choose skip_raven_order_replacement to keep every order.",
+        "Choose inspect_top_wildling_card to use the Raven on the Wildling deck."
+      ]
+    },
+    "actionOutputSchema": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "anyOf": [
+            {
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "inspect_top_wildling_card"
+                  ]
+                }
+              },
+              "title": "inspect_top_wildling_card_args",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action"
+              ],
+              "description": "Use this Messenger Raven opportunity to inspect the top Wildling card. This spends the decision; keeping or burying the revealed card is a subsequent decision."
+            },
+            {
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "replace_raven_order"
+                  ]
+                },
+                "region_id": {
+                  "description": "Region whose order will be replaced.",
+                  "title": "Region Id",
+                  "type": "string",
+                  "enum": [
+                    "lannisport",
+                    "stoney-sept",
+                    "the-golden-sound"
+                  ]
+                },
+                "order_id": {
+                  "description": "Unused physical order token ID to place there.",
+                  "maximum": 15,
+                  "minimum": 1,
+                  "title": "Order Id",
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15
+                  ]
+                }
+              },
+              "required": [
+                "action",
+                "region_id",
+                "order_id"
+              ],
+              "title": "replace_raven_order_args",
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Use the Messenger Raven to replace one of your placed orders with an available order token."
+            },
+            {
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "skip_raven_order_replacement"
+                  ]
+                }
+              },
+              "title": "skip_raven_order_replacement_args",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action"
+              ],
+              "description": "Decline the Messenger Raven opportunity and keep the placed orders."
+            }
+          ]
+        },
+        "strategic_handoff": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Concise private handoff to your future decisions. Record the current goal, ordered dependencies, immediate threats, reserved resources, assumptions that need checking, and why this action advances the plan. Summarize conclusions; omit exploratory second-guessing and facts already obvious from the board."
+        }
+      },
+      "required": [
+        "decision",
+        "strategic_handoff"
+      ],
+      "additionalProperties": false
+    },
+    "firstCalls": [
+      {
+        "arguments": "{\"decision\":\"skip_raven_order_replacement\",\"strategic_handoff\":\"Keep the current orders: March -1 from Lannisport to attack Riverrun and March +0 from Stoney Sept to attack Harrenhal, with Support from The Golden Sound. These orders already support our plan to capture two castle/stronghold areas, and no replacement is needed now.\"}",
+        "call_id": "014ce80e4",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_ralbrbgtweb",
+        "status": "completed"
+      },
+      {
+        "call_id": "014ce80e4",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: 'skip_raven_order_replacement' is not valid under any of the given schemas\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"decision\":\"skip\",\"strategic_handoff\":\"Keeping current orders; skip Raven Order replacement as we already have optimal orders for capturing Riverrun and Harrenhal.\"}",
+        "call_id": "890d00f35",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_sjrpnfjf19t",
+        "status": "completed"
+      },
+      {
+        "call_id": "890d00f35",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: 'skip' is not valid under any of the given schemas\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "lastCalls": [
+      {
+        "arguments": "{\"decision\":\"skip_raven_order_replacement\",\"strategic_handoff\":\"Keep current orders; they already support capture of Riverrun and Harrenhal; no replacement needed.\"}",
+        "call_id": "b323af084",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_ui062tejiu",
+        "status": "completed"
+      },
+      {
+        "call_id": "b323af084",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: 'skip_raven_order_replacement' is not valid under any of the given schemas\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"decision\":{\"action\":\"skip_raven_order_replacement\"},\"strategic_handoff\":\"Keep current orders; they already support plan to capture Riverrun and Harrenhal. No replacement needed.\"}",
+        "call_id": "568223010",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_a4clwptom9m",
+        "status": "completed"
+      },
+      {
+        "call_id": "568223010",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"skip_raven_order_replacement\", \"stateId\": \"8f510613-7e96-4c52-a7bd-5412623742f1\"}",
+        "type": "function_call_output"
+      }
+    ]
+  },
+  {
+    "runId": "973e8175-07a1-4f9d-b70b-c46db002431a",
+    "durationMs": 63492,
+    "observationActionGuidance": {
+      "decision": "march",
+      "legalOrderRegions": [
+        {
+          "regionId": "the-stony-shore",
+          "orderId": 2,
+          "order": "March +0",
+          "unitIds": [
+            2
+          ],
+          "castleAreasLostIfEmptiedWithoutToken": 0,
+          "reachableRegions": [
+            {
+              "regionId": "winterfell",
+              "type": "land",
+              "castleLevel": 2,
+              "castleAreasGainedIfCaptured": 0,
+              "garrison": 2,
+              "controller": "stark",
+              "triggersCombat": false,
+              "neutralForce": null,
+              "supplySafeUnitIdGroupsWhenChosenAlone": [
+                [
+                  2
+                ]
+              ]
+            }
+          ],
+          "canLeavePowerToken": true
+        }
+      ],
+      "constraints": [
+        "Each unit ID may be moved at most once.",
+        "At most one destination may trigger combat.",
+        "Use only destinations listed for the selected starting region.",
+        "Move groups are processed in list order. Every group must fit Supply after the earlier groups."
+      ],
+      "safePass": "An empty moves list discards the selected March order without moving units or spending a control token."
+    },
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {},
+            "required": [],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        },
+        "strategic_handoff": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Concise private handoff to your future decisions. Record the current goal, ordered dependencies, immediate threats, reserved resources, assumptions that need checking, and why this action advances the plan. Summarize conclusions; omit exploratory second-guessing and facts already obvious from the board."
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token",
+        "strategic_handoff"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. submit_action resolves this one order; another remaining order is a later decision."
+    },
+    "firstCalls": [
+      {
+        "arguments": "{\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[2]}],\"leave_power_token\":true,\"strategic_handoff\":\"Move Stark knight from The Stony Shore to Winterfell, leaving a power token to preserve control of The Stony Shore and retain its castle. This keeps our castle count while consolidating forces at Winterfell.\"}",
+        "call_id": "7408c51ab",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_cjqs144re9i",
+        "status": "completed"
+      },
+      {
+        "call_id": "7408c51ab",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: Additional properties are not allowed ('destination_region_id', 'unit_ids' were unexpected)\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"moves\":[{\"regionId\":\"winterfell\",\"unitIds\":[2]}],\"leave_power_token\":true,\"strategic_handoff\":\"Move Stark knight from The Stony Shore to Winterfell, leaving a power token to preserve control of The Stony Shore and retain its castle. Consolidate forces at Winterfell.\"}",
+        "call_id": "fbed73302",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_g4gec2sbhv",
+        "status": "completed"
+      },
+      {
+        "call_id": "fbed73302",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: Additional properties are not allowed ('regionId', 'unitIds' were unexpected)\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "lastCalls": [
+      {
+        "arguments": "{\"moves\":[{\"unitId\":2}],\"leave_power_token\":true,\"strategic_handoff\":\"Move Stark knight from The Stony Shore to Winterfell, preserving the Stony Shore castle with a power token.\"}",
+        "call_id": "44d6257aa",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_49p9ys2g679",
+        "status": "completed"
+      },
+      {
+        "call_id": "44d6257aa",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: Additional properties are not allowed ('unitId' was unexpected)\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"moves\":[],\"leave_power_token\":false,\"strategic_handoff\":\"Discard the March order at The Stony Shore, keeping the knight in place and preserving our current position.\"}",
+        "call_id": "f8db65b6a",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_0zbxodi1pry",
+        "status": "completed"
+      },
+      {
+        "call_id": "f8db65b6a",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"a6ff36de-0bd9-459c-9e35-b00c925e1619\"}",
+        "type": "function_call_output"
+      }
+    ]
+  },
+  {
+    "runId": "86fee893-a09e-4fdf-a0f7-7334e31004b8",
+    "durationMs": 15498,
+    "observationActionGuidance": {
+      "decision": "march",
+      "legalOrderRegions": [
+        {
+          "regionId": "the-reach",
+          "orderId": 3,
+          "order": "March +1",
+          "unitIds": [
+            13
+          ],
+          "castleAreasLostIfEmptiedWithoutToken": 1,
+          "reachableRegions": [
+            {
+              "regionId": "blackwater",
+              "type": "land",
+              "castleLevel": 0,
+              "castleAreasGainedIfCaptured": 0,
+              "garrison": 0,
+              "controller": null,
+              "triggersCombat": false,
+              "neutralForce": null,
+              "supplySafeUnitIdGroupsWhenChosenAlone": [
+                [
+                  13
+                ]
+              ]
+            },
+            {
+              "regionId": "kingswood",
+              "type": "land",
+              "castleLevel": 0,
+              "castleAreasGainedIfCaptured": 0,
+              "garrison": 0,
+              "controller": "baratheon",
+              "triggersCombat": false,
+              "neutralForce": null,
+              "supplySafeUnitIdGroupsWhenChosenAlone": [
+                [
+                  13
+                ]
+              ]
+            },
+            {
+              "regionId": "searoad-marches",
+              "type": "land",
+              "castleLevel": 0,
+              "castleAreasGainedIfCaptured": 0,
+              "garrison": 0,
+              "controller": null,
+              "triggersCombat": false,
+              "neutralForce": null,
+              "supplySafeUnitIdGroupsWhenChosenAlone": [
+                [
+                  13
+                ]
+              ]
+            }
+          ],
+          "canLeavePowerToken": true
+        }
+      ],
+      "constraints": [
+        "Each unit ID may be moved at most once.",
+        "At most one destination may trigger combat.",
+        "Use only destinations listed for the selected starting region.",
+        "Move groups are processed in list order. Every group must fit Supply after the earlier groups."
+      ],
+      "safePass": "An empty moves list discards the selected March order without moving units or spending a control token."
+    },
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "blackwater",
+                  "kingswood",
+                  "searoad-marches"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        },
+        "strategic_handoff": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Concise private handoff to your future decisions. Record the current goal, ordered dependencies, immediate threats, reserved resources, assumptions that need checking, and why this action advances the plan. Summarize conclusions; omit exploratory second-guessing and facts already obvious from the board."
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token",
+        "strategic_handoff"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. submit_action resolves this one order; another remaining order is a later decision."
+    },
+    "firstCalls": [
+      {
+        "arguments": "{\"area\":\"blackwater\"}",
+        "call_id": "bad310076",
+        "name": "check_neighbours",
+        "type": "function_call",
+        "id": "fc_tmp_7czxdf4wdli",
+        "status": "completed"
+      },
+      {
+        "call_id": "bad310076",
+        "output": "[{\"id\": \"crackclaw-point\", \"name\": \"Crackclaw Point\", \"owner\": \"baratheon\", \"type\": \"land\", \"castleLevel\": 1, \"supplyIcons\": 0, \"crownIcons\": 0, \"garrison\": 0, \"isBlocked\": false, \"units\": [{\"id\": 9, \"type\": \"footman\", \"owner\": \"baratheon\", \"wounded\": false}], \"visibleOrder\": {\"id\": 7, \"name\": \"Support +0\"}}, {\"id\": \"harrenhal\", \"name\": \"Harrenhal\", \"owner\": \"lannister\", \"type\": \"land\", \"castleLevel\": 1, \"supplyIcons\": 0, \"crownIcons\": 1, \"garrison\": 0, \"isBlocked\": false, \"units\": [{\"id\": 8, \"type\": \"footman\", \"owner\": \"lannister\", \"wounded\": false}], \"visibleOrder\": {\"id\": 6, \"name\": \"Defense +2 starred\"}}, {\"id\": \"kings-landing\", \"name\": \"King's Landing\", \"owner\": null, \"type\": \"land\", \"castleLevel\": 2, \"supplyIcons\": 0, \"crownIcons\": 2, \"garrison\": 5, \"isBlocked\": false, \"units\": [], \"visibleOrder\": null}, {\"id\": \"searoad-marches\", \"name\": \"Searoad Marches\", \"owner\": null, \"type\": \"land\", \"castleLevel\": 0, \"supplyIcons\": 1, \"crownIcons\": 0, \"garrison\": 0, \"isBlocked\": false, \"units\": [], \"visibleOrder\": null}, {\"id\": \"stoney-sept\", \"name\": \"Stoney Sept\", \"owner\": \"lannister\", \"type\": \"land\", \"castleLevel\": 0, \"supplyIcons\": 0, \"crownIcons\": 1, \"garrison\": 0, \"isBlocked\": false, \"units\": [], \"visibleOrder\": null}, {\"id\": \"the-reach\", \"name\": \"The Reach\", \"owner\": \"baratheon\", \"type\": \"land\", \"castleLevel\": 1, \"supplyIcons\": 0, \"crownIcons\": 0, \"garrison\": 0, \"isBlocked\": false, \"units\": [{\"id\": 13, \"type\": \"footman\", \"owner\": \"baratheon\", \"wounded\": false}], \"visibleOrder\": {\"id\": 3, \"name\": \"March +1\"}}]",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"area\":\"the-reach\"}",
+        "call_id": "6ffbe24bb",
+        "name": "reachable_areas",
+        "type": "function_call",
+        "id": "fc_tmp_f0cz3994g8n",
+        "status": "completed"
+      },
+      {
+        "call_id": "6ffbe24bb",
+        "output": "{\"houseId\": \"baratheon\", \"source\": {\"id\": \"the-reach\", \"name\": \"The Reach\", \"type\": \"land\"}, \"movementType\": \"land\", \"destinations\": [{\"id\": \"blackwater\", \"name\": \"Blackwater\", \"type\": \"land\", \"route\": [\"the-reach\", \"blackwater\"], \"transportShips\": []}, {\"id\": \"kings-landing\", \"name\": \"King's Landing\", \"type\": \"land\", \"route\": [\"the-reach\", \"kings-landing\"], \"transportShips\": []}, {\"id\": \"kingswood\", \"name\": \"Kingswood\", \"type\": \"land\", \"route\": [\"the-reach\", \"kingswood\"], \"transportShips\": []}, {\"id\": \"searoad-marches\", \"name\": \"Searoad Marches\", \"type\": \"land\", \"route\": [\"the-reach\", \"searoad-marches\"], \"transportShips\": []}]}",
+        "type": "function_call_output"
+      }
+    ],
+    "lastCalls": [
+      {
+        "arguments": "{\"moves\":[{\"destination_region_id\":\"blackwater\",\"unitIds\":[13]}],\"leave_power_token\":true,\"strategic_handoff\":\"Capture Blackwater to gain 2 supply icons, increase supply track, and leave a power token to retain control of The Reach castle. This improves supply capacity for future expansion while preserving our existing castle.\"}",
+        "call_id": "204e06df1",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_j12a9vo3num",
+        "status": "completed"
+      },
+      {
+        "call_id": "204e06df1",
+        "output": "{\"accepted\": false, \"error\": \"Invalid action: Additional properties are not allowed ('unitIds' was unexpected)\", \"instruction\": \"Correct the arguments and call submit_action again.\"}",
+        "type": "function_call_output"
+      },
+      {
+        "arguments": "{\"moves\":[{\"destination_region_id\":\"blackwater\"}],\"leave_power_token\":true,\"strategic_handoff\":\"Capture Blackwater to gain 2 supply icons, increase supply track, and retain control of The Reach castle with a power token.\"}",
+        "call_id": "11e8f8112",
+        "name": "submit_action",
+        "type": "function_call",
+        "id": "fc_tmp_qqfziqplsw",
+        "status": "completed"
+      },
+      {
+        "call_id": "11e8f8112",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"de8295c7-33bd-40c3-927c-644f9eb40f29\"}",
+        "type": "function_call_output"
+      }
+    ]
+  }
+]

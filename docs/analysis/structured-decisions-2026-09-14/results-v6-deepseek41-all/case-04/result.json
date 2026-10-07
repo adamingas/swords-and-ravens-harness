@@ -1,0 +1,195 @@
+{
+  "case": 4,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "stark",
+  "round": 10,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 10975,
+    "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "previousAttemptError": null,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "moat-cailin",
+      "moves": [
+        [
+          "seagard",
+          [
+            48
+          ]
+        ],
+        [
+          "white-harbor",
+          [
+            55
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]},{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[55]}]}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 40548,
+    "outputTokens": 4994,
+    "totalTokens": 45542
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 40548,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 4994,
+      "output_tokens_details": {
+        "reasoning_tokens": 4827
+      },
+      "total_tokens": 45542,
+      "cost": 0.0122166,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0122166,
+        "upstream_inference_input_cost": 0.00892056,
+        "upstream_inference_output_cost": 0.00329604
+      },
+      "scope": "agent",
+      "response_id": "gen-1789427173-Xuehs0n8isLt86ROBahI",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "fireworks",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789427173-Xuehs0n8isLt86ROBahI",
+      "output": [
+        {
+          "id": "rs_tmp_2szemac50ob",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze this. Round 10, Stark at Moat Cailin with knights 48 and 55. Options include Seagard (castle=2, gain 1 castle area, no combat) and White Harbor (castle=1, gain 1 area, no combat).\n\nCurrently Stark controls 2 castle areas (castle-black, winterfell... wait winterfell is stronghold, castle-black is castle). Actually controlledCastleAreas: 2. Winterfell (stronghold) + Castle Black (castle) = 2. Moat Cailin is a castle=1 region but is it counted? Moat Cailin has castle=1. Hmm, controlledCastleAreas says 2. Wait region list: bay-of-ice, castle-black, winterfell, port-of-winterfell, the-shivering-sea, moat-cailin. Initial strategic overview says castles:2, strongholds:1. So castle areas = 3? Let me re-read: \"stark: castles:2, strongholds:1\". The current observation says currentVictoryPoints 2, controlledCastleAreas 2. Hmm confusing.\n\nBut decision note says \"Moat Cailin currently contributes 1 castle area to your score.\" So taking Seagard would give +1 castle area. Moving both knights to Seagard, keeping Moat Cailin empty = lose moat cailin (1) and gain seagard (1). Net zero. Hmm.\n\nWait, can we split? Only one destination may trigger combat, and both Seagard and White Harbor are \"no combat\" (empty). Can we move one knight to Seagard and one to White Harbor? The constraint: \"At most one destination may trigger combat.\" Both don't trigger combat, so we could move to two destinations. But constraint also: each unit ID used at most once. And \"Only one destination may start combat.\"\n\nSo we could send one knight to Seagard (gain castle) and one knight to White Harbor (gain castle), while leaving Moat Cailin empty... losing Moat Cailin. Net +1 castle area. That's better!\n\nWait but leaving Moat Cailin empty loses it. Unless we leave one knight there. But we have only 2 knights. If both move, Moat Cailin empty = lost.\n\nOption: one knight to Seagard, one knight to White Harbor: gain 2 castles, lose 1 (Moat Cailin) = net +1.\n\nAlternative: one knight to Seagard, one stays at Moat Cailin: gain 1 (Seagard), keep Moat Cailin = net +1.\n\nBoth net +1. Which is better? Taking both Seagard and White Harbor gives 2 new areas but loses Moat Cailin. Total land areas: currently 3 land areas. Moat Cailin, castle-black, winterfell = 3 land. Moving both out: lose moat cailin, gain seagard + white harbor => 4 land areas. Castle areas: currently 2 (winterfell + castle-black... and moat cailin? note says moat cailin contributes). Hmm.\n\nActually let me recount. Map: winterfell castle=2 (stronghold), castle-black castle=1, moat-cailin castle=1. So Stark controlled castle areas = winterfell, castle-black, moat-cailin = 3. But observation says controlledCastleAreas 2, castles:2 strongholds:1. Confusing. The observation \"controlledCastleAreas\":2 may be a bug, but decision note explicitly says Moat Cailin contributes 1.\n\nAnyway winning after round 10: \"The tiebreaker priority at the end of round 10: 1) Most total land areas controlled 2) Highest position Supply 3) Highest Iron Throne.\" Actually the game's strategic overview says victory points. Let's think about winning: Lannister has 5, Martell 4. We're at 2. We can't win round 10 outright (need 7). We just want to maximize our position. But more importantly, does taking more castle areas help? At end of round 10, winner determined by victory points (castle areas). Lannister 5 leads. We won't win by overtaking Lannister realistically.\n\nBut our objective is to win. We can't much. Still, maximize.\n\nActually wait — could we win? No, target 7. Lannister 5. We're at 2, can maybe get to 4. Not enough.\n\nRegardless, best play: maximize our castle areas and land areas. Taking both Seagard and White Harbor gives +2 castle areas gain but -1 (moat cailin) = net +1. Taking one + keep moat cailin = net +1. Equivalent for castle count, but land areas differ.\n\nLet's compute land area counts:\n- Option A: both knights move (one Seagard, one White Harbor). Land areas controlled: castle-black, winterfell, seagard, white-harbor = 4. Moat cailin lost.\n- Option B: one knight to Seagard, one stays Moat Cailin. Land: castle-black, winterfell, moat-cailin, seagard = 4.\n\nSame land count. Castle areas:\n- Option A: castle-black, winterfell, seagard, white-harbor = 4 castle areas.\n- Option B: castle-black, winterfell, moat-cailin, seagard = 4 castle areas.\n\nSame! Both 4. Hmm equal.\n\nBut wait, supply. We have supply 1. Supply 1 permits armies: 3,2. Moving single units each is fine. Moving both to one area creates army of 2, fine. Single units fine.\n\nAlso ships: bay-of-ice has a ship (unit 40) with March -1. That's the other march order, resolved separately (another decision). So this decision is just Moat Cailin.\n\nNow consider: could moving one unit to Seagard and one to White Harbor be legal simultaneously? Constraint: up to 2 moves (maxItems 2). Both are non-combat. Should be fine.\n\nBut is there a strategic downside to vacating Moat Cailin? Moat Cailin being empty — no advantage lost beyond castle count. But ties: end-game tiebreakers (from FAQ) use most land areas. Same in both.\n\nHmm, but actually waiting—could we capture Seagard and White Harbor and keep Moat Cailin? We only have 2 units. No.\n\nWhich is preferable? Option A occupies two new areas (Seagard, White Harbor) both giving castles. But White Harbor is adjacent to our stuff. Both equal in counts.\n\nConsider future/retreat implications: not relevant, last round.\n\nOne consideration: leaving Moat Cailin empty could let an opponent take it? No units near. Greyjoy in seagard? No, seagard is empty.\n\nActually another thought: is Seagard neutral force? actionGuidance says controller null, triggersCombat false, neutralForce null. Empty. White Harbor similar.\n\nLet me double-check the reachable list: greywater-watch, seagard, the-twins, white-harbor, winterfell. All empty no combat.\n\nHmm, the simple answer: send both knights to capture Seagard and White Harbor (2 castles), losing Moat Cailin (1). Net +1. Or send one to Seagard and keep Moat Cailin, net +1, and one unit stays defending.\n\nActually think about which yields better standing on \"most castles\". Both give 4. But Option B keeps an army at Moat Cailin (single knight). Option A spreads.\n\nActually wait, could we send both to Seagard? Army of 2 knights at Seagard. Then Moat Cailin empty. Land: castle-black, winterfell, seagard = 3. Worse.\n\nCould we send both to White Harbor, similar worse.\n\nBest is two different destinations or one + stay.\n\nLet me reconsider whether it's possible to gain both while keeping moat cailin... no.\n\nHmm, but what about moving one knight to Seagard and the other knight also... no, only 2 units.\n\nNow, is there benefit to keeping Moat Cailin? It's a castle area (1). Gaining two gives net same. But wait, does Seagard have supply? Seagard supply=1, crown=1. White Harbor no supply. Moat Cailin no supply? moat-cailin listed castle=1, no supply. So supply icons: currently controlled supply icons 1. Seagard gives +1 supply icon. White Harbor 0.\n\nVictory points in this game = castle areas. So gaining 2, losing 1 = net 1 → VP 3? Hmm observation shows VP 2 though.\n\nLet me reconsider: maybe Moat Cailin is not counted because observation says controlledCastleAreas 2 while controlling winterfell (stronghold), castle-black (castle), moat-cailin (castle) = 3. So the game seems to only count 2. Perhaps castle=1 in this variant means... Hmm the note explicitly says \"Moat Cailin currently contributes 1 castle area to your score.\"\n\nConfusing but the note is authoritative-ish: \"Moat Cailin currently contributes 1 castle area to your score. Moving every unit out loses this area.\"\n\nGiven that, moving both out loses 1 and gains 2 (Seagard + White Harbor) = net +1. Keeping one: gains 1 (Seagard), keeps 1 = net +1. Same.\n\nBut the note also warns: \"Keeping at least one unit preserves it.\" Suggesting they'd like us to keep one? Or it's just info.\n\nWhich is strategically better? Consider that if I keep a knight at Moat Cailin and take Seagard with one knight, I get Seagard's supply icon (+1 supply) and its crown. Also I keep moat cailin. Total castle areas gain +1, and I don't lose anything. That seems strictly as good and maybe better because it preserves a castle region.\n\nAlternatively taking both: gain Seagard + White Harbor, lose Moat Cailin. Net +1 castle area but +1 land area too? Let's count land: Option A land areas = castle-black, winterfell, seagard, white-harbor = 4 (moat cailin lost). Option B = castle-black, winterfell, moat-cailin, seagard = 4. Equal.\n\nHmm identical counts. Difference: Option A gives White Harbor castle (1) while forfeiting Moat Cailin (1) — net same but White Harbor is a castle too. Option B keeps Moat Cailin and gains Seagard.\n\nWait they're not identical in castle composition but counts equal.\n\nCould we get MORE? What if we send both knights to two destinations AND... no, moat cailin lost.\n\nHmm, is there any way to get +2 net? Only if Moat Cailin didn't count. But it does.\n\nActually reconsider: maybe better to send both knights to Seagard and White Harbor AND... we can't hold Moat Cailin.\n\nLet me think about whether taking White Harbor matters for defense/adjacency. Not really last round.\n\nActually there's a subtlety: does the game end after this round? Round 10 is the final round. After this action phase ends, game over. So holdings at end. Both options yield same counts. But hmm, one more: could we take Seagard AND White Harbor with the same... no.\n\nWait, what about the second march order (bay-of-ice ship, unit 40)? Ships can't capture land castles. It could move to sunset-sea (greyjoy ship, combat) or port-of-winterfell. That's a separate decision.\n\nSo for Moat Cailin decision, I'll go with capturing both Seagard and White Harbor? Or one + stay?\n\nLet me reconsider the note: \"Check the listed Supply-safe groups before choosing units.\" Fine.\n\nActually, hold on. Is White Harbor \"reachable\" giving castleLevel 1? Yes. But is White Harbor controlled by anyone? controller null. Good, grabbing gives castle area +1 (per castleAreasGainedIfCaptured 1).\n\nSeagard castleAreasGainedIfCaptured 1.\n\nNow think: If I move both knights out, I lose Moat Cailin. But do I lose it? Moat Cailin has no power token and no garrison. When vacated without token, control lost. Yes.\n\nNet castle: -1 +1 +1 = +1.\nAlternative: one to Seagard, one stays: +1 (Seagard), keep Moat Cailin. Net +1.\n\nBoth +1 castle. However, Option B leaves a unit in Moat Cailin which is an army of one (not counted against supply, fine).\n\nBut Option A controls 4 land areas and Option B 4 land areas. Identical.\n\nHmm, but which better defends? None matters.\n\nActually wait, difference: In Option B, I gain Seagard only. In Option A, I gain Seagard + White Harbor but lose Moat Cailin. Both net +1. White Harbor is a castle worth 1, Moat Cailin a castle worth 1. Truly equivalent in VP. But land areas same too.\n\nHmm but what if Moat Cailin isn't actually counted as controlled (obs says 2)? Then Option A would give +2 (Seagard+WhiteHarbor) net while losing a non-counted Moat Cailin = +2! That'd be better. But note explicitly says it counts.\n\nGiven ambiguity, safest choice maximizing is sending both knights to two destinations? If Moat Cailin counts, net +1; if it doesn't count, net +2. Either way not worse. Actually if it counts, equal to option B. If it doesn't count, better. So Option A (both move to two different destinations) weakly dominates!\n\nWait but caution: if Moat Cailin counts and I vacate it, an opponent... no opponent can take it. So no risk. And even in option A, is there risk of losing White Harbor/Seagard? No.\n\nBut hold on: leaving Moat Cailin empty means if some other player's units... none adjacent. Fine.\n\nActually one more subtlety: could moving both knights cause an issue with supply creating a single army? Two separate single units, no. Fine.\n\nSo Option A: moves to Seagard [48] and White Harbor [55]. Wait need to pick which knight. Both knights identical. Fine.\n\nHmm, but is there any reason to prefer keeping a unit at Moat Cailin for defense against a potential attack? No one can attack this round after? Actually action phase continues; other players have marches. Greyjoy? The only nearby: Greyjoy at sunset-sea, pyke. Moat Cailin neighbors: greywater-watch, seagard, the-narrow-sea, the-twins, white-harbor, winterfell. Baratheon ship in the-narrow-sea. Baratheon could march? Possibly. But we're last-ish.\n\nActually if Baratheon attacks Moat Cailin? They'd need land units transported. Unlikely. Low risk.\n\nBut also White Harbor and Seagard captured by us—no one can contest.\n\nI think Option A is good. But let me reconsider: is it actually better to hold Moat Cailin as it's our territory near the front? The game is ending this round, so only final counts matter.\n\nHmm, actually the value of taking White Harbor vs keeping Moat Cailin: identical. Taking both breaks even but adds a threat vector? No.\n\nHowever, the instruction says \"Compare castles gained and lost.\" Gained 2, lost 1. That's still positive.\n\nI'll go with sending both knights to capture Seagard and White Harbor. Actually wait—let me reconsider one more time whether equal land area counts. Option A land areas: castle-black, winterfell, seagard, white-harbor = 4. Option B: castle-black, winterfell, moat-cailin, seagard = 4. Equal.\n\nGiven the tiebreak first criterion is most total land areas, and both equal, and castle counts equal... it truly doesn't matter. But Option A weakly better if Moat Cailin miscounted. Let me confirm Moat Cailin is counted by checking... The observation controlledLandAreas 3 (castle-black, winterfell, moat-cailin). controlledCastleAreas 2. Hmm if moat cailin were counted, castle areas would be 3 (winterfell, castle-black, moat-cailin). It says 2. So maybe castle-black counts... castle-black castle=1, winterfell castle=2, moat-cailin castle=1 → 3. But says 2.\n\nUnless \"castle areas\" counts only... hmm. Or maybe the initial setup: could Stark have lost something. Let's check controlledRegions: bay-of-ice, castle-black, winterfell, port-of-winterfell, the-shivering-sea, moat-cailin. Land: castle-black, winterfell, moat-cailin = 3 land areas. controlledLandAreas 3 ✓. Castle areas among those: all three have castleLevel>0 → 3. But reported 2. Discrepancy.\n\nHmm, maybe the stronghold/castle count in the observation is just VP-based and VP=2? But note says moat cailin contributes 1.\n\nThis discrepancy is worrying. Perhaps the game counts castle areas differently. Let me just query check_neighbours for moat-cailin to see its attributes and control.\n\nActually the map says moat-cailin [land; castle=1]. And it's in controlledRegions. So counted.\n\nMaybe the \"controlledCastleAreas\" field is inaccurate/stale. The decision note is probably generated from authoritative state: \"Moat Cailin currently contributes 1 castle area to your score.\"\n\nSo Option A: lose 1, gain 2 → net +1. Option B: gain 1, keep 1 → net +1. Equal.\n\nGiven equal, I'd prefer to keep Moat Cailin? No strong reason. Let me think about what's more robust: If for some reason one of the captures fails (it won't, no combat), keeping Moat Cailin is safer. Both are non-combat guaranteed.\n\nLet me think about defense: If I vacate Moat Cailin and someone (Baratheon from the-narrow-sea via ship transport to seagard? no) takes it, I'd lose 1 net. But no one can reach within this phase easily.\n\nActually greywater-watch is adjacent to moat-cailin and is neutral/empty; Greyjoy could... no.\n\nI'll go with capturing both to maximize potential (in case Moat Cailin miscounts, +2; if counts, +1). Hmm but there's a risk: if some rule counts captured enemy... no.\n\nActually, wait. Let me reconsider: holding Moat Cailin also gives a land area AND is a castle. Grabbing White Harbor gives a castle but White Harbor is land too. So swapping Moat Cailin for White Harbor is 1:1. Taking Seagard is pure +1. So both options give exactly +1 net. \n\nHmm, unless... What if there's a benefit to controlling White Harbor specifically? White Harbor is a castle=1, Moat Cailin castle=1. Same.\n\nDecision: I'll send one knight to Seagard and one to White Harbor. Actually, let me reconsider tiebreak \"most total land areas controlled\" — equal.\n\nHmm, but actually there might be a consideration: is White Harbor a Stark home-ish area? No.\n\nLet me just verify with check_neighbours on seagard and white-harbor to ensure no hidden units/neutral forces. Also check the-narrow-sea Baratheon ship could support? Not relevant, no combat.\n\nLet me do a couple checks then decide. Actually actionGuidance already says no combat, controller null. I'll trust.\n\nLet me also reconsider: does moving into White Harbor require ship transport? White Harbor shares border with moat-cailin (land adjacency: moat-cailin neighbors include white-harbor). Yes direct land. Seagard neighbors: greywater-watch, ironmans-bay, moat-cailin, riverrun, the-twins. moat-cailin adjacent to seagard ✓.\n\nGood.\n\nNow, one concern: can a single March order move units to two different destinations? Yes: \"Units may move together or separately into several adjacent areas\". And only one destination may have enemies. Fine.\n\nSo final: {\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]},{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[55]}]}\n\nHmm wait, but should I instead keep one knight home to hold Moat Cailin and gain Seagard only? Let me weigh once more. The prompt hints strongly that Moat Cailin counts, and taking both loses it. The net is the same. But there's a subtle difference: If I take White Harbor, I gain a region with no supply. If I keep Moat Cailin, I keep no supply either. Equal.\n\nActually, is there a risk that moving both units and leaving Moat Cailin triggers losing \"a castle\" that counts twice? No.\n\nAlternatively, what about sending one knight to Seagard and the other to... winterfell (no gain). Then Moat Cailin empty and I only gain Seagard, losing Moat Cailin = net 0. Bad.\n\nSo the two good options. I'll pick capturing both because it also increases territory presence and hedge against miscount. But actually, hedging against miscount: if moat cailin truly counts, both equal. If it doesn't count, both option A gives +2 vs B +1. So A dominates weakly. Choose A.\n\nHmm, but is there any scenario where A is worse? Only if White Harbor is somehow not actually capturable or count differently. It's castle=1, gain 1. Fine.\n\nWait, another subtle point: \"Only one destination may start combat.\" White Harbor and Seagard both non-combat. But is moving into an empty area with a power token... controller null, no token. Fine.\n\nAlso constraint \"Move groups are processed in list order. Every group must fit Supply after the earlier groups.\" Singles fine.\n\nLet me quickly use check_neighbours to confirm no surprises (e.g., hidden units). I'll check seagard and white-harbor.\n\nLet me do it.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_ep0rwlaoq4",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"seagard\",\"unit_ids\":[48]},{\"destination_region_id\":\"white-harbor\",\"unit_ids\":[55]}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 35158,
+    "currentInputSha256": "4b6326282f56a2b3584cba34d670a97c359967bea50faa0133c5cdcd3ac5a038",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 39600,
+        "inputSha256": "60eeade1cc46964f4e2384bbd69c6d9e8a2a84b1bb094778bbc05c65e8f8f9bf",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "bay-of-ice",
+            "moat-cailin"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "greywater-watch",
+                  "port-of-winterfell",
+                  "seagard",
+                  "sunset-sea",
+                  "the-twins",
+                  "white-harbor",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    40,
+                    48,
+                    55
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "5cc4934f62cbc60edc928402fda984c45f5296bbe956147a9065ac390b11c565"
+  }
+}

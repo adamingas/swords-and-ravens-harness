@@ -1,0 +1,1677 @@
+{
+  "cases": [
+    {
+      "case": 1,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 1,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 644,
+        "sha256": "e16a41a86117580bebb65bc7b8fae020f85baf3cf65773cceff5e6dfeeddf96d"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "karhold",
+                "unit_ids": [
+                  3
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  3
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "white-harbor",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  3
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 35846,
+        "outputTokens": 389,
+        "totalTokens": 36235
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 35846,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 389,
+          "output_tokens_details": {
+            "reasoning_tokens": 337
+          },
+          "total_tokens": 36235,
+          "cost": 0.01283785,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01283785,
+            "upstream_inference_input_cost": 0.0125461,
+            "upstream_inference_output_cost": 0.00029175
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391266-4ydLPQv4gEBnY2rYhBSx",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391266-4ydLPQv4gEBnY2rYhBSx",
+          "output": [
+            {
+              "id": "rs_tmp_bhe101cbz6d",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to resolve the march for white-harbor (order March +0). Choose destination. Options: castle-black, karhold, moat-cailin, widows-watch, winterfell. We have supply 1, we currently have one unit footman at white-harbor. If we move it to another area, we will vacate white-harbor; can leave power token (canLeavePowerToken true). Need to consider expansion: we have castle-black already controlled, winterfell controlled, we have a ship at shivering sea. Moving footman to winterfell would stack with existing units? winterfell currently has no units (but garrison). Actually winterfell has no units now. Moving footman there would give us a unit at winterfell (already have castle). That gives us army size 1 (single unit) not counted as army. No supply issue. Could also move to castle-black to reinforce there (already have footman+knight). That would make two units there; army size 2 okay supply 1 allows army max size? supply 1 permits armies up to size? Supply track 1 allows army sizes 3,2? Actually supply 1 permits armies sizes 3,2 (from table). So having 2 in castle-black fine. Might help control more adjacent. Probably want to move footman to castle-black to strengthen. No combat. Leave power token at white-harbor (optional). Might be good to leave power token to preserve area for future. Yes canLeavePowerToken true. So we will move unit 3 to castle-black, leave power token true. Use resolve_march tool.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"starting_region_id\":\"white-harbor\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[3]}],\"leave_power_token\":true}",
+              "call_id": "75c805d39",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_6yq4sfzy9sx",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 22288,
+        "currentInputSha256": "82c966eb0492cad059eb37402d7a2eced8a98b0047f42cc1bc586e148342cd9f",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 7,
+            "inputCharacters": 29310,
+            "inputSha256": "f216cdb69b62567ac49789a31d5100011a3fe58e4ec6a52b9e91008e691be0b5",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "028e38049c31f92b168941b2874a56e43a2ce46304612e18e4f8c5c97e159ef9"
+      }
+    },
+    {
+      "case": 2,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 5,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 4052,
+        "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "winterfell",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 100
+              },
+              {
+                "region_id": "bay-of-ice",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "castle-black",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "karhold",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "the-narrow-sea",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "winterfell",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 100
+              },
+              {
+                "region_id": "bay-of-ice",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "castle-black",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "karhold",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "the-narrow-sea",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 60
+              }
+            ]
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "winterfell",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 100
+              },
+              {
+                "region_id": "bay-of-ice",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "castle-black",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "karhold",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "the-narrow-sea",
+                "preferred_order": "support",
+                "starred_preference": "avoid",
+                "priority": 60
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 37814,
+        "outputTokens": 416,
+        "totalTokens": 38230
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 37814,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 416,
+          "output_tokens_details": {
+            "reasoning_tokens": 272
+          },
+          "total_tokens": 38230,
+          "cost": 0.0135469,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0135469,
+            "upstream_inference_input_cost": 0.0132349,
+            "upstream_inference_output_cost": 0.000312
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391268-ldOuToQze8SSlRx75QWw",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391268-ldOuToQze8SSlRx75QWw",
+          "output": [
+            {
+              "id": "rs_tmp_4fgyy780wtp",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to place orders now. Already placed last round. Need new orders for this round. We have 5 regions, no raid allowed, maxStarredOrders 0 (no stars). Must assign one order each. Choose best: likely defense at winterfell? we have only one footman there, could defend. Need to protect castle. Also need consolidate power at bay-of-ice to get power tokens (we have 3 already, max 5?). Could also March? but we have supply 1, cannot move army (need 2 units). We have only one footman at winterfell and one ship at bay-of-ice. No army, cannot march. So likely assign defense at winterfell, consolidate at bay-of-ice, support at castle-black and karhold to help future attacks, maybe support at the-narrow-sea for ship transport? But support doesn't help ships transport? Support orders can support combat, not movement. March not possible. Could assign support to castle-black and karhold to aid future. The narrow sea could be support or consolidate; we already have consolidate at bay-of-ice, maybe support at narrow sea for future combat. No stars. So orders: winterfell defense, bay-of-ice consolidate, castle-black support, karhold support, the-narrow-sea support.\n\nSubmit_orders.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+              "call_id": "6ada9764a",
+              "name": "submit_orders",
+              "type": "function_call",
+              "id": "fc_tmp_tmx73qe6dwa",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 25627,
+        "currentInputSha256": "987d49cc4e5d33bbc3c8d6b5a35f84f2ed49c874832c08bdd537f335dd17b066",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 40943,
+            "inputSha256": "0b92942d1c754472776d974cbb674c8d91b14e9b46a451ecb554fa4c95560e4f",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "74ef42803f0e016712bc9c71a0338c0f4f18c5d1c64a89f8c63cce1e5ad55313"
+      }
+    },
+    {
+      "case": 3,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 7,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 6214,
+        "sha256": "34fe91d3b887510a2583b06cad2f2e00be2d15f330e7a635c4cd3b1b03eb69aa"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  45
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  45
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "winterfell",
+            "moves": [
+              {
+                "destination_region_id": "castle-black",
+                "unit_ids": [
+                  45
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 39862,
+        "outputTokens": 272,
+        "totalTokens": 40134
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 39862,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 272,
+          "output_tokens_details": {
+            "reasoning_tokens": 222
+          },
+          "total_tokens": 40134,
+          "cost": 0.0141557,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0141557,
+            "upstream_inference_input_cost": 0.0139517,
+            "upstream_inference_output_cost": 0.000204
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391270-QRj905VUQtkSBJ4soH2Q",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391270-QRj905VUQtkSBJ4soH2Q",
+          "output": [
+            {
+              "id": "rs_tmp_6vifvhfcxcj",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to resolve march. Must choose moves. From actionGuidance reachableRegions list. We have unit id 45 (knight) at winterfell. Options include many. Need to consider strategy. Stark low supply, only one army allowed size? supply=1 means can have up to two armies of size 2 each? Actually supply 1 permits 2,2. Currently have one knight at winterfell alone (army size 1 not counted). If we move into enemy area triggers combat. Likely attack Greywater Watch (controlled by Greyjoy) to try capture? But combat may be tough. Could move to castle-black (own) no combat, just move. Might want to expand towards castle-black to consolidate? But we have support orders at castle-black and karhold already placed. March order must move units; could move knight to castle-black (friendly) no combat, then later maybe support? Probably safe pass? But must resolve march. Could move knight to castle-black (friendly) no combat, leave power token? leave_power_token false. That's legal. Let's do that.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"starting_region_id\":\"winterfell\",\"moves\":[{\"destination_region_id\":\"castle-black\",\"unit_ids\":[45]}],\"leave_power_token\":false}",
+              "call_id": "dd937729e",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_2ojpme35isu",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 33210,
+        "currentInputSha256": "31cbbb2b9a045c04631940838d5f3ee2bfd552cef97d59370f2ecc5aa88d1db6",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 52774,
+            "inputSha256": "38e464f5a50ed274fa9b60649869fb7f898ef8d0b47ce54bf06a2759202e170b",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "56e2cda05f77423337d5b6e3e2a827d1d8176de58711421308740124b8a9a30c"
+      }
+    },
+    {
+      "case": 4,
+      "model": "openai/gpt-oss-120b",
+      "house": "stark",
+      "round": 10,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 10975,
+        "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  48,
+                  55
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "bay-of-ice",
+            "moves": [
+              {
+                "destination_region_id": "port-of-winterfell",
+                "unit_ids": [
+                  40
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "bay-of-ice",
+            "moves": [
+              {
+                "destination_region_id": "port-of-winterfell",
+                "unit_ids": [
+                  40
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 38751,
+        "outputTokens": 800,
+        "totalTokens": 39551
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38751,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 800,
+          "output_tokens_details": {
+            "reasoning_tokens": 745
+          },
+          "total_tokens": 39551,
+          "cost": 0.01416285,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01416285,
+            "upstream_inference_input_cost": 0.01356285,
+            "upstream_inference_output_cost": 0.0006
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391272-EzvrEm1fEJuXUsWbUXNu",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391272-EzvrEm1fEJuXUsWbUXNu",
+          "output": [
+            {
+              "id": "rs_tmp_qcmowk33opb",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to resolve the current march order. The pendingDecision is resolve-single-march for Stark. Action guidance shows legal destinations for each starting region. We have two march orders: at moat-cailin and bay-of-ice (both assigned). Need to resolve one order now. Choose moves. Must be legal according to actionGuidance. Also can choose to pass (safePass). But we likely want to advance. Evaluate: At moat-cailin we have knights (48,55). Destinations include greywater-watch, seagard, the-twins, white-harbor, winterfell. All are land. Our supply is 1, we already have two armies? Currently Stark units: at moat-cailin (2 knights), at bay-of-ice (ship), at castle-black (knight, footman, knight), at the-shivering-sea (ship). Also at winterfell no units. Supply 1 means allowed armies: per supply table 1 => permitted army sizes 3,2. Currently armies: castle-black area has 3 units (knight, footman, knight) = army size 3. bay-of-ice ship is single unit, not army. the-shivering-sea ship also single. moat-cailin has 2 knights = army size 2. So we have two armies: sizes 3 and 2, within supply (max one 3 and one 2). If we move knights out of moat-cailin, that area would be empty; we could leave power token? canLeavePowerToken false per guidance. Leaving would vacate area, we cannot leave token. So knights must move somewhere; after moving, they may form new army. Need to ensure supply not exceeded. If we move both knights to same destination, that's army size 2 still okay. If split to two destinations, each would be single unit not army. That's fine. Choose a destination maybe to attack? Any of those have enemy units? greywater-watch has no units? Actually greywater-watch currently no units (none listed). seagard has no units? It has no units listed? Actually seagard is owned by Lannister? control token none. No units. the-twins no units. white-harbor no units. winterfell is our home area, currently no units but garrison present. Moving into winterfell would be moving into our own home area (occupied by garrison) but no enemy units; that's allowed and no combat. Could also consider moving into winterfell to consolidate control? Might be good to protect winterfell. However we already control winterfell (home). No need. Maybe moving to greywater-watch to expand influence. No enemy units there, but also no castles. Not urgent.\n\nBay-of-ice has ship unit id 40. Destinations are port-of-winterfell (port) and sunset-sea (sea with enemy ship). Port-of-winterfell is our port, moving into port does not trigger combat. Sunset-sea has enemy ship (greyjoy). That would trigger combat (ship vs ship). Could be risky. Better to move into port-of-winterfell to bring ship closer to winterfell perhaps for future transport. That's allowed. Let's move ship to port-of-winterfell.\n\nThus we need to call resolve_march for starting_region_id \"bay-of-ice\" with move ship id 40 to destination \"port-of-winterfell\". leave_power_token false.\n\nWe also still have moat-cailin pending? After this action, the system will likely again ask to resolve next march order. So we do one order now.\n\nProceed.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"starting_region_id\":\"bay-of-ice\",\"moves\":[{\"destination_region_id\":\"port-of-winterfell\",\"unit_ids\":[40]}],\"leave_power_token\":false}",
+              "call_id": "be1b0de55",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_jua1x59bkhi",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 29432,
+        "currentInputSha256": "133e7eefe9c23fdba0f46502f18c90e45ffdd6ccf4d8809a1fa1afa36bcedd65",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 51235,
+            "inputSha256": "9524ac16848fd93320ac2a53bd505b5bfe73a516889d31620b473ff97c391517",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "c6efe6f6c969d3b52fc135f0b786f9091cca3af0086a7b719f7a089b5c334f7c"
+      }
+    },
+    {
+      "case": 6,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 3,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 2344,
+        "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "kingswood",
+            "moves": [
+              {
+                "destination_region_id": "storms-end",
+                "unit_ids": [
+                  25,
+                  26
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "kingswood",
+            "moves": [
+              {
+                "destination_region_id": "the-reach",
+                "unit_ids": [
+                  25,
+                  26
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "kingswood",
+            "moves": [
+              {
+                "destination_region_id": "the-reach",
+                "unit_ids": [
+                  25,
+                  26
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 38667,
+        "outputTokens": 652,
+        "totalTokens": 39319
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 38667,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 652,
+          "output_tokens_details": {
+            "reasoning_tokens": 598
+          },
+          "total_tokens": 39319,
+          "cost": 0.01402245,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01402245,
+            "upstream_inference_input_cost": 0.01353345,
+            "upstream_inference_output_cost": 0.000489
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391283-TEaiZTUz3MrZ4dISAPt3",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391283-TEaiZTUz3MrZ4dISAPt3",
+          "output": [
+            {
+              "id": "rs_tmp_00w2xyettiap",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to resolve the current march order at kingswood. ActionGuidance shows reachable regions: storms-end, the-boneway, the-reach. We have 2 units footman and knight. No combat triggered as those areas have no enemy units. We can move them. Must consider supply: Martell supply 2, currently control areas with supply icons total 3 (sunspear 1, storms-end 1, yronwood 1, salt-shore 1, kingswood 1?). Actually supply icons: sunspear has supply 1, storms-end 1, yronwood 1, salt-shore 1, kingswood 1 =5 supply icons controlled but supply track is 2, meaning we can have up to 4 armies: sizes 3,2,2,2. Currently armies? Units: kingswood footman+knight (army size2), storms-end footman (army size1 single unit not army), yronwood footman (size1), salt-shore none, seas none. So armies count: one army of 2, others singles not count. Supply ok.\n\nWe must choose move. Likely advance towards opponent stronghold? Martell goal maybe target Iron Throne? Probably push towards Storm's End to attack Lannister? Storm's End is owned by Martell currently control token there, but moving there doesn't change. Maybe move to the Reach to approach Lannister's Lannisport? The Reach is land adjacent to Kingswood, controlled by no one currently. It is a key region with castle? Reach is land no castle? Actually The Reach is a region (no castle). It could be used as staging. No enemy units.\n\nConsider future attacks: We might want to threaten Lannisport via The Reach then to Lannisport? Lannisport is controlled by Lannister with units. The Reach adjacent to Lannisport? Yes Reach connects to Lannisport. So moving to The Reach positions us to later march into Lannisport. That seems strategic.\n\nThus resolve march: move both units from Kingswood to The Reach. No combat. Should we leave power token? We vacate Kingswood (no units). Can we leave power token? ActionGuidance says canLeavePowerToken true. Should we? Might want to keep control of Kingswood as supply icon? Kingswood has supply=1 and is a castle? Actually castle=0? It is land with supply=1, no castle. Leaving power token could give us control of supply icon for future. But we might need to control supply icons anyway. Keeping token gives us extra supply icons? Already have many. Could be useful. However we already have control of supply icons in the region anyway maybe we want to keep it. Let's leave power token true.\n\nThus call resolve_march with moves to the-reach, unit_ids [25,26], leave_power_token true.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"starting_region_id\":\"kingswood\",\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":true}",
+              "call_id": "e900b75be",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_v3yx56dcuu8",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 29274,
+        "currentInputSha256": "6d9d0d4faf41d4962c0f36c82e335f10902d82d7fedf4a5d98409218dc06e34a",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 47328,
+            "inputSha256": "d25e064344ee4f87a6b7c8c5d414f0ccd3dd0900b138c268cee28b90ea223648",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "17c2937f93ff38f61fa498798d090cd3cdb37a2587b9863a8de6da3576de3e05"
+      }
+    },
+    {
+      "case": 8,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 6,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 5162,
+        "sha256": "9b2b05b1d8e3992c36d813d29eee1dade1cc72717d2612d51a4c13ce3b37d245"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "moat-cailin",
+            "moves": [
+              {
+                "destination_region_id": "winterfell",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ],
+            "leave_power_token": true
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 39096,
+        "outputTokens": 716,
+        "totalTokens": 39812
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 39096,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 716,
+          "output_tokens_details": {
+            "reasoning_tokens": 661
+          },
+          "total_tokens": 39812,
+          "cost": 0.0142206,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0142206,
+            "upstream_inference_input_cost": 0.0136836,
+            "upstream_inference_output_cost": 0.000537
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391286-IfkcYBkXykNsEsLcMN6u",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391286-IfkcYBkXykNsEsLcMN6u",
+          "output": [
+            {
+              "id": "rs_tmp_atochyes4b7",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to resolve the March order from Moat Cailin. Options listed: reachable regions include greywater-watch, seagard, the-twins, white-harbor, winterfell (combat). Must choose one. We have knights at Moat Cailin (2). Our supply is 3, currently we have? Units: knights 2 in Moat Cailin, footman in Greywater Watch, ship in Ironman's Bay, ship in Port of Pyke. No armies? Knights in Moat Cailin count as army of 2 units -> size 2. Supply 3 allows armies sizes 3,2,2,2. So okay. If we move knights to another area, may create new army. Consider strategic: we want to expand toward castles. Moat Cailin adjacent to Greywater Watch (has our footman), Seagard (controlled), The Twins (neutral), White Harbor (neutral), Winterfell (enemy stronghold - combat). Likely we want to attack Winterfell? That is a stronghold, gives castle? Winterfell is a castle? It has castle=2 stronghold. Yes stronghold. Capturing would give us 5th stronghold. However combat with Stark defender. Let's assess combat strength: Our knights 2 units strength each 2 => 4. March order is March +0 (no modifier). Support from adjacent? Support orders: Greywater Watch has a Support order (our own). It can support us. Units there: footman (strength1). Support order gives combat strength of units in that area. Since we own both, we can support ourselves. So support adds 1. Also other supports? Adjacent areas with support: Seagard has no order now (we moved March order earlier). The Twins no order. White Harbor none. So total initial combat strength attacker: units 4 + support 1 =5. Defender Winterfell has garrison 2 plus 1 footman (strength1). Defense order provides +1. So defender strength: units 1 + garrison2 + defense+1 =4. No support for defender maybe none. So attacker wins. Sword icons from our house card? We have house cards available; we must play a house card. We have Euron Crow's Eye (strength4 swords1) etc. We can use that for extra sword. So we could likely take Winterfell. That gives us a stronghold (5th). Also we could then control the area. Must consider supply after moving knights into enemy area: they'd be in an army of 2 units, still okay. We also need to leave power token? If we vacate Moat Cailin (no units) we can leave a control token? Moat Cailin has no castle/stronghold, but we could leave power token if we have available power (we have 8). That would give us control of Moat Cailin (maybe useful). Yes we should leave token.\n\nThus choose move to Winterfell, initiate combat. Use leave_power_token true.\n\nWe must call resolve_march with moves destination winterfell, unit_ids [6,37]. Ensure leave_power_token true.\n\nLet's do that.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}",
+              "call_id": "5de5dc166",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_295ifmoec2k",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 30518,
+        "currentInputSha256": "101e9f126742d421ed9fc16e71049898ea4d02dce4490d05618ee62d487bb507",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 52668,
+            "inputSha256": "e936472b663e02fda89c2bf1e407c0ab0461fb851a6ec7a83b2988ded587c298",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "968daa339ba04d867a9afa90fb77635c71f9b17ee5fb2ddf2286860330bd082d"
+      }
+    },
+    {
+      "case": 10,
+      "model": "~deepseek/deepseek-v4-flash-latest",
+      "house": "martell",
+      "round": 3,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 3054,
+        "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [
+              {
+                "destination_region_id": "starfall",
+                "unit_ids": [
+                  27
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "resolve_march",
+          "arguments": {
+            "starting_region_id": "princes-pass",
+            "moves": [
+              {
+                "destination_region_id": "starfall",
+                "unit_ids": [
+                  27
+                ]
+              }
+            ],
+            "leave_power_token": false
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 40600,
+        "outputTokens": 47,
+        "totalTokens": 40647
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 40600,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 47,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 40647,
+          "cost": 0.00569716,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00569716,
+            "upstream_inference_input_cost": 0.005684,
+            "upstream_inference_output_cost": 1.316e-05
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391288-1AQltGWWjP1BfDbxr98O",
+          "response_model": "deepseek/deepseek-v4-flash-0731",
+          "response_provider": "together",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391288-1AQltGWWjP1BfDbxr98O",
+          "output": [
+            {
+              "arguments": "{\"starting_region_id\":\"princes-pass\",\"moves\":[{\"destination_region_id\":\"starfall\",\"unit_ids\":[27]}],\"leave_power_token\":false}",
+              "call_id": "call_01a0a0085fd07b72903ae3d1",
+              "name": "resolve_march",
+              "type": "function_call",
+              "id": "fc_tmp_9y7mjcmc9qp",
+              "status": "completed"
+            },
+            {
+              "id": "msg_tmp_ganauwpxr8i",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "]",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 26277,
+        "currentInputSha256": "0ba57d1fddd60ff04d3057ca68258fa1e7653fb726ca064efaf5ae5e4f30c9d8",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 22,
+            "inputCharacters": 37964,
+            "inputSha256": "2f7a5b8209eef7e9e693341f1ce5b02652fe85bd233f612aa24960b19c30b566",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "31727af38ae2ac21d2f8e37ff405ee6ec9a6fb9f690ac9c133b70512c0a3ce50"
+      }
+    },
+    {
+      "case": 12,
+      "model": "openai/gpt-oss-120b",
+      "house": "martell",
+      "round": 8,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 7190,
+        "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  27,
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "east-summer-sea",
+                "unit_ids": [
+                  24
+                ]
+              },
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "east-summer-sea",
+                "unit_ids": [
+                  24
+                ]
+              },
+              {
+                "region_id": "starfall",
+                "unit_ids": [
+                  46
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 36341,
+        "outputTokens": 185,
+        "totalTokens": 36526
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 36341,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 185,
+          "output_tokens_details": {
+            "reasoning_tokens": 91
+          },
+          "total_tokens": 36526,
+          "cost": 0.0128581,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0128581,
+            "upstream_inference_input_cost": 0.01271935,
+            "upstream_inference_output_cost": 0.00013875
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391300-vtPSE8y5F82G1W3UzjYK",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391300-vtPSE8y5F82G1W3UzjYK",
+          "output": [
+            {
+              "id": "rs_tmp_hemy9o3whvv",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "Need to select units: need to pick 2 units from possibleUnits [24,27,46]. Must select 2 same region? selectedUnitsMustBeOfSameRegion false, can pick any. Probably pick strongest units to keep for combat later. Units: 24 is ship at east-summer-sea. 27 footman at starfall. 46 knight at starfall. Choose ship and knight? pick 24 and 46.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "id": "msg_tmp_8wp9khvsabj",
+              "content": [
+                {
+                  "annotations": [],
+                  "text": "{\"select_units\":{\"selections\":[{\"region_id\":\"east-summer-sea\",\"unit_ids\":[24]},{\"region_id\":\"starfall\",\"unit_ids\":[46]}]}}",
+                  "type": "output_text",
+                  "logprobs": []
+                }
+              ],
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "arguments": "{\"selections\":[{\"region_id\":\"east-summer-sea\",\"unit_ids\":[24]},{\"region_id\":\"starfall\",\"unit_ids\":[46]}]}",
+              "call_id": "5b1344911",
+              "name": "select_units",
+              "type": "function_call",
+              "id": "fc_tmp_sggsknlayme",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 21731,
+        "currentInputSha256": "72112f353a4a77788422a4746afb84ee859a43809eda051179ed2d49f796cf98",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 37045,
+            "inputSha256": "e7df9b15303833d27f9139631e6662e08e42dcb748b7f1c8a3af5db22858d4b3",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "f318230ff527296ed956e10a978af58851454dc1adf334473ce1256b07ba6398"
+      }
+    },
+    {
+      "case": 14,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 2,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 1209,
+        "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 80
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 50
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "march",
+                "starred_preference": "avoid",
+                "priority": 80
+              }
+            ]
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "submit_orders",
+          "arguments": {
+            "assignments": [
+              {
+                "region_id": "pyke",
+                "preferred_order": "defense",
+                "starred_preference": "avoid",
+                "priority": 90
+              },
+              {
+                "region_id": "greywater-watch",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 70
+              },
+              {
+                "region_id": "port-of-pyke",
+                "preferred_order": "consolidate_power",
+                "starred_preference": "avoid",
+                "priority": 60
+              },
+              {
+                "region_id": "ironmans-bay",
+                "preferred_order": "march",
+                "starred_preference": "avoid",
+                "priority": 80
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 34955,
+        "outputTokens": 547,
+        "totalTokens": 35502
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 34955,
+          "input_tokens_details": {
+            "cached_tokens": 28416
+          },
+          "output_tokens": 547,
+          "output_tokens_details": {
+            "reasoning_tokens": 421
+          },
+          "total_tokens": 35502,
+          "cost": 0.0126445,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0126445,
+            "upstream_inference_input_cost": 0.01223425,
+            "upstream_inference_output_cost": 0.00041025
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391302-jNO4icxad2fWkW3kxeco",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391302-jNO4icxad2fWkW3kxeco",
+          "output": [
+            {
+              "id": "rs_tmp_xpahlzx0bbf",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need next action: still in place-orders? pendingDecision type place-orders, we have assigned orders already last round? But now round2 place-orders still need assignments. We have 4 regions, maxStarredOrders 0 (king's court position likely low). Need to place orders for each region. Should pick best orders: we have footman+knight in pyke, footman in greywater-watch, ship in ironmans-bay, ship in port-of-pyke. Likely want march to expand. Choose March +0 for pyke to move? But we have no starred orders, so must use regular. Preference: maybe march from pyke, march from ironmans-bay (ship cannot march land), but can march ship? March orders on sea move ships. Could march from ironmans-bay to adjacent sea areas. Adjacent sea: shipbreaker-bay, blackwater-bay, etc. Might want to attack? Probably want to consolidate power in port-of-pyke and greywater-watch. Let's assign: pypyke defense? Might want defense to protect home. But home is pyke? Home is pyke for Greyjoy. Actually home is pyke. Should defend. So defense order for pyke. Greywater-watch: maybe march to attack? Greywater-watch has footman, adjacent sea? It is land, can march footman/knight to adjacent land like bay-of-ice? That leads to winterfell area. Probably not. Could consolidate power to get power tokens. So choose consolidate power for both greywater-watch and port-of-pyke? Port-of-pyke is a port with ship, can consolidate power to get power. Ironmans-bay: ship, could march to shipbreaker-bay or blackwater-bay. Might want raid? No enemies nearby. Consolidate power there also gives power. So assign: pyke defense, greywater-watch consolidate power, port-of-pyke consolidate power, ironmans-bay march. Need orders list. Use preferred order accordingly. Let's submit.\n\n",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":80}]}",
+              "call_id": "eb53775d7",
+              "name": "submit_orders",
+              "type": "function_call",
+              "id": "fc_tmp_0w8yspx50yr",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 18494,
+        "currentInputSha256": "706a7ec16388847070ef688a214d77702177945d0b0d99f574b9896680ab855b",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 7,
+            "inputCharacters": 25024,
+            "inputSha256": "22649a18f198abfe51d897f33093e2d443472e74fcbda1b418da5afec9ff86e5",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d"
+      }
+    },
+    {
+      "case": 17,
+      "model": "openai/gpt-oss-120b",
+      "house": "greyjoy",
+      "round": 8,
+      "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+      "snapshot": {
+        "id": 7104,
+        "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+      },
+      "snapshotBoardVerified": true,
+      "inputVerified": true,
+      "wireToolsVerified": true,
+      "error": null,
+      "gameToolsExecuted": false,
+      "requestCount": 1,
+      "playerRequestCount": 1,
+      "mapCalls": [],
+      "originalOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "replayOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "allOperations": [
+        {
+          "name": "select_units",
+          "arguments": {
+            "selections": [
+              {
+                "region_id": "greywater-watch",
+                "unit_ids": [
+                  6,
+                  37
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "requests": 1,
+        "inputTokens": 37191,
+        "outputTokens": 154,
+        "totalTokens": 37345
+      },
+      "rawUsage": [
+        {
+          "input_tokens": 37191,
+          "input_tokens_details": {
+            "cached_tokens": 28288
+          },
+          "output_tokens": 154,
+          "output_tokens_details": {
+            "reasoning_tokens": 115
+          },
+          "total_tokens": 37345,
+          "cost": 0.01313235,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.01313235,
+            "upstream_inference_input_cost": 0.01301685,
+            "upstream_inference_output_cost": 0.0001155
+          },
+          "scope": "agent",
+          "response_id": "gen-1789391303-jcopwBKdvz0QdHkCdJ7J",
+          "response_model": "openai/gpt-oss-120b",
+          "response_provider": "cerebras",
+          "service_tier": "auto"
+        }
+      ],
+      "responseItems": [
+        {
+          "type": "partial_model_response",
+          "status": "completed",
+          "responseId": "gen-1789391303-jcopwBKdvz0QdHkCdJ7J",
+          "output": [
+            {
+              "id": "rs_tmp_1ucacbobll",
+              "summary": [],
+              "type": "reasoning",
+              "content": [
+                {
+                  "text": "We need to select units: possibleUnits [7,8,9,6,37], count 2. Must select two units from those ids. Probably want to move knights to attack? Units: id7 ship at port-of-pyke, id8 ship at port-of-pyke, id9 footman at greywater-watch, id6 knight at greywater-watch, id37 knight at greywater-watch. Need same region? selectedUnitsMustBeOfSameRegion false, so any. Choose strongest attacking units maybe knights. Select ids6 and37.",
+                  "type": "reasoning_text"
+                }
+              ],
+              "status": "completed",
+              "format": "unknown"
+            },
+            {
+              "arguments": "{\"selections\":[{\"region_id\":\"greywater-watch\",\"unit_ids\":[6,37]}]}",
+              "call_id": "6a0df1b5d",
+              "name": "select_units",
+              "type": "function_call",
+              "id": "fc_tmp_8cf69twz6ac",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "replayContextManifest": {
+        "policy": "current-observation-only",
+        "historyMode": "current-observation-only",
+        "sessionHistoryLimit": 32,
+        "retrievedHistoryItemCount": 0,
+        "removedHistoryItemCount": 0,
+        "removedHistoryCharacters": 0,
+        "currentInputItemCount": 1,
+        "currentInputCharacters": 24636,
+        "currentInputSha256": "118d01ebaf6c20bba7a10d9608473ae5334d3e2a2cd71fb8e07029132c945de1",
+        "modelRequestInputs": [
+          {
+            "requestIndex": 1,
+            "inputItemCount": 25,
+            "inputCharacters": 42332,
+            "inputSha256": "59080827027fdb663b8cc5195c8713eee69f3ab11b5841949251c1d6362bd3df",
+            "instructionsCharacters": 128087,
+            "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+          }
+        ],
+        "replayRestoredHistoricalContext": true,
+        "historicalInputSha256": "e3f491d10d355cb413809bf1e80193182c0b351c6c1be35f33a9054bd8a39ff5"
+      }
+    }
+  ]
+}

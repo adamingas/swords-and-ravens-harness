@@ -1,0 +1,153 @@
+{
+  "case": 12,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 8,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 7190,
+    "sha256": "fa919bd06df7783eabb48ff098c40fd5ab4d3f7927bebffe8c83a94ba21ae242"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "select-units",
+      "units": [
+        [
+          "east-summer-sea",
+          [
+            24
+          ]
+        ],
+        [
+          "starfall",
+          [
+            27
+          ]
+        ]
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"unit_ids_to_destroy\": [24, 27]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 35759,
+    "outputTokens": 1035,
+    "totalTokens": 36794
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 35759,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1035,
+      "output_tokens_details": {
+        "reasoning_tokens": 1077
+      },
+      "total_tokens": 36794,
+      "cost": 0.0020467,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0020467,
+        "upstream_inference_input_cost": 0.00178795,
+        "upstream_inference_output_cost": 0.00025875
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426676-ATRfVovMwxcnctMTbQir",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426676-ATRfVovMwxcnctMTbQir",
+      "output": [
+        {
+          "id": "rs_tmp_j0m5b4xhis",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to choose which 2 units to destroy among unit IDs 24 (ship in East Summer Sea), 27 (footman in Starfall), 46 (knight in Starfall). Goal: preserve ability to hold and capture castle areas. Starfall contains a castle (castle=1 indicated). So losing units there may affect control. Currently Martell controls Starfall region (controlPowerToken null, but they have footman 27 and knight 46 there). Their garrison is 0. No other units there. They also control surrounding areas: east-summer-sea has ship 24, salt-shore controlled by Martell, storms-end controlled, the-boneway, yronwood, etc. Castle at Starfall - to hold castle you need at least one unit in the area (footman/knight/siege engine) OR control via power token. If you lose both land units, you would have no units, and no power token placed (they didn't have one). Then they'd lose control of the castle. That would reduce castle count from 4 to 3, also lose a land area. Might be bad.\n\nBetter to keep at least one unit in Starfall. Also perhaps keep the ship for transport. Ship in East Summer Sea provides transport linking? Let's see map: east-summer-sea adjacent to port-of-sunspear, salt-shore, sea-of-dorne, storms-end, sunspear, west-summer-sea, starfall (?? Actually starfall is land adjacent to east-summer-sea). Check map: starfall [land] adjacent to east-summer-sea, princes-pass, salt-shore, west-summer-sea, yronwood. So ship in east summer sea can support transport to starfall (if you have land units there). So ship is valuable.\n\nThus we should destroy footman 27 and keep knight 46 and ship 24. Or possibly destroy ship and keep both land units? But losing ship reduces transport capacity. However, currently we have only one ship (24) in east summer sea. We may need ships for later moves. Keep it.\n\nThus select unit IDs 27 (footman) and maybe another? We need 2 units destroyed, so choose footman 27 and ship 24? That would keep knight, but lose ship. Losing ship may hamper transport but still have land unit at Starfall. Keeping ship may be more valuable than footman, but we have to lose 2 units. Could we lose footman and knight, keep ship? That would remove all land units from Starfall, losing castle control. Not good.\n\nThus destroy footman (27) and ship (24), keep knight (46) in Starfall. That still retains castle control (knight present). Ship lost but maybe still okay. However, we also have starfall adjacent to east-summer-sea; losing ship may affect ability to move other units but we might have other ships later? Not currently. Only ship 24 in east summer sea (controlled by Martell). No other ships. Losing ship eliminates all Martell ships, which could be problematic for future transport. But perhaps less critical than losing castle.\n\nAlternatively, keep ship and footman, lose knight. Knight is stronger but footman also counts as unit for castle control. Keeping footman would maintain castle control as well, while losing knight may be okay. Which is better? Knight provides higher combat strength and can support later attacks from Starfall, but footman also can defend. Considering supply limit 3 (they have 4 supply icons). They have some armies: East Summer Sea ship alone is a ship army of size 1 (counts as army). Starfall footman + knight would be an army of size 2 (since both in same area) but they would be separate? Actually footman 27 and knight 46 both in Starfall currently, they form an army of size 2. If we destroy knight, keep footman, still have army size 1 (footman). That reduces army size but still okay. If we destroy footman, keep knight, army size 1 as well. Both okay.\n\nBut losing knight reduces combat power more than footman. Knight also can support later moves.\n\nThus likely best to keep knight, destroy footman and ship is necessary because need to destroy two. However maybe we could destroy footman and knight, keep ship. That would lose castle control, which is a big loss: Castle count goes from 4 to 3, making us vulnerable to opponents. Likely not want that.\n\nThus choose 27 and 24.\n\nCheck if any rule about losing ship may affect control of east summer sea (which is a sea area; no castle there). Losing ship just reduces transport. Acceptable.\n\nSo final JSON: unit_ids_to_destroy: [24,27] (order can be any). Ensure exactly 2 distinct.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_mxlw0ph4bq8",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"unit_ids_to_destroy\": [24, 27]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24206,
+    "currentInputSha256": "6fdeb7dd76b4903b30539e2fa34035efc968b8b906cac0f566500554f1c7270d",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 27296,
+        "inputSha256": "63206a390c8eb4e6b09b809a08a623dcc11bffad18c91feb20a1a7056b105802",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "unit_ids_to_destroy": {
+          "description": "Select exactly 2 distinct unit IDs from this list.",
+          "items": {
+            "type": "integer",
+            "enum": [
+              24,
+              27,
+              46
+            ]
+          },
+          "title": "Unit Ids",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "unit_ids_to_destroy"
+      ],
+      "title": "select_units_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The wildlings won and Mammoth Riders imposes unit losses. Selected units are removed from the board. You are choosing the losses; the unselected units are not removed by this selection. Choose exactly 2 distinct units."
+    },
+    "actionOutputSchemaSha256": "35446d30957e3436a67bed81e4991388f2e43db422b4bcb4d7c4a75f4ca0a566"
+  }
+}

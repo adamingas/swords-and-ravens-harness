@@ -1,0 +1,457 @@
+{
+  "case": 2,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "stark",
+  "round": 5,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 4052,
+    "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "bay-of-ice",
+          "orderId": 8
+        },
+        {
+          "regionId": "castle-black",
+          "orderId": 2
+        },
+        {
+          "regionId": "karhold",
+          "orderId": 10
+        },
+        {
+          "regionId": "winterfell",
+          "orderId": 1
+        },
+        {
+          "regionId": "the-narrow-sea",
+          "orderId": 7
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "Let me confirm the two key launch areas before finalizing.",
+    "Confirmed. Moat Cailin and White Harbor are both empty castles adjacent to Winterfell, and Castle Black can reach Flint's Finger via the friendly ship in the Bay of Ice.\n\n**Intended action (Round 5 Stark planning orders):**\n\n- **castle-black → march** (priority 100): the two knights ship-transport through the Bay of Ice to seize **Flint's Finger** (castle). Target is empty, so no combat risk; 2 knights are a supply-legal army (supply 1 allows a 3-stack and a 2-stack).\n- **winterfell → march** (priority 95): the lone footman steps to **White Harbor** (castle, port, adjacency to our Narrow Sea ship). Winterfell stays ours via the home shield, so no power token needed.\n- **the-narrow-sea → support** (priority 70): the ship can project support into White Harbor / Moat Cailin / the Shivering Sea if Greyjoy or others attack our new acquisitions.\n- **bay-of-ice → support** (priority 60): protects Flint's Finger against Greyjoy's footman at Greywater Watch / ships in Ironman's Bay, while the ship stays put to keep the transport bridge open.\n- **karhold → consolidate_power** (priority 50): lone knight; no adjacent enemy battle to help, and its crown icon nets 2 power for upcoming bids (Clash of Kings).\n\nAll non-starred (maxStarredOrders = 0) and no raid (restricted). Token inventory supports exactly 2 march, 2 support, 1 consolidate — no collisions.\n\nNet plan: convert 1 castle to 3 castle areas (Winterfell + White Harbor + Flint's Finger), keep the fleet bridge intact, and bank power.\n\n```json\n{\"assignments\":[{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":95},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"karhold\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}\n```",
+    "I've completed my exploration. Summary of the intent:\n\n- **Two March orders** are the core of this round: Winterfell's footman takes **White Harbor** directly (land-adjacent, empty castle), and Castle Black's two knights ship-transport via the Bay of Ice to take **Flint's Finger** (empty, Greyjoy holds only a control token there).\n- **Two Support orders** on our ships at the-narrow-sea and bay-of-ice project strength to defend the newly gained castles (and keep the transport bridge intact).\n- **Karhold** consolidates power for bidding reserves.\n- All orders avoid starred tokens (limit is 0) and avoid raid (restricted).\n\nThis takes Stark from 1 to 3 castle areas without combat risk while staying supply-legal.",
+    "{\"assignments\":[{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":95},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"karhold\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}"
+  ],
+  "requestCount": 4,
+  "explorationCalls": [
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "castle-black"
+      }
+    },
+    {
+      "name": "check_neighbours",
+      "arguments": {
+        "area": "winterfell"
+      }
+    },
+    {
+      "name": "remember_strategy",
+      "arguments": {
+        "note": "Round 5 Stark: expand from 1 to 3 castle areas by marching Winterfell's footman to White Harbor and shipping Castle Black's 2 knights to Flint's Finger via the Bay of Ice ship. Keep bay-of-ice and the-narrow-sea ships as support/transport anchors, do not vacate control they enable. Karhold knight consolidates power (crown=1 -> 2 power) for upcoming Clash of Kings bids. Next targets: Moat Cailin (from White Harbor) then push down the Narrow Sea toward The Eyrie/Crackclaw Point. Supply is only 1 (max army 3 + one 2); avoid stacking beyond that until supply rises. Preserve high house cards (Robb, Eddard, Greatjon) for real battles."
+      }
+    }
+  ],
+  "usage": {
+    "requests": 4,
+    "inputTokens": 175390,
+    "outputTokens": 8501,
+    "totalTokens": 183891
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39006,
+      "input_tokens_details": {
+        "cached_tokens": 29440
+      },
+      "output_tokens": 7266,
+      "output_tokens_details": {
+        "reasoning_tokens": 7181
+      },
+      "total_tokens": 46272,
+      "cost": 0.01176564,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01176564,
+        "upstream_inference_input_cost": 0.00304644,
+        "upstream_inference_output_cost": 0.0087192
+      },
+      "scope": "agent",
+      "response_id": "gen-1789456697-IULsGbVOe3o1CBpUhPB5",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 47329,
+      "input_tokens_details": {
+        "cached_tokens": 46208
+      },
+      "output_tokens": 768,
+      "output_tokens_details": {
+        "reasoning_tokens": 58
+      },
+      "total_tokens": 48097,
+      "cost": 0.001535148,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.001535148,
+        "upstream_inference_input_cost": 0.000613548,
+        "upstream_inference_output_cost": 0.0009216
+      },
+      "scope": "agent",
+      "response_id": "gen-1789456859-xM1nYrusSOEfgB6lB40u",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 48133,
+      "input_tokens_details": {
+        "cached_tokens": 48000
+      },
+      "output_tokens": 190,
+      "output_tokens_details": {
+        "reasoning_tokens": 24
+      },
+      "total_tokens": 48323,
+      "cost": 0.0005559,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0005559,
+        "upstream_inference_input_cost": 0.0003279,
+        "upstream_inference_output_cost": 0.000228
+      },
+      "scope": "agent",
+      "response_id": "gen-1789456865-hmeTaP1Z7bF7moER36Pl",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 40922,
+      "input_tokens_details": {
+        "cached_tokens": 28416
+      },
+      "output_tokens": 277,
+      "output_tokens_details": {
+        "reasoning_tokens": 143
+      },
+      "total_tokens": 41199,
+      "cost": 0.004254696,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.004254696,
+        "upstream_inference_input_cost": 0.003922296,
+        "upstream_inference_output_cost": 0.0003324
+      },
+      "scope": "agent",
+      "response_id": "gen-1789456868-So8SvHjR54RtNNVDszWa",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789456697-IULsGbVOe3o1CBpUhPB5",
+      "output": [
+        {
+          "id": "rs_tmp_d7x5q0knfqv",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze the current board state for House Stark, round 5.\n\nStark controlled regions: bay-of-ice, castle-black, karhold, winterfell, port-of-winterfell, the-narrow-sea.\n\nUnits:\n- bay-of-ice: 1 ship\n- castle-black: 2 knights\n- karhold: 1 knight\n- winterfell: 1 footman + garrison 2\n- the-narrow-sea: 1 ship (id 4)\n\nSupply: 1 → permitted army sizes 3, 2. So we can have an army of up to 3 units and one of up to 2. Actually supply 1 allows: one army of size 3, one army of size 2.\n\nCurrently: knights at castle-black = 2 (army), karhold = 1 (single), winterfell footman = 1 (single), ships separate. That's fine.\n\nObjective: gain castle areas. Winterfell is 1 castle. Flint's Finger (castle=1) reachable from castle-black? Let me check. castle-black neighbours: bay-of-ice, karhold, the-shivering-sea, winterfell. Hmm, no direct land connection to flints-finger.\n\nWait the prompt says \"From Castle Black, the current land connections and friendly Ships reach these undefended castle areas you do not own: Flint's Finger.\" Let me check. castle-black neighbours: bay-of-ice, karhold, the-shivering-sea, winterfell. Flint's Finger neighbours: bay-of-ice, greywater-watch, ironmans-bay, sunset-sea. So via ships? Castle Black is not coastal-adjacent... Actually castle-black connects to bay-of-ice (sea). We have a ship in bay-of-ice. bay-of-ice connects to flints-finger. So ship transport: from castle-black (land) to bay-of-ice sea (friendly ship) to flints-finger (land coastal)? Wait ship transport connects two land areas that are connected by consecutive sea areas containing friendly ships. castle-black adjacent to bay-of-ice; flints-finger adjacent to bay-of-ice. So castle-black and flints-finger are both adjacent to bay-of-ice which contains a friendly ship. So ship transport allows moving land units from castle-black to flints-finger.\n\nBut wait, is castle-black adjacent to bay-of-ice? castle-black neighbours include bay-of-ice. And flints-finger neighbours include bay-of-ice. So yes.\n\nAlso from winterfell: land connections and friendly ships reach flints-finger, moat-cailin, white-harbor.\n\nWinterfell neighbours: bay-of-ice, castle-black, karhold, moat-cailin, port-of-winterfell, the-shivering-sea, the-stony-shore, white-harbor. So moat-cailin and white-harbor directly adjacent! Moat Cailin is castle=1, White Harbor castle=1. Both undefended now.\n\nSo from Winterfell, a March order could capture Moat Cailin or White Harbor directly. But Winterfell has only 1 footman + garrison. If we march the footman out, Winterfell remains ours due to home symbol.\n\nWe have 5 areas to assign orders: bay-of-ice, castle-black, karhold, winterfell, the-narrow-sea.\n\nMax starred = 0, so all orders must be non-starred (avoid starred).\n\nRestricted order categories: raid (can't place raid). So no raid orders.\n\nAvailable orders per house: 2 march (-1, +0), no +1... wait special march +1 is starred. 2 defense +1, 1 defense +2 starred. 2 support, 1 support +1 starred. 2 consolidate power, 1 starred. 2 raid, 1 starred.\n\nSince we can't use starred (maxStarredOrders 0), we have available non-starred: march -1, march +0, defense +1, defense +1, support +0, support +0, consolidate x2. That's plenty.\n\nNow planning. We want to expand and capture castles.\n\nStrategy: Winterfell footman can march to Moat Cailin (castle) or White Harbor (castle). But which is more defensible? Both undefended. Moat Cailin is a castle with connections. White Harbor is a castle with port.\n\nActually let me think about our position. We're weak: 3 power, supply 1, 1 castle. Opponents: Lannister 3 castles, Martell 3, Greyjoy 3. We need to catch up.\n\nThis round we can grab Moat Cailin and White Harbor? We only have orders in 5 regions and one combat per march. But we have multiple march orders potentially.\n\nActually we could assign March to Winterfell (footman → White Harbor or Moat Cailin), March to Castle Black (2 knights → Flint's Finger via ship transport), March to Karhold (knight → something? karhold neighbours: castle-black, the-shivering-sea, winterfell). Karhold knight could move to... nothing new (castle-black, winterfell friendly; the-shivering-sea sea). Not helpful offensively. Maybe support or consolidate.\n\nLet's think about what gains castles:\n1. Winterfell footman → White Harbor (castle) or Moat Cailin (castle). Direct land move.\n2. Castle Black knights → Flint's Finger (castle) via ship transport through bay-of-ice.\n\nBut wait, we can only assign one March order per area, and each March order allows one combat. But we have multiple march tokens (2 non-starred). Actually we have march -1 and march +0 = 2 march tokens. Only 2 areas can get march.\n\nHmm, but that's a limit. We can use 2 march orders.\n\nTo capture 2 castles: Winterfell → White Harbor (footman, single unit, no combat since empty), Castle Black → Flint's Finger (2 knights, no combat since empty). Both are non-combat moves into empty areas. \n\nWait, but ship transport: 2 knights from castle-black to flints-finger requires bay-of-ice has friendly ship. Yes ship id 34 in bay-of-ice. So that works.\n\nBut careful: after moving 2 knights out of castle-black, castle-black is vacated (no units). It's a castle but \"Castle Black contributes 0 castle area to your score.\" Interesting — Castle Black is castle=1 but doesn't count? The prompt says \"Castle Black contributes 0 castle area to your score.\" Hmm odd. Possibly because it's a special? Anyway losing it doesn't matter for score. But still, we might want to keep it? It has supply? castle-black has crown=1, no supply. Not valuable.\n\nActually wait, does moving the 2 knights into Flint's Finger create an army of 2, fine within supply. Flint's Finger has castle=1, so we gain 1 castle area.\n\nAnd Winterfell footman → White Harbor: White Harbor castle=1. Gains 1 castle. Winterfell stays ours (home symbol).\n\nSo we'd go from 1 castle (Winterfell) to 3 castles. That's progress. But we could be attacked by Greyjoy from greywater-watch / seagard. Greyjoy has 2 knights in seagard, 1 footman greywater-watch. Seagard neighbours: greywater-watch, ironmans-bay, moat-cailin, riverrun, the-twins. So Greyjoy could attack Moat Cailin. Hmm.\n\nActually maybe we should consider defending. But the instruction says use Defense/Support only when concrete battle to protect. We're not currently threatened directly this instant, but Greyjoy is near.\n\nLet me think about which castles to grab. White Harbor is adjacent to Winterfell and has a port (port-of-white-harbor). It connects to the-narrow-sea (where we have a ship). White Harbor neighbours: moat-cailin, port-of-white-harbor, the-narrow-sea, the-shivering-sea, widows-watch, winterfell. Good defensive.\n\nMoat Cailin neighbours: greywater-watch, seagard, the-narrow-sea, the-twins, white-harbor, winterfell. It's near Greyjoy (seagard, greywater-watch).\n\nWe can only march the Winterfell footman to one. Let's pick White Harbor or Moat Cailin.\n\nAlternatively, maybe better to not overextend. But we need castles.\n\nHmm, but actually we could do better: assign March to Winterfell footman → Moat Cailin. Moat Cailin is a castle. Then next round, march further? Not necessary.\n\nActually, let me reconsider: With 2 march orders, we can take 2 castles. But there's a concern: Greyjoy with 2 knights in seagard could attack Moat Cailin if we take it. Also they might raid.\n\nAlso, must we consider the-narrow-sea ship? It's a ship, single, no army. Could give support. And bay-of-ice ship.\n\nActually, thinking about maximizing castles: Flint's Finger + White Harbor + Winterfell = 3 castle areas. Plus we could also potentially grab Moat Cailin later.\n\nBut wait — can we take Flint's Finger and also keep the knights able to do something? Let's also think: could Castle Black knights instead go take Moat Cailin? castle-black to moat-cailin? Not adjacent by land, and no ship route (bay-of-ice doesn't connect to moat-cailin). So no.\n\nHmm, but there's a subtlety: The 2 knights at Castle Black moving to Flint's Finger via ship transport all the way: castle-black adjacent to bay-of-ice (sea with friendly ship). flints-finger adjacent to bay-of-ice. Yes valid.\n\nBut note: bay-of-ice contains our ship; is bay-of-ice also adjacent to flints-finger? flints-finger neighbours: bay-of-ice, greywater-watch, ironmans-bay, sunset-sea. Yes.\n\nSo plan:\n- winterfell: march (footman → white-harbor or moat-cailin)\n- castle-black: march (2 knights → flints-finger via ship)\n- karhold: support or consolidate? knight at karhold is single. Could support. Or consolidate power (karhold has crown=1 → 1 power + 1 = 2 power). Actually consolidate power gives 1 + power icons. Karhold crown=1 gives... wait consolidate power collects 1 + power icons. Power icons = crown icons? Actually \"one Power token for each Power icon printed on the assigned area.\" Karhold has crown=1, which is a power icon? In the game, crown icons on the board are power icons for consolidate? Hmm. Actually the crown icon is used for \"Game of Thrones\" Westeros card (collect power per crown) and for consolidate power? Let me recall: Land areas have supply icons, castle/stronghold, and sometimes crown icons. Consolidate Power collects 1 + power icons printed. The power icon is the crown? Actually yes, the crown icon on the board represents a power icon. Hmm, let me think — in the game, the printed icons are: supply (barrel), castle/stronghold, and crown (power). \"Game of Thrones\" card: collect 1 power per crown icon? No, Game of Thrones collects 1 per power icon? Let me recall.\n\nActually: \"Consolidate Power Orders ... gaining one Power token from the Power Pool, plus one Power token for each Power icon printed on the assigned area.\" And \"Game of Thrones\" Westeros card: players collect power for each power icon and port. The crown icons on the map are the \"power icons\". Hmm, but actually I think the icons are called power icons and look like a crown. Yes.\n\nSo karhold with crown=1 gives 2 power with consolidate. That's decent for us (we have 3 power). But we don't have many power needs.\n\nWait, but our supply is 1 and we have limited army slots. Karhold knight single. Consolidate power is fine.\n\n- bay-of-ice: ship. Consolidate power on sea = no effect. Defense on sea? Possible but not needed. Support order maybe useful (ship can support adjacent combat in sea or land). bay-of-ice adjacent land: castle-black, flints-finger, greywater-watch, winterfell. Could support our castle-black → flints-finger? No, that's not a combat. Hmm. Actually support helps in battles. There's no battle planned. Maybe consolidate is useless on sea. So maybe Defense? Or Support to deter.\n\nHmm but we have 5 regions to fill with 5 orders. We can't leave any empty.\n\n- the-narrow-sea: ship. Consolidate on sea = no effect. Support could support combat in adjacent areas: the-narrow-sea neighbours: crackclaw-point, moat-cailin, port-of-white-harbor, shipbreaker-bay, the-eyrie, the-fingers, the-mountains-of-the-moon, the-shivering-sea, the-twins, white-harbor, widows-watch. So if we march to White Harbor, the ship in the-narrow-sea could support a defense of White Harbor. Or support the march.\n\nLet me think about maximizing usefulness. Since we can have 2 march orders, let's use:\n1. castle-black → march (to flints-finger)\n2. winterfell → march (to white harbor or moat cailin)\n\nRemaining: bay-of-ice, karhold, the-narrow-sea → support/consolidate.\n\nFor defense of newly taken castles, support orders from adjacent ships would help. bay-of-ice supports flints-finger (adjacent) and castle-black. the-narrow-sea supports white-harbor/moat-cailin.\n\nActually support orders are better than defense in some ways (they project, and persist all round). But support only applies when a battle happens adjacent. Since we're taking undefended areas, no battle. But opponents could attack the new castle, and then support from our ship would help.\n\nBut note: a support order in a land area (karhold knight) can support adjacent land battles. karhold neighbours: castle-black, the-shivering-sea, winterfell. Not much.\n\nLet me decide:\n- castle-black: march, priority 100 (want the +0 or -1? For empty target no combat, modifier irrelevant. Use +0 maybe; but the harness allocates. Actually we don't choose modifier, just \"march\"). \n- winterfell: march, priority 95.\n- the-narrow-sea: support, priority 60 (to support white harbor defense, or the march).\n- bay-of-ice: support, priority 50 (to support flints-finger defense).\n- karhold: consolidate_power, priority 40.\n\nHmm, but wait: is support order on a sea area useful if no battle? It's a deterrent. But we might prefer consolidate for power. On sea areas consolidate gives 0. So support is the only useful order (defense doesn't apply to ships being attacked? Actually ships can be attacked; defense order in a sea area would give +1 to defend. That's useful too since our ships are lone and vulnerable).\n\nHmm. the-narrow-sea ship is lone, could be attacked by... who? crackclaw-point is Lannister (control token, no units). the-fingers, the-twins are neutral/empty. the-shivering-sea empty. So not much threat. bay-of-ice similar.\n\nGiven limited usefulness, support orders provide flexibility.\n\nActually, wait. Let me reconsider whether we should also try to take Moat Cailin, which is valuable as it's a chokepoint. But we only have one footman at Winterfell. Can only take one.\n\nWhich is better, White Harbor or Moat Cailin? White Harbor has a port and adjacency to the-narrow-sea (our ship). Moat Cailin is a castle near Greyjoy. White Harbor is safer and connects to our ship network. Let's take White Harbor.\n\nHmm, but actually consider: after taking White Harbor with the footman, White Harbor is defended by 1 footman + support from the-narrow-sea ship (1) + maybe Winterfell? No. Could Greyjoy threaten? Greyjoy is in seagard (2 knights), greywater-watch. They'd have to march far.\n\nAlternatively, take Moat Cailin to block Greyjoy's expansion south. Moat Cailin is between us and the south. Hmm.\n\nLet me think about long-term: We need 7 castles eventually. We have Winterfell (1), can get White Harbor (2), Flint's Finger (3). Then Moat Cailin (4). Then maybe push south to Crackclaw Point, Harrenhal, The Reach, etc. But Lannister is strong there.\n\nFor now, grabbing castles efficiently is good.\n\nActually, wait: there's a subtlety with the footman. Winterfell has garrison 2 + 1 footman. If we march the footman to White Harbor, Winterfell still ours but defended only by garrison 2. Fine.\n\nCould we instead upgrade? No mustering this round.\n\nLet me also reconsider: March to Flint's Finger with 2 knights — do we risk anything? bay-of-ice ship must remain for transport. We have only 1 ship in bay-of-ice. After the knights move to flints-finger, the ship stays. Fine.\n\nBut the 2 knights become an army of 2 in Flint's Finger. Supply 1 allows one army of 3 and one of 2. We have army of 2 knights in Flint's Finger. Good, within limits. Also castle-black vacated → no army.\n\nNow also: is Flint's Finger adjacent to ironmans-bay (Greyjoy ship) and sunset-sea. Greyjoy could attack Flint's Finger? From greywater-watch (footman) — greywater-watch neighbours: bay-of-ice, flints-finger, ironmans-bay, moat-cailin, seagard. Yes! Greyjoy's footman at greywater-watch is adjacent to Flint's Finger. So they could march a footman to attack... but 2 knights beat 1 footman, plus support. So Flint's Finger is defensible.\n\nAlso Greyjoy might raid our support orders. Raid restricted this round (we can't place raid, but opponents can? The restriction \"restrictedOrderCategories\":[\"raid\"] applies to our house only presumably due to a Westeros card). Hmm, that might be a Westeros card like \"Storm of Swords\" forbidding... Actually restricting raid for all? The planningConstraints are for us. Possibly a Westeros card forbids raids this round for everyone. That would protect our support orders from raids! Nice.\n\nLet me check: recent events mention \"proceed-westeros-card\". A card might be \"no raid orders this round\" — plausible. Good for us.\n\nOK so plan with support orders is safer.\n\nLet me now also double check reachability claim: \"From Castle Black, the current land connections and friendly Ships reach these undefended castle areas you do not own: Flint's Finger.\" Good, confirms ship transport.\n\n\"From Winterfell ... reach: Flint's Finger, Moat Cailin, White Harbor.\"\n\nSo options. I'll pick White Harbor for Winterfell footman.\n\nHmm, wait, but if both castle-black knights go to Flint's Finger and Winterfell footman to White Harbor, we gain 2 castles this round. Great.\n\nBut actually, should we consider taking Moat Cailin instead because it's also reachable from Winterfell and it's a castle in a strategic location? Either works. White Harbor gives us the port and is adjacent to the-narrow-sea ship for support. Also White Harbor is farther from Greyjoy. I'll go White Harbor.\n\nActually, reconsider: White Harbor is adjacent to the-narrow-sea where we have a ship, so support available. Also Winterfell can support? Winterfell would have a march order, not support. Hmm, only one order per area. If Winterfell gets march, it can't support.\n\nActually for the march to White Harbor, the-narrow-sea ship support would be for the *attack* if it were a combat, but it's empty so no combat.\n\nNow, will the-narrow-sea support order be useful defensively if White Harbor is attacked later? Support orders remain all round. the-narrow-sea is adjacent to white-harbor. Yes, ship can support land combat. Good.\n\nSimilarly bay-of-ice support can support flints-finger.\n\nWeather: if opponents attack, support helps.\n\nLet me also think: karhold knight — assign support? karhold neighbours castle-black, the-shivering-sea, winterfell. If Winterfell gets attacked, karhold knight could support Winterfell. But Winterfell has garrison+... Actually after footman leaves, Winterfell has only garrison. A support from karhold (1) plus garrison 2 helps. Alternatively consolidate power.\n\nHmm, we need power for bidding (Clash of Kings could come; we have 3). Consolidate power at karhold = +2 power. Reasonable.\n\nBut maybe support is more valuable. Eh. Let me consider using defense at Winterfell instead of march? No, we want to expand.\n\nActually, an important thought: we could give Winterfell a Defense order and use the footman... no, defense doesn't move. We need march to move.\n\nAlternatively, we could keep the footman in Winterfell to defend and instead... but then no castle gain from Winterfell.\n\nI'll commit to two marches.\n\nLet me consider the possibility of taking BOTH White Harbor and Moat Cailin over two rounds. This round White Harbor, next round march footman from White Harbor to Moat Cailin. Works.\n\nHmm, or this round take Moat Cailin then next White Harbor. White Harbor is safer first. Either way.\n\nActually, thinking more: Moat Cailin is a key choke and is contested by Greyjoy. If we take White Harbor first, Greyjoy may take Moat Cailin. Then it's harder. Whereas if we take Moat Cailin now, Greyjoy can't. Hmm.\n\nBut Moat Cailin is adjacent to seagard (Greyjoy 2 knights) and greywater-watch (Greyjoy footman). If we put a single footman in Moat Cailin, Greyjoy could easily take it with 2 knights. Risky. Whereas White Harbor is safe and we can use the-narrow-sea ship support.\n\nActually if we want Moat Cailin, better to send the 2 knights there? But 2 knights can't reach moat-cailin from castle-black (no ship route). From Winterfell only footman.\n\nHmm what about from castle-black, knights travel via ship to flints-finger this round; next round march to... flints-finger to moat-cailin? Not adjacent (flints-finger neighbours: bay-of-ice, greywater-watch, ironmans-bay, sunset-sea). No.\n\nOK. Let's just take White Harbor + Flint's Finger. Both relatively safe.\n\nActually, let me reconsider Flint's Finger safety: adjacent to greywater-watch (Greyjoy footman) and ironmans-bay (Greyjoy ship). Greyjoy could attack with footman + ship support? Ships in ironmans-bay can support land combat at flints-finger (adjacent). Greyjoy ship 1 in ironmans-bay. So attack: footman from greywater-watch (1) + support ship (1) + march bonus. Our defense: 2 knights + support from bay-of-ice ship (1) = 3. Greyjoy could bring footman 1 + support 1 + march mod + house card. They'd likely lose. Also Greyjoy might send the 2 knights from seagard... seagard not adjacent to flints-finger. So fine.\n\nAlright.\n\nNow, what about the possibility that a \"Game of Thrones\" or \"Clash of Kings\" card is coming? We have 3 power. Consolidate at karhold and maybe elsewhere could help but sea consolidate is 0.\n\nLet me finalize assignments:\n\n1. castle-black: march, avoid starred, priority 100.\n2. winterfell: march, avoid starred, priority 95.\n3. the-narrow-sea: support, avoid starred, priority 70.\n4. bay-of-ice: support, avoid starred, priority 60.\n5. karhold: consolidate_power, avoid starred, priority 50.\n\nWait, we have only 2 march tokens (non-starred). Both used. Good.\n\nSupport non-starred: we have 2 support +0 tokens. Both used. Good (starred limited to 0, so we must avoid starred; harness will pick non-starred support tokens — we have exactly 2).\n\nConsolidate non-starred: 2 available. We use 1. Fine.\n\nDefense: not used.\n\nThat fits within token inventory: 2 march, 2 support, 1 consolidate, all non-starred. \n\nNow, is March on castle-black going to be -1 or +0? The harness allocates; for empty target it doesn't matter. For Winterfell march also fine.\n\nHmm, but actually one concern: A March -1 for an empty target is fine. The harness might give -1 to higher priority. Doesn't matter.\n\nLet me double check that Castle Black's knights reaching Flint's Finger doesn't need castle-black to be adjacent to bay-of-ice in a valid way. The prompt explicitly confirms it. Good.\n\nAlso confirm: after March from castle-black, castle-black is vacated. Do we want to leave a power token to retain control? \"Castle Black contributes 0 castle area to your score.\" So no need. But it has crown=1 and... no supply. Losing it is fine. Actually wait, could we use castle-black for future mustering? It's a castle (mustering capacity) but counts 0 VP. Eh. Also it's adjacent to the-shivering-sea and winterfell. Losing it isn't a big deal but maybe we want to keep it as a mustering site. However our supply is 1, so limited armies anyway. And we have winterfell stronghold (2 mustering) and white harbor castle (1) and flints-finger (1). So fine.\n\nHmm, actually, do we want to leave a power token? We only have 3 power. Not worth.\n\nLet me also consider: could the 2 knights at Castle Black instead stay to defend? No, expanding is better.\n\nLet me also double-check legal march: \"only one combat may be initiated for each March Order\" and \"may move units into only one area containing units of another House.\" Both targets empty, so no combat.\n\nOne more: In a March order, units may split into multiple adjacent areas. So castle-black knights could split (1 to flints-finger, 1 elsewhere?) but ship transport... Let's keep both together.\n\nAlright, but hold on — is it better to ALSO consider taking Moat Cailin with the footman and White Harbor later? Or use both marches for 2 castles as planned. I'll go with White Harbor.\n\nActually, let me reconsider one more time about which gives better long-term. White Harbor: castle + port + adjacency to the-narrow-sea. Moat Cailin: castle, chokepoint, adjacent to the-narrow-sea too. White Harbor is on the east coast; from White Harbor we can ship-transport down the narrow sea toward the eyrie etc. Actually White Harbor connects to the-narrow-sea; the-narrow-sea connects to shipbreaker-bay, crackclaw-point, the-eyrie, etc. So White Harbor gives a launching point toward the east coast castles (The Eyrie, Crackclaw Point). Good aggressive potential.\n\nMoat Cailin is land-locked-ish and contested. White Harbor is better. Confirmed.\n\nLet me also make sure we keep bay-of-ice ship for transport — yes, we're not moving it (support order).\n\nNow, potential issue: the harness might not have 2 non-starred support tokens available if something else? We only have 5 regions; support tokens 2 regular. Fine.\n\nLet me also consider giving Winterfell a Defense instead and keep footman home, taking only Flint's Finger. But gaining 2 castles is much better.\n\nI think the plan is solid. Let me maybe check neighbours of flints-finger and white-harbor to verify no hidden enemy units. From board: flints-finger controlPowerToken greyjoy, units none. White Harbor not listed in board with units? Let me search: board list doesn't include white-harbor, moat-cailin explicitly... Actually board doesn't list white-harbor at all? Let me check the board array: blackwater, kings-landing, kingswood, blackwater-bay, crackclaw-point, harrenhal, lannisport, pyke, ironmans-bay, the-golden-sound, port-of-pyke, port-of-lannisport, seagard, flints-finger, greywater-watch, searoad-marches, bay-of-ice, castle-black, karhold, winterfell, the-narrow-sea, the-eyrie, dragonstone, port-of-dragonstone, sunspear, sea-of-dorne, salt-shore, storms-end, the-boneway, yronwood, redwyne-straights, oldtown, highgarden, dornish-marches.\n\nSo white-harbor and moat-cailin not listed → empty (no units, no power token). Good, undefended.\n\nthe-eyrie: garrison 6, no units, no power token. It's a castle but garrison 6 defends; hard to take.\n\nOK.\n\nSo final answer assignments as above.\n\nLet me quickly verify neighbours via tool? I have enough info from map. But maybe check_neighbours for castle-black and winterfell to confirm. Actually the prompt already tells us. I'll trust.\n\nOne nuance: \"restrictedOrderCategories\":[\"raid\"] means raid is not allowed. Fine.\n\nmaxStarredOrders 0 → all avoid starred.\n\nLet me write the final action.\n\nActually, let me reconsider priority ordering so harness preserves march preferences. Set castle-black march priority 100, winterfell march 95. Then supports 70/60, consolidate 50. Good.\n\nBut careful: if harness can't give both marches (it has 2 non-starred march tokens, so fine).\n\nAlso, should karhold be support instead to defend Winterfell? Hmm. Consolidate power gives 2 power which helps bidding. With Clash of Kings possible, power matters. I'll keep consolidate.\n\nActually, wait — one thought: karhold knight single unit. If we give it consolidate power, the token resolves in consolidate step giving 2 power. Fine, no movement.\n\nI'm fairly confident. Let me also record strategy note.\n\nLet me do a quick tool check of flints-finger and white-harbor to be safe? The board already shows flints-finger greyjoy token no units. white-harbor absent = empty. Good.\n\nI'll produce the final answer.\n\nActually, let me reconsider: is it possible that the harness gives march -1 to castle-black and march +0 to winterfell or vice versa based on priority? Priority 100 gets strongest march modifier first, so castle-black gets +0. Fine either way.\n\nLet me finalize. I'll state intended action and then the JSON in submission step. But this is exploration call; I should state intent. However the instructions say final answer format... The exploration call ends with prose, then a separate submission. But there's a note: \"The harness will ask you for a separate final JSON answer.\" Actually it says use tools then state intended action. But maybe I should just give final answer now? It says ending exploration call does not submit. There will be a submission step. I'll provide the prose and also include the JSON to be safe? The instruction: \"For this exploration call, investigate as needed, then state your intended action and the remaining choices in clear prose.\"\n\nI'll state prose. But to maximize adherence, maybe I should just output the JSON as my final answer since the schema is given. Hmm. The text says a later submission call will require JSON. This is the exploration call. I'll give prose with the planned assignments clearly.\n\nActually, I could use remember_strategy now. Let me do that too. But remember_strategy saves after final action accepted. The note is queued. I'll include it.\n\nLet me keep it simple: provide prose plus the JSON object in a code block so it's clear.\n\nI'll skip extra tool calls to save turns, but maybe one check_neighbours to confirm is cheap and demonstrates diligence. I'll check castle-black.\n\nActually I'm confident. Let me just answer.\n\nLet me write the JSON.\n\n{\"assignments\":[{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":95},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"karhold\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}\n\nGood.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_grtac7svc1a",
+          "content": [
+            {
+              "annotations": [],
+              "text": "Let me confirm the two key launch areas before finalizing.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        },
+        {
+          "arguments": "{\"area\":\"castle-black\"}",
+          "call_id": "call_01a0a3f0bd747281976e7ef6",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_rfd7cakgc7c",
+          "status": "completed"
+        },
+        {
+          "arguments": "{\"area\":\"winterfell\"}",
+          "call_id": "call_01a0a3f0bddc73e89cb190ff",
+          "name": "check_neighbours",
+          "type": "function_call",
+          "id": "fc_tmp_nwm5fwttsp",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789456859-xM1nYrusSOEfgB6lB40u",
+      "output": [
+        {
+          "id": "rs_tmp_v8qemizfunn",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Confirmed. Moat Cailin empty, White Harbor empty, Flint's Finger (greyjoy token, no units). Both launch routes valid: winterfell→white-harbor directly; castle-black→flints-finger via bay-of-ice ship.\n\nProceed with the plan.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_3kipbzzm025",
+          "content": [
+            {
+              "annotations": [],
+              "text": "Confirmed. Moat Cailin and White Harbor are both empty castles adjacent to Winterfell, and Castle Black can reach Flint's Finger via the friendly ship in the Bay of Ice.\n\n**Intended action (Round 5 Stark planning orders):**\n\n- **castle-black → march** (priority 100): the two knights ship-transport through the Bay of Ice to seize **Flint's Finger** (castle). Target is empty, so no combat risk; 2 knights are a supply-legal army (supply 1 allows a 3-stack and a 2-stack).\n- **winterfell → march** (priority 95): the lone footman steps to **White Harbor** (castle, port, adjacency to our Narrow Sea ship). Winterfell stays ours via the home shield, so no power token needed.\n- **the-narrow-sea → support** (priority 70): the ship can project support into White Harbor / Moat Cailin / the Shivering Sea if Greyjoy or others attack our new acquisitions.\n- **bay-of-ice → support** (priority 60): protects Flint's Finger against Greyjoy's footman at Greywater Watch / ships in Ironman's Bay, while the ship stays put to keep the transport bridge open.\n- **karhold → consolidate_power** (priority 50): lone knight; no adjacent enemy battle to help, and its crown icon nets 2 power for upcoming bids (Clash of Kings).\n\nAll non-starred (maxStarredOrders = 0) and no raid (restricted). Token inventory supports exactly 2 march, 2 support, 1 consolidate — no collisions.\n\nNet plan: convert 1 castle to 3 castle areas (Winterfell + White Harbor + Flint's Finger), keep the fleet bridge intact, and bank power.\n\n```json\n{\"assignments\":[{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":95},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"karhold\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}\n```",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        },
+        {
+          "arguments": "{\"note\":\"Round 5 Stark: expand from 1 to 3 castle areas by marching Winterfell's footman to White Harbor and shipping Castle Black's 2 knights to Flint's Finger via the Bay of Ice ship. Keep bay-of-ice and the-narrow-sea ships as support/transport anchors, do not vacate control they enable. Karhold knight consolidates power (crown=1 -> 2 power) for upcoming Clash of Kings bids. Next targets: Moat Cailin (from White Harbor) then push down the Narrow Sea toward The Eyrie/Crackclaw Point. Supply is only 1 (max army 3 + one 2); avoid stacking beyond that until supply rises. Preserve high house cards (Robb, Eddard, Greatjon) for real battles.\"}",
+          "call_id": "call_01a0a3f0d37d718285fdea30",
+          "name": "remember_strategy",
+          "type": "function_call",
+          "id": "fc_tmp_wlmdcp7sq9",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789456865-hmeTaP1Z7bF7moER36Pl",
+      "output": [
+        {
+          "id": "rs_tmp_meiy097cox",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Ready. This is the exploration call; the submission will come separately. I've stated intent and provided JSON. Done.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_rv8r9arun2d",
+          "content": [
+            {
+              "annotations": [],
+              "text": "I've completed my exploration. Summary of the intent:\n\n- **Two March orders** are the core of this round: Winterfell's footman takes **White Harbor** directly (land-adjacent, empty castle), and Castle Black's two knights ship-transport via the Bay of Ice to take **Flint's Finger** (empty, Greyjoy holds only a control token there).\n- **Two Support orders** on our ships at the-narrow-sea and bay-of-ice project strength to defend the newly gained castles (and keep the transport bridge intact).\n- **Karhold** consolidates power for bidding reserves.\n- All orders avoid starred tokens (limit is 0) and avoid raid (restricted).\n\nThis takes Stark from 1 to 3 castle areas without combat risk while staying supply-legal.",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789456868-So8SvHjR54RtNNVDszWa",
+      "output": [
+        {
+          "id": "rs_tmp_u1d0jjjcxbh",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Reconsider: with 2 march and 2 support and 1 consolidate — that's 5 orders but only 2 march tokens, 2 support, 2 consolidate available. Fine. But note support in sea where ships stay — but actually, one ship wants to support at narrow sea. But I need the\n\nActually let me reconsider the two marches: with only 2 regular march tokens (one -1, one +0), no star. Winterfell march to White Harbor works. Castle Black's knights need ships — bay-of-ice ship provides transport. But if I put support on bay-of-ice, the ship stays, so transport still works. Good.\n\nI'll submit the plan.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_9xvguj5qyzw",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"assignments\":[{\"region_id\":\"castle-black\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":95},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"karhold\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 32155,
+    "currentInputSha256": "ba0c837c8c599f475bb00b3c33ce1ae32a938fa250095d070b5508817e7a343e",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 36137,
+        "inputSha256": "4ec6691152f3eeecefe705e8d86f77f63cd12cc487449cc39f7bcd78243986e3",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "exploration",
+        "inputItemCount": 7,
+        "inputCharacters": 69396,
+        "inputSha256": "98aa34b88b668d85c319b90f9e6aec62490f63181d53d2c7c6c6788e7bcdcb6c",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 3,
+        "stage": "exploration",
+        "inputItemCount": 11,
+        "inputCharacters": 73056,
+        "inputSha256": "b49acbd39e82313fbeb595a1e08b7b5b2bc68c5caf98740a71ec9f8c9fddce61",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 4,
+        "stage": "submission",
+        "inputItemCount": 14,
+        "inputCharacters": 78357,
+        "inputSha256": "3e6b46b48cb2abafb4eb16644a71666039c98da5f43ca996bcd2a99e3588ee3d",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "bay-of-ice",
+                  "castle-black",
+                  "karhold",
+                  "winterfell",
+                  "the-narrow-sea"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are raid.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "b285ed194f51f1a8ec11161e0c6e8c7819bccb1c5b294cc8fc065d23fa5ce59e"
+  }
+}

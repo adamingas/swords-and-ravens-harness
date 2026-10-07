@@ -1,0 +1,204 @@
+{
+  "case": 14,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "greyjoy",
+  "round": 2,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 1209,
+    "sha256": "46c5982604095cd2f29c605a212b6907ae82dee39150a2dd142d44e840764814"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "previousAttemptError": null,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "pyke",
+          "orderId": 2
+        },
+        {
+          "regionId": "ironmans-bay",
+          "orderId": 7
+        },
+        {
+          "regionId": "port-of-pyke",
+          "orderId": 10
+        },
+        {
+          "regionId": "greywater-watch",
+          "orderId": 1
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":50}]}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37274,
+    "outputTokens": 5366,
+    "totalTokens": 42640
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37274,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 5366,
+      "output_tokens_details": {
+        "reasoning_tokens": 5206
+      },
+      "total_tokens": 42640,
+      "cost": 0.01174184,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01174184,
+        "upstream_inference_input_cost": 0.00820028,
+        "upstream_inference_output_cost": 0.00354156
+      },
+      "scope": "agent",
+      "response_id": "gen-1789427244-h2Em61XgPhEjCkWT13MH",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "fireworks",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789427244-h2Em61XgPhEjCkWT13MH",
+      "output": [
+        {
+          "id": "rs_tmp_c30ohikpfsu",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "Let me analyze the situation.\n\nGreyjoy (me) round 2, place orders. I have units in: pyke (footman+knight), ironmans-bay (ship), port-of-pyke (ship), greywater-watch (footman).\n\nmaxStarredOrders: 0 (I'm last on King's Court). So no starred orders.\n\nI want to expand and capture castles. From Pyke, reach Flint's Finger, Seagard. From Greywater Watch, reach Flint's Finger, Moat Cailin, Seagard.\n\nLet me think about supply. Supply 2 allows army sizes: 3, 2, 2. I have:\n- pyke: 2 units (footman+knight) = army of 2\n- greywater-watch: 1 unit (footman) - not an army\n- ironmans-bay: 1 ship - not an army\n- port-of-pyke: 1 ship - not an army\n\nSupply 2 permits 3 armies: sizes 3,2,2. Currently one army (pyke, size 2). So I could add more.\n\nPlan: I want to capture a castle. Best target: from Pyke, march to Seagard (castle=2 stronghold) or Flint's Finger (castle=1). Both undefended.\n\nBut Seagard is a stronghold (castle=2) worth 1 victory point. Flint's Finger is castle=1. Either works for victory points.\n\nActually let me check neighbours more carefully.\n\nPyke is an island - land units must use ship transport. Pyke neighbours: ironmans-bay, port-of-pyke. So from Pyke, footmen/knights need ship transport via ironmans-bay. My ships: ironmans-bay has 1 ship, port-of-pyke has 1 ship.\n\nIronmans-bay is adjacent to: flints-finger, greywater-watch, port-of-pyke, pyke, riverrun, seagard, sunset-sea, the-golden-sound.\n\nSo from Pyke, using ship transport through ironmans-bay (my ship there), I can reach coastal areas adjacent to ironmans-bay: flints-finger, greywater-watch, seagard, riverrun, sunset-sea, the-golden-sound.\n\nSo marching from Pyke with the 2 units, I could reach Flint's Finger or Seagard (both castles). But also need a ship in ironmans-bay - yes I have one.\n\nActually ship transport requires consecutive sea areas each containing friendly ships. From Pyke, the port-of-pyke and ironmans-bay both have ships. Pyke connects to ironmans-bay and port-of-pyke. So a land unit at Pyke can move via ship transport: Pyke -> ironmans-bay's adjacent coastal areas.\n\nWait, Pyke to ironmans-bay - is that a sea connection? Pyke is island, adjacent to ironmans-bay and port-of-pyke. So yes.\n\nSo from Pyke, march units to Seagard (castle=2, supply=1, crown=1). That's a great target.\n\nBut careful: stronghold Seagard currently controlled by whom? Board shows seagard not in the list... Let me check. The board list doesn't have seagard, flints-finger, moat-cailin entries, meaning they're empty (no units, default ownership). Actually neutral? In this game, seagard may be a neutral force or just empty.\n\nThe decision text says \"undefended castle areas you do not own: Flint's Finger, Seagard.\" So they're undefended.\n\nNow: my plan. I want to capture a castle. Let me consider that greywater-watch footman can march to Moat Cailin, Seagard, or Flint's Finger.\n\nBut note - if I move the footman out of greywater-watch, I lose control unless I leave a power token (6 power available). Greywater Watch contributes 0 castle area but has supply icon (supply=1). Losing it loses 1 supply icon potentially. My supply is 2 already which includes greywater-watch's supply icon (controlledSupplyIcons: 2, from pyke supply=1 and greywater-watch supply=1). If I lose greywater-watch, supply drops to 1 potentially at next supply card.\n\nHmm. Let me think about the overall plan.\n\nRound 2 orders: I want to capture a castle. Best: march from Pyke to Seagard with the knight+footman (strength 2+1=3). Seagard undefended, so no combat, just move in. Actually wait - can a march from Pyke reach Seagard? Pyke -> ironmans-bay (ship) -> seagard. Yes, ship transport.\n\nBut if I move both units out of Pyke, Pyke stays mine (home symbol). Good. But then Pyke is empty; that's fine.\n\nAlternatively march from Greywater Watch. Greywater Watch footman marching to Seagard? Greywater-watch is adjacent to seagard? Greywater-watch neighbours: bay-of-ice, flints-finger, ironmans-bay, moat-cailin, seagard. Yes seagard adjacent directly. So a single footman could march to Seagard and capture it (undefended). But single footman moving from greywater-watch loses greywater-watch.\n\nBetter: use Pyke army (knight+footman) to capture Seagard, keeping greywater-watch footman in place to hold the supply icon.\n\nActually, but there's a subtlety: Seagard is adjacent to riverrun (Lannister). Lannister has strong forces. Could contest. But it's undefended now.\n\nLet me consider using March on Pyke (priority high) to move to Seagard. Also I want to potentially raid or support.\n\nOther orders: port-of-pyke and ironmans-bay ships. Consolidate power on port-of-pyke earns power (port rule: consolidate power in port resolves normally, gaining 1 power). Actually the port rule: \"Consolidate Power in a Port is resolved normally (as if it was in a land area containing no Power icons)\" - so 1 power. Provided no enemy ships in adjacent sea (ironmans-bay - no enemy ships). So port-of-pyke consolidate = 1 power.\n\nIronmans-bay consolidate: sea area, no effect. So better to give it something else - maybe support or raid. Support from ironmans-bay could support combats in adjacent areas. Actually the ship in ironmans-bay could support an attack. But support order - if I'm marching to Seagard, do I need support? Seagard undefended, no.\n\nHmm, but there's risk an opponent contests. Let me think about threats.\n\nLet me reconsider. Actually I should be aggressive to catch up - Lannister and Martell have 3 VPs each. I have 1.\n\nLet me plan orders:\n- pyke: march (to Seagard or Flint's Finger) - priority 100\n- greywater-watch: march or consolidate? If I keep footman to hold supply, maybe defense or consolidate. Actually a footman sitting there - consolidate power gains 1 power (greywater-watch has no power icon? crown=0, supply=1). Consolidate gives 1 power. Or hold with defense. Or march to Moat Cailin (castle) too.\n\nHmm, I could capture two castles this round: one from Pyke (Seagard), one from Greywater Watch (Flint's Finger or Moat Cailin). But that leaves greywater-watch vacant (would need power token, lose supply icon). \n\nActually wait - can I capture Flint's Finger from Greywater Watch? Greywater-watch -> flints-finger adjacent yes. Flint's Finger is castle=1.\n\nLet me think about what's most valuable. Each castle = 1 VP. Getting 2 castles this round would put me at 3 VPs. But I'd lose greywater-watch's supply icon and control.\n\nActually, I don't need to vacate greywater-watch to capture a castle. I could march Pyke->Seagard and also march Greywater Watch->Flint's Finger. Both give castles. Greywater Watch vacated -> place power token (lose 1 supply icon eventually, but supply card not drawn yet).\n\nHmm, but supply 2 -> if I lose an icon, supply might drop to 1, and I'd have armies of sizes... Let me not overextend.\n\nLet me count: Pyke army of knight+footman. If I add captured Seagard with 2 units there, that's another army of 2. That's fine with supply 2 (3,2,2). Greywater footman single.\n\nAlternatively, I split Pyke: send knight to Seagard, footman to Flint's Finger? Only one attack per march order but both undefended (no combat). Actually march allows splitting into multiple adjacent areas, but only one area may contain enemy units. Both undefended, no enemy, so I can split freely. But that creates two single units (not armies). Hmm.\n\nLet me keep it simpler and robust.\n\nDecision: \n- pyke: march, priority 100 (capture Seagard)\n- greywater-watch: march, priority 80 (capture Flint's Finger or Moat Cailin) — but leaves supply icon. Alternatively consolidate for power.\n\nHmm, capturing two castles is strong. But vacating greywater-watch means I need a power token to keep control. With 6 power that's affordable. But I lose supply icon.\n\nActually the supply icon matters for mustering. Let me think - Greyjoy's supply is 2, giving armies 3,2,2. Losing greywater watch -> supply 1: armies 3,2. Then I'd have Pyke army (2 at Seagard) and greywater footman... hmm.\n\nLet me be careful. Let me not vacate greywater-watch; instead consolidate power there or defend. Actually, keeping the footman at greywater-watch holds both the supply icon and provides a launch point next round.\n\nBut then I only capture 1 castle this round (Seagard). That's fine-ish.\n\nActually, wait. Let me reconsider — is it better to capture from greywater-watch too? Moat Cailin is a castle=1 at the border, and from greywater-watch adjacent. Capturing Moat Cailin and Seagard would give 2 more castles + Pyke = 3 castle areas -> 3 VPs.\n\nHmm, given Lannister/Martell at 3, I need to catch up fast. Being aggressive seems good.\n\nBut risk: vacating greywater-watch with a single footman; if it gets attacked... it's a single unit, no real defense.\n\nLet me think about the strongest safe play. Actually capturing undefended castles is safe (no combat). The risk is only opponents later retaking them, which is normal.\n\nLet me consider: what does the harness do with priorities? It allocates physical tokens. maxStarredOrders=0 so all starred avoided/forced. I have regular tokens: 2 march (one -1, one +0), 2 defense (+1), 2 support (+0), 2 consolidate, 2 raid. Total 10 regular.\n\nSo I can assign march to two regions (the +0 and -1). Good.\n\nPlan:\n- pyke: march (want +0 ideally), priority 100 -> capture Seagard\n- greywater-watch: march (the -1 or +0), priority 70 -> capture Flint's Finger or Moat Cailin\n- port-of-pyke: consolidate_power, priority 50 -> +1 power\n- ironmans-bay: support, priority 40? Or raid? Ironmans-bay ship could raid adjacent... Actually a raid from ironmans-bay could remove enemy orders. But more useful might be support. Hmm.\n\nActually, wait: I should think about whether marching greywater-watch footman is wise. If both march orders go to capturing castles, I have no support/defense. But the captures are against undefended areas — no support needed.\n\nBut there's a risk: an opponent could move a unit into Seagard/Moat Cailin before my march resolves? No—if they occupy it, I'd have to fight. Undefended now but orders resolve in turn order. My turn order: Iron Throne track: baratheon, lannister, stark, martell, greyjoy, tyrell. I'm 5th. So baratheon, lannister, stark, martell act before me. They could move into Seagard/Moat Cailin first? Lannister is near Seagard (riverrun). Hmm, Lannister could march to Seagard. But they have a footman+knight at riverrun. Riverrun is adjacent to seagard. Possible.\n\nThis is getting complex. Let me check neighbours to be sure about connections.\n\nLet me query some areas.\n\nActually, I should be careful and just check neighbours of pyke, greywater-watch, seagard, flints-finger, moat-cailin, ironmans-bay to confirm.\n\nLet me do the checks.\n\nActually the decision text already gives me the key info: from Pyke reach Flint's Finger and Seagard; from Greywater Watch reach Flint's Finger, Moat Cailin, Seagard. Good.\n\nLet me decide final plan. I think capturing Seagard (stronghold) with the Pyke army is priority. Also capturing one more from greywater-watch.\n\nBut should I vacate greywater-watch? Let me consider the value: greywater-watch = 0 castle, 1 supply. Flint's Finger = 1 castle, 0 supply. Moat Cailin = 1 castle. So trading a supply icon for a castle — castles are the win condition. Worth it. And I can place a power token (1 power) to retain control of greywater-watch, keeping its supply icon. \n\nOh wait — I can both vacate and keep control by placing a power token! \"A player may only establish control when vacating an area with a March Order.\" So if I march the footman out of greywater-watch, I can place a power token there to keep control. That keeps the supply icon! Cost: 1 power token. \n\nSo: march greywater-watch footman to Flint's Finger (or Moat Cailin), establish control with power token. Keep supply icon.\n\nThen greywater-watch retains supply icon and I gain a castle. \n\nBut if I place a power token at greywater-watch and then it's attacked... a power token alone is defenseless, opponent just walks in and discards it. But that's a risk anyway.\n\nOK so plan:\n- pyke: march, priority 100 -> capture Seagard (stronghold) with knight+footman\n- greywater-watch: march, priority 90 -> capture Flint's Finger or Moat Cailin, place power token\n- port-of-pyke: consolidate_power, priority 50\n- ironmans-bay: ??? support or raid or consolidate(no effect).\n\nFor ironmans-bay, consolidate does nothing (sea). Options: support, raid, defense (no effect at sea? defense on sea — actually defense orders can be placed on any area, but give bonus to defender. Ships can defend). Raid from sea can hit adjacent land/sea orders.\n\nGiven I'm capturing castles, maybe support/raid not needed. But a raid could be useful to strip Lannister support or consolidate. Hmm.\n\nActually, let me reconsider: maybe the ironmans-bay ship should get a support order to help defend against counterattacks, or to support my march if contested. Actually support orders project strength. If Lannister marches from Riverrun to Seagard to take it before me, I'd need... complicated.\n\nLet me keep ironmans-bay as raid — could strip an enemy's support or consolidate order. Or support. Hmm. Actually, since I have the ship, and my march to Seagard uses ship transport (the ship doesn't need an order), I could use ironmans-bay ship to support. But support from ironmans-bay would support adjacent combats in areas adjacent to ironmans-bay (seagard, flints-finger, greywater-watch, riverrun). If I'm attacked at Seagard... support from a ship at sea to a land area — ships may support adjacent combat in land areas. Yes! So the ship at ironmans-bay could support Seagard's defense. Good defensive value.\n\nBut that's only useful if I keep Seagard and am attacked there. Reasonable.\n\nAlternatively raid is proactive.\n\nGiven uncertainty, I'll set ironmans-bay to support (priority 40) to help hold Seagard if attacked. Actually hmm, but a support order at ironmans-bay is public after reveal — it deters attacks on Seagard. Good.\n\nWait, but there's also the question: the port-of-pyke ship — consolidate for power. Good.\n\nActually, reconsider port-of-pyke: it's a port. Consolidate gives 1 power. Fine.\n\nHmm, but I might want the port ship to also be flexible. Let me just do consolidate for power (need power for bidding).\n\nActually, I have 6 power. Power is useful for Clash of Kings bidding and wildlings. Let me get more.\n\nLet me also reconsider: should pyke get the +0 march or would -1 matter? Since targets undefended, modifier irrelevant. But priorities allocate the +0 first to highest priority. Fine.\n\nLet me now also reconsider whether to capture from Pyke via ship transport requires the ship to be present — yes ironmans-bay ship and port-of-pyke ship are present. Pyke adjacent to ironmans-bay. So transport works. Good.\n\nAlternatively march from Pyke direct to ironmans-bay? No, land units can't move to sea.\n\nOK. Let me also double check: does ship transport allow Pyke -> Seagard? Pyke adjacent to ironmans-bay (sea). Seagard adjacent to ironmans-bay (sea). Both coastal, connected by ironmans-bay containing my ship. Yes.\n\nNow, one concern: moving the knight+footman from Pyke to Seagard. Pyke stays mine (home). Good. But then Pyke is empty — opponents could take it but it's my home and I retain control via home symbol; but if enemy units enter, they'd need to fight garrison (garrison 2 at Pyke). Good defense.\n\nActually wait, is it wise to send both units and leave Pyke empty? The garrison (2) defends. Fine.\n\nAlternatively send only the knight to Seagard, leave footman at Pyke. But then Seagard has a single knight = not an army, and if attacked, weak. Hmm. Sending both creates army of 2 at Seagard. But leaving Pyke with garrison only. I think sending both is fine, but maybe keep footman at Pyke to have a unit there and send knight. Actually a single knight at Seagard is vulnerable.\n\nHmm, let me think about defense. If Lannister attacks Seagard with riverrun army (footman+knight = 3 strength), and I have knight+footman there (3) + support... it'd be close. Actually I'd have defense order? No, Seagard would have march order used, no defense token.\n\nAlternatively, I could put a defense order on Pyke and march greywater-watch to Seagard? Greywater-watch is adjacent to Seagard directly. A single footman captures Seagard. Then Pyke keeps knight+footman as a reserve/defense. But that leaves Seagard with a single footman.\n\nHmm. Let me think about which is better.\n\nOption A: Pyke army (knight+footman) marches to Seagard; greywater-watch footman marches to Flint's Finger/Moat Cailin. Ironmans-bay support. Port consolidate.\nCapture 2 castles. Seagard held by 3 strength army.\n\nOption B: greywater-watch footman to Seagard; Pyke holds. Only 1 castle. Less aggressive.\n\nI'll go with Option A — aggressive, captures 2 castles.\n\nWait, but there's the issue of the march originating area and combat. For Pyke march: only one combat allowed. Both Seagard and Flint's Finger undefended, no combat. Fine.\n\nActually careful: from Pyke, can the army split and go to different areas? Yes but I'll send all to Seagard.\n\nFrom greywater-watch, send footman to Flint's Finger OR Moat Cailin. Which is better? Flint's Finger (castle=1) adjacent to greywater-watch and ironmans-bay, bay-of-ice, sunset-sea. Moat Cailin (castle=1) adjacent to greywater-watch, seagard, the-narrow-sea, the-twins, white-harbor, winterfell. \n\nMoat Cailin is more central but near Stark. Flint's Finger is near Greyjoy's sphere. Hmm. Also note if I take Moat Cailin, I'm adjacent to Winterfell (Stark). Taking Moat Cailin with a single footman is risky vs Stark knights.\n\nFlint's Finger (castle=1) — safer, closer to my ships. Let me take Flint's Finger.\n\nActually, could I take both Flint's Finger and Moat Cailin? Greywater-watch has only 1 footman. Can't split one unit.\n\nAlternatively, from Pyke send knight+footman; split: knight to Seagard, footman to Flint's Finger? But then Seagard has single knight. Hmm.\n\nI'll keep: Pyke both -> Seagard; greywater footman -> Flint's Finger with power token at greywater-watch.\n\nHmm wait, actually let me reconsider the power token at greywater-watch. If I move the footman out, I need to spend 1 power to keep greywater-watch (supply icon). Is it worth 1 power to keep 1 supply icon? Supply matters for larger armies later. Yes, probably worth it. And leaving greywater-watch vacant without power token means it reverts to neutral/uncontrolled; a neighbor could take it. Better to keep control.\n\nBut actually — do I really need to vacate greywater-watch? The footman there is my only unit holding it. If I want to capture Flint's Finger with it, yes.\n\nAlternatively, keep footman at greywater-watch and use Pyke to capture both? Pyke army can only go to one place as a group... actually it can split: knight+footman split into two single units to Seagard and Flint's Finger? Each undefended. But single units are weak and don't count as armies.\n\nHmm, capturing two castles with two single units is doable but leaves both vulnerable. Actually if undefended and no combat, splitting is fine. But then I have 2 single units.\n\nLet me just go with: Pyke knight+footman -> Seagard (army of 2), greywater footman -> Flint's Finger.\n\nNow ironmans-bay: support. port-of-pyke: consolidate.\n\nPriority ordering: pyke march 100, greywater march 90, port-of-pyke consolidate 60, ironmans-bay support 50.\n\nWait — but harness will allocate the two march tokens. Since two regions request march and I have exactly 2 regular march tokens, fine.\n\nFor star preference: maxStarredOrders=0, so starred not allowed. Use \"avoid\".\n\nLet me double-check the region enum: [\"pyke\",\"ironmans-bay\",\"port-of-pyke\",\"greywater-watch\"]. Good, all 4.\n\nLet me verify neighbours quickly to make sure about connections and any threats. Let me check seagard, flints-finger, moat-cailin, riverrun.\n\nLet me use check_neighbours.\n\nActually, I have enough info. But let me verify a couple to be safe, especially to confirm Flint's Finger is reachable and undefended, and check for Lannister threat near Seagard.\n\nLet me call check_neighbours on seagard, flints-finger.\n\nLet me do it.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_v7cuswibl18",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":50}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24680,
+    "currentInputSha256": "3abea216c56de47a475210c49f9924fd458c2a251ac30351fc33505806e3ab4e",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 27552,
+        "inputSha256": "7bc2651286f095d28fc0fcb02603a1bc904a8710bf424f747949c229a391c551",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "pyke",
+                  "ironmans-bay",
+                  "port-of-pyke",
+                  "greywater-watch"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are none.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "90e0da3fa4d2ef2e8235eae4198588f3e790c5a25a88c841d3fb73f3743c8471"
+  }
+}

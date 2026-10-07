@@ -1,0 +1,280 @@
+{
+  "case": 2,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 5,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 4052,
+    "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "errorChain": [],
+  "previousAttemptError": null,
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "bay-of-ice",
+          "orderId": 10
+        },
+        {
+          "regionId": "castle-black",
+          "orderId": 4
+        },
+        {
+          "regionId": "karhold",
+          "orderId": 5
+        },
+        {
+          "regionId": "winterfell",
+          "orderId": 2
+        },
+        {
+          "regionId": "the-narrow-sea",
+          "orderId": 11
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"assignments\": [\n    {\n      \"region_id\": \"winterfell\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"bay-of-ice\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"castle-black\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"karhold\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"the-narrow-sea\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    }\n  ]\n}",
+    "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}"
+  ],
+  "requestCount": 2,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 2,
+    "inputTokens": 76507,
+    "outputTokens": 1278,
+    "totalTokens": 77785
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37659,
+      "input_tokens_details": {
+        "cached_tokens": 34688
+      },
+      "output_tokens": 1079,
+      "output_tokens_details": {
+        "reasoning_tokens": 856
+      },
+      "total_tokens": 38738,
+      "cost": 0.0139899,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0139899,
+        "upstream_inference_input_cost": 0.01318065,
+        "upstream_inference_output_cost": 0.00080925
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431497-da0NGXAAGfDYDd1fDegX",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    },
+    {
+      "input_tokens": 38848,
+      "input_tokens_details": {
+        "cached_tokens": 34816
+      },
+      "output_tokens": 199,
+      "output_tokens_details": {
+        "reasoning_tokens": 60
+      },
+      "total_tokens": 39047,
+      "cost": 0.01374605,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01374605,
+        "upstream_inference_input_cost": 0.0135968,
+        "upstream_inference_output_cost": 0.00014925
+      },
+      "scope": "agent",
+      "response_id": "gen-1789431498-7ZpirhB88Rc7JFBlE9Zp",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431497-da0NGXAAGfDYDd1fDegX",
+      "output": [
+        {
+          "id": "rs_tmp_xldp121xpc",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide orders. Stark has 5 occupied areas: bay-of-ice (ship), castle-black (2 knights), karhold (knight), winterfell (footman), the-narrow-sea (ship). Need assign order each. Restrictions: maxStarredOrders 0 (no special orders). Restricted categories: raid (cannot assign raid). So only march, defense, support, consolidate_power.\n\nWe have to consider supply: supply=1, so allowed armies: from supply table 1 -> permitted army sizes 2,2. So can have up to 2 armies each max size 2. Currently units: bay-of-ice ship, the-narrow-sea ship (these are separate armies each size1). castle-black two knights (army size2). karhold knight (size1). winterfell footman (size1). Total armies: ship+ship separate armies, knights combined? They are in different areas, not same. So each area counts as separate army if >=2 units? Actually army defined as two or more units in same area. So only castle-black (2 knights) is an army size2. Others are single units not armies. Supply limit: can have up to two armies of size2? Actually supply 1 allows two armies size2 each, but total units? No limit on number of single units. So fine.\n\nWe want to expand to capture a castle. Potential targets: Flint's Finger (castle), Moat Cailin (castle), White Harbor (castle). Need to march from adjacent area with unit(s). From winterfell we have footman can march to adjacent? Adjacent list: winterfell neighbours: bay-of-ice (sea), castle-black (land), karhold (land), moat-cailin (land), port-of-winterfell (port), the-shivering-sea (sea), the-stony-shore (land), white-harbor (land). So footman could march to moat-cailin (castle) or white-harbor (castle) directly (both land). Also ship at bay-of-ice could ship transport? But need ship adjacency: ship at bay-of-ice is in sea adjacent to winterfell (land) via port? Actually bay-of-ice is sea area adjacent to winterfell. Ship can march via ship transport? Ship cannot move into land, but can transport knights/footmen if there is a chain of ships. There is only one ship at bay-of-ice, no connecting ships to other sea areas. So cannot transport.\n\nThus we could assign a March order to winterfell to move footman to one of those castles. Meanwhile we need to defend our holdings maybe. Castle-black currently has knights, could assign Defense to protect if attacked. Karhold also maybe defend. Bay-of-ice and the-narrow-sea have ships, could assign March? Ships cannot march (they move only via March orders but they just move themselves, cannot attack land). You can assign March order to a sea area to move ships to adjacent sea area or into port. Could be used to move ship to another sea, maybe to attack? Could also assign Consolidate Power there though no power icons there, yields 1 power. Actually Consolidate Power yields one power token plus icons on area. No icons there, so just 1 power. Might be beneficial. But we have only 3 power tokens currently, but can gain more.\n\nPriority wise: highest priority 100 for winterfell (march). Next 90 for bay-of-ice? It had consolidation previously. We can keep Consolidate Power there to get power. The-narrow-sea also previously Consolidate Power. Probably keep same.\n\nCastle-black and karhold need defense to protect knights.\n\nThus assignments:\n\n- winterfell: preferred_order march (to capture castle). priority 100.\n\n- bay-of-ice: preferred_order consolidate_power (to gain power). priority 90.\n\n- castle-black: defense. priority 80.\n\n- karhold: defense. priority 70.\n\n- the-narrow-sea: consolidate_power. priority 60.\n\nAll without starred preference (avoid). No raid allowed.\n\nNow we need to output JSON with assignments.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_my2zvgnl2fq",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"assignments\": [\n    {\n      \"region_id\": \"winterfell\",\n      \"preferred_order\": \"march\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 100\n    },\n    {\n      \"region_id\": \"bay-of-ice\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 90\n    },\n    {\n      \"region_id\": \"castle-black\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 80\n    },\n    {\n      \"region_id\": \"karhold\",\n      \"preferred_order\": \"defense\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 70\n    },\n    {\n      \"region_id\": \"the-narrow-sea\",\n      \"preferred_order\": \"consolidate_power\",\n      \"starred_preference\": \"avoid\",\n      \"priority\": 60\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    },
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789431498-7ZpirhB88Rc7JFBlE9Zp",
+      "output": [
+        {
+          "id": "rs_tmp_t0cd3tkpzk",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to ensure orders respect restrictions: maxStarredOrders =0, restrictedOrderCategories includes \"raid\". So cannot assign raid. Our assignments use march, defense, consolidate_power – all allowed. Starred_preference avoid is fine. Need 5 assignments matching regions. Provide JSON as given.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_wewl8maykl",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"assignments\":[{\"region_id\":\"winterfell\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"bay-of-ice\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":90},{\"region_id\":\"castle-black\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"karhold\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"the-narrow-sea\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60}]}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 32155,
+    "currentInputSha256": "54951c63e02d8426d9db73e1e137fb82c3a89400ec6025d0670a88bd62989841",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 36137,
+        "inputSha256": "418a9ccc21c102cc85e559a92425590df27ce74a28f56c22336ba1239202ec47",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      },
+      {
+        "requestIndex": 2,
+        "stage": "submission",
+        "inputItemCount": 4,
+        "inputCharacters": 45093,
+        "inputSha256": "3cc71d889ecc35b87db73570ab26c1e0fc702bbd6129cfa380eb34d8a6cdd93c",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "bay-of-ice",
+                  "castle-black",
+                  "karhold",
+                  "winterfell",
+                  "the-narrow-sea"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are raid.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens. Priority 100 is most important; 0 is least important. Plan how to gain castle areas this round. Use Defence or Support when you have a concrete battle to protect or assist; otherwise these orders can leave an army unable to expand."
+    },
+    "actionOutputSchemaSha256": "b285ed194f51f1a8ec11161e0c6e8c7819bccb1c5b294cc8fc065d23fa5ce59e"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 2344,
+    "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "kingswood",
+      "moves": [
+        [
+          "the-reach",
+          [
+            25,
+            26
+          ]
+        ]
+      ],
+      "leavePowerToken": true
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"leave_power_token\": true,\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38427,
+    "outputTokens": 1469,
+    "totalTokens": 39896
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38427,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1469,
+      "output_tokens_details": {
+        "reasoning_tokens": 1474
+      },
+      "total_tokens": 39896,
+      "cost": 0.0022886,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0022886,
+        "upstream_inference_input_cost": 0.00192135,
+        "upstream_inference_output_cost": 0.00036725
+      },
+      "scope": "agent",
+      "response_id": "gen-1789426490-ivTR97zS96cOgcOLJK5i",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789426490-ivTR97zS96cOgcOLJK5i",
+      "output": [
+        {
+          "id": "rs_tmp_9oeud7l0iqh",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide how to resolve March order from Kingswood. Current units in Kingswood: footman id25, knight id26 (both Martell). Supply for Martell is 2 (from observation). Supply icons controlled 3, but supply track position 2 means permitted army sizes? According to supply table: supply 2 permits armies sizes 3,2,2 (max 3 armies: one up to 3 units, two up to 2). Currently Martell armies: let's list armies (areas with 2+ units). Kingswood has 2 units (army size2). Storms-end has 1 footman (unit id35) only? Actually storms-end units: footman id35 (single unit) => not an army. Yronwood has footman id27 single. Salt-shore empty. So currently Martell has one army size2 (Kingswood) which is within supply (max armies: three armies: size up to 3,2,2). No other armies. So moving both units out of Kingswood would vacate it. If we leave no units there, we could place a power token (if we have power token) to keep control (so keep castle area? Kingswood has no castle: castleLevel 0). It is a land area with no castle/stronghold. Vacating it would just lose control of that land area (but not a castle). Might affect supply icons? Kingswood has supply=1, crown=1. It gives one supply icon. If we vacate and don't leave token, we lose that supply icon, lowering supply icons controlled from 3 to 2? Actually Martell's controlledSupplyIcons currently 3 includes Kingswood (supply1), Storms-end (supply1), Sunspear (supply1), maybe others? Let's see Martell controlled supply icons: list of controlledRegions includes kingswood, port-of-sunspear, sunspear, sea-of-dorne, salt-shore, storms-end, port-of-storms-end, yronwood. Supply icons present in those: Kingswood (1), Sunspear (1), Storms-end (0? it's land with castle? Storms-end is a castle area (castle=1). Does it have supply icon? In map, storms-end has castle=1 but no supply attribute listed, so supply=0. Sea-of-dorne is sea, no supply. Salt-shore supply=1. Yronwood castle=1, no supply. So supply icons controlled are: kingswood (1), sunspear (1), salt-shore (1). That's 3, matching observation. If we vacate Kingswood, we lose one supply icon, dropping to 2, which might affect supply track? Currently Martell's supply track is 2 (position 2) meaning they have supply level 2 (allowed armies sizes 3,2,2). Supply icons controlled affect supply track adjustments when \"Supply\" card appears, not immediate. So could be okay.\n\nGoal: capture castles. The reachable destinations: storms-end (already owned, no castle gain), the-boneway (no castle?), the-reach (has castle=1). The Reach is a castle area (castle=1). It is currently uncontrolled? According to board data, \"the-reach\" not listed as controlled by any house. So capturing it would give a castle (increase victory points). It's adjacent to Kingswood via land. Check if there are enemy units there: none currently (board list doesn't show units in the-reach). So moving units into The Reach will capture it without combat (since no enemy units). That's beneficial. However need to consider support around The Reach for potential combat? Not needed if no enemy units. Also need to decide how many units to move: can move both footman and knight together, or split. If both move to the Reach, they'd form an army size2 there (legal). Kingswood would be empty; we could leave a power token to keep control of Kingswood (but it has no castle, maybe we don't care). If we don't leave token, we lose that land area (but not castle). Might be fine.\n\nAlternatively, could move only one unit and leave the other, maintaining army in Kingswood so keep supply icon. Might be safer supply wise? If we move both, Kingswood empty, we lose a supply icon but we already have enough supply icons? Not crucial now.\n\nWe also have a power token available (Martell has 3 power tokens, but some already placed: controlPowerToken on salt-shore, storms-end, etc. Currently used tokens: salt-shore has control token (belongs to Martell). storms-end also has control token. No token on Kingswood. So we have at least 1 token free. leave_power_token indicates spending one to keep control when vacating. If we move both units out, we could set leave_power_token true to place token and keep control of Kingswood (even though no castle, but keeps supply icon). Might be beneficial to keep supply icon (helps supply, but supply track not impacted currently). However leaving token will cost a power token, reducing available power (currently 3). Might be okay.\n\nGoal: increase castle count: moving to Reach gives a castle, increasing victory points from 3 to 4 (since each castle counts). Martell currently has 3 castles (kingswood? Actually kingswood not castle, but controlled castles are: Kingswood no, Sunspear (castle=2 stronghold counts as castle area), Storms-end (castle=1), maybe also ??? Look at controlledRegions and castle attributes: kingswood none, port-of-sunspear none (port), sunspear stronghold (castle=2), sea-of-dorne none, salt-shore none, storms-end castle, port-of-storms-end none, yronwood castle. So Martell controls three castle/stronghold areas: sunspear, storms-end, yronwood = 3. That's matching currentVictoryPoints=3. Gaining The Reach would be fourth.\n\nThus best move: move both units from Kingswood to The Reach, capture castle, and possibly leave a power token in Kingswood to keep supply icon. However if we leave token, we also keep control of Kingswood land (no castle). That's fine.\n\nCheck if moving both units violates supply: after move, army in The Reach size2; Kingswood empty, but we leave token, still control. No other armies. So still within supply.\n\nThus final moves: destination_region_id \"the-reach\", unit_ids [25,26].\n\nleave_power_token true (spend token to keep control of Kingswood). Ensure that we have power token available: we have 3; placed tokens: salt-shore, storms-end (2). So one remaining. So true is okay.\n\nReturn JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_d9ktzhdz0o6",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"leave_power_token\": true,\n  \"moves\": [\n    {\n      \"destination_region_id\": \"the-reach\",\n      \"unit_ids\": [25, 26]\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 34498,
+    "currentInputSha256": "aa5f8ba1298559f56ec8db774ea2dc86bc80de875711dc7d612f14a268f3e283",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 38932,
+        "inputSha256": "ed8e67eaf0b0e3fefc5a7e46ea11c88db693598a772bf225570c8e0d210a7b36",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "storms-end",
+                  "the-boneway",
+                  "the-reach"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    25,
+                    26
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        },
+        "leave_power_token": {
+          "description": "Spend one available power token to preserve control when legally vacating the source area. This must be false if units remain or control cannot be established.",
+          "title": "Leave Power Token",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "moves",
+        "leave_power_token"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Before attacking another army, use check_neighbours on that battlefield to verify the supporting areas. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "f084621cf57658fcc009e41b4afd00873abad9a93821cb95bcb3ac890bf907ff"
+  }
+}

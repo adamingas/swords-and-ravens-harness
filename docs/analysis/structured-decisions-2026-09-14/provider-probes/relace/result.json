@@ -1,0 +1,82 @@
+{
+  "case": 100,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "baratheon",
+  "round": 2,
+  "variant": "interleaved-tools-and-structured-output",
+  "snapshot": {
+    "id": 405,
+    "sha256": "574d38ceca28c89fd18d37fc628b84af3e88d87f42ee90558cfbba64f6e6bf82"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Relace', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}",
+  "serverActionsExecuted": false,
+  "errorChain": [
+    {
+      "type": "TransientProviderCapacityError",
+      "message": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Relace', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}"
+    },
+    {
+      "type": "RateLimitError",
+      "message": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations', 'provider_name': 'Relace', 'is_byok': False, 'limit_source': 'upstream_provider_shared_pool', 'remedy_hint': 'Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing'}}, 'user_id': 'user_2msvXAjmDdSE3BGAG66C2hCAo63'}"
+    },
+    {
+      "type": "HTTPStatusError",
+      "message": "Client error '429 Too Many Requests' for url 'https://openrouter.ai/api/v1/responses'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+    }
+  ],
+  "previousAttemptError": null,
+  "nativeResponseFormatOmitted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "rawUsage": [],
+  "responseItems": [],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 18705,
+    "currentInputSha256": "2345bbf0e6ed8ffec3bd5b66c4f73f5344b862eee59721974140c92bfb664dba",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 20871,
+        "inputSha256": "2b0db52cb3ba33a86100bfaa4f3488981e1dc2b30172bb0b7e6338bd0bb469ab",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "amount": {
+          "description": "Number of power tokens to bid.",
+          "minimum": 0,
+          "title": "Amount",
+          "type": "integer",
+          "maximum": 2
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "submit_bid_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are submitting a power-token bid for the current event. The tokens bid are spent under that event's rules. Read the event and your available power before choosing the amount. The current statePath and pendingDecision identify the track or event being bid on."
+    },
+    "actionOutputSchemaSha256": "af7cb317d24c13e8b0a3e75b1114043b8ce54cce46089c1e9003f6bdcb32c7e4"
+  }
+}

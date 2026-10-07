@@ -1,0 +1,387 @@
+{
+  "case": 7,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 7,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "different",
+  "assertionFailure": "Tool name/parsed arguments differ from historical decision",
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "muster_units",
+      "arguments": {
+        "musters": [
+          {
+            "mustering_region_id": "sunspear",
+            "recruitments": [
+              {
+                "unit_type": "knight",
+                "region_id": "sunspear",
+                "upgrade_from_footman": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "muster_units",
+      "arguments": {
+        "musters": [
+          {
+            "mustering_region_id": "storms-end",
+            "recruitments": [
+              {
+                "unit_type": "footman",
+                "region_id": "storms-end",
+                "upgrade_from_footman": false
+              }
+            ]
+          },
+          {
+            "mustering_region_id": "sunspear",
+            "recruitments": [
+              {
+                "unit_type": "knight",
+                "region_id": "sunspear",
+                "upgrade_from_footman": true
+              }
+            ]
+          },
+          {
+            "mustering_region_id": "yronwood",
+            "recruitments": [
+              {
+                "unit_type": "footman",
+                "region_id": "yronwood",
+                "upgrade_from_footman": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "muster_units",
+    "arguments": {
+      "musters": [
+        {
+          "mustering_region_id": "sunspear",
+          "recruitments": [
+            {
+              "unit_type": "knight",
+              "region_id": "sunspear",
+              "upgrade_from_footman": true
+            }
+          ]
+        }
+      ],
+      "omitted_supply_unsafe_recruitments": 0
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 14826,
+    "outputTokens": 825,
+    "totalTokens": 15651
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 14826,
+      "input_tokens_details": {
+        "cached_tokens": 640
+      },
+      "output_tokens": 825,
+      "output_tokens_details": {
+        "reasoning_tokens": 693
+      },
+      "total_tokens": 15651,
+      "cost": 0.00580785,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00580785,
+        "upstream_inference_input_cost": 0.0051891,
+        "upstream_inference_output_cost": 0.00061875
+      },
+      "scope": "agent",
+      "response_id": "gen-1789375011-OQ1PlvfZugoL8KiTumXn",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789375011-OQ1PlvfZugoL8KiTumXn",
+      "output": [
+        {
+          "id": "rs_tmp_4435v11r6iv",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide to muster units or skip. Supply is 3, current armies: dornish-marches has 3 units already (footman, footman, knight). That's full army slot size? supply limit allowed sizes [3,2,2,2]; one army of size3 used. Single-unit regions: salt-shore has 1 footman, sea-of-dorne has 1 ship, sunspear has 1 footman. Those count as single-unit regions, not using army slots. We have supply 3, so can have up to 3 armies total? Actually supply limit 3 means max total units = sum allowed sizes? Probably can have up to 3 armies total? Already have one army size3, plus three single units okay. Mustering points: storms-end 1, sunspear 2, yronwood 1. Mustering points likely equal to number of musterings you can do? Mustering type 0 maybe normal mustering (choose up to that many mustering regions?). Probably you can muster in each region up to its mustering points? Need to recruit units within supply. We have supply 3, currently units count: footmen 6 total? Let's count: footman units: IDs 35,25,27,36, plus maybe others? In Martell regions: dornish-marches footman x2, footman at sunspear, footman at salt-shore. That's 4 footmen. Knights: one at dornish-marches, maybe none others. Ships: one at sea-of-dorne. Supply icons controlled 3, supply =3 means max armies 3? Already using 1 army of size3, plus 3 single units okay. Mustering could add new units but must stay within supply. We could add a footman at storms-end (land) or upgrade footman to knight? storms-end currently has no units. Could recruit footman there (cost 1). Also could recruit ship at east-summer-sea etc but supply constraints. Likely best to add footman at storms-end to protect? Also maybe recruit at sunspear: have footman already, can upgrade footman to knight (cost 1) since upgradeableFootmen:1 at sunspear. That would turn footman into knight, increasing army size? Sunspear currently single unit region, upgrading will still be single unit region, okay. Could also recruit at yronwood land footman (cost1). Must decide within supply of 3. We have 1 power token, could place power token when leaving? not needed. MusteringPoints maybe limit number of units per region? Probably you can muster in each region up to its mustering points total new units? For storms-end musteringPoints 1, so can muster one unit there. Sunspear points 2, can muster up to 2 units? But supply safe new units when chosen alone: at sunspear land safe new units 1 (since current unit count 1). So only 1 new unit safe. At yronwood safe new units 2. So we could recruit footman at storms-end, upgrade footman at sunspear, and recruit footman at yronwood. That uses 3 supply units, fits supply 3. That seems good to bolster defenses near castles. Let's do that.\n\nConstruct muster_units request.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"musters\":[{\"mustering_region_id\":\"storms-end\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"storms-end\",\"upgrade_from_footman\":false}]},{\"mustering_region_id\":\"sunspear\",\"recruitments\":[{\"unit_type\":\"knight\",\"region_id\":\"sunspear\",\"upgrade_from_footman\":true}]},{\"mustering_region_id\":\"yronwood\",\"recruitments\":[{\"unit_type\":\"footman\",\"region_id\":\"yronwood\",\"upgrade_from_footman\":false}]}]}",
+          "call_id": "827f39911",
+          "name": "muster_units",
+          "type": "function_call",
+          "id": "fc_tmp_7k45v51li78",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "9c9eaa4c94f9b8bff0a952152768d161b12de8ea1f7f3a365c005fd1647d4b5e",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 32,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 8,
+    "removedObservationCharacters": 331714,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_0kz3aj9uo5y",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit orders for current place-orders. Eligible regions 4: sunspear, sea-of-dorne, storms-end, yronwood. Must assign orders to each? requiredAssignmentCount 4 so all. Max starred 1. Choose priorities.\n\nWe have armies: sunspear has footman, maybe also units? board shows footman at sunspear. sea-of-dorne has ship (martell) unit. storms-end has footman, footman, knight. yronwood footman.\n\nGoal: expand toward next castle maybe? Martell castles: Sunspear, Storm's End, Yronwood (has castle level1). Already have three castles? Actually castle levels: Sunspear 2, Storm's End 1, Yronwood 1. Need 7 castle areas. Want to take Salt Shore? it's land no castle but could build. Perhaps march from storms-end to kingswood? Already did earlier but returned. Now maybe march from storms-end to kingswood again? But kingswood is controlled by us already with power token only. Could attack? No enemy there. Better to march from storms-end to kingswood to consolidate? Not needed.\n\nWe have ship at sea-of-dorne can support? support order can support adjacent battles. Might want to support an attack on Salt Shore from sunspear? Sunspear adjacent to salt shore and sea-of-dorne. Could march from sunspear to salt shore to capture land (no castle) but expand supply? Salt shore has supply icon 1, currently controlled by us already? controlPowerToken on salt_shore is martell, so already controlled. Maybe aim for Prince's Pass (castle? none) or The Boneway? Need more castles. Yronwood already castle. Next castle target maybe The Boneway (castle0). Could attack Prince's Pass from Yronwood? Adjacent yes. Could march from Yronwood to Prince's Pass (land no castle). Not big.\n\nMaybe aim to take The Boneway via march from storms-end? Adjacent to the boneway. So march from storms-end to the boneway to gain land area and maybe later build castle. Use march order with priority high. We have max one starred; we could make that starred for +1 combat. No combat though. Use normal march.\n\nSea-of-dorne could support any battle; maybe support march from storms-end to the boneway. So set sea-of-dorne order support. Yronwood defense to protect. Sunspear defense.\n\nThus assignments: storms-end march (prefer starred? we have no starred needed elsewhere, can prefer avoid). sea-of-dorne support, yronwood defense, sunspear defense.\n\nPriorities: storms-end 100, sea-of-dorne 80, yronwood 60, sunspear 40.\n\nStarred: avoid for all (no combat). Max starred 1, but none needed.\n\nSubmit orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"storms-end\",\"preferred_order\":\"march\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"support\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"yronwood\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"sunspear\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "b457b5e7b",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_rv1sbwkudc",
+        "status": "completed"
+      },
+      {
+        "call_id": "b457b5e7b",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"548acfb9-7447-483d-b595-b86eac616c25\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_hgddkwg6144",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the current march order: starting region storms-end with units 35,25,26. Options destinations: kingswood, sunspear, the-boneway, yronwood. No power token left. Must move all listed units if leaving token false? Constraint: each unit may be moved at most once. At most one destination may trigger combat. All destinations have no combat (garrison 0 or controlled by us). Choose best move. We want expansion toward castles. Our castles: Sunspear (already have), Storm's End (castle), Salt Shore (control token). Expand towards Yronwood (has no castle) or The Boneway leads to Prince's Pass and Dornish Marches (tyrell). Kingswood is neutral land with no castle. Perhaps move to Kingswood to increase land area and approach Iron Throne? But we already control Kingswood power token there. Actually Kingswood has our power token already, moving there would vacate Storm's End losing castle? We would leave power token false, so lose Storm's End castle. That seems bad. Better move to Yronwood or The Boneway to expand towards more castles. Yronwood currently has our unit footman, but no power token. Moving units there could reinforce but no combat. The Boneway is neutral, connecting to Prince's Pass (no castle) and Dornish Marches (neutral). Might be good to push further north. I'd move all three units to The Boneway to advance towards Prince's Pass and maybe later to the Reach. No combat. leave_power_token false (cannot leave anyway). So resolve_march with moves to the-boneway unit_ids [35,25,26].",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"storms-end\",\"moves\":[{\"destination_region_id\":\"the-boneway\",\"unit_ids\":[35,25,26]}],\"leave_power_token\":false}",
+        "call_id": "55e2893c3",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_1gq2u6umah5",
+        "status": "completed"
+      },
+      {
+        "call_id": "55e2893c3",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"cf8d847c-336b-4444-aa5f-7b3feb456e42\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_lvw18jt3tv",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "Need to submit orders for eligible regions: sunspear, sea-of-dorne, the-boneway, yronwood. We must assign orders. Likely want march from storms? But eligible list excludes storms-end. So we must place orders for those four. Choose priorities. Probably march from sunspear to? but cannot move from sea? March order moves units. We have units: sunspear has footman id36. Sea-of-dorne has ship id24. The-boneway has units 35,25,26. Yronwood has footman 27. We might want march from sunspear to sea-of-dorne? they are adjacent? Sunspear neighbours: east-summer-sea, port-of-sunspear, salt-shore, sea-of-dorne, yronwood. Yes can march to sea-of-dorne (sea) not allowed? March can move land units to adjacent land region; ships move via sea. Footman can march to sea-of-dorne (land) adjacent? Yes sea-of-dorne is sea region? Actually sea-of-dorne is sea type, so footmen cannot move there. So march from sunspear maybe to yronwood (land). That would attack? No enemy there? Yronwood has our footman already. Might want support at boneway where we have units to attack? Probably need to attack something? No enemies nearby. Might just defense. So assign defense to each. But need at most 1 starred, maybe none. Use defense orders. Provide priorities high. Let's submit orders: sunspear defense, sea-of-dorne defense, the-boneway defense, yronwood defense. Priorities 100,80,60,40. No starred.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"sunspear\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"the-boneway\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"yronwood\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "1a89ca104",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_qfgpkmqm0sf",
+        "status": "completed"
+      },
+      {
+        "call_id": "1a89ca104",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"13f86755-d814-4a52-bf52-1b3064c6055f\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_1l8nztnzobr",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve the march from Yronwood. Options: move unit 27 to one of reachable regions. Probably want to expand. Which region is best? Threat? Perhaps move to Prince's Pass to threaten Dornish? Or to Storms End? Already own Storms End. Could move to The Boneway already have control token. Maybe move to Salt Shore to secure? Probably move footman to Salt Shore to strengthen border. No combat. So resolve_march with move to salt-shore, leave power token true? Can leave power token at Yronwood? It says canLeavePowerToken:true. Should we leave token? Yronwood currently no token, but leaving token there would give control. Might be good. We have 3 power tokens, already placed at Kingswood, Salt Shore, Storms End. Leaving at Yronwood gives extra point. So move footman to Salt Shore and leave token. Use resolve_march.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"yronwood\",\"moves\":[{\"destination_region_id\":\"salt-shore\",\"unit_ids\":[27]}],\"leave_power_token\":true}",
+        "call_id": "e45f11dce",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_vqu2z8wx24o",
+        "status": "completed"
+      },
+      {
+        "call_id": "e45f11dce",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"76d47cc8-0aa4-423b-b239-9b1d0b10ddca\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_6zv1udyxf1p",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to place orders for eligible regions: sunspear, sea-of-dorne, salt-shore, the-boneway. Must assign 4 orders. Max starred orders 1, but starred march restricted? restrictedStarredOrderCategories includes \"march\". So starred march not allowed. We have no starred orders likely. Choose orders to advance victory. We have castles at sunspear (castle), sea-of-dorne is sea, salt-shore is land no castle, the-boneway is land no castle. Goal: get another castle. Nearest castle? Perhaps King's Landing? Not reachable. Could aim to take Prince's Pass castle (castle? it's stronghold? Actually Prince's Pass has castleLevel 0). Maybe aim for Salt Shore to defend. We have units at salt_shore (footman). Also we have footman at sea-of-dorne (ship). Actually sea-of-dorne unit is ship at sea. We could march from sea-of-dorne to The Boneway? Ship can move? ships move only on sea, cannot attack land. March order moves armies and attacks. We have footman at salt_shore? Actually unit 27 footman at salt_shore (controlled). Could march from salt_shore to sunspear? Adjacent? Salt_shore neighbours sunspear, yronwood, starfall, east-summer-sea. Yes can march to sunspear (castle) and possibly capture? Sunspear already owned. Could march to Yronwood? Already own. Probably want to consolidate power in a region to get stars. Choose consolidate power at salt_shore maybe? But we need 4 orders. Options: march, defense, support, consolidate, raid. We have no adjacent enemy to attack. Could march from sea-of-dorne (ship) to storms-end? Not adjacent? sea-of-dorne neighbours storms-end, east-summer-sea, the-boneway, sunspear, yronwood. Ship could march? ships can't attack land but can move? March moves armies; ships are units too and can move along sea. Could move ship to storms-end? That's land. Not allowed. So perhaps use support from sea-of-dorne to support attack elsewhere? No attack. Might just place defense on sunspear (protect castle), defense on sea-of-dorne, defense on salt-shore, defense on the-boneway. That uses all defense orders. Acceptable. Use starred preference avoid. Provide priorities.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"sunspear\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":100},{\"region_id\":\"sea-of-dorne\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"salt-shore\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"the-boneway\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":40}]}",
+        "call_id": "ccf4967df",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_cuy209e205l",
+        "status": "completed"
+      },
+      {
+        "call_id": "ccf4967df",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"380ebfeb-ad35-415b-a326-e2ceab587f1d\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_573padj3s6k",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to resolve this march. From actionGuidance legal destinations list includes several; we must choose moves. Likely want to attack Dornish Marches (enemy Tyrell) for castle? Dornish Marches is land with 0 garrison, controller Tyrell, triggers combat. Our units: footman 35, footman 25, knight 26. That's 3 units. Could move all to Dornish Marches to attack. Leave power token? can leave. Should we leave token? Probably want to keep token on Boneway? If move all, leaving token removes control token from Boneway (currently none). Might be okay. Use leave_power_token true can leave token after vacating. It's allowed. So resolve_march starting_region_id \"the-boneway\" moves destination Dornish Marches with units [35,25,26], leave_power_token true.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"starting_region_id\":\"the-boneway\",\"moves\":[{\"destination_region_id\":\"dornish-marches\",\"unit_ids\":[35,25,26]}],\"leave_power_token\":true}",
+        "call_id": "db33febf7",
+        "name": "resolve_march",
+        "type": "function_call",
+        "id": "fc_tmp_j0sg7awb29o",
+        "status": "completed"
+      },
+      {
+        "call_id": "db33febf7",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"resolve_march\", \"stateId\": \"bed6d1ee-271a-44bd-a594-efcbe87832f2\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_zpgvwxl8jep",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to choose a house card for combat. Currently in combat? We see attack event earlier: martell attacked tyrell at the-boneway into dornish-marches. Likely combat resolved now, need to choose house card. Choose best card considering importance. Dornish Marches is a low-value region (no castle/stronghold). Might want to conserve high cards for future. Use a low strength card like Doran Martell (strength 0) to win? Combat strength: our units footman footman knight = 3 units, no swords. Tyrell might have defending units? Not shown. Likely no units there. Tyrell has control power token on dornish-marches, but no units. So combat likely minimal. Use Doran Martell to save stronger cards. Also need Valyrian Blade decision? Force false. So choose house_card_id \"doran-martell\".",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"house_card_id\":\"doran-martell\",\"force_valyrian_blade_decision\":false}",
+        "call_id": "00afd70a0",
+        "name": "choose_combat_house_card",
+        "type": "function_call",
+        "id": "fc_tmp_2q4dpjyfyew",
+        "status": "completed"
+      },
+      {
+        "call_id": "00afd70a0",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"choose_combat_house_card\", \"stateId\": \"962d7818-1830-476b-affa-184ed6a15902\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_levv0pf1mp",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to make a simple-choice: choose Iron Throne, Fiefdoms, or King's Court. We want to improve position. Currently Iron Throne track order: [\"greyjoy\",\"lannister\",\"baratheon\",\"tyrell\",\"stark\",\"martell\"] meaning Martell is last, will act last in next round - not good. We may want to move up. Choose Iron Throne to move us up? Choosing Iron Throne will move us to top? Actually simple-choice likely selects which track to advance? Probably picks which track to advance for next round? Typically after combat house card resolution, you choose which track to move up (Iron Throne, Fiefdoms, King's Court). We want Iron Throne to improve turn order. So choose Iron Throne.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"choice_index\":0}",
+        "call_id": "06206f276",
+        "name": "choose_option",
+        "type": "function_call",
+        "id": "fc_tmp_86jhapmshss",
+        "status": "completed"
+      },
+      {
+        "call_id": "06206f276",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"choose_option\", \"stateId\": \"76fe8a89-f9b5-4dd8-922c-bbf399de98b5\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 41198,
+    "currentInputSha256": "89ca17578d3b9fa0ecf7e08cff849e9ee65feaefb9062823c7e98938fbf03658",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 63529,
+        "inputSha256": "9c9eaa4c94f9b8bff0a952152768d161b12de8ea1f7f3a365c005fd1647d4b5e",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

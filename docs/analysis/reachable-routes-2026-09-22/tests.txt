@@ -1,0 +1,61 @@
+........................................................................ [ 27%]
+........................................................................ [ 54%]
+........................................................................ [ 81%]
+.................................................                        [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/starlette/testclient.py:53
+  /Users/ext-adamos.spanashis/projects/swords-and-ravens/.venv/lib/python3.14/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+tests/test_reachability_tools.py::test_destinations_match_upstream_geometric_algorithm:
+
+  - during reuse phase (1.30 seconds):
+    - Typical runtimes: ~ 1-1274 ms, of which ~ 0-1 ms in data generation
+    - 15 passing, 0 failing, and 0 invalid test cases
+
+  - during generate phase (0.41 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 285 passing, 0 failing, and 42 invalid test cases
+
+  - Stopped because settings.max_examples=300
+
+
+tests/test_reachability_tools.py::test_routes_are_shortest_valid_paths_without_cycles:
+
+  - during generate phase (0.27 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 250 passing, 0 failing, and 50 invalid test cases
+
+  - Stopped because settings.max_examples=250
+
+
+tests/test_reachability_tools.py::test_removing_a_transport_cannot_add_destinations:
+
+  - during generate phase (0.26 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which ~ 0-1 ms in data generation
+    - 200 passing, 0 failing, and 46 invalid test cases
+
+  - Stopped because settings.max_examples=200
+
+
+tests/test_reachability_tools.py::test_irrelevant_legality_facts_cannot_change_routes:
+
+  - during generate phase (0.23 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 200 passing, 0 failing, and 35 invalid test cases
+
+  - Stopped because settings.max_examples=200
+
+
+tests/test_reachability_tools.py::test_source_occupants_do_not_matter_and_input_order_is_irrelevant:
+
+  - during generate phase (0.21 seconds):
+    - Typical runtimes: ~ 0-1 ms, of which < 1ms in data generation
+    - 200 passing, 0 failing, and 32 invalid test cases
+
+  - Stopped because settings.max_examples=200
+
+
+265 passed, 1 warning in 17.92s

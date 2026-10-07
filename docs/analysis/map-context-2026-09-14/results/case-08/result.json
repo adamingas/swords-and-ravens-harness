@@ -1,0 +1,157 @@
+{
+  "case": 8,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 6,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 5162,
+    "sha256": "9b2b05b1d8e3992c36d813d29eee1dade1cc72717d2612d51a4c13ce3b37d245"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "moat-cailin",
+        "moves": [
+          {
+            "destination_region_id": "winterfell",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 39096,
+    "outputTokens": 716,
+    "totalTokens": 39812
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 39096,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 716,
+      "output_tokens_details": {
+        "reasoning_tokens": 661
+      },
+      "total_tokens": 39812,
+      "cost": 0.0142206,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0142206,
+        "upstream_inference_input_cost": 0.0136836,
+        "upstream_inference_output_cost": 0.000537
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391286-IfkcYBkXykNsEsLcMN6u",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391286-IfkcYBkXykNsEsLcMN6u",
+      "output": [
+        {
+          "id": "rs_tmp_atochyes4b7",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the March order from Moat Cailin. Options listed: reachable regions include greywater-watch, seagard, the-twins, white-harbor, winterfell (combat). Must choose one. We have knights at Moat Cailin (2). Our supply is 3, currently we have? Units: knights 2 in Moat Cailin, footman in Greywater Watch, ship in Ironman's Bay, ship in Port of Pyke. No armies? Knights in Moat Cailin count as army of 2 units -> size 2. Supply 3 allows armies sizes 3,2,2,2. So okay. If we move knights to another area, may create new army. Consider strategic: we want to expand toward castles. Moat Cailin adjacent to Greywater Watch (has our footman), Seagard (controlled), The Twins (neutral), White Harbor (neutral), Winterfell (enemy stronghold - combat). Likely we want to attack Winterfell? That is a stronghold, gives castle? Winterfell is a castle? It has castle=2 stronghold. Yes stronghold. Capturing would give us 5th stronghold. However combat with Stark defender. Let's assess combat strength: Our knights 2 units strength each 2 => 4. March order is March +0 (no modifier). Support from adjacent? Support orders: Greywater Watch has a Support order (our own). It can support us. Units there: footman (strength1). Support order gives combat strength of units in that area. Since we own both, we can support ourselves. So support adds 1. Also other supports? Adjacent areas with support: Seagard has no order now (we moved March order earlier). The Twins no order. White Harbor none. So total initial combat strength attacker: units 4 + support 1 =5. Defender Winterfell has garrison 2 plus 1 footman (strength1). Defense order provides +1. So defender strength: units 1 + garrison2 + defense+1 =4. No support for defender maybe none. So attacker wins. Sword icons from our house card? We have house cards available; we must play a house card. We have Euron Crow's Eye (strength4 swords1) etc. We can use that for extra sword. So we could likely take Winterfell. That gives us a stronghold (5th). Also we could then control the area. Must consider supply after moving knights into enemy area: they'd be in an army of 2 units, still okay. We also need to leave power token? If we vacate Moat Cailin (no units) we can leave a control token? Moat Cailin has no castle/stronghold, but we could leave power token if we have available power (we have 8). That would give us control of Moat Cailin (maybe useful). Yes we should leave token.\n\nThus choose move to Winterfell, initiate combat. Use leave_power_token true.\n\nWe must call resolve_march with moves destination winterfell, unit_ids [6,37]. Ensure leave_power_token true.\n\nLet's do that.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"moat-cailin\",\"moves\":[{\"destination_region_id\":\"winterfell\",\"unit_ids\":[6,37]}],\"leave_power_token\":true}",
+          "call_id": "5de5dc166",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_295ifmoec2k",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 30518,
+    "currentInputSha256": "101e9f126742d421ed9fc16e71049898ea4d02dce4490d05618ee62d487bb507",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 52668,
+        "inputSha256": "e936472b663e02fda89c2bf1e407c0ab0461fb851a6ec7a83b2988ded587c298",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "968daa339ba04d867a9afa90fb77635c71f9b17ee5fb2ddf2286860330bd082d"
+  }
+}

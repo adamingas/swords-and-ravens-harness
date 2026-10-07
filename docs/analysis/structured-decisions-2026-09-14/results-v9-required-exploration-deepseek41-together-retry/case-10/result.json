@@ -1,0 +1,153 @@
+{
+  "case": 10,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "house": "martell",
+  "round": 3,
+  "variant": "two-stage-structured-decision",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "error": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"Upstream error from Together: Stream error: h2 protocol error: error reading a body from connection\"}",
+  "serverActionsExecuted": false,
+  "errorChain": [
+    {
+      "type": "ModelRunError",
+      "message": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"Upstream error from Together: Stream error: h2 protocol error: error reading a body from connection\"}"
+    },
+    {
+      "type": "RuntimeError",
+      "message": "Responses API returned terminal status failed; error={\"code\":\"server_error\",\"message\":\"Upstream error from Together: Stream error: h2 protocol error: error reading a body from connection\"}"
+    }
+  ],
+  "previousAttemptError": "Connection error.",
+  "requestTimeoutSeconds": 300.0,
+  "nativeResponseFormatOmitted": false,
+  "commands": [],
+  "finalAnswers": [],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 41292,
+    "outputTokens": 1423,
+    "totalTokens": 42715
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 41292,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1423,
+      "output_tokens_details": {
+        "reasoning_tokens": 1423
+      },
+      "total_tokens": 42715,
+      "cost": 0,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0140952,
+        "upstream_inference_input_cost": 0.0123876,
+        "upstream_inference_output_cost": 0.0017076
+      },
+      "scope": "agent",
+      "response_id": "gen-1789461611-YMzJfXJjKe7PWaJjCqzL",
+      "response_model": "deepseek/deepseek-v4.1-flash",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "scope": "agent",
+      "status": "failed",
+      "responseId": "gen-1789461611-YMzJfXJjKe7PWaJjCqzL",
+      "incompleteDetails": {
+        "value": "None"
+      },
+      "providerError": {
+        "code": "server_error",
+        "message": "Upstream error from Together: Stream error: h2 protocol error: error reading a body from connection"
+      },
+      "output": [
+        {
+          "id": "rs_tmp_qm3a9qh7ro",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "The schema has maxItems 1 and only destination_region_id, no unit_ids! Interesting. So moves is a single group with just destination. Hmm, but the prompt says choose units. The schema only allows destination_region_id. Wait, items properties only destination_region_id, required. So we can only specify destination, presumably all units in region move there? Actually with maxItems 1, one move group with a destination. Unit IDs not in schema... but description mentions \"moving unit IDs\". Odd. The schema provided is authoritative though.\n\nWe have one footman (id 27) at Princes Pass. Best move: march to Starfall (castle=1, capture gains one castle area without combat) — but wait, Starfall is a castle area with no units, controller null. Moving there gains a castle. Alternatively Yronwood (castle=1). Starfall is better? Both castle. Starfall has supply=1 as well. Yronwood is castle=1 also with... yronwood is castle=1, no supply. Let's check: yronwood [land; castle=1] no supply listed. starfall [land; castle=1; supply=1]. Starfall gives supply icon too.\n\nBut note moving out of Princes Pass loses it (can't leave power token, and we have 0 power anyway). Princes Pass contributes 0 castle. So gain one castle area net.\n\nWhich is better strategically? Starfall is adjacent to east-summer-sea (Tyrell? no, sea), princes-pass, salt-shore, west-summer-sea. Yronwood adjacent to princes-pass, salt-shore, sea-of-dorne, starfall, sunspear, the-boneway.\n\nWe control salt-shore, sunspear, sea-of-dorne. Yronwood would be more connected to our territory and defensible (support from sea-of-dorne via... support requires adjacency: yronwood adjacent to sea-of-dorne, and our ship there gives support to land? Ship units may support adjacent combat in a land area — yes, from sea-of-dorne which is adjacent to yronwood). Starfall adjacent to salt-shore (which we control but has no units? salt-shore has controlPowerToken martell, no units) — support requires support order; we have support order in sea-of-dorne only, which is not adjacent to starfall.\n\nSo Yronwood is better defended: our ship at sea-of-dorne with Support +0 order can support yronwood (1 strength). Also yronwood is adjacent to sunspear with our knight.\n\nBut no combat anyway — both empty neutrals. Wait, are they controlled by nobody with no units? Yronwood controller null, units none, no neutral force. So moving in just takes control without combat. Good.\n\nWhich gives better future? Yronwood is a castle adjacent to sea-of-dorne and princes-pass and salt-shore; it connects our territory. Starfall is more isolated but has supply.\n\nActually both are castle=1. Starfall also has supply=1, boosting supplies. We have 3 supply icons currently, supply track 2. Hmm.\n\nDefense: Yronwood adjacent to the-boneway (Baratheon footman with March -1 order) — Baratheon could attack. Actually the-boneway has Baratheon march -1; Baratheon might march into yronwood to attack. Starfall less exposed.\n\nEither way, we should also consider keeping a unit at Princes Pass to preserve it? We only have one unit there (footman 27). Can't both hold and capture. Net gain one castle either way.\n\nActually the schema: moves array with one item with destination only. Units unspecified—maybe all units in source move. We have just one unit, so it moves.\n\nLet me check neighbours to satisfy tool requirement and verify support around destinations.\n\nLet me call check_neighbours for yronwood and starfall.\n\nLet me also consider: maybe we should attack dornish-marches (Tyrell footman with Consolidate Power order)? Our footman alone: strength 1 + march +0 = 1 vs Tyrell 1, defender. No support for us? Dornish-marches adjacent to princes-pass, highgarden, oldtown, the-boneway, the-reach, three-towers. Our support in sea-of-dorne is not adjacent to dornish-marches. So we'd lose. Not good.\n\nBaratheon's the-boneway has footman with March -1. Could we attack? Our footman vs their footman, we attack with +0: 1 vs 1, tie broken by Fiefdoms: we are 3rd, Baratheon 4th, so we'd win tie. But we'd gain nothing (boneway has no castle). Not worth.\n\nSo best: capture a castle. Choose between Starfall and Yronwood.\n\nConsider power: sunspear consolidate power will be resolved later; we have 0 power. Capturing Yronwood keeps us near home; Starfall adjacent to west-summer-sea where Tyrell could come.\n\nActually, think about which one is contestable. Dornish-marches Tyrell footman has Consolidate Power order — meaning Tyrell isn't marching from there this round. Highgarden has no units. Tyrell's only unit near is dornish-marches footman and redwyne straights ship. So Yronwood is safe this round.\n\nBaratheon the-boneway footman has March -1 order — Baratheon may march it. They could march into yronwood/starfall/princes-pass. If they march into princes-pass (empty after we leave) they take it. Hmm.\n\nActually Baratheon's march -1: they might attack yronwood if we're there. Baratheon footman strength 1 with -1 = 0 vs our footman 1 in yronwood = we win. Actually wait, if we're defender in yronwood with no defense order, we have 1 vs their 0. We win. But they'd be dumb to do that. Also our ship at sea-of-dorne with Support +0 could support yronwood.\n\nStarfall: Baratheon cannot reach starfall from boneway (not adjacent).\n\nI think Yronwood is the better pick: closer, defensible, adjacent to sea-of-dorne support, connects our lands and blocks Baratheon expansion.\n\nHmm, but Starfall also provides supply icon. We have 3 supply icons; supply track 2 allows armies 3,2,2. We only have single units mostly. Not needed.\n\nLet's go with Yronwood. Actually wait — consider",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 31469,
+    "currentInputSha256": "9ede3832e0c69969b3da075851c72c9ac0fd5fd8280a514097bde528f26fa624",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "stage": "exploration",
+        "inputItemCount": 1,
+        "inputCharacters": 35215,
+        "inputSha256": "92810932c5bbcae0c430c1963037c1be8706ca0f70128c0650569e30e8b9fa5d",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "dornish-marches",
+                  "starfall",
+                  "the-boneway",
+                  "three-towers",
+                  "yronwood"
+                ]
+              }
+            },
+            "required": [
+              "destination_region_id"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. You choose which remaining March area to resolve now. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "5c8a2d4dce99e2aa4bcf16f859a80b06b8ed0625668e96ea5a9a649ae11dee00"
+  }
+}

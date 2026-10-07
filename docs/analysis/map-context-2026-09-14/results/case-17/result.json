@@ -1,0 +1,151 @@
+{
+  "case": 17,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 8,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 7104,
+    "sha256": "134d1761b5741498c91c21f0e8b8976bb275b9b7e9074c921ed150f27d7c9ee4"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "select_units",
+      "arguments": {
+        "selections": [
+          {
+            "region_id": "greywater-watch",
+            "unit_ids": [
+              6,
+              37
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37191,
+    "outputTokens": 154,
+    "totalTokens": 37345
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37191,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 154,
+      "output_tokens_details": {
+        "reasoning_tokens": 115
+      },
+      "total_tokens": 37345,
+      "cost": 0.01313235,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01313235,
+        "upstream_inference_input_cost": 0.01301685,
+        "upstream_inference_output_cost": 0.0001155
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391303-jcopwBKdvz0QdHkCdJ7J",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391303-jcopwBKdvz0QdHkCdJ7J",
+      "output": [
+        {
+          "id": "rs_tmp_1ucacbobll",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to select units: possibleUnits [7,8,9,6,37], count 2. Must select two units from those ids. Probably want to move knights to attack? Units: id7 ship at port-of-pyke, id8 ship at port-of-pyke, id9 footman at greywater-watch, id6 knight at greywater-watch, id37 knight at greywater-watch. Need same region? selectedUnitsMustBeOfSameRegion false, so any. Choose strongest attacking units maybe knights. Select ids6 and37.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"selections\":[{\"region_id\":\"greywater-watch\",\"unit_ids\":[6,37]}]}",
+          "call_id": "6a0df1b5d",
+          "name": "select_units",
+          "type": "function_call",
+          "id": "fc_tmp_8cf69twz6ac",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 24636,
+    "currentInputSha256": "118d01ebaf6c20bba7a10d9608473ae5334d3e2a2cd71fb8e07029132c945de1",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 42332,
+        "inputSha256": "59080827027fdb663b8cc5195c8713eee69f3ab11b5841949251c1d6362bd3df",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "e3f491d10d355cb413809bf1e80193182c0b351c6c1be35f33a9054bd8a39ff5"
+  }
+}

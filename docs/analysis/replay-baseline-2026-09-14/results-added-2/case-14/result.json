@@ -1,0 +1,274 @@
+{
+  "case": 14,
+  "model": "openai/gpt-oss-120b",
+  "house": "greyjoy",
+  "round": 2,
+  "inputHashVerified": true,
+  "wireToolsVerified": true,
+  "status": "same",
+  "assertionFailure": null,
+  "error": null,
+  "originalOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 50
+          }
+        ]
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "submit_orders",
+      "arguments": {
+        "assignments": [
+          {
+            "region_id": "pyke",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 80
+          },
+          {
+            "region_id": "greywater-watch",
+            "preferred_order": "defense",
+            "starred_preference": "avoid",
+            "priority": 70
+          },
+          {
+            "region_id": "port-of-pyke",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 60
+          },
+          {
+            "region_id": "ironmans-bay",
+            "preferred_order": "consolidate_power",
+            "starred_preference": "avoid",
+            "priority": 50
+          }
+        ]
+      }
+    }
+  ],
+  "historicalAcceptedAction": {
+    "name": "submit_orders",
+    "arguments": {
+      "assignments": [
+        {
+          "region_id": "pyke",
+          "preferred_order": "defense",
+          "starred_preference": "avoid",
+          "priority": 80
+        },
+        {
+          "region_id": "greywater-watch",
+          "preferred_order": "defense",
+          "starred_preference": "avoid",
+          "priority": 70
+        },
+        {
+          "region_id": "port-of-pyke",
+          "preferred_order": "consolidate_power",
+          "starred_preference": "avoid",
+          "priority": 60
+        },
+        {
+          "region_id": "ironmans-bay",
+          "preferred_order": "consolidate_power",
+          "starred_preference": "avoid",
+          "priority": 50
+        }
+      ],
+      "applied_orders": [
+        {
+          "region_id": "pyke",
+          "order_id": 4,
+          "order": "defense"
+        },
+        {
+          "region_id": "greywater-watch",
+          "order_id": 5,
+          "order": "defense"
+        },
+        {
+          "region_id": "port-of-pyke",
+          "order_id": 10,
+          "order": "consolidate_power"
+        },
+        {
+          "region_id": "ironmans-bay",
+          "order_id": 11,
+          "order": "consolidate_power"
+        }
+      ]
+    }
+  },
+  "gameToolsExecuted": false,
+  "usage": {
+    "requests": 1,
+    "inputTokens": 11035,
+    "outputTokens": 385,
+    "totalTokens": 11420
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 11035,
+      "input_tokens_details": {
+        "cached_tokens": 768
+      },
+      "output_tokens": 385,
+      "output_tokens_details": {
+        "reasoning_tokens": 258
+      },
+      "total_tokens": 11420,
+      "cost": 0.004151,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.004151,
+        "upstream_inference_input_cost": 0.00386225,
+        "upstream_inference_output_cost": 0.00028875
+      },
+      "scope": "agent",
+      "response_id": "gen-1789376118-xTCaf10jE2oL4B2MtO7X",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789376118-xTCaf10jE2oL4B2MtO7X",
+      "output": [
+        {
+          "id": "rs_tmp_2vb5ivu0c9j",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to place orders now. All regions already have orders from previous round? Actually those were round 1. Now round 2 place-orders, we must assign orders for our units again. Likely we want to attack. We have footman+knight at Pyke, ship at Ironman's Bay, ship at Port of Pyke, footman at Greywater Watch. We should consider expansion: target neighboring regions: Ironman's Bay is sea, can move ships but cannot attack land. We could march from Pyke to Ironman's Bay? March moves land units only. Ships can't march. Could raid from Pyke? Raid removes support/raid adjacent. Might want to march from Pyke to Ironman's Bay? No. Maybe march from Pyke to Port of Pyke (adjacent) to consolidate? Actually port is just sea, can't capture. Maybe march from Pyke to Ironman's Bay sea? Not allowed. So likely we want to defend our holdings and consolidate power to get more power tokens. We have 6 power tokens now, need 8 to bid later. Consolidate power in port-of-pyke and ironmans-bay maybe. Also defense at pyke and greywater. So similar to before. Use same assignments. Provide submit_orders.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}",
+          "call_id": "b37ea59ac",
+          "name": "submit_orders",
+          "type": "function_call",
+          "id": "fc_tmp_gs8t8rzt89h",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "historicalRequestHash": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d",
+  "replayContextManifest": {
+    "policy": "current-observation-with-isolated-retries-v2",
+    "historyMode": "recent-accepted-actions",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 8,
+    "discardedPrefixItemCount": 0,
+    "removedObservationItemCount": 2,
+    "removedObservationCharacters": 59070,
+    "removedSupportToolItemCount": 0,
+    "removedSupportToolCharacters": 0,
+    "removedRetryHistoryItemCount": 0,
+    "removedRetryHistoryCharacters": 0,
+    "selectedHistoryItems": [
+      {
+        "id": "rs_tmp_z7jkmgskui",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We need to submit orders. No starred allowed. Four regions must assign orders. Decide objectives: likely expand via march from Pyke to Ironman's Bay (sea?) Actually march moves land only; Ironman's Bay is sea, but you have ship there. Could march from Pyke to Ironman's Bay? No, march moves armies; ships cannot march. Could use raid on neighboring enemy support? Adjacent enemy regions: Pyke neighbours Ironman's Bay and Port of Pyke (both ours). Ironman's Bay neighbours Greywater Watch (our) and Riverrun (enemy). Could raid Riverrun? Raid removes support/raid, not attack. Might want to march from Pyke to Ironman's Bay? Not possible. Could march from Ironman's Bay? No land units there, only ship. Could march from Port of Pyke? No land units. Could march from Greywater Watch (footman) to Ironman's Bay? No, adjacency includes Ironman's Bay (sea) not allowed. So maybe need defense orders to protect our castles. Also consolidate power maybe.\n\nWe have 4 units: footman+knight at Pyke, ship at Ironman's Bay, ship at Port of Pyke, footman at Greywater Watch. Need assign orders for each region. Likely defense on Pyke (castle), defense on Greywater Watch (supply). Consolidate power on ports to build tokens. No starred orders.\n\nSet priorities: high priority for defense on Pyke (protect castle). Next defense on Greywater Watch. Consolidate on ports.\n\nThus assignments:\npyke defense, priority 80, avoid starred.\ngreywater-watch defense, priority 70.\nport-of-pyke consolidate_power, priority 60.\nironmans-bay consolidate_power (maybe also march? but no land), but could ship support? Actually orders apply to region containing units; can assign raid or support or consolidate. Consolidate seems fine to gain power token. priority 50.\n\nReturn submit_orders.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"assignments\":[{\"region_id\":\"pyke\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":80},{\"region_id\":\"greywater-watch\",\"preferred_order\":\"defense\",\"starred_preference\":\"avoid\",\"priority\":70},{\"region_id\":\"port-of-pyke\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":60},{\"region_id\":\"ironmans-bay\",\"preferred_order\":\"consolidate_power\",\"starred_preference\":\"avoid\",\"priority\":50}]}",
+        "call_id": "7509b5b30",
+        "name": "submit_orders",
+        "type": "function_call",
+        "id": "fc_tmp_9pfesoxjuzk",
+        "status": "completed"
+      },
+      {
+        "call_id": "7509b5b30",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_orders\", \"stateId\": \"049c6696-d506-4fb3-860a-63de026f150c\"}",
+        "type": "function_call_output"
+      },
+      {
+        "id": "rs_tmp_p13wsi66lp",
+        "summary": [],
+        "type": "reasoning",
+        "content": [
+          {
+            "text": "We are in bidding phase. Need to submit_bid. Choose amount. We have 8 power tokens. Others have similar. Aim to get Iron Throne? IronThrone track order: baratheon, lannister, stark, martell, greyjoy, tyrell. Greyjoy currently 5th. Want to move up maybe to 4th or higher. Bidding amount determines move up relative to others. Likely need at least 2 to overtake Tyrell? Tyrell has 5 tokens. Greyjoy 8 tokens, already 5th but tokens not directly track? Actually track is order of houses not token count. Bids move house up one spot per token? Usually each bid moves up that many spots? Not sure. Safer: bid moderate 2.",
+            "type": "reasoning_text"
+          }
+        ],
+        "status": "completed",
+        "format": "unknown"
+      },
+      {
+        "arguments": "{\"amount\":2}",
+        "call_id": "5c217475e",
+        "name": "submit_bid",
+        "type": "function_call",
+        "id": "fc_tmp_1jd1fcolkbq",
+        "status": "completed"
+      },
+      {
+        "call_id": "5c217475e",
+        "output": "{\"ok\": true, \"accepted\": true, \"action\": \"submit_bid\", \"stateId\": \"59fbeaa2-9633-4e7a-b6ff-f29a18ab5b5c\"}",
+        "type": "function_call_output"
+      }
+    ],
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 31162,
+    "currentInputSha256": "a4e72c8b09f9254ad606e3881f260c063d68eaadf7cc5ff1adf98925c1f04d15",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 7,
+        "inputCharacters": 39556,
+        "inputSha256": "e18d65f195b94fdb8d4c50b05ad82814288684cb8b6a546249ef7e7bce93890d",
+        "instructionsCharacters": 3282,
+        "instructionsSha256": "8fc305ae1d92d9ae9e1c212f7f63e75d323271d5b64e49b119b12525f5c05b9a"
+      }
+    ],
+    "replayRestoredHistoricalContext": true
+  }
+}

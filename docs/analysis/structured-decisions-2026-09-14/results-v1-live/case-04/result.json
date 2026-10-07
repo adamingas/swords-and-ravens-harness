@@ -1,0 +1,189 @@
+{
+  "case": 4,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 10,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 10975,
+    "sha256": "3b4aee8bb164ba2d533fead8c75b5df30d3a7dca16f44b778ac5a23bff3f9c03"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "resolve-march-order",
+      "startingRegionId": "moat-cailin",
+      "moves": [
+        [
+          "seagard",
+          [
+            48,
+            55
+          ]
+        ]
+      ],
+      "leavePowerToken": false
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48, 55]\n    }\n  ],\n  \"starting_region_id\": \"moat-cailin\"\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 37777,
+    "outputTokens": 2602,
+    "totalTokens": 40379
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 37777,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 2602,
+      "output_tokens_details": {
+        "reasoning_tokens": 2600
+      },
+      "total_tokens": 40379,
+      "cost": 0.00253935,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00253935,
+        "upstream_inference_input_cost": 0.00188885,
+        "upstream_inference_output_cost": 0.0006505
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425586-lf0jIMoUvmr6shJDCqGk",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425586-lf0jIMoUvmr6shJDCqGk",
+      "output": [
+        {
+          "id": "rs_tmp_t8xfw4wf7i",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to decide how to resolve the current March order for Stark. The pending decision: resolve-single-march, with starting region? From actionGuidance, legalOrderRegions list includes bay-of-ice (orderId 1 March -1) and moat-cailin (orderId 2 March +0). So we must choose one of these March orders to resolve (the one assigned). The order assignment done earlier: in Round 10 place-orders, applied_orders included moat-cailin (order_id 2 March) and bay-of-ice (order_id 1 March). The resolve-single-march will be for one of them; which one first? The pending decision has no starting_region_id; we need to infer which order is being resolved now. In turn order, Iron Throne track order: [\"lannister\",\"baratheon\",\"greyjoy\",\"martell\",\"stark\",\"tyrell\"]; Stark is 5th. The action sequence would resolve orders in turn order. Previously, earlier in round, lannister, baratheon, greyjoy, martell have resolved their Marches, etc. Now it's Stark's turn to resolve. Stark has two March orders: bay-of-ice (March -1) and moat-cailin (March +0). Which one appears first? According to rule: each player resolves one of his March Orders at a time, cycling through turn order. So Stark would resolve one March order now (maybe the first assigned). The system may present pending decision for whichever order is next. We need to look at actionGuidance: includes both possible regions with reachable destinations. The decision requires selecting moves list.\n\nThus we can choose to move units from either bay-of-ice (unit 40 ship) or moat-cailin (units 48,55 knights). Must respect constraints: each unit ID at most once, at most one combat, supply safe groups.\n\nWe have supply of 1 (supply track). Current armies? Let's compute Stark's armies after previous moves: Units: At bay-of-ice currently there is ship unit 40 (Stark). At castle-black there are knight 2, footman 3, knight 47. At winterfell currently no units (they moved earlier). At moat-cailin there are knights 48,55. At the-shivering-sea ship 4. So armies: ships count as army if in same sea area. ship at bay-of-ice is in land area (bay-of-ice is land area?), Actually bay-of-ice is land area (terrain land). So ship is in land area? Yes ships can be placed in land only via ports; but bay-of-ice is a land area with ship; that is allowed? In game, ships cannot be in land areas unless via port? Actually ships can occupy sea areas only, and also ports (which are separate). However, the board data shows ship unit in bay-of-ice; maybe that's allowed as the ship is in the sea area? Wait \"bay-of-ice [sea]\" in map definition: It's listed as sea. So it's a sea area. Indeed \"bay-of-ice [sea]\" earlier. So ship is in sea area.\n\nThus Stark currently has one ship unit in bay-of-ice (sea). At moat-cailin two knights (land). At castle-black three units (land). At the-shivering-sea ship unit (sea). At winterfell empty.\n\nSupply 1 means can have up to four armies: sizes 3,2,2,2? Actually supply is 1 (from table supply row 1). Permitted army sizes: 3,2. So can field two armies: one size up to 3, another size up to 2. Note supply track size limit; also number of armies. Currently how many armies? Let's count: Sea area armies: bay-of-ice (1 ship) and the-shivering-sea (1 ship). Are they separate armies? Yes each sea area with ships is an army; each has 1 unit, so they count as two armies. Land armies: At castle-black three units (knight, footman, knight) => that's an army of size 3. At moat-cailin two knights => army size 2. So total armies = 4, exceeding supply (max 2 armies). However supply rules: After a Supply Westeros card, you must reconcile, but currently maybe supply is 1 but they have 4 armies; this seems illegal. But perhaps there is a rule that you cannot exceed supply at any time; but this state is present, maybe they have not encountered a Supply card since supply lowered? Actually current supply for Stark is 1 per current observation and initial supply was 1. At start, Stark had 2 supply icons? Actually controlledSupplyIcons=1. So supply 1. They have 4 armies, which is violating supply. Possibly the game allowed earlier because some armies consist of a single unit (does not count as army). Wait definition: army is two or more friendly units sharing same area. A single unit is not an army and doesn't count for supply. So only areas with 2+ units count. So which areas have 2+ units? Castle-black has 3 units => army. Moat-cailin has 2 knights => army. Bay-of-ice has 1 ship => not an army. The-shivering-sea has 1 ship => not an army. So total armies = 2, which matches supply 1? Supply 1 allows two armies sizes 3,2. Yes that's okay (two armies). So okay.\n\nNow we need to decide which March to resolve. Let's examine reachable destinations.\n\nFor bay-of-ice (order March -1) reachable regions: port-of-winterfell (type port) with controller Stark, triggersCombat false. Also sunset-sea (sea) controller Greyjoy, triggersCombat true. So we could move the ship 40 to port-of-winterfell (no combat) or to sunset-sea (combat with Greyjoy). Combat would be against Greyjoy units in sunset-sea (there is 1 ship belonging to Greyjoy). That would start combat. Must consider support around. Sunset-sea reachable region also marked triggersCombat true. We need to see adjacent support orders to that area. Let's check board for supported orders adjacent to sunset-sea: Adjacent areas per map? Sunset-sea adjacency list includes bay-of-ice, flints-finger, ironmans-bay, searoad-marches, the-golden-sound, west-summer-sea. Among those, any have Support orders? From revealedOrders list: support orders are only at ... list shows no support orders in those areas. Only support orders are not present; there is a Support order for maybe... revealedOrders only list various orders; none are support. So likely no support.\n\nThus if Stark attacks Sunset Sea with ship 40 vs Greyjoy ship 44, it's a combat in sea area. Units: attacker ship 40 (strength 1). Defender ship 44 (strength 1). Attacker has March -1, so attacker gets -1 combat strength modifier. So initial strength attacker = 1 (ship) + (-1) = 0. Defender no defense order (sunset-sea has Consolidate Power order, not defense). Defender initial = 1. Support none. House cards will be played; unknown. Likely attacker loses. Not good.\n\nAlternative move to port-of-winterfell is simply moving ship into own port, no combat, and order resolves. Also you could leave it there; unit stays.\n\nNow moat-cailin March +0 reachable regions: greywater-watch (land), seagard (land), the-twins (land), white-harbor (land), winterfell (land). All are land, no enemy units. We may move knights to any of these. We must stay within supply. Currently we have army at moat-cailin (2 knights). If we move both knights together to a destination, that would vacate moat-cailin and create a new army at destination of size 2, still 2 armies total (castle-black still army size 3). Since no control token is spent, leaving moat-cailin empty would lose control of that area (which is not a castle or stronghold, just a strategic area). That's okay. Consider moving one knight only to a destination (split) – would create a new army of size1 (not an army) and leave moat-cailin with 1 knight (not an army). That would reduce army count, maybe fine. But need to consider potential gains: castles? None of reachable destinations have castles/strongholds: greywater-watch has no castle (supply=1 but no castle). seagard has castle=2 (stronghold) Yes seagard has castle=2 per map? Actually seagard [land; castle=2; supply=1; crown=1] indicated earlier: seagard has castle=2 (stronghold). Good. The twins no castle; white harbor castle=1; winterfell castle=2 (castle). Winterfell already controlled by Stark but no units now; moving there would re-enter home area with units, but still control.\n\nGoal: increase castle count maybe. Stark already controls winterfell (castle) and castle-black (castle). Adding a stronghold at seagard would give extra castle/stronghold count. Moving knights to seagard could enable attack later.\n\nBut currently seagard is neutral? Let's see board for seagard: units: greyjoy have ??? Actually board shows seagard has no units listed. Wait board list includes seagard? Not present; maybe no units. So it's empty, no control token. It has castle 2 (stronghold) but no owner. Stark could move knights into seagard to occupy it, thereby control? Control token not required if you have units; you control area by presence of units. So they'd gain a stronghold. That would increase castle/stronghold count to 3 (winterfell, castle-black, seagard). Good.\n\nBut need to consider support: moving into seagard will not be combat because no enemy units. So no combat.\n\nThus best move likely: from moat-cailin move both knights (48,55) to seagard (or maybe one knight to seagard and one to winterfell? But winterfell already controlled. Better to capture seagard.\n\nCheck if seagard adjacent to moat-cailin? According to map, moat-cailin neighbours: greywater-watch, seagard, the-narrow-sea, the-twins, white-harbor, winterfell. Yes seagard is a neighbour. Good.\n\nAny support orders adjacent to seagard? Not seeing any support orders; maybe none.\n\nThus moving knights to seagard adds a stronghold, no combat, supply safe: new army at seagard size 2 (allowed). Leave moat-cailin empty (no army). Still have army at castle-black size 3. So two armies sizes 3 and 2 within supply allowed.\n\nThus this move seems beneficial.\n\nNow we must output JSON for resolve_march action: include starting_region_id = \"moat-cailin\"? The pending decision doesn't specify which order, but we can decide to resolve the moat-cailin March order. Provide moves list.\n\nFormat from earlier actions: resolve_march arguments example: {\"starting_region_id\":\"port-of-winterfell\",\"moves\":[{\"destination_region_id\":\"bay-of-ice\",\"unit_ids\":[40]}],\"leave_power_token\":false,\"omitted_illegal_power_token\":false}\n\nSo for moat-cailin we need moves list: maybe move both knights to seagard.\n\nThus:\n\n{\n \"starting_region_id\":\"moat-cailin\",\n \"moves\":[\n   {\"destination_region_id\":\"seagard\",\"unit_ids\":[48,55]}\n ],\n \"leave_power_token\":false,\n \"omitted_illegal_power_token\":false\n}\n\nCheck that \"seagard\" is regionId exactly 'seagard' (case). In map, area id 'seagard'. Yes.\n\nConstraints: each unit ID only once, ok.\n\nNo combat triggered.\n\nThus final answer.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_sqyqtmf6kup",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"moves\": [\n    {\n      \"destination_region_id\": \"seagard\",\n      \"unit_ids\": [48, 55]\n    }\n  ],\n  \"starting_region_id\": \"moat-cailin\"\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 31604,
+    "currentInputSha256": "1d9d7cc1acd7ad14a5898ae9712f9b7dee273207c0d8c26d7de286b9f095a561",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 35875,
+        "inputSha256": "4c68e29a2f23f237f333cffdcd83bce8a7b4a629372a0f68c44fd69ab8477101",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "starting_region_id": {
+          "description": "Region containing the march order and moving units.",
+          "title": "Starting Region Id",
+          "type": "string",
+          "enum": [
+            "bay-of-ice",
+            "moat-cailin"
+          ]
+        },
+        "moves": {
+          "description": "Destination groups and moving unit IDs. Unlisted units stay in the source. An empty list discards the order. Every group must be legal and fit Supply; an illegal final action is rejected without submitting the march.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_region_id": {
+                "title": "Destination Region Id",
+                "type": "string",
+                "enum": [
+                  "greywater-watch",
+                  "port-of-winterfell",
+                  "seagard",
+                  "sunset-sea",
+                  "the-twins",
+                  "white-harbor",
+                  "winterfell"
+                ]
+              },
+              "unit_ids": {
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    40,
+                    48,
+                    55
+                  ]
+                },
+                "minItems": 1,
+                "title": "Unit Ids",
+                "type": "array",
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "destination_region_id",
+              "unit_ids"
+            ],
+            "title": "UnitMove",
+            "type": "object"
+          },
+          "title": "Moves",
+          "type": "array",
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "starting_region_id",
+        "moves"
+      ],
+      "title": "resolve_march_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are resolving one of your March orders. Choose which units move and their destinations. Units you omit remain in the source area; you may split an army across destinations, and a single unit can march on its own. An empty moves list removes this March order without moving anyone. Only one destination may start combat. Use the reachable destinations in actionGuidance and keep the resulting armies within Supply. Leaving a control token costs one available power token and preserves control of the source when you legally vacate it. Compare castles gained and lost, and count support around the destination battlefield before choosing an attack. Your final answer resolves this one order; another remaining order is a later decision."
+    },
+    "actionOutputSchemaSha256": "0cbf98b373d2e268ac90b6e837981665ff08379d1ff676656b192be0242ad801"
+  }
+}

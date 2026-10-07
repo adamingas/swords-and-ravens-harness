@@ -1,0 +1,157 @@
+{
+  "case": 6,
+  "model": "openai/gpt-oss-120b",
+  "house": "martell",
+  "round": 3,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 2344,
+    "sha256": "14575cb00f0e7383a75f41c902eae2f0b9f9b0de25616d4ffd5bf0462377667d"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "storms-end",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "the-reach",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "kingswood",
+        "moves": [
+          {
+            "destination_region_id": "the-reach",
+            "unit_ids": [
+              25,
+              26
+            ]
+          }
+        ],
+        "leave_power_token": true
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 38667,
+    "outputTokens": 652,
+    "totalTokens": 39319
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 38667,
+      "input_tokens_details": {
+        "cached_tokens": 28288
+      },
+      "output_tokens": 652,
+      "output_tokens_details": {
+        "reasoning_tokens": 598
+      },
+      "total_tokens": 39319,
+      "cost": 0.01402245,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.01402245,
+        "upstream_inference_input_cost": 0.01353345,
+        "upstream_inference_output_cost": 0.000489
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391283-TEaiZTUz3MrZ4dISAPt3",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "cerebras",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391283-TEaiZTUz3MrZ4dISAPt3",
+      "output": [
+        {
+          "id": "rs_tmp_00w2xyettiap",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to resolve the current march order at kingswood. ActionGuidance shows reachable regions: storms-end, the-boneway, the-reach. We have 2 units footman and knight. No combat triggered as those areas have no enemy units. We can move them. Must consider supply: Martell supply 2, currently control areas with supply icons total 3 (sunspear 1, storms-end 1, yronwood 1, salt-shore 1, kingswood 1?). Actually supply icons: sunspear has supply 1, storms-end 1, yronwood 1, salt-shore 1, kingswood 1 =5 supply icons controlled but supply track is 2, meaning we can have up to 4 armies: sizes 3,2,2,2. Currently armies? Units: kingswood footman+knight (army size2), storms-end footman (army size1 single unit not army), yronwood footman (size1), salt-shore none, seas none. So armies count: one army of 2, others singles not count. Supply ok.\n\nWe must choose move. Likely advance towards opponent stronghold? Martell goal maybe target Iron Throne? Probably push towards Storm's End to attack Lannister? Storm's End is owned by Martell currently control token there, but moving there doesn't change. Maybe move to the Reach to approach Lannister's Lannisport? The Reach is land adjacent to Kingswood, controlled by no one currently. It is a key region with castle? Reach is land no castle? Actually The Reach is a region (no castle). It could be used as staging. No enemy units.\n\nConsider future attacks: We might want to threaten Lannisport via The Reach then to Lannisport? Lannisport is controlled by Lannister with units. The Reach adjacent to Lannisport? Yes Reach connects to Lannisport. So moving to The Reach positions us to later march into Lannisport. That seems strategic.\n\nThus resolve march: move both units from Kingswood to The Reach. No combat. Should we leave power token? We vacate Kingswood (no units). Can we leave power token? ActionGuidance says canLeavePowerToken true. Should we? Might want to keep control of Kingswood as supply icon? Kingswood has supply=1 and is a castle? Actually castle=0? It is land with supply=1, no castle. Leaving power token could give us control of supply icon for future. But we might need to control supply icons anyway. Keeping token gives us extra supply icons? Already have many. Could be useful. However we already have control of supply icons in the region anyway maybe we want to keep it. Let's leave power token true.\n\nThus call resolve_march with moves to the-reach, unit_ids [25,26], leave_power_token true.",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "arguments": "{\"starting_region_id\":\"kingswood\",\"moves\":[{\"destination_region_id\":\"the-reach\",\"unit_ids\":[25,26]}],\"leave_power_token\":true}",
+          "call_id": "e900b75be",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_v3yx56dcuu8",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 29274,
+    "currentInputSha256": "6d9d0d4faf41d4962c0f36c82e335f10902d82d7fedf4a5d98409218dc06e34a",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 25,
+        "inputCharacters": 47328,
+        "inputSha256": "d25e064344ee4f87a6b7c8c5d414f0ccd3dd0900b138c268cee28b90ea223648",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "17c2937f93ff38f61fa498798d090cd3cdb37a2587b9863a8de6da3576de3e05"
+  }
+}

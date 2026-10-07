@@ -1,0 +1,204 @@
+{
+  "castle-black": {
+    "id": "castle-black",
+    "name": "Castle Black",
+    "type": "land",
+    "castleLevel": 0,
+    "supplyIcons": 0,
+    "crownIcons": 1,
+    "homeController": null,
+    "neighbours": [
+      "bay-of-ice",
+      "karhold",
+      "the-shivering-sea",
+      "winterfell"
+    ]
+  },
+  "the-stony-shore": {
+    "id": "the-stony-shore",
+    "name": "The Stony Shore",
+    "type": "land",
+    "castleLevel": 0,
+    "supplyIcons": 1,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "bay-of-ice",
+      "winterfell"
+    ]
+  },
+  "stoney-sept": {
+    "id": "stoney-sept",
+    "name": "Stoney Sept",
+    "type": "land",
+    "castleLevel": 0,
+    "supplyIcons": 0,
+    "crownIcons": 1,
+    "homeController": null,
+    "neighbours": [
+      "blackwater",
+      "harrenhal",
+      "lannisport",
+      "riverrun",
+      "searoad-marches"
+    ]
+  },
+  "crackclaw-point": {
+    "id": "crackclaw-point",
+    "name": "Crackclaw Point",
+    "type": "land",
+    "castleLevel": 1,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "blackwater",
+      "blackwater-bay",
+      "harrenhal",
+      "kings-landing",
+      "shipbreaker-bay",
+      "the-mountains-of-the-moon",
+      "the-narrow-sea"
+    ]
+  },
+  "riverrun": {
+    "id": "riverrun",
+    "name": "Riverrun",
+    "type": "land",
+    "castleLevel": 2,
+    "supplyIcons": 1,
+    "crownIcons": 1,
+    "homeController": null,
+    "neighbours": [
+      "harrenhal",
+      "ironmans-bay",
+      "lannisport",
+      "seagard",
+      "stoney-sept",
+      "the-golden-sound"
+    ]
+  },
+  "kingswood": {
+    "id": "kingswood",
+    "name": "Kingswood",
+    "type": "land",
+    "castleLevel": 0,
+    "supplyIcons": 1,
+    "crownIcons": 1,
+    "homeController": null,
+    "neighbours": [
+      "blackwater-bay",
+      "kings-landing",
+      "shipbreaker-bay",
+      "storms-end",
+      "the-boneway",
+      "the-reach"
+    ]
+  },
+  "shipbreaker-bay": {
+    "id": "shipbreaker-bay",
+    "name": "Shipbreaker Bay",
+    "type": "sea",
+    "castleLevel": 0,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "blackwater-bay",
+      "crackclaw-point",
+      "dragonstone",
+      "east-summer-sea",
+      "kingswood",
+      "port-of-dragonstone",
+      "port-of-storms-end",
+      "storms-end",
+      "the-narrow-sea"
+    ]
+  },
+  "the-shivering-sea": {
+    "id": "the-shivering-sea",
+    "name": "The Shivering Sea",
+    "type": "sea",
+    "castleLevel": 0,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "castle-black",
+      "karhold",
+      "the-narrow-sea",
+      "white-harbor",
+      "widows-watch",
+      "winterfell"
+    ]
+  },
+  "moat-cailin": {
+    "id": "moat-cailin",
+    "name": "Moat Cailin",
+    "type": "land",
+    "castleLevel": 1,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "greywater-watch",
+      "seagard",
+      "the-narrow-sea",
+      "the-twins",
+      "white-harbor",
+      "winterfell"
+    ]
+  },
+  "white-harbor": {
+    "id": "white-harbor",
+    "name": "White Harbor",
+    "type": "land",
+    "castleLevel": 1,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "moat-cailin",
+      "port-of-white-harbor",
+      "the-narrow-sea",
+      "the-shivering-sea",
+      "widows-watch",
+      "winterfell"
+    ]
+  },
+  "the-reach": {
+    "id": "the-reach",
+    "name": "The Reach",
+    "type": "land",
+    "castleLevel": 1,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "blackwater",
+      "dornish-marches",
+      "highgarden",
+      "kings-landing",
+      "kingswood",
+      "searoad-marches",
+      "the-boneway"
+    ]
+  },
+  "the-golden-sound": {
+    "id": "the-golden-sound",
+    "name": "The Golden Sound",
+    "type": "sea",
+    "castleLevel": 0,
+    "supplyIcons": 0,
+    "crownIcons": 0,
+    "homeController": null,
+    "neighbours": [
+      "ironmans-bay",
+      "lannisport",
+      "port-of-lannisport",
+      "riverrun",
+      "searoad-marches",
+      "sunset-sea"
+    ]
+  }
+}

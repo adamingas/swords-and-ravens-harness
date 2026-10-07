@@ -1,0 +1,208 @@
+{
+  "case": 2,
+  "model": "openai/gpt-oss-120b",
+  "house": "stark",
+  "round": 5,
+  "variant": "current-production-structured-decision",
+  "snapshot": {
+    "id": 4052,
+    "sha256": "3e2d466a87b4d0daee082e55a4f9bc89f5d3b400a3c2a68a88ea694355169ecd"
+  },
+  "snapshotBoardVerified": true,
+  "error": null,
+  "serverActionsExecuted": false,
+  "commands": [
+    {
+      "type": "submit-orders",
+      "orders": [
+        {
+          "regionId": "bay-of-ice",
+          "orderId": 10
+        },
+        {
+          "regionId": "castle-black",
+          "orderId": 1
+        },
+        {
+          "regionId": "karhold",
+          "orderId": 4
+        },
+        {
+          "regionId": "winterfell",
+          "orderId": 2
+        },
+        {
+          "regionId": "the-narrow-sea",
+          "orderId": 11
+        }
+      ]
+    }
+  ],
+  "finalAnswers": [
+    "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 100,\n      \"region_id\": \"winterfell\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"castle-black\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 80,\n      \"region_id\": \"bay-of-ice\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"defense\",\n      \"priority\": 70,\n      \"region_id\": \"karhold\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 60,\n      \"region_id\": \"the-narrow-sea\",\n      \"starred_preference\": \"avoid\"\n    }\n  ]\n}"
+  ],
+  "requestCount": 1,
+  "explorationCalls": [],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 36906,
+    "outputTokens": 3440,
+    "totalTokens": 40346
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 36906,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 3440,
+      "output_tokens_details": {
+        "reasoning_tokens": 3401
+      },
+      "total_tokens": 40346,
+      "cost": 0.0027053,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.0027053,
+        "upstream_inference_input_cost": 0.0018453,
+        "upstream_inference_output_cost": 0.00086
+      },
+      "scope": "agent",
+      "response_id": "gen-1789425850-7U8oZvMt0WupDsXrVRjM",
+      "response_model": "openai/gpt-oss-120b",
+      "response_provider": "novita",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789425850-7U8oZvMt0WupDsXrVRjM",
+      "output": [
+        {
+          "id": "rs_tmp_rd05wd3egyr",
+          "summary": [],
+          "type": "reasoning",
+          "content": [
+            {
+              "text": "We need to assign orders for all occupied areas: eligibleRegionIds list includes bay-of-ice, castle-black, karhold, winterfell, the-narrow-sea. Also we have units in winterfell (footman), bay-of-ice (ship), castle-black (2 knights), karhold (knight), the-narrow-sea (ship). Must assign one order per area. We have restrictions: maxStarredOrders = 0 (from planningConstraints). So cannot use starred orders. Also restrictedOrderCategories [\"raid\"] meaning cannot assign Raid orders at all. So orders can be March, Defense, Support, Consolidate Power. Need to consider strategic goals: capture new castles: Flint's Finger reachable from Castle Black (via ships?) Let's see connectivity: Castle Black neighbors: bay-of-ice (land), karhold (land), the-shivering-sea (sea), winterfell (land). Also ships at Castle Black? units are knights, no ships there. But we have a ship at bay-of-ice (stark ship). Ship can transport knights from Castle Black via ship transport? Ship transport requires ships in consecutive sea areas connecting two land areas. From Castle Black, there is the-shivering-sea (sea) adjacent, which contains no Stark units currently. But we have a ship at the-narrow-sea, not at the-shivering-sea. However ship transport can be used if there is a chain of sea areas each containing at least one friendly ship. Currently Stark ship at bay-of-ice and at the-narrow-sea. Are they connected via sea? bay-of-ice is land, adjacent sea? bay-of-ice neighbors include the-narrow-sea? Not listed. Let's check map: bay-of-ice neighbors: castle-black, karhold, the-shivering-sea, winterfell. So only sea neighbor is the-shivering-sea. the-shivering-sea neighbors: castle-black, karhold, the-narrow-sea, white-harbor, widows-watch, winterfell. So there is a path: Castle Black -> the-shivering-sea (sea) -> the-narrow-sea (sea). We have a Stark ship at the-narrow-sea, but none at the-shivering-sea. Ship transport requires ships in each sea area along path. Since the-shivering-sea has no Stark ship, cannot transport through. So knights cannot move via ship transport currently.\n\nThus from Castle Black, reachable undefended castles: Flint's Finger (land) is neighbor of Castle Black? Check map: flints-finger neighbors: bay-of-ice, greywater-watch, ironmans-bay, sunset-sea. Not directly adjacent to castle-black. So cannot march directly there. However from Castle Black, can march to bay-of-ice (land) (occupied by Stark ship). Bay-of-ice is adjacent to flints-finger (land) via adjacency? yes, flints-finger neighbor includes bay-of-ice. So a March order from bay-of-ice could move ship into flints-finger (sea? Actually flints-finger is land with castle). But cannot muster ship there; but can march ship into flints-finger? Ships cannot march into land areas, only footmen/knights/siege. So to capture flints-finger need a land unit marching from an adjacent land area containing a Stark unit. The adjacent land area is bay-of-ice (land) which currently only has a ship. No land units there. So to capture flints-finger need a land unit (footman/knight) in bay-of-ice, which we don't have. Could move a knight from castle-black to bay-of-ice (via march) then later use that to capture flints-finger next round. So assigning a March order at castle-black could move knights into bay-of-ice (land), but need supply considerations. Stark supply is 1; we currently have 1 army? Let's see Stark units: winterfell footman (single unit, not army). bay-of-ice ship (single ship, not army). castle-black knights (2 knights together = army of 2 units). karhold knight (single). So we have one army (castle-black) of size 2 units, and one army of size1 (karhold) and one single footman at winterfell, and a ship (not army). Supply 1 permits armies: supply 1 => permitted army sizes: from table supply 1: 3,2 (two armies, one size 3, one size2). So we can have up to two armies: one up to 3 units, one up to 2 units. Currently we have an army of size2 (castle-black) fits size2. And another army of size1 (karhold) fits size3? Actually an army is 2+ units, so karhold single knight is not an army. The ship not army. So we have only one army, within limits. If we move knights from castle-black to bay-of-ice, we would vacate castle-black leaving maybe one knight there (if we split) or move both knights. If we move both knights to bay-of-ice, castle-black would have zero land units, but we could place a power token to keep control? We have no power tokens left (we have 3 total, currently none placed). We could place one power token when vacating castle-black to keep control, but we have power tokens available (3). However placing a power token reduces our available power tokens (used for later). Also moving both knights would create an army in bay-of-ice of size2 (land units). That would be an army of size2, okay. Castle-black would be empty; we could leave a power token there to retain control of castle and count toward victory. That seems good.\n\nAlternatively we could use March from winterfell to move footman maybe to somewhere else - perhaps to winterfell already has footman, could move to bay-of-ice or castle-black? But footman cannot move into sea. Could march footman into winterfell adjacent area that is land: bay-of-ice (land). Yes footman could move to bay-of-ice, creating land unit there. That would give a land unit in bay-of-ice to later capture flints-finger. But moving footman vacates winterfell (its castle). We could place a power token there to keep control. But we may want to keep winterfell occupied to protect it (since it's a castle). Vacating might be risky. But we have a ship at bay-of-ice currently, which could be used for transport later to bring knights? Ship cannot transport footmen? Ship can transport knights via ship transport but need chain of ships. Not now.\n\nGoal: capture new castle areas: Flint's Finger, Moat Cailin, White Harbor via Winterfell's connections? Winterfell neighbors: bay-of-ice, castle-black, karhold, moat-cailin, port-of-winterfell, the-shivering-sea, the-stony-shore, white-harbor. So from winterfell, we could march footman to moat-cailin (land with castle), capturing it if we have a March order there. But moat-cailin is currently owned by Greyjoy? Actually controlPowerToken: none, units? none. Control: no house tokens. It's castle=1, currently unoccupied. So it's undefended castle. So we could move footman from winterfell to moat-cailin to capture it, leaving winterfell empty; we could place power token on winterfell to keep it. That would give us an extra castle (moat-cailin) but we lose winterfell's castle unless we place token (still counts as control? Yes, power token counts as control but not a castle. Victory points count castle/stronghold areas you control, regardless of whether you have units? The rules: control of area with castle counts if you control area (units or power token). So power token would allow us to still control winterfell and its castle, giving us both winterfell and moat-cailin castles. Good.\n\nSimilarly, could capture white-harbor (castle) from winterfell. Choose which target. Only one March order per area. We have only 5 areas needing orders. Could assign March from winterfell to either moat-cailin or white-harbor. Which is better? Both are castles. Perhaps choose moat-cailin as it's closer maybe strategic corridor north. White-harbor also castle. Could consider that Greyjoy has units near white-harbor (seagard etc). Capturing white-harbor may provoke conflict but might be valuable to block Greyjoy. Perhaps prioritize moat-cailin because it's adjacent and maybe less contested.\n\nFrom castle-black, could March knights to bay-of-ice (to get land unit there) and then later capture flints-finger. But that requires moving knights leaving castle-black empty; we can leave power token.\n\nFrom karhold, could assign Defense to protect it? No immediate threat. Could assign Support to help any combat? Maybe support future combats like winterfell attack? But we have no enemy adjacent currently? Greyjoy units in seagard, etc not adjacent to winterfell. But could support from karhold to winterfell if combat occurs.\n\nThe-narrow-sea: currently has a Stark ship. Could assign Consolidate Power (as before) to gain power tokens (from sea area no power icons; but maybe none). The sea has no power icons, so consolidating yields 1 token base + 0 = 1 power token. That's valuable. Could also assign Support to help future combats, but maybe better to get power.\n\nWe have limited power tokens 3, but we could gain more.\n\nWe cannot use starred orders.\n\nThus propose assignments:\n\n- winterfell: March +0 (regular March order) to moat-cailin (capture). We need to ensure supply: moving footman leaves winterfell empty, we will place power token (cost 1 power token) to keep control. That uses a power token, leaving us with 2 remaining. Ensure we have enough supply after move: we will create an army at moat-cailin of 1 footman (single unit, not army). No army size increase. Vacating winterfell removes army? winterfell had single footman (not army). So supply unchanged. Good.\n\n- castle-black: March -1 (the -1 March token) to bay-of-ice (move knights). This would move knights to bay-of-ice creating army of 2 knights (size2). Castle-black becomes empty; we can place a power token (use another power token). That would consume another token.\n\n- karhold: Defense +1 (regular defense). Protect against possible attack.\n\n- bay-of-ice: Consolidate Power (regular) to gain power token (1 token). However after moving knights out, bay-of-ice will have ship plus knights (if we move both). That's an army of 3 units (ship not count? Ship doesn't count for army size? Army definition is two or more friendly units in same land or sea area. Ship is unit; counts towards army size for supply? Yes, any unit counts as one unit for supply. So land area bay-of-ice will have 2 knights + 1 ship = 3 units => army size 3. Our supply is 1 which permits one army size up to 3. That's okay (we have only that army). Good.\n\nBut we also need assign order to bay-of-ice. However we already used March from castle-black to bay-of-ice, but orders are assigned per area with units, not per destination. Bay-of-ice has units (ship + knights after march) so needs its own order. Consolidate Power there is okay.\n\nHowever note that after March order resolves, the source area (castle-black) becomes empty; but we assigned Defense to karhold, Consolidate to bay-of-ice, Defense etc.\n\nThe-narrow-sea: Consolidate Power (regular) as before to gain power.\n\nWe have 5 orders: winterfell (march), castle-black (march -1), karhold (defense), bay-of-ice (consolidate), the-narrow-sea (consolidate). Need to ensure we have required order tokens: we have 2 March tokens (one -1, one +0). We need both. We have 2 Defense tokens (both +1). Use one. We have 3 Consolidate tokens (regular). Good.\n\nCheck starred limit 0 satisfied.\n\nNow we must ensure that moving knights from castle-black to bay-of-ice does not exceed supply when combined with existing ship at bay-of-ice. As analyzed, army size 3 within supply.\n\nWe also must ensure we have enough power tokens to place tokens on castle-black and winterfell when vacated. We have 3 available. We'll need 2 power tokens. After placing them, we will have 1 left. That's fine.\n\nNow, the March order from winterfell (footman) to moat-cailin: moat-cailin currently has no units. It will become occupied by footman, forming an army? Single footman not army, okay. We need to place power token on winterfell.\n\nPotential risk: we might run out of power tokens for later rounds, but it's fine.\n\nNow produce JSON of order assignments. Need to follow schema: { \"assignments\": [ { \"region_id\": \"...\", \"preferred_order\": \"...\", \"starred_preference\": \"avoid\", \"priority\": ... }, ... ], \"applied_orders\": ??? Actually we just submit orders; the system will allocate based on availability. Our output should just include assignments? The previous submissions included both assignments and applied_orders. The required schema likely same as earlier: submit_orders action expects \"assignments\" array, system will return applied orders.\n\nThus we need to construct assignments with 'preferred_order' values being one of: \"march\", \"defense\", \"support\", \"consolidate_power\". Use \"march\" with maybe specify modifier? Not needed; the system picks appropriate March token based on availability and priority. But we have two March orders one -1 and one +0. Preference may include \"march_-1\" or \"march_+0\"? The order legend shows IDs 1: March -1, 2: March +0, 3: March +1. In assignments we just specify \"march\" and the system picks based on priority? It might allocate automatically. To control which modifier we want, we could set priority such that the higher priority gets the +0? Not sure. But we likely need to specify \"march\" and rely on system to allocate both March orders (one -1 one +0) but which area gets which may affect combat if combat later; not important now. Could we want -1 for castle-black to reduce strength? Might be okay. Could also assign March +0 to winterfell footman? There's no need for modifier. But the system may assign +0 to winterfell and -1 to castle-black based on priority numbers. To enforce, we could set higher priority for winterfell March, lower for castle-black. Not important.\n\nThus set priority: winterfell 100, castle-black 90, bay-of-ice 80 (consolidate), karhold 70 (defense), the-narrow-sea 60 (consolidate).\n\nNow need to include \"starred_preference\":\"avoid\" for all.\n\nThus final JSON.\n\n",
+              "type": "reasoning_text"
+            }
+          ],
+          "status": "completed",
+          "format": "unknown"
+        },
+        {
+          "id": "msg_tmp_p4ej4bwxmdp",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\n  \"assignments\": [\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 100,\n      \"region_id\": \"winterfell\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"march\",\n      \"priority\": 90,\n      \"region_id\": \"castle-black\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 80,\n      \"region_id\": \"bay-of-ice\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"defense\",\n      \"priority\": 70,\n      \"region_id\": \"karhold\",\n      \"starred_preference\": \"avoid\"\n    },\n    {\n      \"preferred_order\": \"consolidate_power\",\n      \"priority\": 60,\n      \"region_id\": \"the-narrow-sea\",\n      \"starred_preference\": \"avoid\"\n    }\n  ]\n}",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "contextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 28312,
+    "currentInputSha256": "42ece6accad095db00315114b0f146b71fe280911d6d80ea3c3f001cebf8cb31",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 1,
+        "inputCharacters": 32119,
+        "inputSha256": "d51594c3a2868a57f08d07d4b7543b5e8cf8cff9fe833bb2fb33bbb7e548b50e",
+        "instructionsCharacters": 127256,
+        "instructionsSha256": "c5ce84fb88cbe55645f16ac3fa825ec6e84f511aeae070e535d703967ac4f60b"
+      }
+    ],
+    "actionOutputSchema": {
+      "properties": {
+        "assignments": {
+          "description": "The exact requested number of semantic order assignments.\nRegion IDs must be distinct. When there are fewer usable tokens than\noccupied regions, choose which regions receive no order.",
+          "items": {
+            "additionalProperties": false,
+            "description": "One semantic order choice assigned to one board region.",
+            "properties": {
+              "region_id": {
+                "description": "ID of a region containing your units.",
+                "minLength": 1,
+                "title": "Region Id",
+                "type": "string",
+                "enum": [
+                  "bay-of-ice",
+                  "castle-black",
+                  "karhold",
+                  "winterfell",
+                  "the-narrow-sea"
+                ]
+              },
+              "preferred_order": {
+                "description": "Preferred order category. The harness preserves this preference when the global physical-token inventory and Westeros restrictions permit it, and otherwise substitutes a legal category. The currently restricted categories are raid.",
+                "enum": [
+                  "march",
+                  "defense",
+                  "support",
+                  "consolidate_power",
+                  "raid"
+                ],
+                "title": "OrderCategory",
+                "type": "string"
+              },
+              "starred_preference": {
+                "description": "Prefer a starred token when it is legal and available, or avoid one unless the order inventory forces it.",
+                "enum": [
+                  "prefer",
+                  "avoid"
+                ],
+                "title": "StarredPreference",
+                "type": "string"
+              },
+              "priority": {
+                "description": "Relative importance from 0 to 100. Higher-priority regions receive scarce starred tokens and stronger March modifiers first.",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "Priority",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "region_id",
+              "preferred_order",
+              "starred_preference",
+              "priority"
+            ],
+            "title": "OrderAssignment",
+            "type": "object"
+          },
+          "title": "Assignments",
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "assignments"
+      ],
+      "title": "submit_orders_args",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "You are placing planning orders for this round. Assign an order preference to each required occupied area, respecting the displayed restrictions and starred-order limit. Your final answer submits the whole order draft and marks your house ready. These orders determine what your armies can do later; this decision does not move units. A single land unit can capture an empty castle with a March order. Defence and Support orders do not move that unit or claim neighbouring land. Consolidate Power in an open sea earns no power; a port follows the separate port rule. The harness allocates the physical order tokens, preserving higher-priority preferences when not all requested categories fit the available tokens."
+    },
+    "actionOutputSchemaSha256": "42dbbc0401309ee089ec60e1845d480de73c372558aa3d7867e4724a9880afb9"
+  }
+}

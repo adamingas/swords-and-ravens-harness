@@ -1,0 +1,148 @@
+{
+  "case": 10,
+  "model": "~deepseek/deepseek-v4-flash-latest",
+  "house": "martell",
+  "round": 3,
+  "promptVariant": "full-rules-compact-map-and-neighbours-tool",
+  "snapshot": {
+    "id": 3054,
+    "sha256": "cfd9be37f0d21248e6021658a4145f8bb1dd60ca9930fd11bc30f453e4a67e11"
+  },
+  "snapshotBoardVerified": true,
+  "inputVerified": true,
+  "wireToolsVerified": true,
+  "error": null,
+  "gameToolsExecuted": false,
+  "requestCount": 1,
+  "playerRequestCount": 1,
+  "mapCalls": [],
+  "originalOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "replayOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [
+          {
+            "destination_region_id": "starfall",
+            "unit_ids": [
+              27
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "allOperations": [
+    {
+      "name": "resolve_march",
+      "arguments": {
+        "starting_region_id": "princes-pass",
+        "moves": [
+          {
+            "destination_region_id": "starfall",
+            "unit_ids": [
+              27
+            ]
+          }
+        ],
+        "leave_power_token": false
+      }
+    }
+  ],
+  "usage": {
+    "requests": 1,
+    "inputTokens": 40600,
+    "outputTokens": 47,
+    "totalTokens": 40647
+  },
+  "rawUsage": [
+    {
+      "input_tokens": 40600,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 47,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 40647,
+      "cost": 0.00569716,
+      "is_byok": false,
+      "cost_details": {
+        "upstream_inference_cost": 0.00569716,
+        "upstream_inference_input_cost": 0.005684,
+        "upstream_inference_output_cost": 1.316e-05
+      },
+      "scope": "agent",
+      "response_id": "gen-1789391288-1AQltGWWjP1BfDbxr98O",
+      "response_model": "deepseek/deepseek-v4-flash-0731",
+      "response_provider": "together",
+      "service_tier": "auto"
+    }
+  ],
+  "responseItems": [
+    {
+      "type": "partial_model_response",
+      "status": "completed",
+      "responseId": "gen-1789391288-1AQltGWWjP1BfDbxr98O",
+      "output": [
+        {
+          "arguments": "{\"starting_region_id\":\"princes-pass\",\"moves\":[{\"destination_region_id\":\"starfall\",\"unit_ids\":[27]}],\"leave_power_token\":false}",
+          "call_id": "call_01a0a0085fd07b72903ae3d1",
+          "name": "resolve_march",
+          "type": "function_call",
+          "id": "fc_tmp_9y7mjcmc9qp",
+          "status": "completed"
+        },
+        {
+          "id": "msg_tmp_ganauwpxr8i",
+          "content": [
+            {
+              "annotations": [],
+              "text": "]",
+              "type": "output_text",
+              "logprobs": []
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ]
+    }
+  ],
+  "replayContextManifest": {
+    "policy": "current-observation-only",
+    "historyMode": "current-observation-only",
+    "sessionHistoryLimit": 32,
+    "retrievedHistoryItemCount": 0,
+    "removedHistoryItemCount": 0,
+    "removedHistoryCharacters": 0,
+    "currentInputItemCount": 1,
+    "currentInputCharacters": 26277,
+    "currentInputSha256": "0ba57d1fddd60ff04d3057ca68258fa1e7653fb726ca064efaf5ae5e4f30c9d8",
+    "modelRequestInputs": [
+      {
+        "requestIndex": 1,
+        "inputItemCount": 22,
+        "inputCharacters": 37964,
+        "inputSha256": "2f7a5b8209eef7e9e693341f1ce5b02652fe85bd233f612aa24960b19c30b566",
+        "instructionsCharacters": 128087,
+        "instructionsSha256": "31bf1fb00d92a7f3503c05ef5df41c2cdb9ae5640164a5613cc278e70dee84eb"
+      }
+    ],
+    "replayRestoredHistoricalContext": true,
+    "historicalInputSha256": "31727af38ae2ac21d2f8e37ff405ee6ec9a6fb9f690ac9c133b70512c0a3ce50"
+  }
+}
